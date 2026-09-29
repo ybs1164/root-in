@@ -1,131 +1,163 @@
-import { ChevronLeft, NotebookPen, Share, X } from 'lucide-react';
+import { Settings as SettingsIcon, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import CourseEditor from './components/CourseEditor';
-import CourseList from './components/CourseList';
-import DiaryEditor from './components/DiaryEditor';
-import DiaryList, { type DiaryListTab } from './components/DiaryList';
-import DiaryShareSheet from './components/DiaryShareSheet';
-import DiaryView from './components/DiaryView';
-import { WishStar } from './components/icons';
+import BottomBar from './components/BottomBar';
+import CalendarSheet from './components/CalendarSheet';
+import CategoryChips from './components/CategoryChips';
+import InfluencerPanel from './components/InfluencerPanel';
+import PinCard from './components/PinCard';
+import PinDropTray from './components/PinDropTray';
+import PinsSheet, { type PinsSub } from './components/PinsSheet';
 import SearchBar from './components/SearchBar';
+import SettingsSheet from './components/SettingsSheet';
 import SharedCourseView from './components/SharedCourseView';
+import SharedPinsView from './components/SharedPinsView';
 import ShareSheet from './components/ShareSheet';
+import { tabForIncoming, type AppTab } from './domain/appTabs';
 import { addStop, COURSE_LIMITS, emptyDraft } from './domain/course';
-import { addDiaryStop, dateKey, DIARY_LIMITS, emptyDiaryDraft, timeKey, toDiaryDraft } from './domain/diary';
-import { useCourses } from './hooks/useCourses';
-import { useDiary } from './hooks/useDiary';
+import { DIARY_LIMITS, diaryKind } from './domain/diary';
+import { buildPinSet, categoryStyle, filterPins } from './domain/pin';
+import { orderByNearest } from './domain/routeOrder';
+import { useCourseDraft } from './hooks/useCourseDraft';
+import { useDiaryDay } from './hooks/useDiaryDay';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
 import { useIncomingDiary } from './hooks/useIncomingDiary';
+import { useIncomingPins } from './hooks/useIncomingPins';
+import { usePins } from './hooks/usePins';
 import { usePlaceSearch } from './hooks/usePlaceSearch';
+import { useSettings } from './hooks/useSettings';
 import { kakaoPlaceUrl } from './lib/directionsLink';
-import { getCurrentPlace } from './lib/geolocation';
-import { SEOUL_CENTER, type CourseMap, type MapPadding } from './map/courseMap';
+import { getDisplayName } from './lib/currentUser';
+import { SEOUL_CENTER, type CourseMap, type MapPadding, type PinMarker } from './map/courseMap';
 import { createMapStack } from './map/createCourseMap';
-import type { PlaceSearchService } from './services/placeSearch/placeSearchService';
-import type { Course, CourseDraft, PlaceRef } from './types/course';
-import type { DiaryDraft, DiaryEntry, DiarySnapshot, WishItem } from './types/diary';
+import { encodeSharedCourse } from './services/courseShareService';
+import type { CuratorItem } from './services/curatorFeedService';
+import { encodeSharedPinSet } from './services/pinShareService';
+import { pointPlace, type PlaceSearchService } from './services/placeSearch/placeSearchService';
+import { withRecentCategory } from './services/settingsRepository';
+import type { ShareTarget } from './services/shareTargets';
+import type { PlaceRef } from './types/course';
+import { PIN_ICONS, type Pin } from './types/pin';
 
-type Tab = 'edit' | 'list';
-type Mode = 'course' | 'diary';
-type DiaryScreen = { kind: 'list' } | { kind: 'edit' } | { kind: 'wish'; item: WishItem };
 type SheetSize = 'peek' | 'full';
+type Toast = { text: string; undo?: () => void };
 
 const DESKTOP_QUERY = '(min-width: 900px)';
-
-const toDraft = (course: Course): CourseDraft => ({
-  id: course.id,
-  title: course.title,
-  theme: course.theme,
-  travelMode: course.travelMode,
-  stops: course.stops,
-  note: course.note,
-  sharedBy: course.sharedBy,
-});
-
-const draftKey = (draft: CourseDraft) =>
-  JSON.stringify([draft.title.trim(), draft.theme, draft.travelMode, draft.stops, draft.note ?? '']);
-
-const diaryKey = (draft: DiaryDraft) =>
-  JSON.stringify([draft.date, draft.title.trim(), draft.mood ?? '', draft.travelMode, draft.stops, draft.text?.trim() ?? '']);
-
-const snapshotToDraft = ({ date, title, mood, travelMode, stops, text }: DiarySnapshot): DiaryDraft => ({
-  date,
-  title,
-  mood,
-  travelMode,
-  stops,
-  text,
-});
 
 export default function App() {
   const mapEl = useRef<HTMLDivElement | null>(null);
   const sheetEl = useRef<HTMLElement | null>(null);
+  const barEl = useRef<HTMLDivElement | null>(null);
   const searchInput = useRef<HTMLInputElement | null>(null);
   const mapRef = useRef<CourseMap | null>(null);
   const [searchService, setSearchService] = useState<PlaceSearchService | null>(null);
   const [mapProvider, setMapProvider] = useState<'kakao' | 'maplibre' | null>(null);
 
-  const { courses, save, remove } = useCourses();
-  const { incoming, dismiss: dismissIncoming } = useIncomingCourse();
-  const diary = useDiary();
-  const { incoming: incomingDiary, dismiss: dismissIncomingDiary } = useIncomingDiary();
+  const [toast, setToast] = useState<Toast | null>(null);
+  const notify = useCallback((text: string, undo?: () => void) => setToast({ text, undo }), []);
 
-  const [tab, setTab] = useState<Tab>('edit');
+  const { settings, update: updateSettings } = useSettings();
+  const pinStore = usePins();
+  const { pins, categories } = pinStore;
+  const course = useCourseDraft();
+  const day = useDiaryDay(notify);
+  const { incoming: incomingCourse, dismiss: dismissCourse } = useIncomingCourse();
+  const { incoming: incomingDiary, dismiss: dismissDiary } = useIncomingDiary();
+  const { incoming: incomingPins, dismiss: dismissPins } = useIncomingPins();
+
+  const [tab, setTab] = useState<AppTab>('pins');
+  const [sub, setSub] = useState<PinsSub>('pins');
   const [sheet, setSheet] = useState<SheetSize>('peek');
-  const [draft, setDraft] = useState<CourseDraft>(emptyDraft);
-  const [savedKey, setSavedKey] = useState<string | null>(null);
-  const [sharing, setSharing] = useState(false);
+  const [shareTarget, setShareTarget] = useState<ShareTarget | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [sharedSaved, setSharedSaved] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-
-  const [mode, setMode] = useState<Mode>('course');
-  const [diaryTab, setDiaryTab] = useState<DiaryListTab>('entries');
-  const [diaryScreen, setDiaryScreen] = useState<DiaryScreen>({ kind: 'list' });
-  const [diaryDraft, setDiaryDraft] = useState<DiaryDraft>(emptyDiaryDraft);
-  const [diarySavedKey, setDiarySavedKey] = useState<string | null>(null);
-  const diaryOpened = useRef(false);
-  const [diarySharing, setDiarySharing] = useState<DiaryDraft | null>(null);
-  const [sharedDiarySaved, setSharedDiarySaved] = useState(false);
-  const [locating, setLocating] = useState(false);
+  const [sharedPinsSaved, setSharedPinsSaved] = useState(false);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [preview, setPreview] = useState<PlaceRef | null>(null);
+  const [previewPinning, setPreviewPinning] = useState(false);
 
-  const sharedCourse = incoming.status === 'ready' ? incoming.course : null;
+  const [pinning, setPinning] = useState(false);
+  const [dropBusy, setDropBusy] = useState(false);
+  const [activePinId, setActivePinId] = useState<string | null>(null);
+  const [pinFilter, setPinFilter] = useState<string | null>(null);
+  const [guide, setGuide] = useState(false);
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const sharedCourse = incomingCourse.status === 'ready' ? incomingCourse.course : null;
   const sharedDiary = incomingDiary.status === 'ready' ? incomingDiary.diary : null;
-  const dirty = savedKey !== draftKey(draft);
-  const diaryDirty = diarySavedKey !== diaryKey(diaryDraft);
-  const inDiary = !sharedCourse && mode === 'diary';
+  const sharedPins = incomingPins.status === 'ready' ? incomingPins.set : null;
+  const activePin = pins.find((p) => p.id === activePinId) ?? null;
+  const onPinHome = tab === 'pins' && !sharedCourse && !sharedPins;
+  const shownPins = useMemo(() => filterPins(pins, categories, pinFilter), [pins, categories, pinFilter]);
+
+  // Numbered course markers + solid route line.
   const shownStops = useMemo(() => {
     if (sharedCourse) return sharedCourse.stops.map((s) => s.place);
-    if (mode === 'diary') {
+    if (sharedPins) return [];
+    if (tab === 'calendar') {
       if (sharedDiary) return sharedDiary.stops.map((s) => s.place);
-      if (diaryScreen.kind === 'edit') return diaryDraft.stops.map((s) => s.place);
-      if (diaryScreen.kind === 'wish') return diaryScreen.item.stops.map((s) => s.place);
+      if (day.screen.kind === 'edit') return day.draft.stops.map((s) => s.place);
+      if (day.screen.kind === 'wish') return day.screen.item.stops.map((s) => s.place);
       return [];
     }
-    return draft.stops.map((s) => s.place);
-  }, [sharedCourse, sharedDiary, mode, diaryScreen, diaryDraft.stops, draft.stops]);
+    if (tab === 'pins' && sub !== 'pins') return course.draft.stops.map((s) => s.place);
+    return [];
+  }, [sharedCourse, sharedPins, sharedDiary, tab, sub, day.screen, day.draft.stops, course.draft.stops]);
+
+  // Pin markers: a received set as its sender styled it, or my pins on the home tab.
+  const pinMarkers = useMemo<PinMarker[]>(() => {
+    if (sharedPins) {
+      return sharedPins.pins.map((pin, i) => {
+        const category = sharedPins.categories[pin.category];
+        const parent = category?.parent !== undefined ? sharedPins.categories[category.parent] : undefined;
+        return {
+          id: `shared:${i}`,
+          center: pin.place.center,
+          name: pin.place.name,
+          emoji: PIN_ICONS[parent?.icon ?? category?.icon ?? 'pin'],
+          color: category?.color ?? 8,
+        };
+      });
+    }
+    if (sharedCourse || !(onPinHome || pinning)) return [];
+    return (pinning ? pins : shownPins).map((pin) => {
+      const style = categoryStyle(categories, pin.categoryId);
+      return {
+        id: pin.id,
+        center: pin.place.center,
+        name: pin.place.name,
+        emoji: style.emoji,
+        color: style.color,
+        selected: pin.id === activePinId || (selecting && selected.has(pin.id)),
+      };
+    });
+  }, [sharedPins, sharedCourse, onPinHome, pinning, pins, shownPins, categories, activePinId, selecting, selected]);
+
+  const guidePoints = useMemo(() => {
+    if (!onPinHome || sub !== 'pins' || !guide || !pinFilter || shownPins.length < 2) return null;
+    const points = shownPins.map((p) => p.place.center);
+    return orderByNearest(points).map((i) => points[i]);
+  }, [onPinHome, sub, guide, pinFilter, shownPins]);
 
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
 
-  // The sheet/panel covers part of the map; fit and focus around it.
-  // offsetHeight/offsetWidth ignore the slide-away transform used while
-  // searching, and the cap keeps a fully expanded sheet from squeezing the map.
+  // The sheet (and the bottom bar under it) cover part of the map; fit and
+  // focus around them. The cap keeps a full sheet from squeezing the map.
   const mapPadding = useCallback((extraBottom = 0): MapPadding => {
     const sheetBox = sheetEl.current;
     const desktop = window.matchMedia(DESKTOP_QUERY).matches;
-    const sheetHeight = Math.min(sheetBox?.offsetHeight ?? 0, window.innerHeight * 0.45);
+    const covered = Math.min((sheetBox?.offsetHeight ?? 0) + (barEl.current?.offsetHeight ?? 0), window.innerHeight * 0.5);
     return {
       top: 90,
       right: 40,
-      bottom: desktop ? 40 + extraBottom : sheetHeight + 30 + extraBottom,
+      bottom: desktop ? 40 + extraBottom : covered + 30 + extraBottom,
       left: desktop && sheetBox ? sheetBox.offsetWidth + 42 : 40,
     };
   }, []);
 
-  const focusStopRef = useRef<(index: number) => void>(() => {});
+  const mapEvents = useRef({ stop: (_i: number) => {}, pin: (_id: string) => {}, longPress: (_c: [number, number]) => {} });
 
   useEffect(() => {
     if (!mapEl.current) return;
@@ -133,14 +165,16 @@ export default function App() {
     let created: CourseMap | null = null;
     createMapStack(mapEl.current, {
       center: SEOUL_CENTER,
-      onStopClick: (index) => focusStopRef.current(index),
-    }).then(({ map, search }) => {
+      onStopClick: (index) => mapEvents.current.stop(index),
+      onPinClick: (id) => mapEvents.current.pin(id),
+      onLongPress: (center) => mapEvents.current.longPress(center),
+    }).then(({ map, search: service }) => {
       if (disposed) return map.destroy();
       created = map;
       mapRef.current = map;
       // Handy for poking at the map from devtools / the preview browser.
       if (import.meta.env.DEV) (window as unknown as { __courseMap?: CourseMap }).__courseMap = map;
-      setSearchService(search);
+      setSearchService(service);
       setMapProvider(map.provider);
     });
     return () => {
@@ -150,14 +184,9 @@ export default function App() {
     };
   }, []);
 
-  // Redraw markers whenever the visible course changes; refit only when the
-  // set of places changes (not on memo edits).
   const stopsKey = shownStops.map((p) => p.id).join('|');
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    map.setCourse(shownStops);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    mapRef.current?.setCourse(shownStops);
   }, [shownStops, mapProvider]);
   useEffect(() => {
     if (!mapRef.current || shownStops.length === 0) return;
@@ -165,6 +194,24 @@ export default function App() {
     return () => cancelAnimationFrame(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stopsKey, mapProvider]);
+
+  useEffect(() => {
+    mapRef.current?.setPins(pinMarkers);
+  }, [pinMarkers, mapProvider]);
+
+  useEffect(() => {
+    mapRef.current?.setGuideLine(guidePoints);
+    if (guidePoints) mapRef.current?.fitPoints(guidePoints, mapPadding());
+  }, [guidePoints, mapProvider, mapPadding]);
+
+  const sharedPinsKey = sharedPins?.sharedAt ?? '';
+  useEffect(() => {
+    if (!sharedPins || !mapRef.current) return;
+    const points = sharedPins.pins.map((p) => p.place.center);
+    const id = requestAnimationFrame(() => mapRef.current?.fitPoints(points, mapPadding()));
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sharedPinsKey, mapProvider]);
 
   useEffect(() => {
     mapRef.current?.setPreview(preview);
@@ -176,41 +223,93 @@ export default function App() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
+  // ----- Incoming links -----
+
   useEffect(() => {
-    if (incoming.status === 'invalid') {
-      setToast('공유 링크를 열 수 없어요. 링크가 잘렸는지 확인해 주세요.');
-      dismissIncoming();
+    if (incomingCourse.status === 'invalid') {
+      notify('공유 링크를 열 수 없어요. 링크가 잘렸는지 확인해 주세요.');
+      dismissCourse();
     }
-    if (incoming.status === 'ready') {
+    if (incomingCourse.status === 'ready') {
       setSharedSaved(false);
+      setTab((t) => tabForIncoming('course', t));
       // Recipients should see the route on the map first; the list is one tap away.
       setSheet('peek');
     }
-  }, [incoming, dismissIncoming]);
+  }, [incomingCourse, dismissCourse, notify]);
 
   useEffect(() => {
     if (incomingDiary.status === 'invalid') {
-      setToast('공유받은 하루 기록을 열 수 없어요. 링크가 잘렸는지 확인해 주세요.');
-      dismissIncomingDiary();
+      notify('공유받은 하루 루트를 열 수 없어요. 링크가 잘렸는지 확인해 주세요.');
+      dismissDiary();
     }
     if (incomingDiary.status === 'ready') {
-      setSharedDiarySaved(false);
-      setMode('diary');
+      setTab((t) => tabForIncoming('day', t));
       setSheet('peek');
     }
-  }, [incomingDiary, dismissIncomingDiary]);
+  }, [incomingDiary, dismissDiary, notify]);
+
+  useEffect(() => {
+    if (incomingPins.status === 'invalid') {
+      notify('공유받은 핀셋을 열 수 없어요. 링크가 잘렸는지 확인해 주세요.');
+      dismissPins();
+    }
+    if (incomingPins.status === 'ready') {
+      setSharedPinsSaved(false);
+      setTab((t) => tabForIncoming('pins', t));
+      setSheet('peek');
+    }
+  }, [incomingPins, dismissPins, notify]);
 
   useEffect(() => {
     if (!toast) return;
-    const id = setTimeout(() => setToast(null), 2600);
+    const id = setTimeout(() => setToast(null), toast.undo ? 4000 : 2600);
     return () => clearTimeout(id);
   }, [toast]);
 
-  focusStopRef.current = (index: number) => {
+  // ----- Map events -----
+
+  const focusPoint = (center: [number, number], extra = 0) =>
+    requestAnimationFrame(() => mapRef.current?.focus(center, mapPadding(extra)));
+
+  mapEvents.current.stop = (index: number) => {
     const place = shownStops[index];
     if (!place) return;
     mapRef.current?.focus(place.center, mapPadding());
     document.querySelectorAll('.stop-list__item')[index]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
+  mapEvents.current.pin = (id: string) => {
+    if (id.startsWith('shared:')) {
+      const pin = sharedPins?.pins[Number(id.slice(7))];
+      if (pin) mapRef.current?.focus(pin.place.center, mapPadding());
+      return;
+    }
+    if (pinning) return;
+    if (selecting) return toggleSelect(id);
+    openPin(id);
+  };
+
+  mapEvents.current.longPress = async (center: [number, number]) => {
+    if (pinning || sharedCourse || sharedPins) return;
+    const place = pointPlace(center);
+    setActivePinId(null);
+    setPreview(place);
+    setPreviewPinning(false);
+    const named = await searchService?.reverse(center);
+    // Only if the user is still looking at that spot.
+    if (named) setPreview((p) => (p?.id === place.id ? { ...named, id: place.id } : p));
+  };
+
+  // ----- Navigation -----
+
+  const changeTab = (next: AppTab) => {
+    setTab(next);
+    setPinning(false);
+    setPreview(null);
+    setActivePinId(null);
+    setSelecting(false);
+    if (next !== 'calendar' && sharedDiary) dismissDiary();
   };
 
   const startSearch = () => {
@@ -221,274 +320,239 @@ export default function App() {
   const pickPlace = (place: PlaceRef) => {
     setSearchOpen(false);
     searchInput.current?.blur();
+    setActivePinId(null);
     setPreview(place);
+    setPreviewPinning(false);
     setSheet('peek');
     // Leave room for the place card that sits above the sheet.
-    requestAnimationFrame(() => mapRef.current?.focus(place.center, mapPadding(150)));
+    focusPoint(place.center, 150);
   };
 
-  const addPreviewToDiary = (place: PlaceRef) => {
-    if (sharedDiary) dismissIncomingDiary();
-    // Recording today: stamp the visit with the current time; past days are left for the user to fill.
-    const time = diaryDraft.date === dateKey() ? timeKey() : undefined;
-    if (diaryScreen.kind !== 'edit') setDiaryScreen({ kind: 'edit' });
-    setDiaryDraft((d) => ({ ...d, stops: addDiaryStop(d.stops, place, time) }));
-  };
-
-  const addPreviewToCourse = () => {
-    if (!preview) return;
-    if (inDiary) {
-      addPreviewToDiary(preview);
-      setPreview(null);
-      setQuery('');
-      return;
-    }
-    if (sharedCourse) dismissIncoming();
-    setDraft((d) => ({ ...d, stops: addStop(d.stops, preview) }));
+  const openPin = (id: string) => {
+    const pin = pins.find((p) => p.id === id);
+    if (!pin) return;
     setPreview(null);
+    setActivePinId(id);
+    setSub('pins');
+    focusPoint(pin.place.center, 150);
+  };
+
+  const toggleSelect = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  // ----- Adding places -----
+
+  const inCalendar = tab === 'calendar' && !sharedCourse;
+  const courseFull = course.draft.stops.length >= COURSE_LIMITS.maxStops;
+  const dayFull = day.draft.stops.length >= DIARY_LIMITS.maxStops;
+  const addLabel = inCalendar
+    ? dayFull
+      ? `최대 ${DIARY_LIMITS.maxStops}곳`
+      : diaryKind(day.draft) === 'plan'
+        ? '계획에 추가'
+        : '기록에 추가'
+    : courseFull
+      ? `최대 ${COURSE_LIMITS.maxStops}곳`
+      : `${course.draft.stops.length + 1}번째로 추가`;
+
+  const addPlace = (place: PlaceRef) => {
+    if (inCalendar) {
+      if (sharedDiary) dismissDiary();
+      day.addPlace(place);
+    } else {
+      if (sharedCourse) dismissCourse();
+      course.setDraft((d) => ({ ...d, stops: addStop(d.stops, place) }));
+      setTab('pins');
+      setSub('edit');
+      notify(`${place.name}을(를) ${course.draft.stops.length + 1}번째로 추가했어요.`);
+    }
+    setPreview(null);
+    setActivePinId(null);
     setQuery('');
-    setTab('edit');
-    setToast(`${preview.name}을(를) ${draft.stops.length + 1}번째로 추가했어요.`);
   };
 
-  const handleSave = async () => {
-    const saved = await save(draft);
-    const next = toDraft(saved);
-    setDraft(next);
-    setSavedKey(draftKey(next));
-    setToast('코스를 저장했어요.');
+  // ----- Pins -----
+
+  const savePinAt = (place: PlaceRef, categoryId: string) => {
+    const result = pinStore.savePin(place, categoryId);
+    if (!result) return notify('핀은 500개까지 저장할 수 있어요.');
+    updateSettings((s) => withRecentCategory(s, categoryId));
+    notify(result.existed ? `${place.name}의 카테고리를 바꿨어요.` : `${place.name} 핀을 꽂았어요.`, result.undo);
   };
 
-  const handleReset = () => {
-    if (dirty && draft.stops.length > 0 && !window.confirm('저장하지 않은 변경이 있어요. 새 코스를 시작할까요?')) return;
-    setDraft(emptyDraft());
-    setSavedKey(null);
-    setPreview(null);
+  const dropPin = async (categoryId: string) => {
+    const map = mapRef.current;
+    if (!map) return;
+    const center = map.getCenter();
+    setDropBusy(true);
+    const named = await searchService?.reverse(center);
+    setDropBusy(false);
+    savePinAt(named ?? pointPlace(center), categoryId);
   };
 
-  const openCourse = (course: Course) => {
-    if (dirty && draft.stops.length > 0 && draft.id !== course.id && !window.confirm('저장하지 않은 변경이 있어요. 이 코스를 열까요?')) return;
-    const next = toDraft(course);
-    setDraft(next);
-    setSavedKey(draftKey(next));
-    setTab('edit');
-    setPreview(null);
+  const startPinning = () => {
+    if (pinning) return setPinning(false);
+    if (sharedCourse) dismissCourse();
+    if (sharedPins) dismissPins();
+    changeTab('pins');
+    setSub('pins');
+    setPinning(true);
   };
 
-  const saveShared = async () => {
-    if (!sharedCourse) return;
-    await save({ ...sharedCourse, sharedBy: sharedCourse.sharedBy ?? '익명' });
-    setSharedSaved(true);
-    setToast('내 코스에 저장했어요.');
+  const connectPins = (chosen: Pin[]) => {
+    const order = orderByNearest(chosen.map((p) => p.place.center));
+    const next = { ...emptyDraft(), stops: order.map((i) => ({ place: chosen[i].place })) };
+    if (!course.replaceDraft(next, { question: '만들던 코스가 있어요. 선택한 핀으로 새 코스를 만들까요?' })) return;
+    setSelecting(false);
+    setSelected(new Set());
+    setSub('edit');
+    notify(`${chosen.length}곳을 가까운 순서로 이었어요. 순서를 바꿔도 돼요.`);
   };
 
-  const editSharedCopy = () => {
-    if (!sharedCourse) return;
-    const { title, theme, travelMode, stops, note } = sharedCourse;
-    setDraft({ title, theme, travelMode, stops, note });
-    setSavedKey(null);
-    dismissIncoming();
-    setTab('edit');
+  const sharePins = (chosen: Pin[], title: string) => {
+    const { set, dropped } = buildPinSet(title || `핀 ${chosen.length}곳`, chosen, categories, getDisplayName());
+    setShareTarget({ kind: 'pins', set, dropped });
   };
 
-  // ----- Daily route diary -----
-
-  const { saveEntry, removeEntry } = diary;
-
-  // The diary saves itself shortly after each change: no save button, no
-  // "unsaved changes" prompts. Emptying a saved day deletes it.
-  useEffect(() => {
-    if (!diaryDirty || diaryScreen.kind !== 'edit') return;
-    const snapshot = diaryDraft;
-    const id = setTimeout(async () => {
-      if (snapshot.stops.length === 0) {
-        if (snapshot.id) {
-          await removeEntry(snapshot.id);
-          setDiaryDraft((d) => ({ ...d, id: undefined }));
-        }
-      } else {
-        const saved = await saveEntry(snapshot);
-        setDiaryDraft((d) => (d.id ? d : { ...d, id: saved.id }));
-      }
-      setDiarySavedKey(diaryKey(snapshot));
-    }, 400);
-    return () => clearTimeout(id);
-  }, [diaryDraft, diaryDirty, diaryScreen.kind, saveEntry, removeEntry]);
-
-  const startDiaryEntry = () => {
-    // Continue today's page if one exists, instead of creating a second one.
-    const today = diary.entries.find((e) => e.date === dateKey());
-    const next = today ? toDiaryDraft(today) : emptyDiaryDraft();
-    setDiaryDraft(next);
-    setDiarySavedKey(diaryKey(next));
-    setDiaryScreen({ kind: 'edit' });
+  const openCuratorItem = (item: CuratorItem) => {
+    // Reuse the link flow: the same views, validation and "save" buttons as a received link.
+    window.location.hash =
+      item.kind === 'course' ? `share=${encodeSharedCourse(item.course).token}` : `pins=${encodeSharedPinSet(item.pins).token}`;
   };
 
-  const openDiary = () => {
-    setMode('diary');
-    setPreview(null);
-    // First tap goes straight to today's page; after that, resume where the user was.
-    if (!diaryOpened.current && !sharedDiary && diaryScreen.kind === 'list') startDiaryEntry();
-    diaryOpened.current = true;
-  };
+  // ----- Render -----
 
-  const closeDiary = () => {
-    if (sharedDiary) dismissIncomingDiary();
-    setMode('course');
-    setPreview(null);
-  };
+  const providerLabel =
+    mapProvider === 'kakao' ? '카카오' : mapProvider === 'maplibre' ? 'OpenStreetMap (카카오 키 없음)' : '준비 중';
+  const pinCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    pins.forEach((p) => counts.set(p.categoryId, (counts.get(p.categoryId) ?? 0) + 1));
+    return counts;
+  }, [pins]);
 
-  const openDiaryEntry = (entry: DiaryEntry) => {
-    const next = toDiaryDraft(entry);
-    setDiaryDraft(next);
-    setDiarySavedKey(diaryKey(next));
-    setDiaryScreen({ kind: 'edit' });
-    setPreview(null);
-  };
-
-  const backToDiaryList = async () => {
-    // Flush a pending autosave; leaving the editor cancels its timer.
-    if (diaryDirty && diaryDraft.stops.length > 0) await saveEntry(diaryDraft);
-    setDiaryDraft(emptyDiaryDraft());
-    setDiarySavedKey(null);
-    setDiaryScreen({ kind: 'list' });
-    setPreview(null);
-  };
-
-  const deleteDiaryEntry = async () => {
-    if (!diaryDraft.id || !window.confirm('이 기록을 삭제할까요?')) return;
-    await removeEntry(diaryDraft.id);
-    const next = emptyDiaryDraft();
-    setDiaryDraft(next);
-    setDiarySavedKey(diaryKey(next));
-    setDiaryScreen({ kind: 'list' });
-  };
-
-  const toggleWish = async (entry: DiaryEntry) => {
-    const wished = diary.wishByDiaryId.get(entry.id);
-    if (wished) await diary.removeWish(wished.id);
-    else await diary.addWish(entry, entry.id);
-  };
-
-  const addCurrentLocation = async () => {
-    setLocating(true);
-    const place = await getCurrentPlace('내 위치');
-    setLocating(false);
-    if (!place) {
-      setToast('위치를 가져오지 못했어요.');
-      return;
-    }
-    setDiaryDraft((d) => ({ ...d, stops: addDiaryStop(d.stops, place, d.date === dateKey() ? timeKey() : undefined) }));
-  };
-
-  const saveSharedDiaryToWishlist = async () => {
-    if (!sharedDiary) return;
-    await diary.addWish({ ...sharedDiary, sharedBy: sharedDiary.sharedBy ?? '익명' });
-    setSharedDiarySaved(true);
-  };
-
-  const renderDiary = () => {
-    const focus = (i: number) => focusStopRef.current(i);
-    if (sharedDiary) {
+  const renderSheet = () => {
+    if (sharedCourse) {
       return (
-        <DiaryView
-          diary={sharedDiary}
-          onFocusStop={focus}
-          lead={
-            <button className="icon-btn" aria-label="닫기" onClick={dismissIncomingDiary}>
-              <X size={22} aria-hidden />
-            </button>
-          }
-          footer={
-            <button className="btn btn--primary btn--block" onClick={saveSharedDiaryToWishlist} disabled={sharedDiarySaved}>
-              <WishStar on={sharedDiarySaved} size={18} />
-              {sharedDiarySaved ? '저장됨' : '위시리스트에 저장'}
-            </button>
-          }
-        />
+        <div className="sheet__content">
+          <SharedCourseView
+            course={sharedCourse}
+            saved={sharedSaved}
+            onSave={async () => {
+              await course.save({ ...sharedCourse, sharedBy: sharedCourse.sharedBy ?? '익명' });
+              setSharedSaved(true);
+              notify('내 코스에 저장했어요.');
+            }}
+            onEditCopy={() => {
+              const { title, theme, travelMode, stops, note } = sharedCourse;
+              if (!course.replaceDraft({ title, theme, travelMode, stops, note })) return;
+              dismissCourse();
+              setTab('pins');
+              setSub('edit');
+            }}
+            onClose={dismissCourse}
+            onFocusStop={(i) => mapEvents.current.stop(i)}
+          />
+        </div>
       );
     }
-    if (diaryScreen.kind === 'wish') {
-      const item = diaryScreen.item;
+    if (sharedPins) {
       return (
-        <DiaryView
-          diary={item}
-          onFocusStop={focus}
-          lead={
-            <button className="icon-btn" aria-label="목록" onClick={() => setDiaryScreen({ kind: 'list' })}>
-              <ChevronLeft size={24} aria-hidden />
-            </button>
-          }
-          tools={
-            <>
-              <button
-                className="icon-btn star-btn star-btn--on"
-                aria-label="위시리스트에서 빼기"
-                onClick={async () => {
-                  if (!window.confirm('위시리스트에서 뺄까요?')) return;
-                  await diary.removeWish(item.id);
-                  setDiaryScreen({ kind: 'list' });
-                }}
-              >
-                <WishStar on />
-              </button>
-              <button className="icon-btn" aria-label="공유" onClick={() => setDiarySharing(snapshotToDraft(item))}>
-                <Share size={21} aria-hidden />
-              </button>
-            </>
-          }
-        />
+        <div className="sheet__content">
+          <SharedPinsView
+            set={sharedPins}
+            saved={sharedPinsSaved}
+            onSave={() => {
+              const added = pinStore.importSet(sharedPins);
+              setSharedPinsSaved(true);
+              notify(added > 0 ? `${added}곳을 내 핀에 저장했어요.` : '이미 모두 저장된 핀이에요.');
+            }}
+            onFocus={(i) => mapEvents.current.pin(`shared:${i}`)}
+            onClose={dismissPins}
+          />
+        </div>
       );
     }
-    if (diaryScreen.kind === 'edit') {
+    if (tab === 'calendar') {
       return (
-        <DiaryEditor
-          draft={diaryDraft}
-          wished={Boolean(diaryDraft.id && diary.wishByDiaryId.has(diaryDraft.id))}
-          locating={locating}
-          onChange={setDiaryDraft}
-          onBack={backToDiaryList}
-          onShare={() => setDiarySharing(diaryDraft)}
-          onDelete={deleteDiaryEntry}
-          onToggleWish={() => {
-            const entry = diary.entries.find((e) => e.id === diaryDraft.id);
-            if (entry) toggleWish(entry);
-          }}
-          onFocusStop={focus}
-          onStartSearch={startSearch}
-          onAddCurrentLocation={addCurrentLocation}
-        />
+        <div className="sheet__content">
+          <CalendarSheet
+            key={sharedDiary?.sharedAt ?? 'mine'}
+            day={day}
+            sharedDiary={sharedDiary}
+            onDismissShared={dismissDiary}
+            search={searchService}
+            pins={pins}
+            categories={categories}
+            onFocusStop={(i) => mapEvents.current.stop(i)}
+            onStartSearch={startSearch}
+            onShare={(draft) => setShareTarget({ kind: 'day', draft })}
+          />
+        </div>
+      );
+    }
+    if (tab === 'influencer') {
+      return (
+        <div className="sheet__content">
+          <InfluencerPanel onOpen={openCuratorItem} />
+        </div>
       );
     }
     return (
-      <DiaryList
-        tab={diaryTab}
-        onTab={setDiaryTab}
-        entries={diary.entries}
-        wishes={diary.wishes}
-        wishByDiaryId={diary.wishByDiaryId}
-        onNewEntry={startDiaryEntry}
-        onOpenEntry={openDiaryEntry}
-        onToggleWish={toggleWish}
-        onOpenWish={(item) => setDiaryScreen({ kind: 'wish', item })}
+      <PinsSheet
+        sub={sub}
+        onSub={(next) => {
+          setSub(next);
+          setActivePinId(null);
+          if (next === 'list') setSheet('full');
+        }}
+        pinCount={pins.length}
+        course={course}
+        panel={{
+          pins,
+          categories,
+          filter: pinFilter,
+          onFilter: (id) => {
+            setPinFilter(id);
+            setGuide(false);
+          },
+          guide,
+          onGuide: setGuide,
+          selecting,
+          onSelecting: (on) => {
+            setSelecting(on);
+            setSelected(new Set());
+            setActivePinId(null);
+          },
+          selected,
+          onToggleSelect: toggleSelect,
+          onOpenPin: (pin) => openPin(pin.id),
+          onConnect: connectPins,
+          onShare: sharePins,
+        }}
+        onSaveCourse={async () => {
+          await course.saveDraft();
+          notify('코스를 저장했어요.');
+        }}
+        onShareCourse={() => setShareTarget({ kind: 'course', draft: course.draft })}
+        onRemoveCourse={async (c) => {
+          await course.removeCourse(c);
+          notify('코스를 삭제했어요.');
+        }}
+        onFocusStop={(i) => mapEvents.current.stop(i)}
+        onStartSearch={startSearch}
       />
     );
   };
 
-  const providerLabel = mapProvider === 'kakao' ? '카카오' : mapProvider === 'maplibre' ? 'OpenStreetMap (카카오 키 없음)' : '준비 중';
-  const courseFull = draft.stops.length >= COURSE_LIMITS.maxStops;
-  const diaryFull = diaryDraft.stops.length >= DIARY_LIMITS.maxStops;
-  const previewTargetFull = inDiary ? diaryFull : courseFull;
-  const previewLabel = inDiary
-    ? diaryFull
-      ? `최대 ${DIARY_LIMITS.maxStops}곳`
-      : '기록에 추가'
-    : courseFull
-      ? '최대 10곳'
-      : `${draft.stops.length + 1}번째로 추가`;
+  const cardTargetFull = inCalendar ? dayFull : courseFull;
 
   return (
-    <div className={`app ${searchOpen ? 'app--searching' : ''}`}>
+    <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''}`}>
       <div ref={mapEl} className="map" aria-label="지도" />
 
       <SearchBar
@@ -506,36 +570,80 @@ export default function App() {
         providerLabel={providerLabel}
       />
 
-      <button
-        className={`diary-fab ${inDiary ? 'diary-fab--on' : ''}`}
-        aria-label={inDiary ? '하루 기록 닫기' : '하루 경로 기록 열기'}
-        aria-pressed={inDiary}
-        onClick={() => (inDiary ? closeDiary() : openDiary())}
-      >
-        <NotebookPen size={24} aria-hidden />
+      <button className="corner-btn" aria-label="설정" onClick={() => setSettingsOpen(true)}>
+        <SettingsIcon size={22} aria-hidden />
       </button>
 
-      {preview && !searchOpen && (
+      {pinning && (
+        <PinDropTray
+          categories={categories}
+          recent={settings.recentCategoryIds}
+          busy={dropBusy}
+          onPick={dropPin}
+          onCancel={() => setPinning(false)}
+        />
+      )}
+
+      {preview && !searchOpen && !pinning && (
         <div className="place-card" role="dialog" aria-label="선택한 장소">
           <div className="place-card__info">
             <strong>{preview.name}</strong>
             <span>{[preview.category, preview.address].filter(Boolean).join(' · ')}</span>
           </div>
+          {previewPinning && (
+            <CategoryChips
+              categories={categories}
+              recent={settings.recentCategoryIds}
+              label="핀 카테고리"
+              onPick={(id) => {
+                savePinAt(preview, id);
+                setPreview(null);
+              }}
+            />
+          )}
           <div className="place-card__actions">
             <a className="btn btn--ghost" href={kakaoPlaceUrl(preview)} target="_blank" rel="noreferrer">
               상세
             </a>
-            <button className="btn btn--primary" onClick={addPreviewToCourse} disabled={previewTargetFull}>
-              {previewLabel}
+            <button
+              className={`btn ${previewPinning ? 'btn--secondary' : 'btn--ghost'}`}
+              aria-pressed={previewPinning}
+              onClick={() => setPreviewPinning((v) => !v)}
+            >
+              📍 핀
+            </button>
+            <button className="btn btn--primary" onClick={() => addPlace(preview)} disabled={cardTargetFull}>
+              {addLabel}
             </button>
           </div>
           <button className="place-card__close icon-btn" aria-label="닫기" onClick={() => setPreview(null)}>
-            ✕
+            <X size={20} aria-hidden />
           </button>
         </div>
       )}
 
-      <section ref={sheetEl} className={`sheet sheet--${sheet}`} aria-label="코스 패널">
+      {activePin && !preview && !searchOpen && !pinning && onPinHome && (
+        <PinCard
+          pin={activePin}
+          categories={categories}
+          addLabel={courseFull ? `최대 ${COURSE_LIMITS.maxStops}곳` : '코스에 추가'}
+          addDisabled={courseFull}
+          onAdd={() => addPlace(activePin.place)}
+          onRecategorize={(id) => {
+            pinStore.updatePin(activePin.id, { categoryId: id });
+            updateSettings((s) => withRecentCategory(s, id));
+          }}
+          onMemo={(memo) => pinStore.updatePin(activePin.id, { memo: memo || undefined })}
+          onDelete={() => {
+            const undo = pinStore.removePin(activePin.id);
+            setActivePinId(null);
+            notify(`${activePin.place.name} 핀을 지웠어요.`, undo);
+          }}
+          onClose={() => setActivePinId(null)}
+        />
+      )}
+
+      <section ref={sheetEl} className={`sheet sheet--${sheet}`} aria-label="패널">
         <button
           className="sheet__grip"
           aria-label={sheet === 'full' ? '패널 줄이기' : '패널 펼치기'}
@@ -544,78 +652,40 @@ export default function App() {
         >
           <span aria-hidden />
         </button>
-
-        {sharedCourse ? (
-          <div className="sheet__content">
-            <SharedCourseView
-              course={sharedCourse}
-              saved={sharedSaved}
-              onSave={saveShared}
-              onEditCopy={editSharedCopy}
-              onClose={dismissIncoming}
-              onFocusStop={(i) => focusStopRef.current(i)}
-            />
-          </div>
-        ) : inDiary ? (
-          <div className="sheet__content">{renderDiary()}</div>
-        ) : (
-          <>
-            <div className="tabs" role="tablist">
-              <button role="tab" aria-selected={tab === 'edit'} className={tab === 'edit' ? 'is-on' : ''} onClick={() => setTab('edit')}>
-                {draft.id ? '코스 편집' : '코스 만들기'}
-                {draft.stops.length > 0 && <span className="tabs__count">{draft.stops.length}</span>}
-              </button>
-              <button
-                role="tab"
-                aria-selected={tab === 'list'}
-                className={tab === 'list' ? 'is-on' : ''}
-                onClick={() => {
-                  setTab('list');
-                  setSheet('full');
-                }}
-              >
-                내 코스
-                {courses.length > 0 && <span className="tabs__count">{courses.length}</span>}
-              </button>
-            </div>
-            <div className="sheet__content">
-              {tab === 'edit' ? (
-                <CourseEditor
-                  draft={draft}
-                  dirty={dirty}
-                  onChange={setDraft}
-                  onSave={handleSave}
-                  onShare={() => setSharing(true)}
-                  onReset={handleReset}
-                  onFocusStop={(i) => focusStopRef.current(i)}
-                  onStartSearch={startSearch}
-                />
-              ) : (
-                <CourseList
-                  courses={courses}
-                  activeId={draft.id}
-                  onOpen={openCourse}
-                  onRemove={async (course) => {
-                    await remove(course.id);
-                    if (draft.id === course.id) setSavedKey(null);
-                    setToast('코스를 삭제했어요.');
-                  }}
-                  onCreate={() => {
-                    setTab('edit');
-                    startSearch();
-                  }}
-                />
-              )}
-            </div>
-          </>
-        )}
+        {renderSheet()}
       </section>
 
-      {sharing && <ShareSheet draft={draft} onClose={() => setSharing(false)} />}
-      {diarySharing && <DiaryShareSheet draft={diarySharing} onClose={() => setDiarySharing(null)} />}
+      <div ref={barEl} className="bottom-bar-wrap">
+        <BottomBar tab={tab} pinning={pinning} onTab={changeTab} onPin={startPinning} />
+      </div>
 
-      <div className={`toast ${toast ? 'toast--on' : ''}`} role="status" aria-live="polite">
-        {toast}
+      {shareTarget && <ShareSheet target={shareTarget} onClose={() => setShareTarget(null)} />}
+      {settingsOpen && (
+        <SettingsSheet
+          providerLabel={providerLabel}
+          onClose={() => setSettingsOpen(false)}
+          categories={categories}
+          pinCounts={pinCounts}
+          onCreate={pinStore.createCategory}
+          onEdit={pinStore.editCategory}
+          onMove={pinStore.reorderCategory}
+          onDelete={pinStore.deleteCategory}
+        />
+      )}
+
+      <div className={`toast ${toast ? 'toast--on' : ''} ${toast?.undo ? 'toast--action' : ''}`} role="status" aria-live="polite">
+        {toast?.text}
+        {toast?.undo && (
+          <button
+            className="toast__undo"
+            onClick={() => {
+              toast.undo?.();
+              setToast(null);
+            }}
+          >
+            되돌리기
+          </button>
+        )}
       </div>
     </div>
   );

@@ -7,5 +7,7 @@ export default defineConfig({
     setupFiles: ['src/test/setup.ts'],
     restoreMocks: true,
     unstubGlobals: true,
+    // Lets src/test/styles.test.ts read styles.css (`?raw`); other CSS stays stubbed.
+    css: { include: [/styles\.css/] },
   },
 });

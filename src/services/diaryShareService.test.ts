@@ -100,6 +100,23 @@ describe('diary share links', () => {
     expect(decodeSharedDiary(courseToken)).toBeNull();
   });
 
+  it('existing #share= v1/v2 and #diary= links still decode unchanged', () => {
+    // A link made before planned days existed (no `p` field) is a record.
+    const legacy = toToken({
+      v: 1,
+      d: '2026-09-28',
+      t: '성수',
+      x: 'walk',
+      s: [{ i: 'kakao:1', n: '어니언', c: [127.0582, 37.5447], t: '10:30' }],
+      a: '2026-09-28T03:00:00.000Z',
+    });
+    const decoded = decodeSharedDiary(legacy);
+    expect(decoded).toMatchObject({ date: '2026-09-28', stops: [{ time: '10:30' }] });
+    expect(decoded).not.toHaveProperty('kind');
+    // And a plan round-trips as a plan.
+    expect(decodeSharedDiary(encodeSharedDiary(diary({ kind: 'plan' })).token)?.kind).toBe('plan');
+  });
+
   it('formats a share text with visit times', () => {
     expect(formatDiaryShareText(diary(), 'https://x')).toContain('1. 10:30 어니언 성수 → 2. 13:00 성수 갈비집 → 3. 서울숲');
   });

@@ -5,6 +5,12 @@ import {
   addDiaryStop,
   dateKey,
   DIARY_LIMITS,
+  diaryKind,
+  emptyDiaryDraft,
+  planProgress,
+  routeIn,
+  toggleStopChecked,
+  toDiaryDraft,
   formatDiaryDate,
   isDateKey,
   isTimeKey,
@@ -70,5 +76,50 @@ describe('diary domain', () => {
       { date: '2026-09-28', createdAt: 'a' },
     ];
     expect(sortDiaries(list).map((e) => e.date)).toEqual(['2026-09-28', '2026-09-01']);
+  });
+});
+
+describe('planned days and route-in', () => {
+  it('entries without kind are read as log; plan entries can be created for future dates', () => {
+    expect(diaryKind({})).toBe('log');
+    expect(diaryKind({ kind: 'plan' })).toBe('plan');
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    expect(emptyDiaryDraft(dateKey(tomorrow)).kind).toBe('plan');
+    expect(emptyDiaryDraft(dateKey()).kind).toBeUndefined();
+    const draft = toDiaryDraft({
+      id: 'd1',
+      userId: 'u',
+      date: '2026-09-30',
+      title: 't',
+      travelMode: 'walk',
+      stops: [],
+      createdAt: '2026-09-29T00:00:00.000Z',
+    });
+    expect(draft).not.toHaveProperty('kind');
+  });
+
+  it('route-in adds the current place with the current time and marks the nearest planned stop visited', () => {
+    const planned: DiaryStop[] = [{ place: onionSeongsu }, { place: seoulForest }];
+    // A few metres from the cafe: the planned stop is checked off, nothing is added.
+    const nearCafe = { id: 'pin:x', name: '내 위치', center: [127.0583, 37.5448] as [number, number] };
+    const hit = routeIn({ kind: 'plan', stops: planned }, nearCafe, '10:30');
+    expect(hit.matched).toBe(0);
+    expect(hit.stops).toEqual([{ place: onionSeongsu, checked: true, time: '10:30' }, { place: seoulForest }]);
+    expect(planProgress(hit.stops)).toEqual({ done: 1, total: 2 });
+
+    // Somewhere not in the plan: appended as a visited extra stop.
+    const miss = routeIn({ kind: 'plan', stops: planned }, seongsuGalbi, '12:00');
+    expect(miss.matched).toBeNull();
+    expect(miss.stops[2]).toEqual({ place: seongsuGalbi, time: '12:00', checked: true });
+
+    // A record just grows.
+    expect(routeIn({ stops: [] }, seongsuGalbi, '12:00').stops).toEqual([{ place: seongsuGalbi, time: '12:00' }]);
+  });
+
+  it('checked stops are not matched twice, and can be unchecked', () => {
+    const stops: DiaryStop[] = [{ place: onionSeongsu, checked: true }];
+    expect(routeIn({ kind: 'plan', stops }, onionSeongsu, '11:00').matched).toBeNull();
+    expect(toggleStopChecked(stops, 0)).toEqual([{ place: onionSeongsu }]);
   });
 });

@@ -27,6 +27,7 @@ interface WireStop {
 interface WirePayload {
   v: 1;
   d: string; // date
+  p?: 1; // a planned day (added after v1 shipped; older decoders ignore it)
   t: string; // title
   o?: DiaryMood;
   x: TravelMode;
@@ -95,6 +96,7 @@ export function encodeSharedDiary(diary: SharedDiary, { includeText = true } = {
       a: diary.sharedAt,
     };
     if (diary.mood) payload.o = diary.mood;
+    if (diary.kind === 'plan') payload.p = 1;
     const text = withText ? clampText(diary.text, DIARY_LIMITS.text) : undefined;
     const sharedBy = clampText(diary.sharedBy, SHARE_LIMITS.sharedBy);
     if (text) payload.w = text;
@@ -127,6 +129,7 @@ export function decodeSharedDiary(token: string): SharedDiary | null {
     stops: stops as DiaryStop[],
     sharedAt: typeof raw.a === 'string' && !Number.isNaN(Date.parse(raw.a)) ? raw.a : new Date().toISOString(),
   };
+  if (raw.p === 1) diary.kind = 'plan';
   if (DIARY_MOODS.includes(raw.o as DiaryMood)) diary.mood = raw.o;
   const text = clampText(raw.w, DIARY_LIMITS.text);
   if (text) diary.text = text;

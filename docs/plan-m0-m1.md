@@ -1,4 +1,4 @@
-# goodRoot — M0 ~ M1 실행 계획
+# root-in (구 goodRoot) — M0 ~ M1 실행 계획
 
 ## 제품 한 줄
 

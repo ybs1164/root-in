@@ -1,6 +1,7 @@
 import type { PlaceRef } from '../types/course';
-import type { DiaryDraft, DiaryEntry, DiaryMood, DiarySnapshot, DiaryStop } from '../types/diary';
+import type { DiaryDraft, DiaryEntry, DiaryKind, DiaryMood, DiarySnapshot, DiaryStop } from '../types/diary';
 import { COURSE_LIMITS } from './course';
+import { haversineMeters } from './geo';
 
 export const DIARY_LIMITS = {
   // A whole day can hold more places than a planned course.
@@ -41,12 +42,65 @@ export function formatDiaryDate(key: string, now: Date = new Date()): string {
   return y === now.getFullYear() ? base : `${y}년 ${base}`;
 }
 
+/** A future day can only be a plan; anything else defaults to a record. */
 export const emptyDiaryDraft = (date: string = dateKey()): DiaryDraft => ({
   date,
+  ...(date > dateKey() ? { kind: 'plan' as const } : {}),
   title: '',
   travelMode: 'walk',
   stops: [],
 });
+
+export const diaryKind = (entry: { kind?: DiaryKind }): DiaryKind => (entry.kind === 'plan' ? 'plan' : 'log');
+
+/** Within this distance, a route-in counts as visiting a planned stop. */
+export const ROUTE_IN_MATCH_METERS = 150;
+
+/**
+ * Route-in (check-in) at `place`. On a plan, the nearest unvisited planned
+ * stop within reach is checked off; otherwise the place is appended as a
+ * new visited stop.
+ */
+export function routeIn(
+  draft: Pick<DiaryDraft, 'kind' | 'stops'>,
+  place: PlaceRef,
+  time: string,
+): { stops: DiaryStop[]; matched: number | null } {
+  if (diaryKind(draft) === 'plan') {
+    let matched: number | null = null;
+    let best = ROUTE_IN_MATCH_METERS;
+    draft.stops.forEach((stop, i) => {
+      if (stop.checked) return;
+      const d = haversineMeters(stop.place.center, place.center);
+      if (d <= best) {
+        best = d;
+        matched = i;
+      }
+    });
+    if (matched !== null) {
+      const index = matched;
+      return { stops: draft.stops.map((s, i) => (i === index ? { ...s, checked: true, time } : s)), matched };
+    }
+    const added = addDiaryStop(draft.stops, place, time);
+    return {
+      stops: added === draft.stops ? added : added.map((s, i) => (i === added.length - 1 ? { ...s, checked: true } : s)),
+      matched: null,
+    };
+  }
+  return { stops: addDiaryStop(draft.stops, place, time), matched: null };
+}
+
+export function planProgress(stops: DiaryStop[]): { done: number; total: number } {
+  return { done: stops.filter((s) => s.checked).length, total: stops.length };
+}
+
+export function toggleStopChecked(stops: DiaryStop[], index: number): DiaryStop[] {
+  return stops.map((stop, i) => {
+    if (i !== index) return stop;
+    const { checked: _drop, ...rest } = stop;
+    return stop.checked ? rest : { ...rest, checked: true };
+  });
+}
 
 export function defaultDiaryTitle(draft: Pick<DiaryDraft, 'date'>): string {
   return `${formatDiaryDate(draft.date)}의 기록`;
@@ -103,8 +157,8 @@ export function validateDiary(draft: Pick<DiaryDraft, 'stops' | 'date'>): DiaryP
 }
 
 export function toDiaryDraft(entry: DiaryEntry): DiaryDraft {
-  const { id, date, title, mood, travelMode, stops, text } = entry;
-  return { id, date, title, mood, travelMode, stops, text };
+  const { id, date, kind, title, mood, travelMode, stops, text } = entry;
+  return { id, date, ...(kind === 'plan' ? { kind } : {}), title, mood, travelMode, stops, text };
 }
 
 export function diarySnapshot(source: DiarySnapshot): DiarySnapshot {

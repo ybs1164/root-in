@@ -1,11 +1,20 @@
 import maplibregl, { type Map as MapLibreMap, type Marker } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { PlaceRef } from '../types/course';
-import { createMarkerElement, type CourseMap, type CourseMapOptions, type MapPadding } from './courseMap';
+import {
+  attachLongPress,
+  createMarkerElement,
+  createPinElement,
+  type CourseMap,
+  type CourseMapOptions,
+  type MapPadding,
+  type PinMarker,
+} from './courseMap';
 
 // Keyless fallback basemap for development / when the Kakao SDK is unavailable.
 const STYLE_URL = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
 const LINE_SOURCE = 'course-line';
+const GUIDE_SOURCE = 'guide-line';
 const FOCUS_ZOOM = 15;
 
 export class MapLibreCourseMap implements CourseMap {
@@ -14,6 +23,9 @@ export class MapLibreCourseMap implements CourseMap {
   private stops: PlaceRef[] = [];
   private stopMarkers: Marker[] = [];
   private previewMarker: Marker | null = null;
+  private pinMarkers: Marker[] = [];
+  private guide: [number, number][] = [];
+  private readonly detachLongPress: () => void;
 
   constructor(container: HTMLElement, private readonly options: CourseMapOptions) {
     this.map = new maplibregl.Map({
@@ -23,7 +35,21 @@ export class MapLibreCourseMap implements CourseMap {
       zoom: 12,
       attributionControl: { compact: true },
     });
+    this.detachLongPress = attachLongPress(container, (x, y) => {
+      const at = this.map.unproject([x, y]);
+      options.onLongPress?.([at.lng, at.lat]);
+    });
     this.map.on('load', () => {
+      const token = (name: string, fallback: string) =>
+        getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+      this.map.addSource(GUIDE_SOURCE, { type: 'geojson', data: this.guideData() });
+      this.map.addLayer({
+        id: GUIDE_SOURCE,
+        type: 'line',
+        source: GUIDE_SOURCE,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': token('--muted', '#8b7d74'), 'line-width': 3, 'line-opacity': 0.8, 'line-dasharray': [0.5, 2] },
+      });
       this.map.addSource(LINE_SOURCE, { type: 'geojson', data: this.lineData() });
       this.map.addLayer({
         id: LINE_SOURCE,
@@ -48,6 +74,35 @@ export class MapLibreCourseMap implements CourseMap {
     };
   }
 
+  private guideData(): GeoJSON.Feature<GeoJSON.LineString> {
+    return {
+      type: 'Feature',
+      properties: {},
+      geometry: { type: 'LineString', coordinates: this.guide.length >= 2 ? this.guide : [] },
+    };
+  }
+
+  setPins(pins: PinMarker[]): void {
+    this.pinMarkers.forEach((m) => m.remove());
+    this.pinMarkers = pins.map((pin) =>
+      new maplibregl.Marker({ element: createPinElement(pin, this.options.onPinClick) }).setLngLat(pin.center).addTo(this.map),
+    );
+  }
+
+  setGuideLine(points: [number, number][] | null): void {
+    this.guide = points ?? [];
+    const source = this.map.getSource(GUIDE_SOURCE) as maplibregl.GeoJSONSource | undefined;
+    source?.setData(this.guideData());
+  }
+
+  fitPoints(points: [number, number][], padding: MapPadding): void {
+    if (points.length === 0) return;
+    if (points.length === 1) return this.focus(points[0], padding);
+    const bounds = new maplibregl.LngLatBounds();
+    points.forEach((p) => bounds.extend(p));
+    this.map.fitBounds(bounds, { padding, maxZoom: 16, duration: 600 });
+  }
+
   setCourse(stops: PlaceRef[]): void {
     this.stops = stops;
     this.stopMarkers.forEach((m) => m.remove());
@@ -70,11 +125,10 @@ export class MapLibreCourseMap implements CourseMap {
   }
 
   fitCourse(padding: MapPadding): void {
-    if (this.stops.length === 0) return;
-    if (this.stops.length === 1) return this.focus(this.stops[0].center, padding);
-    const bounds = new maplibregl.LngLatBounds();
-    this.stops.forEach((s) => bounds.extend(s.center));
-    this.map.fitBounds(bounds, { padding, maxZoom: 16, duration: 600 });
+    this.fitPoints(
+      this.stops.map((s) => s.center),
+      padding,
+    );
   }
 
   focus(center: [number, number], padding?: MapPadding): void {
@@ -96,6 +150,7 @@ export class MapLibreCourseMap implements CourseMap {
   }
 
   destroy(): void {
+    this.detachLongPress();
     this.map.remove();
   }
 }

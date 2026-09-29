@@ -1,10 +1,12 @@
-# goodRoot
+# root-in
+
+> 앱 이름은 **root-in** (2026-09-29, 구 goodRoot). 로고는 `components/Logo.tsx` — i 글자 전체가 핀(끝이 기준선을 찍음). 저장소 키 접두사 `goodroot:`와 프리뷰 이름 `goodroot-dev`는 기존 데이터·설정 호환을 위해 그대로 둔다.
 
 코스(데이트·여행·맛집 탐방 등 순서 있는 장소 목록)를 지도에 만들고 링크로 공유하는 **모바일 우선** 웹 앱.
 React 19 + Vite 7 + TypeScript. 지도는 **카카오맵 JS SDK**(키 없으면 MapLibre로 대체). 백엔드 없음 (localStorage + URL 해시).
 서비스 범위는 **국내 한정**이다 (카카오맵이 국내만 지원).
 
-**현재 계획: [docs/plan-m0-m1.md](docs/plan-m0-m1.md)** — 작업 번호(0.1, 1.2 …)로 참조한다.
+**현재 계획: [docs/plan-m0-m1.md](docs/plan-m0-m1.md)**(M1 잔여: 1.7, 1.8)과 **[docs/plan-m2-prototype.md](docs/plan-m2-prototype.md)**(핀·하단 바·일일 루트 프로토타입) — 작업 번호(0.1, 1.2, P1.3 …)로 참조한다.
 
 ## 명령
 - `npm run check` — 타입체크 + 테스트. 작업을 끝냈다고 말하기 전에 반드시 통과시킬 것
@@ -32,16 +34,16 @@ React 19 + Vite 7 + TypeScript. 지도는 **카카오맵 JS SDK**(키 없으면 
 - UI 문구는 한국어. 주석은 기존처럼 "왜"를 설명하는 영어.
 
 ## 모바일 UI 규칙
-- 전체 화면 지도 + 상단 검색바 + 하단 시트. 데스크톱(≥900px)에서는 하단 시트가 왼쪽 패널로 바뀐다.
+- 전체 화면 지도 + 상단 검색바(우측 ⚙ 설정) + 하단 시트 + 하단 바(📅 달력 · 📍 핀 · ✨ 추천). 데스크톱(≥900px)에서는 하단 시트가 왼쪽 패널로 바뀌고 하단 바는 그 아래에 붙는다.
 - 터치 대상 최소 44px, 입력창 글자 16px 이상 (iOS 자동 확대 방지), `100dvh`와 `env(safe-area-inset-*)` 사용.
-- 호버에만 의존하는 기능 금지. 색은 `styles.css`의 `:root` 토큰만 쓴다.
+- 호버에만 의존하는 기능 금지. 색은 `styles.css`의 `:root` 토큰만 쓴다 (`src/test/styles.test.ts`가 검사). 핀 색은 `--pin-1…8`.
 
 ## 구조
 - `src/domain/` — 순수 함수 (코스 편집·검증, 거리/시간 추정)
 - `src/services/` — 저장소·공유·장소 검색 (인터페이스 + 구현)
 - `src/map/` — `CourseMap` 인터페이스와 카카오/MapLibre 구현
 - `src/lib/` — 카카오 SDK 로더, 길찾기 링크, 현재 사용자
-- `src/hooks/` — React 상태 연결
+- `src/hooks/` — React 상태 연결 (`useCourseDraft`, `useDiaryDay`, `usePins`, `useSettings` …)
 - `src/components/` — UI
 - `src/types/` — 도메인 타입
 - `src/test/` — 테스트 공용 설정·픽스처·M1 인수 체크리스트

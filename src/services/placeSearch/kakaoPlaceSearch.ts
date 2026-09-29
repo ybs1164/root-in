@@ -1,6 +1,17 @@
+import { haversineMeters } from '../../domain/geo';
 import type { KakaoMapsNamespace, KakaoPlaceResult } from '../../lib/kakaoSdk';
 import type { PlaceRef } from '../../types/course';
-import { MAX_SEARCH_RESULTS, type PlaceSearchOptions, type PlaceSearchService } from './placeSearchService';
+import {
+  MAX_NEARBY_RESULTS,
+  MAX_SEARCH_RESULTS,
+  pointPlace,
+  type PlaceSearchOptions,
+  type PlaceSearchService,
+} from './placeSearchService';
+
+// Category groups a route-in is likely to be at: cafe, restaurant, attraction, culture.
+const NEARBY_CATEGORY_CODES = ['CE7', 'FD6', 'AT4', 'CT1'];
+const NEARBY_RADIUS_M = 120;
 
 // "음식점 > 한식 > 육류,고기" → "육류,고기": the last segment is the most specific.
 const shortCategory = (result: KakaoPlaceResult) =>
@@ -22,6 +33,7 @@ export const toPlaceRef = (result: KakaoPlaceResult): PlaceRef | null => {
 export class KakaoPlaceSearch implements PlaceSearchService {
   readonly provider = 'kakao' as const;
   private readonly places: InstanceType<KakaoMapsNamespace['services']['Places']>;
+  private geocoder: InstanceType<KakaoMapsNamespace['services']['Geocoder']> | null = null;
 
   constructor(private readonly maps: KakaoMapsNamespace) {
     this.places = new maps.services.Places();
@@ -54,5 +66,55 @@ export class KakaoPlaceSearch implements PlaceSearchService {
         resolve([]);
       }
     });
+  }
+
+  reverse(center: [number, number], { signal }: { signal?: AbortSignal } = {}): Promise<PlaceRef | null> {
+    if (signal?.aborted) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      signal?.addEventListener('abort', () => resolve(null), { once: true });
+      try {
+        this.geocoder ??= new this.maps.services.Geocoder();
+        this.geocoder.coord2Address(center[0], center[1], (result, status) => {
+          const first = status === this.maps.services.Status.OK && Array.isArray(result) ? result[0] : undefined;
+          const address = first?.road_address?.address_name || first?.address?.address_name;
+          if (!address) return resolve(null);
+          resolve(pointPlace(center, first?.road_address?.building_name || address, address));
+        });
+      } catch {
+        resolve(null);
+      }
+    });
+  }
+
+  async nearby(center: [number, number], { signal }: { signal?: AbortSignal } = {}): Promise<PlaceRef[]> {
+    const one = (code: string) =>
+      new Promise<PlaceRef[]>((resolve) => {
+        if (signal?.aborted) return resolve([]);
+        signal?.addEventListener('abort', () => resolve([]), { once: true });
+        try {
+          this.places.categorySearch(
+            code,
+            (data, status) =>
+              resolve(
+                status === this.maps.services.Status.OK && Array.isArray(data)
+                  ? data.map(toPlaceRef).filter((p): p is PlaceRef => p !== null)
+                  : [],
+              ),
+            {
+              location: new this.maps.LatLng(center[1], center[0]),
+              radius: NEARBY_RADIUS_M,
+              sort: this.maps.services.SortBy?.DISTANCE,
+              size: MAX_NEARBY_RESULTS,
+            },
+          );
+        } catch {
+          resolve([]);
+        }
+      });
+    const all = (await Promise.all(NEARBY_CATEGORY_CODES.map(one))).flat();
+    const unique = [...new Map(all.map((p) => [p.id, p])).values()];
+    return unique
+      .sort((a, b) => haversineMeters(center, a.center) - haversineMeters(center, b.center))
+      .slice(0, MAX_NEARBY_RESULTS);
   }
 }

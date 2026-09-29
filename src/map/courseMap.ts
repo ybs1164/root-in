@@ -1,4 +1,5 @@
 import type { PlaceRef } from '../types/course';
+import type { PinColor } from '../types/pin';
 
 export interface MapPadding {
   top: number;
@@ -17,7 +18,13 @@ export interface CourseMap {
   setCourse(stops: PlaceRef[]): void;
   /** A distinct marker for a search result the user is looking at. */
   setPreview(place: PlaceRef | null): void;
+  /** Saved pins, colored/iconed by category. Drawn under the course markers. */
+  setPins(pins: PinMarker[]): void;
+  /** A faint dashed line (e.g. "이 카테고리 잇기"); not a saved course. */
+  setGuideLine(points: [number, number][] | null): void;
   fitCourse(padding: MapPadding): void;
+  /** Fits arbitrary points (pins, a guide line). */
+  fitPoints(points: [number, number][], padding: MapPadding): void;
   focus(center: [number, number], padding?: MapPadding): void;
   getCenter(): [number, number];
   /** Call after the container changes size (e.g. sheet resize, rotation). */
@@ -25,9 +32,21 @@ export interface CourseMap {
   destroy(): void;
 }
 
+export interface PinMarker {
+  id: string;
+  center: [number, number];
+  emoji: string;
+  color: PinColor;
+  name: string;
+  selected?: boolean;
+}
+
 export interface CourseMapOptions {
   center: [number, number];
   onStopClick?: (index: number) => void;
+  onPinClick?: (id: string) => void;
+  /** Long-press (touch) or right-click (mouse) on the map itself. */
+  onLongPress?: (center: [number, number]) => void;
 }
 
 export const SEOUL_CENTER: [number, number] = [126.978, 37.5665];
@@ -48,4 +67,80 @@ export function createMarkerElement(label: string, variant: 'stop' | 'preview', 
     el.tabIndex = -1;
   }
   return el;
+}
+
+export function createPinElement(pin: PinMarker, onClick?: (id: string) => void): HTMLElement {
+  const el = document.createElement('button');
+  el.type = 'button';
+  el.className = `map-marker map-marker--pin${pin.selected ? ' is-selected' : ''}`;
+  el.style.setProperty('--pin', `var(--pin-${pin.color})`);
+  el.textContent = pin.emoji;
+  el.setAttribute('aria-label', pin.name);
+  el.addEventListener('click', (event) => {
+    event.stopPropagation();
+    onClick?.(pin.id);
+  });
+  return el;
+}
+
+const LONG_PRESS_MS = 550;
+const LONG_PRESS_SLOP_PX = 10;
+
+/**
+ * Long-press on touch and right-click on mouse, reported as a container
+ * point. Neither map SDK has a touch long-press event, so both providers
+ * share this. Returns a detach function.
+ */
+export function attachLongPress(container: HTMLElement, onPress: (x: number, y: number) => void): () => void {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let start: { x: number; y: number } | null = null;
+  let lastTouch = 0;
+  const cancel = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+    start = null;
+  };
+  const point = (clientX: number, clientY: number) => {
+    const rect = container.getBoundingClientRect();
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  };
+  const onTouchStart = (event: TouchEvent) => {
+    cancel();
+    // A second finger means pinch-zoom, not a press.
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    lastTouch = Date.now();
+    start = { x: touch.clientX, y: touch.clientY };
+    timer = setTimeout(() => {
+      if (!start) return;
+      const p = point(start.x, start.y);
+      cancel();
+      onPress(p.x, p.y);
+    }, LONG_PRESS_MS);
+  };
+  const onTouchMove = (event: TouchEvent) => {
+    const touch = event.touches[0];
+    if (!start || !touch) return;
+    if (Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > LONG_PRESS_SLOP_PX) cancel();
+  };
+  const onContextMenu = (event: MouseEvent) => {
+    event.preventDefault();
+    // Touch browsers also fire contextmenu on a long-press; the timer handles those.
+    if (Date.now() - lastTouch < 1500) return;
+    const p = point(event.clientX, event.clientY);
+    onPress(p.x, p.y);
+  };
+  container.addEventListener('touchstart', onTouchStart, { passive: true });
+  container.addEventListener('touchmove', onTouchMove, { passive: true });
+  container.addEventListener('touchend', cancel);
+  container.addEventListener('touchcancel', cancel);
+  container.addEventListener('contextmenu', onContextMenu);
+  return () => {
+    cancel();
+    container.removeEventListener('touchstart', onTouchStart);
+    container.removeEventListener('touchmove', onTouchMove);
+    container.removeEventListener('touchend', cancel);
+    container.removeEventListener('touchcancel', cancel);
+    container.removeEventListener('contextmenu', onContextMenu);
+  };
 }

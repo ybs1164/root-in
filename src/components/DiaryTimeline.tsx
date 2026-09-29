@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { DIARY_LIMITS } from '../domain/diary';
 import type { DiaryStop } from '../types/diary';
 
@@ -12,6 +12,8 @@ interface DiaryTimelineProps {
     onTimeCommit: () => void;
     onMemo: (index: number, memo: string) => void;
     onRemove: (index: number) => void;
+    /** Planned days: stops are checked off as they are visited. */
+    onToggleCheck?: (index: number) => void;
   };
 }
 
@@ -20,7 +22,17 @@ export default function DiaryTimeline({ stops, onFocusStop, edit }: DiaryTimelin
   return (
     <ol className="timeline">
       {stops.map((stop, index) => (
-        <li key={`${stop.place.id}-${index}`} className="timeline__item stop-list__item">
+        <li key={`${stop.place.id}-${index}`} className={`timeline__item stop-list__item ${stop.checked ? 'timeline__item--done' : ''}`}>
+          {edit?.onToggleCheck && (
+            <button
+              className={`check-btn ${stop.checked ? 'is-on' : ''}`}
+              aria-pressed={Boolean(stop.checked)}
+              aria-label={`${stop.place.name} ${stop.checked ? '방문 취소' : '방문함'}`}
+              onClick={() => edit.onToggleCheck?.(index)}
+            >
+              <Check size={18} aria-hidden />
+            </button>
+          )}
           {edit ? (
             <input
               type="time"

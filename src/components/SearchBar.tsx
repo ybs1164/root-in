@@ -1,5 +1,6 @@
 import { forwardRef } from 'react';
 import type { PlaceRef } from '../types/course';
+import Logo from './Logo';
 
 interface SearchBarProps {
   query: string;
@@ -26,8 +27,8 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function SearchBa
             ←
           </button>
         ) : (
-          <span className="search__logo" aria-hidden>
-            good<b>Root</b>
+          <span className="search__logo">
+            <Logo />
           </span>
         )}
         <input

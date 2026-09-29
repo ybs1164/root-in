@@ -12,7 +12,16 @@ export const MOOD_LABELS: Record<DiaryMood, { emoji: string; label: string }> = 
 /** A place visited that day; `time` is local 'HH:MM' when the user noted it. */
 export interface DiaryStop extends CourseStop {
   time?: string;
+  /** On a planned day: this stop was visited (route-in). */
+  checked?: boolean;
 }
+
+/**
+ * 'plan' = a day laid out ahead of time (stops are to-dos, checked off by
+ * route-in); 'log' = a record of where I went. Entries saved before plans
+ * existed have no kind and read as 'log'.
+ */
+export type DiaryKind = 'plan' | 'log';
 
 /** One day's route, written like a diary page. */
 export interface DiaryEntry {
@@ -20,6 +29,7 @@ export interface DiaryEntry {
   userId: string;
   /** Local calendar day, 'YYYY-MM-DD'. */
   date: string;
+  kind?: DiaryKind;
   title: string;
   mood?: DiaryMood;
   travelMode: TravelMode;
@@ -33,6 +43,7 @@ export interface DiaryEntry {
 export interface DiaryDraft {
   id?: string;
   date: string;
+  kind?: DiaryKind;
   title: string;
   mood?: DiaryMood;
   travelMode: TravelMode;
@@ -43,6 +54,7 @@ export interface DiaryDraft {
 /** Self-contained snapshot carried by a `#diary=…` link. */
 export interface SharedDiary {
   date: string;
+  kind?: DiaryKind;
   title: string;
   mood?: DiaryMood;
   travelMode: TravelMode;

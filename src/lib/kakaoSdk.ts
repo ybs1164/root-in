@@ -16,6 +16,11 @@ export interface KakaoPlaceResult {
   y: string; // latitude
 }
 
+export interface KakaoAddressResult {
+  road_address: { address_name: string; building_name?: string } | null;
+  address: { address_name: string } | null;
+}
+
 export interface KakaoMapsNamespace {
   load(callback: () => void): void;
   LatLng: new (lat: number, lng: number) => KakaoLatLng;
@@ -40,6 +45,7 @@ export interface KakaoMapsNamespace {
   event: {
     addListener(target: unknown, type: string, handler: (...args: unknown[]) => void): void;
   };
+  Point: new (x: number, y: number) => unknown;
   services: {
     Places: new () => {
       keywordSearch(
@@ -47,8 +53,17 @@ export interface KakaoMapsNamespace {
         callback: (data: KakaoPlaceResult[], status: string) => void,
         options?: { location?: KakaoLatLng; size?: number },
       ): void;
+      categorySearch(
+        code: string,
+        callback: (data: KakaoPlaceResult[], status: string) => void,
+        options?: { location?: KakaoLatLng; radius?: number; sort?: string; size?: number },
+      ): void;
+    };
+    Geocoder: new () => {
+      coord2Address(lng: number, lat: number, callback: (result: KakaoAddressResult[], status: string) => void): void;
     };
     Status: { OK: string; ZERO_RESULT: string; ERROR: string };
+    SortBy: { DISTANCE: string; ACCURACY: string };
   };
 }
 
@@ -60,6 +75,7 @@ export interface KakaoMapInstance {
   panTo(latlng: KakaoLatLng): void;
   setBounds(bounds: unknown, paddingTop?: number, paddingRight?: number, paddingBottom?: number, paddingLeft?: number): void;
   relayout(): void;
+  getProjection(): { coordsFromContainerPoint(point: unknown): KakaoLatLng };
 }
 
 declare global {
@@ -96,7 +112,7 @@ export function loadKakaoMaps(): Promise<KakaoMapsNamespace | null> {
       // Almost always a 401 "domain mismatched": this origin isn't registered
       // for the key (Kakao console → 플랫폼 → Web). The fallback map takes over.
       console.warn(
-        `[goodRoot] 카카오 SDK를 불러오지 못해 대체 지도를 사용합니다. 카카오 개발자 콘솔의 Web 플랫폼에 ${window.location.origin} 이 등록돼 있는지 확인하세요.`,
+        `[root-in] 카카오 SDK를 불러오지 못해 대체 지도를 사용합니다. 카카오 개발자 콘솔의 Web 플랫폼에 ${window.location.origin} 이 등록돼 있는지 확인하세요.`,
       );
       done(null);
     };

@@ -65,6 +65,7 @@ export class LocalDiaryRepository implements DiaryRepository {
       createdAt: existing?.createdAt ?? now,
       updatedAt: existing ? now : undefined,
     };
+    if (draft.kind === 'plan') entry.kind = 'plan';
     writeList(DIARY_KEY, existing ? entries.map((e) => (e.id === entry.id ? entry : e)) : [...entries, entry]);
     return entry;
   }
