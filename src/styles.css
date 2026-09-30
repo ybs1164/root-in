@@ -26,9 +26,6 @@
   /* Self-drawn road map (roads.html): roads read by contrast, not color. */
   --map-land: #f3ede5;
   --map-road: #ffffff;
-  --map-road-case: #d9cec2;
-  --map-label: #7a6c63;
-  --map-label-halo: #ffffff;
 }
 
 /* Layout tokens and the pin palette (same in light and dark: a pin keeps
@@ -78,9 +75,6 @@
     --backdrop: rgba(0, 0, 0, 0.6);
     --map-land: #1f1b18;
     --map-road: #3b3430;
-    --map-road-case: #2a2421;
-    --map-label: #b3a59b;
-    --map-label-halo: #1f1b18;
   }
 }
 

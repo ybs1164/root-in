@@ -2,7 +2,8 @@
  * Dev-only example (open /roads.html): pulls road geometry out of the Carto
  * vector tiles as GeoJSON and draws it with our own tokens. Nothing of the
  * provider's rendering is shown — the map is exactly the JSON you can download:
- * streets (no footpaths) within CORRIDOR_METERS of the sample course.
+ * the streets (no footpaths) the sample course runs along, found by routing
+ * over the extracted roads. The routing itself is never drawn.
  *
  * `?at=lng,lat,zoom` picks the spot (default: 용산).
  */
@@ -10,15 +11,14 @@ import maplibregl, { type ExpressionSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import '../styles.css';
 import { createMarkerElement } from '../map/courseMap';
-import { clipToCorridor, toRoadCollection, type RoadCollection } from '../map/roadFeatures';
+import { toRoadCollection, type RoadCollection } from '../map/roadFeatures';
+import { roadsAlongCourse } from '../map/roadRoute';
 
 const STYLE_URL = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
 const CARTO = 'carto';
 // An invisible layer on the Carto source: MapLibre only loads tiles for
 // sources that have a visible layer, and we still need the tiles to query.
 const PROBE = 'roads-probe';
-// Roads farther than this from the course's straight line aren't drawn.
-const CORRIDOR_METERS = 100;
 
 const [lng = 126.978, lat = 37.5275, zoom = 16] = (new URLSearchParams(location.search).get('at') ?? '')
   .split(',')
@@ -51,18 +51,6 @@ map.on('style.load', () => {
 
   map.addSource('roads', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
-  // All casings under all fills, so crossings merge instead of stacking.
-  map.addLayer({
-    id: 'roads-case',
-    type: 'line',
-    source: 'roads',
-    filter: road,
-    layout: lineLayout,
-    paint: {
-      'line-color': token('--map-road-case'),
-      'line-width': width(5.4, 30, 78),
-    },
-  });
   map.addLayer({
     id: 'roads-fill',
     type: 'line',
@@ -71,30 +59,14 @@ map.on('style.load', () => {
     layout: lineLayout,
     paint: {
       'line-color': token('--map-road'),
-      'line-width': width(3, 22.5, 66),
+      'line-width': width(5.4, 30, 78),
     },
-  });
-  map.addLayer({
-    id: 'roads-name',
-    type: 'symbol',
-    source: 'roads',
-    filter: ['==', ['get', 'kind'], 'name'],
-    minzoom: 14,
-    layout: {
-      'symbol-placement': 'line',
-      'text-field': ['get', 'name'],
-      // Carto's own road-name stack; NanumBarunGothic covers Hangul.
-      'text-font': ['Montserrat Regular', 'Open Sans Regular', 'Noto Sans Regular', 'HanWangHeiLight Regular', 'NanumBarunGothic Regular'],
-      'text-size': ['match', ['get', 'rank'], 'major', 13, 11.5],
-      'text-letter-spacing': 0.02,
-    },
-    paint: { 'text-color': token('--map-label'), 'text-halo-color': token('--map-label-halo'), 'text-halo-width': 1.5 },
   });
 
   drawSampleCourse();
 });
 
-// A sample course; only the roads around it are drawn.
+// A sample course; only the roads it runs along are drawn.
 const stops: [number, number][] = [
   [lng - 0.0022, lat + 0.0016],
   [lng + 0.0004, lat - 0.0012],
@@ -126,17 +98,14 @@ map.on('sourcedata', (e) => {
 });
 
 function extract() {
-  const all = toRoadCollection(
-    map.querySourceFeatures(CARTO, { sourceLayer: 'transportation' }),
-    map.querySourceFeatures(CARTO, { sourceLayer: 'transportation_name' }),
-  );
+  const all = toRoadCollection(map.querySourceFeatures(CARTO, { sourceLayer: 'transportation' }));
   // Footpaths are left out: the course is read off the street grid.
   const streets: RoadCollection = { ...all, features: all.features.filter((f) => f.properties.rank !== 'path') };
-  roads = clipToCorridor(streets, stops, CORRIDOR_METERS);
+  const result = roadsAlongCourse(streets, stops);
+  roads = result.roads;
   (map.getSource('roads') as maplibregl.GeoJSONSource | undefined)?.setData(roads);
-  const lines = roads.features.filter((f) => f.properties.kind === 'road').length;
-  const names = new Set(roads.features.flatMap((f) => (f.properties.name ? [f.properties.name] : []))).size;
-  document.getElementById('count')!.textContent = `코스 주변 도로 ${lines}개 · 도로명 ${names}개`;
+  const missed = result.missedLegs > 0 ? ` · 못 이은 구간 ${result.missedLegs}개` : '';
+  document.getElementById('count')!.textContent = `코스 도로 ${roads.features.length}구간${missed}`;
 }
 
 document.getElementById('download')!.addEventListener('click', () => {
