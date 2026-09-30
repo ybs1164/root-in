@@ -21,7 +21,7 @@ interface BottomBarProps {
 const DIAL_OUT_MS = 170;
 
 /** Distance from the calendar button's centre to each menu button's centre. */
-const ARC_RADIUS = 85;
+const ARC_RADIUS = 70;
 
 /** Offset of a menu button at `deg` on the arc (0° = right, 90° = straight up). */
 const arcSpot = (deg: number): CSSProperties => {
