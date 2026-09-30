@@ -1,5 +1,5 @@
 import { CalendarDays, MapPin, Share, Sparkles } from 'lucide-react';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { bottomBarAction, type AppTab } from '../domain/appTabs';
 import { CalendarToday } from './icons';
 
@@ -17,6 +17,9 @@ interface BottomBarProps {
   onShowMonth: () => void;
 }
 
+/** Matches the dial's scale-out in styles.css, so it stays mounted until it has shrunk away. */
+const DIAL_OUT_MS = 170;
+
 const BUTTONS: { tab: AppTab; label: string; icon: ReactNode }[] = [
   { tab: 'calendar', label: '달력', icon: <CalendarToday /> },
   { tab: 'pins', label: '핀', icon: <MapPin aria-hidden /> },
@@ -27,7 +30,8 @@ const BUTTONS: { tab: AppTab; label: string; icon: ReactNode }[] = [
  * Three floating round buttons (📅 · 📍 · ✨), icon only. The current
  * screen's button is the big one; size is the only "selected" signal, so
  * the labels live in aria-label instead of on screen. Tapped again on a
- * day screen, the calendar button fans out 공유 and 월 달력 above itself.
+ * day screen, the calendar button grows a small bar above itself with
+ * 월 달력 and 공유.
  */
 export default function BottomBar({
   tab,
@@ -40,6 +44,19 @@ export default function BottomBar({
   onShareDay,
   onShowMonth,
 }: BottomBarProps) {
+  // Keep the dial on screen while it scales out after closing.
+  const [dialClosing, setDialClosing] = useState(false);
+  const [dialWasOpen, setDialWasOpen] = useState(calendarMenu);
+  if (calendarMenu !== dialWasOpen) {
+    setDialWasOpen(calendarMenu);
+    setDialClosing(!calendarMenu);
+  }
+  useEffect(() => {
+    if (!dialClosing) return;
+    const t = window.setTimeout(() => setDialClosing(false), DIAL_OUT_MS);
+    return () => window.clearTimeout(t);
+  }, [dialClosing]);
+
   useEffect(() => {
     if (!calendarMenu) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onCloseCalendarMenu();
@@ -63,14 +80,18 @@ export default function BottomBar({
         const isCalendar = target === 'calendar';
         return (
           <div key={target} className="bottom-bar__slot">
-            {isCalendar && calendarMenu && (
-              // Top to bottom: 공유, then 월 달력 right above the calendar button.
-              <div className="bottom-bar__dial" role="menu" aria-label="달력 메뉴">
-                <button className="bottom-bar__btn bottom-bar__dial-btn" role="menuitem" aria-label="공유" onClick={onShareDay}>
-                  <Share aria-hidden />
-                </button>
-                <button className="bottom-bar__btn bottom-bar__dial-btn" role="menuitem" aria-label="월 달력" onClick={onShowMonth}>
+            {isCalendar && (calendarMenu || dialClosing) && (
+              // A rounded bar that grows out of the calendar button: 월 달력 left, 공유 right.
+              <div
+                className={`bottom-bar__dial ${calendarMenu ? 'is-open' : 'is-closing'}`}
+                role="menu"
+                aria-label="달력 메뉴"
+              >
+                <button className="bottom-bar__dial-btn" role="menuitem" aria-label="월 달력" onClick={onShowMonth}>
                   <CalendarDays aria-hidden />
+                </button>
+                <button className="bottom-bar__dial-btn" role="menuitem" aria-label="공유" onClick={onShareDay}>
+                  <Share aria-hidden />
                 </button>
               </div>
             )}
