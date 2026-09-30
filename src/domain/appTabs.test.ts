@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bottomBarAction, showsPage, tabForIncoming } from './appTabs';
+import { bottomBarAction, homeSwipeDirection, showsPage, swipeCommits, tabForIncoming } from './appTabs';
 
 describe('bottom-bar tabs', () => {
   it('incoming #share= / #diary= / #pins= links open the matching tab', () => {
@@ -27,5 +27,20 @@ describe('bottom-bar tabs', () => {
     expect(showsPage('pins', false)).toBe(false);
     expect(showsPage('calendar', true)).toBe(false);
     expect(showsPage('influencer', true)).toBe(false);
+  });
+
+  it('달력 slides off to the left and 추천 to the right to uncover the map', () => {
+    expect(homeSwipeDirection('calendar')).toBe(-1);
+    expect(homeSwipeDirection('influencer')).toBe(1);
+    expect(homeSwipeDirection('pins')).toBe(0);
+  });
+
+  it('a swipe commits past 30% of the width or on a quick flick, and only the right way', () => {
+    expect(swipeCommits(-1, -120, 375, 0.1)).toBe(true);
+    expect(swipeCommits(-1, -60, 375, 0.1)).toBe(false);
+    expect(swipeCommits(-1, -60, 375, -0.8)).toBe(true); // quick flick left
+    expect(swipeCommits(-1, 200, 375, 0.9)).toBe(false); // wrong way
+    expect(swipeCommits(1, 150, 375, 0)).toBe(true);
+    expect(swipeCommits(1, 20, 375, 2)).toBe(false); // too short even if fast
   });
 });

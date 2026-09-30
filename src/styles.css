@@ -1978,6 +1978,9 @@ input.timeline__time:focus {
   padding-top: var(--safe-top);
   padding-bottom: calc(var(--bar-h) + var(--safe-bottom) + 6px);
   background: var(--surface);
+  box-shadow: var(--shadow); /* shows as the page slides off the map */
+  /* Vertical scrolling stays native; sideways moves are the swipe home. */
+  touch-action: pan-y;
 }
 
 .page__head {
