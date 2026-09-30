@@ -10,6 +10,7 @@ import {
   type MapPadding,
   type PinMarker,
 } from './courseMap';
+import { isRoadsOnlyLayer } from './roadsOnly';
 
 // Keyless fallback basemap for development / when the Kakao SDK is unavailable.
 const STYLE_URL = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
@@ -38,6 +39,12 @@ export class MapLibreCourseMap implements CourseMap {
     this.detachLongPress = attachLongPress(container, (x, y) => {
       const at = this.map.unproject([x, y]);
       options.onLongPress?.([at.lng, at.lat]);
+    });
+    // `style.load` fires before any tile is drawn, so the hidden layers never flash.
+    this.map.on('style.load', () => {
+      for (const layer of this.map.getStyle().layers) {
+        if (!isRoadsOnlyLayer(layer.id)) this.map.setLayoutProperty(layer.id, 'visibility', 'none');
+      }
     });
     this.map.on('load', () => {
       const token = (name: string, fallback: string) =>
