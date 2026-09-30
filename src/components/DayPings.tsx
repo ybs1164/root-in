@@ -1,4 +1,4 @@
-import { layoutPings, type DayPing } from '../domain/dayPings';
+import { latestPingIndex, layoutPings, type DayPing } from '../domain/dayPings';
 
 const PIN_PATH = 'M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0';
 
@@ -9,6 +9,7 @@ const PIN_PATH = 'M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.5
  */
 export default function DayPings({ pings }: { pings: DayPing[] }) {
   const points = layoutPings(pings.map((p) => p.center));
+  const latest = latestPingIndex(pings);
   return (
     <div className="pings" role="list" aria-label={pings.length ? `${pings.length}곳` : '기록 없음'}>
       {points.length > 1 && (
@@ -19,7 +20,7 @@ export default function DayPings({ pings }: { pings: DayPing[] }) {
       {pings.map((ping, i) => (
         <div
           key={`${ping.time}-${ping.name}`}
-          className="ping"
+          className={`ping ${i === latest ? 'ping--latest' : ''}`}
           role="listitem"
           style={{ left: `${points[i].x * 100}%`, top: `${points[i].y * 100}%`, animationDelay: `${120 + i * 110}ms` }}
         >

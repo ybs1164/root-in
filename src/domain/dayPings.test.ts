@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayTitle, layoutPings, pinchOutcome, pinchProgress, pingsForDate, SAMPLE_TODAY_PINGS } from './dayPings';
+import { dayTitle, latestPingIndex, layoutPings, pinchOutcome, pinchProgress, pingsForDate, SAMPLE_TODAY_PINGS } from './dayPings';
 
 describe('calendar day screen', () => {
   it('titles today as TODAY and other days as DAY <n>', () => {
@@ -46,5 +46,12 @@ describe('calendar day screen', () => {
     expect(pinchProgress(1)).toBe(0);
     expect(pinchProgress(0.55)).toBe(1);
     expect(pinchProgress(1.5)).toBeCloseTo(0.5);
+  });
+
+  it('picks the latest ping by time, whatever the list order', () => {
+    const at = (time: string) => ({ name: time, time, center: [127, 37.5] as [number, number] });
+    expect(latestPingIndex([at('10:30'), at('17:40'), at('13:00')])).toBe(1);
+    expect(latestPingIndex(SAMPLE_TODAY_PINGS)).toBe(2);
+    expect(latestPingIndex([])).toBe(-1);
   });
 });

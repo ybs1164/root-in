@@ -23,6 +23,11 @@ export function pingsForDate(key: string, today: string = dateKey()): DayPing[] 
   return key === today ? SAMPLE_TODAY_PINGS : [];
 }
 
+/** The most recent ping (latest time; the later one on ties), drawn bigger. */
+export function latestPingIndex(pings: DayPing[]): number {
+  return pings.reduce((best, ping, i) => (best < 0 || ping.time >= pings[best].time ? i : best), -1);
+}
+
 /** "TODAY" for today, otherwise "DAY 29". */
 export function dayTitle(key: string, today: string = dateKey()): string {
   return key === today ? 'TODAY' : `DAY ${Number(key.slice(8, 10))}`;
@@ -64,6 +69,8 @@ export const PINCH = {
   /** On release, anything past these switches; less snaps back. */
   outRelease: 0.8,
   inRelease: 1.3,
+  /** Fingers held still this long past a release threshold finish the zoom on their own. */
+  stallMs: 220,
 } as const;
 
 /** 0 → 1 as a pinch travels from untouched to its commit point. */

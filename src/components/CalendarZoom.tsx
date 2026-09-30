@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type TouchEvent } from 'react';
-import { dayTitle, pinchOutcome, pinchProgress, pingsForDate } from '../domain/dayPings';
+import { dayTitle, PINCH, pinchOutcome, pinchProgress, pingsForDate } from '../domain/dayPings';
 import { dateKey } from '../domain/diary';
 import DayPings from './DayPings';
 import MonthCalendar from './MonthCalendar';
@@ -39,6 +39,7 @@ export default function CalendarZoom() {
   const monthEl = useRef<HTMLDivElement | null>(null);
   const gesture = useRef<Gesture | null>(null);
   const wheelEnd = useRef<number | undefined>(undefined);
+  const stall = useRef<number | undefined>(undefined);
   const modeRef = useRef(mode);
   modeRef.current = mode;
 
@@ -104,6 +105,7 @@ export default function CalendarZoom() {
 
   const finish = (switched: boolean) => {
     const g = gesture.current;
+    window.clearTimeout(stall.current);
     gesture.current = null;
     setLive(null);
     if (!g || !switched) return;
@@ -117,7 +119,12 @@ export default function CalendarZoom() {
     // Each screen only zooms the way that leaves it.
     g.scale = modeRef.current === 'day' ? Math.min(1, Math.max(0.3, scale)) : Math.max(1, Math.min(3, scale));
     setLive(g.scale);
-    if (pinchOutcome(g.scale, false) === 'switch') finish(true);
+    if (pinchOutcome(g.scale, false) === 'switch') return finish(true);
+    // Holding still far enough in finishes the zoom without lifting the fingers.
+    window.clearTimeout(stall.current);
+    stall.current = window.setTimeout(() => {
+      if (gesture.current === g && pinchOutcome(g.scale, true) === 'switch') finish(true);
+    }, PINCH.stallMs);
   };
 
   const release = () => {
@@ -164,11 +171,18 @@ export default function CalendarZoom() {
       wheelEnd.current = window.setTimeout(release, 160);
     };
     stage.addEventListener('wheel', onWheel, { passive: false });
-    return () => {
-      stage.removeEventListener('wheel', onWheel);
-      window.clearTimeout(wheelEnd.current);
-    };
+    return () => stage.removeEventListener('wheel', onWheel);
   });
+
+  // Not in the effect above: that one re-subscribes every render, which
+  // would cancel these timers mid-pinch.
+  useEffect(
+    () => () => {
+      window.clearTimeout(stall.current);
+      window.clearTimeout(wheelEnd.current);
+    },
+    [],
+  );
 
   // ----- Layer transforms -----
 
@@ -217,7 +231,9 @@ export default function CalendarZoom() {
         <button className="cal-zoom__title" aria-label={`${dayTitle(shownDate, today)}, 달력 보기`} onClick={toMonth}>
           {dayTitle(shownDate, today)}
         </button>
-        <DayPings key={`${shownDate}-${visit}`} pings={pings} />
+        <div className="cal-zoom__pings">
+          <DayPings key={`${shownDate}-${visit}`} pings={pings} />
+        </div>
       </section>
     </div>
   );
