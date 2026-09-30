@@ -12,7 +12,7 @@ React 19 + Vite 7 + TypeScript. 지도는 **카카오맵 JS SDK**(키 없으면 
 - `npm run check` — 타입체크 + 테스트. 작업을 끝냈다고 말하기 전에 반드시 통과시킬 것
 - `npm test` / `npm run test:watch`
 - 개발 서버: `.claude/launch.json`의 `goodroot-dev` (포트 5188) — Bash로 띄우지 말고 preview로
-- `npm run shots` — 개발 서버가 떠 있을 때 주요 화면(홈·시트·검색·코스 목록/편집·다이어리·공유 코스/하루)을 모바일(375px)·데스크톱(1280px)으로 찍어 `ui-shots/`에 저장. `npm run shots -- course`처럼 이름으로 거를 수 있다. 샘플 데이터는 스크립트가 앱 저장소 모듈로 직접 넣는다 (`scripts/ui-shots.mjs`)
+- `npm run shots` — 개발 서버가 떠 있을 때 주요 화면(홈·시트·검색·내 핀·코스 목록/편집·핀 꽂기·달력·추천·설정·공유 코스/하루)을 모바일(375px)·데스크톱(1280px)으로 찍어 `ui-shots/`에 저장. `npm run shots -- course`처럼 이름으로 거를 수 있다. 샘플 데이터는 스크립트가 앱 저장소 모듈로 직접 넣는다 (`scripts/ui-shots.mjs`)
 - UI 검증은 모바일 폭(`resize_window` preset `mobile`, 375px)을 기본으로 하고, 데스크톱 폭도 깨지지 않는지 본다
 
 ## 카카오 키

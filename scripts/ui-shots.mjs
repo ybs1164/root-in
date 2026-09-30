@@ -1,7 +1,7 @@
 // Captures the main UI states at mobile and desktop widths so UI changes can
 // be reviewed without a device. Usage (dev server must be running):
 //   npm run shots                 -> all states, both widths
-//   npm run shots -- sheet share  -> only states whose name contains a filter
+//   npm run shots -- calendar pin  -> only states whose name contains a filter
 // Output: ui-shots/<width>-<state>.png (git-ignored).
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
@@ -45,6 +45,11 @@ async function seed(page) {
     const uid = getCurrentUserId();
     await courseRepository.save(uid, course);
     await courseRepository.save(uid, { ...course, title: '을지로 노포 투어', theme: 'food', stops: course.stops.slice(0, 2), sharedBy: undefined });
+    const { pinRepository } = await import('/src/services/pinRepository.ts');
+    const cats = ['cafe', 'food', 'togo'];
+    await pinRepository.saveAll(uid, course.stops.map((s, i) => ({
+      id: `shot-pin-${i}`, userId: uid, place: s.place, categoryId: cats[i], memo: s.memo, createdAt: course.sharedAt,
+    })));
     const d = new Date();
     const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     await diaryRepository.save(uid, {
@@ -80,15 +85,18 @@ const STATES = {
     await page.getByRole('searchbox').or(page.locator('input[type=search], input')).first().fill('성수 카페');
     await settle(page, 3000);
   },
-  'course-list': async (page, vp) => { await expandSheet(page, vp); await tab(page, /저장|목록|내 코스/); },
+  'pins': async (page, vp) => { await expandSheet(page, vp); await tab(page, '내 핀'); },
+  'course-list': async (page, vp) => { await expandSheet(page, vp); await tab(page, '내 코스'); },
   'course-edit': async (page, vp) => {
-    await expandSheet(page, vp); await tab(page, /저장|목록|내 코스/);
+    await expandSheet(page, vp); await tab(page, '내 코스');
     await page.getByText('성수 데이트 코스').first().click({ timeout: 3000 });
     await settle(page);
     await expandSheet(page, vp);
   },
-  'diary-today': async (page) => { await click(page, '하루 경로 기록 열기'); },
-  'diary-list': async (page) => { await click(page, '하루 경로 기록 열기'); await click(page, '목록'); },
+  'pin-drop': async (page) => { await click(page, '지도에 핀 꽂기'); },
+  'calendar': async (page) => { await click(page, '달력'); },
+  'recommend': async (page) => { await click(page, '추천'); },
+  'settings': async (page) => { await click(page, '설정'); },
   'shared-course': async (page, vp, reload) => { await reload(await shareHash(page, 'share')); },
   'shared-diary': async (page, vp, reload) => { await reload(await shareHash(page, 'diary')); },
 };
