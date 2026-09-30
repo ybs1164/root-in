@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'react';
 import { swipeCommits, SWIPE } from '../domain/appTabs';
-import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, type EdgeStyle, type PingShape } from '../domain/dayPings';
+import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, pingsLandedMs, SAMPLE_PING_DATES, type EdgeStyle, type PingShape } from '../domain/dayPings';
 import { addDays } from '../domain/calendar';
 import {
   canUndo,
@@ -153,9 +153,9 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
   const shownDate = preview ?? date;
   // While a pinch-out is only previewing the day, its pins stay out: they
   // drop in once the zoom lands, like every other way of opening a day.
-  const pings = preview ? [] : pingsForDate(shownDate, today);
+  const pings = preview ? [] : pingsForDate(shownDate);
   const counts = new Map(
-    [today, addDays(today, -1)].map((key) => [key, pingsForDate(key, today).length] as [string, number]),
+    Object.entries(SAMPLE_PING_DATES).map(([key, pings]) => [key, pings.length] as [string, number]),
   );
 
   // The layers are moved by writing their style directly, not through
@@ -587,6 +587,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
                 armed={armed}
                 pen={pen}
                 onChange={changeDecor}
+                enterDelayMs={pingsLandedMs(pings.length)}
               />
             </DayPings>
           </div>
@@ -630,7 +631,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
         <DayShareSheet
           date={date}
           title={dayTitle(date, today)}
-          pings={pingsForDate(date, today)}
+          pings={pingsForDate(date)}
           shapeOf={(ping) => days.shapes[pingKey(date, ping)] ?? 'pin'}
           edgeStyleOf={(from, to) => days.edges[edgeKey(date, from, to)] ?? 'solid'}
           decor={days.decor[date] ?? EMPTY_DECOR}

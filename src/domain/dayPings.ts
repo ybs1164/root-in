@@ -11,7 +11,9 @@ export interface DayPing {
 
 /**
  * Temporary test data: pings aren't recorded yet (they will come from the
- * current location), so only today shows these three to exercise the screen.
+ * current location), so two fixed dates carry sample places to exercise the
+ * screen. Fixed, not "today" and "yesterday": a day's places belong to that
+ * date and stay there as days pass, and TODAY moves on to a fresh day.
  * Remove once real pings are stored.
  */
 export const SAMPLE_TODAY_PINGS: DayPing[] = [
@@ -20,7 +22,7 @@ export const SAMPLE_TODAY_PINGS: DayPing[] = [
   { name: '뚝섬한강공원', time: '17:40', center: [127.067, 37.529] },
 ];
 
-/** Temporary test data for yesterday, so paging back a day has something to show. */
+/** Temporary test data for the day before, so paging back a day has something to show. */
 export const SAMPLE_YESTERDAY_PINGS: DayPing[] = [
   { name: '익선동 한옥거리', time: '11:00', center: [126.9895, 37.574] },
   { name: '창덕궁', time: '13:20', center: [126.991, 37.5794] },
@@ -28,10 +30,15 @@ export const SAMPLE_YESTERDAY_PINGS: DayPing[] = [
   { name: '을지로 노가리골목', time: '19:10', center: [126.9912, 37.566] },
 ];
 
-export function pingsForDate(key: string, today: string = dateKey()): DayPing[] {
-  if (key === today) return SAMPLE_TODAY_PINGS;
-  if (key === addDays(today, -1)) return SAMPLE_YESTERDAY_PINGS;
-  return [];
+/** Where the sample pings live (see above). */
+export const SAMPLE_PING_DATES: Record<string, DayPing[]> = {
+  '2026-09-30': SAMPLE_TODAY_PINGS,
+  '2026-09-29': SAMPLE_YESTERDAY_PINGS,
+};
+
+/** A date's pings: its own, whatever today is. */
+export function pingsForDate(key: string): DayPing[] {
+  return SAMPLE_PING_DATES[key] ?? [];
 }
 
 /**
@@ -142,3 +149,12 @@ export function pinchOutcome(scale: number, released: boolean): PinchResult {
   if (scale < 1) return scale <= (released ? PINCH.outRelease : PINCH.outCommit) ? 'switch' : 'stay';
   return scale >= (released ? PINCH.inRelease : PINCH.inCommit) ? 'switch' : 'stay';
 }
+
+/**
+ * When a day's drawing has finished arriving, in ms after it mounts: the
+ * last pin's drop (each starts 110ms after the one before, from 120ms, and
+ * takes 450ms) and the lines drawing in (350ms + 700ms), as in styles.css.
+ * The day's decorations settle in after this.
+ */
+export const pingsLandedMs = (count: number): number =>
+  count === 0 ? 0 : Math.max(count > 1 ? 1050 : 0, 120 + (count - 1) * 110 + 450);
