@@ -13,6 +13,16 @@ export function bottomBarAction(target: AppTab, current: AppTab): 'switch' | 'pi
   return 'none';
 }
 
+/**
+ * The calendar button tapped again on the calendar. From the month it goes
+ * back to TODAY; on a day screen it opens (or closes) the little menu above
+ * the button: 공유 and 월 달력.
+ */
+export function calendarAgain(mode: 'day' | 'month', menuOpen: boolean): 'today' | 'open-menu' | 'close-menu' {
+  if (menuOpen) return 'close-menu';
+  return mode === 'month' ? 'today' : 'open-menu';
+}
+
 /** Titles of the tabs that are their own full screens (not a sheet over the map). */
 export const PAGE_TITLES: Partial<Record<AppTab, string>> = { calendar: '달력', influencer: '추천' };
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bottomBarAction, homeSwipeDirection, showsPage, swipeCommits, tabForIncoming } from './appTabs';
+import { bottomBarAction, calendarAgain, homeSwipeDirection, showsPage, swipeCommits, tabForIncoming } from './appTabs';
 
 describe('bottom-bar tabs', () => {
   it('incoming #share= / #diary= / #pins= links open the matching tab', () => {
@@ -42,5 +42,12 @@ describe('bottom-bar tabs', () => {
     expect(swipeCommits(-1, 200, 375, 0.9)).toBe(false); // wrong way
     expect(swipeCommits(1, 150, 375, 0)).toBe(true);
     expect(swipeCommits(1, 20, 375, 2)).toBe(false); // too short even if fast
+  });
+
+  it('calendar button again: a day screen opens the 공유/월 달력 menu, the month goes back to TODAY', () => {
+    expect(calendarAgain('day', false)).toBe('open-menu');
+    expect(calendarAgain('day', true)).toBe('close-menu');
+    expect(calendarAgain('month', false)).toBe('today');
+    expect(calendarAgain('month', true)).toBe('close-menu');
   });
 });

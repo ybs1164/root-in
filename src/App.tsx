@@ -2,7 +2,7 @@ import { Settings as SettingsIcon, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomBar from './components/BottomBar';
 import CalendarSheet from './components/CalendarSheet';
-import CalendarZoom from './components/CalendarZoom';
+import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
 import CategoryChips from './components/CategoryChips';
 import InfluencerPanel from './components/InfluencerPanel';
 import PinCard from './components/PinCard';
@@ -13,7 +13,7 @@ import SettingsSheet from './components/SettingsSheet';
 import SharedCourseView from './components/SharedCourseView';
 import SharedPinsView from './components/SharedPinsView';
 import ShareSheet from './components/ShareSheet';
-import { homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
+import { calendarAgain, homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { addStop, COURSE_LIMITS, emptyDraft } from './domain/course';
 import { DIARY_LIMITS, diaryKind } from './domain/diary';
 import { buildPinSet, categoryStyle, filterPins } from './domain/pin';
@@ -80,7 +80,15 @@ export default function App() {
   const [previewPinning, setPreviewPinning] = useState(false);
 
   const [pinning, setPinning] = useState(false);
-  const [calendarFlip, setCalendarFlip] = useState(0);
+  // The calendar page: its zoom level (reported by CalendarZoom), the menu
+  // above the calendar button, and commands sent down from that menu.
+  const [calendarMode, setCalendarMode] = useState<'day' | 'month'>('day');
+  const [calendarMenu, setCalendarMenu] = useState(false);
+  const [calendarCommand, setCalendarCommand] = useState<CalendarCommand | null>(null);
+  const sendCalendar = (type: CalendarCommand['type']) => {
+    setCalendarMenu(false);
+    setCalendarCommand((prev) => ({ type, seq: (prev?.seq ?? 0) + 1 }));
+  };
   const [dropBusy, setDropBusy] = useState(false);
   const [activePinId, setActivePinId] = useState<string | null>(null);
   const [pinFilter, setPinFilter] = useState<string | null>(null);
@@ -316,6 +324,7 @@ export default function App() {
 
   const changeTab = (next: AppTab) => {
     setTab(next);
+    setCalendarMenu(false);
     setPinning(false);
     setPreview(null);
     setActivePinId(null);
@@ -668,7 +677,17 @@ export default function App() {
               <SettingsIcon size={22} aria-hidden />
             </button>
           </header>
-          {calendarZoom ? <CalendarZoom flip={calendarFlip} /> : renderSheet()}
+          {calendarZoom ? (
+            <CalendarZoom
+              command={calendarCommand}
+              onMode={(mode) => {
+                setCalendarMode(mode);
+                setCalendarMenu(false);
+              }}
+            />
+          ) : (
+            renderSheet()
+          )}
         </section>
       ) : (
         <section ref={sheetEl} className={`sheet sheet--${sheet} ${sheetTop ? 'sheet--top' : ''}`} aria-label="패널">
@@ -690,7 +709,15 @@ export default function App() {
           pinning={pinning}
           onTab={changeTab}
           onPin={startPinning}
-          onCalendarAgain={() => setCalendarFlip((n) => n + 1)}
+          onCalendarAgain={() => {
+            const next = calendarAgain(calendarMode, calendarMenu);
+            if (next === 'today') sendCalendar('today');
+            else setCalendarMenu(next === 'open-menu');
+          }}
+          calendarMenu={calendarMenu && tab === 'calendar' && calendarZoom}
+          onCloseCalendarMenu={() => setCalendarMenu(false)}
+          onShareDay={() => sendCalendar('share')}
+          onShowMonth={() => sendCalendar('month')}
         />
       </div>
 

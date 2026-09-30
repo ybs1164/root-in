@@ -4,6 +4,7 @@ import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, 
 import { addDays } from '../domain/calendar';
 import { dateKey } from '../domain/diary';
 import DayPings from './DayPings';
+import DayShareSheet from './DayShareSheet';
 import MonthCalendar from './MonthCalendar';
 
 type Mode = 'day' | 'month';
@@ -62,12 +63,19 @@ const monthOf = (key: string) => ({ year: Number(key.slice(0, 4)), month: Number
  * reads as one continuous zoom. Ctrl+wheel (trackpad pinch) does the same
  * on desktop, and taps cover it without gestures.
  */
-interface CalendarZoomProps {
-  /** Bumped each time the calendar button is tapped again: flips TODAY ↔ month. */
-  flip: number;
+/** Sent down from the calendar button's menu; `seq` makes a repeat count. */
+export interface CalendarCommand {
+  type: 'month' | 'today' | 'share';
+  seq: number;
 }
 
-export default function CalendarZoom({ flip }: CalendarZoomProps) {
+interface CalendarZoomProps {
+  command: CalendarCommand | null;
+  /** Reports day ↔ month, which decides what the calendar button does next. */
+  onMode: (mode: Mode) => void;
+}
+
+export default function CalendarZoom({ command, onMode }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
   const [date, setDate] = useState(today);
@@ -161,16 +169,20 @@ export default function CalendarZoom({ flip }: CalendarZoomProps) {
     setMode('day');
   };
 
-  // Calendar button again: a day zooms out to the month, the month zooms
-  // back into TODAY (not the day last opened).
-  const lastFlip = useRef(flip);
+  const [sharing, setSharing] = useState(false);
+
+  // Commands from the calendar button's menu (and TODAY from the month).
+  const lastCommand = useRef(command?.seq ?? 0);
   useEffect(() => {
-    if (flip === lastFlip.current) return;
-    lastFlip.current = flip;
+    if (!command || command.seq === lastCommand.current) return;
+    lastCommand.current = command.seq;
     if (gesture.current) return;
-    if (modeRef.current === 'day') toMonth();
-    else toDay(today);
+    if (command.type === 'month' && modeRef.current === 'day') toMonth();
+    else if (command.type === 'today') toDay(today);
+    else if (command.type === 'share' && modeRef.current === 'day') setSharing(true);
   });
+
+  useEffect(() => onMode(mode), [mode]);
 
   // ----- Paging days (one-finger swipe on a day screen) -----
 
@@ -461,6 +473,17 @@ export default function CalendarZoom({ flip }: CalendarZoomProps) {
           </div>
         )}
       </section>
+
+      {sharing && (
+        <DayShareSheet
+          date={date}
+          title={dayTitle(date, today)}
+          pings={pingsForDate(date, today)}
+          shapeOf={(ping) => shapes.get(pingKey(date, ping)) ?? 'pin'}
+          edgeStyleOf={(from, to) => edgeStyles.get(edgeKey(date, from, to)) ?? 'solid'}
+          onClose={() => setSharing(false)}
+        />
+      )}
     </div>
   );
 }
