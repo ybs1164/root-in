@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayTitle, latestPingIndex, layoutPings, pinchOutcome, pinchProgress, pingsForDate, SAMPLE_TODAY_PINGS } from './dayPings';
+import { classifyPress, dayTitle, latestPingIndex, layoutPings, pingKey, pinchOutcome, pinchProgress, pingsForDate, SAMPLE_TODAY_PINGS } from './dayPings';
 
 describe('calendar day screen', () => {
   it('titles today as TODAY and other days as DAY <n>', () => {
@@ -53,5 +53,26 @@ describe('calendar day screen', () => {
     expect(latestPingIndex([at('10:30'), at('17:40'), at('13:00')])).toBe(1);
     expect(latestPingIndex(SAMPLE_TODAY_PINGS)).toBe(2);
     expect(latestPingIndex([])).toBe(-1);
+  });
+
+  it('with a focus ping (the latest), puts it in the middle and keeps the rest inside the margins', () => {
+    const centers: [number, number][] = SAMPLE_TODAY_PINGS.map((p) => p.center);
+    const points = layoutPings(centers, 2);
+    expect(points[2]).toEqual({ x: 0.5, y: 0.5 });
+    for (const p of points) {
+      for (const v of [p.x, p.y]) {
+        expect(v).toBeGreaterThanOrEqual(0.18 - 1e-9);
+        expect(v).toBeLessThanOrEqual(0.82 + 1e-9);
+      }
+    }
+    expect(points[1].x).toBeLessThan(points[2].x); // 서울숲 is west of 뚝섬
+    expect(layoutPings([[127, 37.5]], 0)).toEqual([{ x: 0.5, y: 0.5 }]);
+  });
+
+  it('tells a tap from a long press, and ignores drags', () => {
+    expect(classifyPress(120, 2)).toBe('tap');
+    expect(classifyPress(600, 4)).toBe('long');
+    expect(classifyPress(120, 30)).toBe('none');
+    expect(pingKey('2026-09-30', SAMPLE_TODAY_PINGS[0])).toBe('2026-09-30|10:30|성수연방');
   });
 });

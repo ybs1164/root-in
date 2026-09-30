@@ -37,13 +37,23 @@ export function dayTitle(key: string, today: string = dateKey()): string {
  * Places pings inside a unit square (0..1, y down) keeping their real
  * relative positions, so the drawing reads like a tiny map without one.
  * Longitude is scaled by cos(latitude) so east-west distances aren't stretched.
+ * With `focus`, that ping (the latest) sits in the middle and the rest are
+ * scaled around it to fit; otherwise the whole group is centred.
  */
-export function layoutPings(centers: [number, number][], margin = 0.18): { x: number; y: number }[] {
+export function layoutPings(centers: [number, number][], focus = -1, margin = 0.18): { x: number; y: number }[] {
   if (centers.length === 0) return [];
   const midLat = centers.reduce((sum, [, lat]) => sum + lat, 0) / centers.length;
   const kx = Math.cos((midLat * Math.PI) / 180);
   const xs = centers.map(([lng]) => lng * kx);
   const ys = centers.map(([, lat]) => -lat);
+
+  if (focus >= 0 && focus < centers.length) {
+    const room = 0.5 - margin;
+    const reach = Math.max(...xs.map((x) => Math.abs(x - xs[focus])), ...ys.map((y) => Math.abs(y - ys[focus])));
+    const k = reach === 0 ? 0 : room / reach;
+    return xs.map((x, i) => ({ x: 0.5 + (x - xs[focus]) * k, y: 0.5 + (ys[i] - ys[focus]) * k }));
+  }
+
   const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
   const span = Math.max(maxX - minX, maxY - minY);
   const size = 1 - margin * 2;
@@ -55,6 +65,30 @@ export function layoutPings(centers: [number, number][], margin = 0.18): { x: nu
     x: margin + offX + ((x - minX) / span) * size,
     y: margin + offY + ((ys[i] - minY) / span) * size,
   }));
+}
+
+/** Shapes a ping can take (long-press to choose). */
+export type PingShape = 'pin' | 'dot' | 'star' | 'heart';
+
+export const PING_SHAPES: { shape: PingShape; label: string }[] = [
+  { shape: 'pin', label: '핀' },
+  { shape: 'dot', label: '점' },
+  { shape: 'star', label: '별' },
+  { shape: 'heart', label: '하트' },
+];
+
+/** Stable key for a ping's per-ping settings (its shape, for now). */
+export const pingKey = (date: string, ping: DayPing): string => `${date}|${ping.time}|${ping.name}`;
+
+/**
+ * Press on a ping: held this long without drifting is a long press (shape
+ * picker); released sooner is a tap. Moving further than `slopPx` is neither.
+ */
+export const PRESS = { longMs: 500, slopPx: 10 } as const;
+
+export function classifyPress(heldMs: number, movedPx: number): 'tap' | 'long' | 'none' {
+  if (movedPx > PRESS.slopPx) return 'none';
+  return heldMs >= PRESS.longMs ? 'long' : 'tap';
 }
 
 /**

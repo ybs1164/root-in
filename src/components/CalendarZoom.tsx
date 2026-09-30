@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type TouchEvent } from 'react';
-import { dayTitle, PINCH, pinchOutcome, pinchProgress, pingsForDate } from '../domain/dayPings';
+import { dayTitle, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, type PingShape } from '../domain/dayPings';
 import { dateKey } from '../domain/diary';
 import DayPings from './DayPings';
 import MonthCalendar from './MonthCalendar';
@@ -34,6 +34,8 @@ export default function CalendarZoom() {
   const [origin, setOrigin] = useState<Point | null>(null);
   const [live, setLive] = useState<number | null>(null);
   const [visit, setVisit] = useState(0);
+  // Chosen ping shapes. Pings aren't stored yet, so this lasts for the session.
+  const [shapes, setShapes] = useState<Map<string, PingShape>>(() => new Map());
 
   const stageEl = useRef<HTMLDivElement | null>(null);
   const monthEl = useRef<HTMLDivElement | null>(null);
@@ -232,7 +234,16 @@ export default function CalendarZoom() {
           {dayTitle(shownDate, today)}
         </button>
         <div className="cal-zoom__pings">
-          <DayPings key={`${shownDate}-${visit}`} pings={pings} />
+          <DayPings
+            key={`${shownDate}-${visit}`}
+            pings={pings}
+            shapeOf={(ping) => shapes.get(pingKey(shownDate, ping)) ?? 'pin'}
+            onShape={(ping, shape) => setShapes((prev) => new Map(prev).set(pingKey(shownDate, ping), shape))}
+            onTap={() => {
+              // Recognised on purpose; what a tap opens is decided later.
+            }}
+            pressable={() => gesture.current === null}
+          />
         </div>
       </section>
     </div>
