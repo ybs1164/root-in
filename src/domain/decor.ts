@@ -15,7 +15,12 @@ export interface PlacedSticker {
   size: number;
 }
 
-/** Pen tools: three kinds of ink, and an eraser that lifts whole strokes. */
+/**
+ * Pen tools: three kinds of ink, and an eraser that rubs out whatever it
+ * passes over (an area, not whole strokes). Eraser passes are strokes too,
+ * kept in order, so ink drawn after them isn't erased and undo brings the
+ * rubbed-out part back.
+ */
 export type PenTool = 'pen' | 'highlighter' | 'neon' | 'eraser';
 export type InkTool = Exclude<PenTool, 'eraser'>;
 export type PenWidth = 'thin' | 'medium' | 'thick';
@@ -27,7 +32,7 @@ export type PenWidth = 'thin' | 'medium' | 'thick';
 export type InkColor = string;
 
 export interface Stroke {
-  tool: InkTool;
+  tool: PenTool;
   color: InkColor;
   width: PenWidth;
   points: [number, number][];
@@ -77,27 +82,8 @@ export const PEN_WIDTHS: Record<PenWidth, number> = { thin: 0.009, medium: 0.016
 
 export const STICKER_SIZE = 0.13;
 
-/**
- * The eraser lifts every stroke that passes within `radius` (box fractions)
- * of the point: whole strokes, the way a stroke eraser works.
- */
-export function eraseAt(strokes: Stroke[], x: number, y: number, radius: number): Stroke[] {
-  const near = (s: Stroke) =>
-    s.points.some((p, i) => {
-      const q = s.points[i + 1] ?? p;
-      return distToSegment(x, y, p, q) <= radius;
-    });
-  const kept = strokes.filter((s) => !near(s));
-  return kept.length === strokes.length ? strokes : kept;
-}
-
-function distToSegment(x: number, y: number, [ax, ay]: [number, number], [bx, by]: [number, number]): number {
-  const dx = bx - ax;
-  const dy = by - ay;
-  const len2 = dx * dx + dy * dy;
-  const t = len2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / len2)) : 0;
-  return Math.hypot(x - (ax + t * dx), y - (ay + t * dy));
-}
+/** The eraser is wider than the pen at the same setting (fingers are blunt). */
+export const ERASER_SCALE = 2.5;
 
 export const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
 
@@ -126,3 +112,37 @@ export const THEMES: { id: ThemeId; label: string }[] = [
 ];
 
 export const isThemeId = (value: unknown): value is ThemeId => THEMES.some((t) => t.id === value);
+
+// ----- Colour codes for the palette -----
+
+/** '#abc', 'abcdef', ' #ABCDEF ' → '#abcdef'; anything else → null. */
+export function normalizeHex(input: string): string | null {
+  const v = input.trim().replace(/^#/, '').toLowerCase();
+  if (/^[0-9a-f]{6}$/.test(v)) return `#${v}`;
+  if (/^[0-9a-f]{3}$/.test(v)) return `#${[...v].map((c) => c + c).join('')}`;
+  return null;
+}
+
+/**
+ * The colour wheel is HSV: hue around the circle, saturation from the white
+ * centre out to the rim, value from the brightness slider. Hue in degrees,
+ * saturation and value 0..1 → '#rrggbb'.
+ */
+export function hsvToHex(h: number, s: number, v: number): string {
+  const f = (n: number) => {
+    const k = (n + h / 60) % 6;
+    return v - v * s * Math.max(0, Math.min(k, 4 - k, 1));
+  };
+  const to = (x: number) => Math.round(x * 255).toString(16).padStart(2, '0');
+  return `#${to(f(5))}${to(f(3))}${to(f(1))}`;
+}
+
+/** '#rrggbb' → hue (degrees), saturation and value (0..1), to put the wheel's marker back. */
+export function hexToHsv(hex: string): { h: number; s: number; v: number } {
+  const n = parseInt(hex.slice(1), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((x) => x / 255);
+  const max = Math.max(r, g, b);
+  const d = max - Math.min(r, g, b);
+  const h = d === 0 ? 0 : max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return { h: (h * 60 + 360) % 360, s: max === 0 ? 0 : d / max, v: max };
+}

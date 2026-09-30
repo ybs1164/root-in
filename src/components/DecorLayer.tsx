@@ -1,8 +1,8 @@
 import { X } from 'lucide-react';
-import { useEffect, useId, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useId, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import {
   clamp01,
-  eraseAt,
+  ERASER_SCALE,
   extendStroke,
   inkCss,
   PEN_WIDTHS,
@@ -52,8 +52,35 @@ function Ink({ stroke, glowId }: { stroke: Stroke; glowId: string }) {
   return <path d={d} style={{ stroke: color, strokeWidth: w }} />;
 }
 
-/** How far the eraser reaches around the finger, by width (box fractions). */
-const eraserRadius = (pen: PenSettings) => PEN_WIDTHS[pen.width] * 1.5 + 0.02;
+/**
+ * All strokes in order. Each eraser pass wraps everything drawn before it
+ * in a mask that hides where it rubbed, so it clears an area of earlier
+ * ink but not what's drawn afterwards.
+ */
+function inkLayers(strokes: Stroke[], glowId: string, maskId: string): ReactNode[] {
+  let layers: ReactNode[] = [];
+  strokes.forEach((stroke, i) => {
+    if (stroke.tool !== 'eraser') {
+      layers.push(<Ink key={i} stroke={stroke} glowId={glowId} />);
+      return;
+    }
+    const id = `${maskId}-${i}`;
+    layers = [
+      <mask key={`m${i}`} id={id} maskUnits="userSpaceOnUse" x="-10" y="-10" width="120" height="120">
+        <rect x="-10" y="-10" width="120" height="120" className="decor__mask-keep" />
+        <path
+          d={strokePath(stroke.points)}
+          className="decor__mask-rub"
+          style={{ strokeWidth: PEN_WIDTHS[stroke.width] * ERASER_SCALE * 100 }}
+        />
+      </mask>,
+      <g key={`g${i}`} mask={`url(#${id})`}>
+        {layers}
+      </g>,
+    ];
+  });
+  return layers;
+}
 
 const newId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `s-${Date.now()}-${Math.random()}`;
@@ -96,32 +123,18 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange }: DecorL
     if (!e.isPrimary) return setDrawing(null);
     e.currentTarget.setPointerCapture(e.pointerId);
     const [x, y] = at(e);
-    if (pen.tool === 'eraser') {
-      erasing.current = true;
-      return erase(x, y);
-    }
     setDrawing({ tool: pen.tool, color: pen.color, width: pen.width, points: extendStroke([], x, y) });
   };
   const onPenMove = (e: PointerEvent) => {
-    if (erasing.current) {
-      const [x, y] = at(e);
-      return erase(x, y);
-    }
     if (!drawing) return;
     const [x, y] = at(e);
     const points = extendStroke(drawing.points, x, y);
     if (points !== drawing.points) setDrawing({ ...drawing, points });
   };
   const onPenUp = () => {
-    erasing.current = false;
     if (!drawing) return;
     onChange({ ...decor, strokes: [...decor.strokes, drawing] });
     setDrawing(null);
-  };
-  const erasing = useRef(false);
-  const erase = (x: number, y: number) => {
-    const strokes = eraseAt(decor.strokes, x, y, eraserRadius(pen));
-    if (strokes !== decor.strokes) onChange({ ...decor, strokes });
   };
 
   // ----- Stickers -----
@@ -160,7 +173,8 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange }: DecorL
   };
 
   const strokes = drawing ? [...decor.strokes, drawing] : decor.strokes;
-  const glowId = `neon-${useId().replace(/:/g, '')}`;
+  const uid = useId().replace(/:/g, '');
+  const glowId = `neon-${uid}`;
 
   return (
     <div
@@ -181,9 +195,7 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange }: DecorL
               <feGaussianBlur stdDeviation="1.4" />
             </filter>
           </defs>
-          {strokes.map((stroke, i) => (
-            <Ink key={i} stroke={stroke} glowId={glowId} />
-          ))}
+          {inkLayers(strokes, glowId, `rub-${uid}`)}
         </svg>
       )}
       {decor.stickers.map((s) => {

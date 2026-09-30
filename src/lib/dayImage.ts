@@ -1,5 +1,5 @@
 import { latestPingIndex, layoutPings, type DayPing, type EdgeStyle, type PingShape } from '../domain/dayPings';
-import { isCustomColor, PEN_WIDTHS, type DayDecor } from '../domain/decor';
+import { ERASER_SCALE, isCustomColor, PEN_WIDTHS, type DayDecor } from '../domain/decor';
 import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
 
 export interface DayImageInput {
@@ -142,43 +142,58 @@ export async function renderDayImage({ title, pings, shapeOf, edgeStyleOf, decor
 function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, font: string) {
   const css = getComputedStyle(document.documentElement);
   const px = (v: number) => v * BOX.size;
-  ctx.save();
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
+  // Ink goes on its own layer so eraser passes (destination-out) cut only
+  // ink drawn before them, never the pings or the page underneath.
+  const layer = document.createElement('canvas');
+  layer.width = W;
+  layer.height = H;
+  const ink = layer.getContext('2d')!;
+  ink.lineCap = 'round';
+  ink.lineJoin = 'round';
   const trace = (points: [number, number][]) => {
-    ctx.beginPath();
-    points.forEach(([x, y], i) => (i ? ctx.lineTo : ctx.moveTo).call(ctx, BOX.x + px(x), BOX.y + px(y)));
-    if (points.length === 1) ctx.lineTo(BOX.x + px(points[0][0]) + 0.01, BOX.y + px(points[0][1]));
-    ctx.stroke();
+    ink.beginPath();
+    points.forEach(([x, y], i) => (i ? ink.lineTo : ink.moveTo).call(ink, BOX.x + px(x), BOX.y + px(y)));
+    if (points.length === 1) ink.lineTo(BOX.x + px(points[0][0]) + 0.01, BOX.y + px(points[0][1]));
+    ink.stroke();
   };
   for (const stroke of decor.strokes) {
-    const color = isCustomColor(stroke.color) ? stroke.color : css.getPropertyValue(`--${stroke.color}`).trim();
     const w = px(PEN_WIDTHS[stroke.width]);
-    ctx.save();
-    ctx.strokeStyle = color;
+    ink.save();
+    if (stroke.tool === 'eraser') {
+      ink.globalCompositeOperation = 'destination-out';
+      ink.strokeStyle = css.getPropertyValue('--mask-show').trim();
+      ink.lineWidth = w * ERASER_SCALE;
+      trace(stroke.points);
+      ink.restore();
+      continue;
+    }
+    const color = isCustomColor(stroke.color) ? stroke.color : css.getPropertyValue(`--${stroke.color}`).trim();
+    ink.strokeStyle = color;
     // Same looks as the screen (DecorLayer's Ink): highlighter wide and see-through,
     // neon a glow in its colour with a bright core.
     if (stroke.tool === 'highlighter') {
-      ctx.globalAlpha = 0.35;
-      ctx.lineWidth = w * 2.4;
+      ink.globalAlpha = 0.35;
+      ink.lineWidth = w * 2.4;
       trace(stroke.points);
     } else if (stroke.tool === 'neon') {
-      ctx.shadowColor = color;
-      ctx.shadowBlur = w * 2.5;
-      ctx.lineWidth = w;
+      ink.shadowColor = color;
+      ink.shadowBlur = w * 2.5;
+      ink.lineWidth = w;
       trace(stroke.points);
       trace(stroke.points);
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = css.getPropertyValue('--ink-white').trim();
-      ctx.globalAlpha = 0.85;
-      ctx.lineWidth = w * 0.35;
+      ink.shadowBlur = 0;
+      ink.strokeStyle = css.getPropertyValue('--ink-white').trim();
+      ink.globalAlpha = 0.85;
+      ink.lineWidth = w * 0.35;
       trace(stroke.points);
     } else {
-      ctx.lineWidth = w;
+      ink.lineWidth = w;
       trace(stroke.points);
     }
-    ctx.restore();
+    ink.restore();
   }
+  ctx.save();
+  ctx.drawImage(layer, 0, 0);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   for (const s of decor.stickers) {

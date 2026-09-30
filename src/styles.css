@@ -25,6 +25,7 @@
   --mac-close: #ff5f57; /* macOS window close light */
   --mac-light-edge: rgba(0, 0, 0, 0.12);
   --mask-show: #fff; /* SVG masks: white = fully shown (not a colour anyone sees) */
+  --mask-hide: #000; /* …and black = hidden (the eraser's rub) */
   /* 꾸미기: fixed ink colours (not themed), the tool sheet and the palette rainbow. */
   --ink-black: #151515;
   --ink-white: #ffffff;
@@ -40,6 +41,14 @@
   --rainbow-5: #3aa0ff;
   --rainbow-6: #8a5cff;
   --rainbow-7: #ff4dd2;
+  /* The colour wheel's hues, every 60°, and its shade for brightness. */
+  --hue-0: #ff0000;
+  --hue-60: #ffff00;
+  --hue-120: #00ff00;
+  --hue-180: #00ffff;
+  --hue-240: #0000ff;
+  --hue-300: #ff00ff;
+  --hue-shade: #000000;
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
   --backdrop: rgba(0, 0, 0, 0.4);
 }
@@ -1402,10 +1411,170 @@ button:disabled {
   );
 }
 
+/* Undo: the colour row's last button. */
+.decor-tray__undo {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 12px;
+}
+
+.decor-tray__undo:disabled {
+  color: var(--tray-dim);
+  opacity: 0.5;
+}
+
+.decor-tray__palette.is-on {
+  background: var(--tray-hi);
+}
+
+/* Palette: floats above the sheet, same dark glass. */
+.color-picker {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 14px;
+  border-radius: 20px;
+  background: var(--tray-bg);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  backdrop-filter: blur(18px) saturate(1.4);
+  translate: -50% 0;
+  animation: picker-in 0.18s ease both;
+}
+
+@keyframes picker-in {
+  from {
+    opacity: 0;
+    scale: 0.94;
+  }
+}
+
+.color-picker__wheel {
+  position: relative;
+  flex: none;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side, var(--ink-white), transparent),
+    conic-gradient(var(--hue-0), var(--hue-60), var(--hue-120), var(--hue-180), var(--hue-240), var(--hue-300), var(--hue-0));
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.color-picker__shade {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--hue-shade);
+  pointer-events: none;
+}
+
+.color-picker__marker {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3px var(--ink-white),
+    0 1px 6px 3px var(--backdrop);
+  translate: -50% -50%;
+  pointer-events: none;
+}
+
+.color-picker__side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 132px;
+}
+
+.color-picker__value {
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.color-picker__value::-webkit-slider-runnable-track {
+  height: 14px;
+  border-radius: 7px;
+  background: linear-gradient(to right, var(--hue-shade), var(--picker-top));
+  box-shadow: inset 0 0 0 1px var(--tray-line);
+}
+
+.color-picker__value::-moz-range-track {
+  height: 14px;
+  border-radius: 7px;
+  background: linear-gradient(to right, var(--hue-shade), var(--picker-top));
+}
+
+.color-picker__value::-webkit-slider-thumb {
+  width: 24px;
+  height: 24px;
+  margin-top: -5px;
+  border: 3px solid var(--ink-white);
+  border-radius: 50%;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.color-picker__value::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--ink-white);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.color-picker__code {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 10px;
+  border-radius: 12px;
+  background: var(--tray-hi);
+}
+
+.color-picker__chip {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--tray-line);
+}
+
+.color-picker__code input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--tray-fg);
+  font: inherit;
+  font-size: 16px; /* no iOS zoom-in */
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  outline: none;
+}
+
 /* Themes: rectangle cards that scroll sideways. */
 .decor-tray__themes {
   display: flex;
-  gap: 12px;
+  gap: 20px;
+  min-height: 0;
   overflow-x: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
@@ -1435,33 +1604,39 @@ button:disabled {
   color: var(--tray-fg);
 }
 
-/* A little screen: the theme's background, an accent bar and a pin dot. */
+/* A little screen: the theme's background, a pin and an accent bar. */
 .theme-card {
   position: relative;
   display: block;
-  width: 64px;
-  height: 84px;
-  border-radius: 10px;
+  width: 80px;
+  height: 104px;
+  border-radius: 12px;
+  background: var(--card-bg);
   box-shadow: inset 0 0 0 1px var(--tray-line);
+}
+
+.theme-card svg {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  width: 26px;
+  height: 33px;
+  translate: -50% 0;
+  fill: var(--card-accent);
+}
+
+.theme-card svg circle {
+  fill: var(--card-bg);
 }
 
 .theme-card i {
   position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  bottom: 14px;
   height: 8px;
   border-radius: 4px;
-}
-
-.theme-card b {
-  position: absolute;
-  top: 18px;
-  left: 50%;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  translate: -50% 0;
+  background: var(--card-accent);
 }
 
 .decor-tray__theme.is-on .theme-card {
@@ -1470,24 +1645,24 @@ button:disabled {
     0 0 0 4px var(--tray-fg);
 }
 
-.theme-card--default .theme-card { background: var(--swatch-default-bg); }
-.theme-card--default .theme-card i,
-.theme-card--default .theme-card b { background: var(--swatch-default-accent); }
-.theme-card--night .theme-card { background: var(--swatch-night-bg); }
-.theme-card--night .theme-card i,
-.theme-card--night .theme-card b { background: var(--swatch-night-accent); }
-.theme-card--mint .theme-card { background: var(--swatch-mint-bg); }
-.theme-card--mint .theme-card i,
-.theme-card--mint .theme-card b { background: var(--swatch-mint-accent); }
-.theme-card--lavender .theme-card { background: var(--swatch-lavender-bg); }
-.theme-card--lavender .theme-card i,
-.theme-card--lavender .theme-card b { background: var(--swatch-lavender-accent); }
-.theme-card--sky .theme-card { background: var(--swatch-sky-bg); }
-.theme-card--sky .theme-card i,
-.theme-card--sky .theme-card b { background: var(--swatch-sky-accent); }
-.theme-card--mono .theme-card { background: var(--swatch-mono-bg); }
-.theme-card--mono .theme-card i,
-.theme-card--mono .theme-card b { background: var(--swatch-mono-accent); }
+.theme-card--default { --card-bg: var(--swatch-default-bg); --card-accent: var(--swatch-default-accent); }
+.theme-card--night { --card-bg: var(--swatch-night-bg); --card-accent: var(--swatch-night-accent); }
+.theme-card--mint { --card-bg: var(--swatch-mint-bg); --card-accent: var(--swatch-mint-accent); }
+.theme-card--lavender { --card-bg: var(--swatch-lavender-bg); --card-accent: var(--swatch-lavender-accent); }
+.theme-card--sky { --card-bg: var(--swatch-sky-bg); --card-accent: var(--swatch-sky-accent); }
+.theme-card--mono { --card-bg: var(--swatch-mono-bg); --card-accent: var(--swatch-mono-accent); }
+
+/* Eraser masks: keep everything, except where the eraser rubbed. */
+.decor__mask-keep {
+  fill: var(--mask-show);
+}
+
+.decor__mask-rub {
+  fill: none;
+  stroke: var(--mask-hide);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
 .decor--pen.is-erasing {
   cursor: cell;

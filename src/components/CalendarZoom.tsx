@@ -522,6 +522,8 @@ export default function CalendarZoom({ command, onMode, onDecorating, theme, onT
           onArm={setArmed}
           pen={pen}
           onPen={setPen}
+          canUndo={dayDecor.strokes.length > 0}
+          onUndo={() => setDecor((prev) => new Map(prev).set(shownDate, { ...dayDecor, strokes: dayDecor.strokes.slice(0, -1) }))}
           theme={theme}
           onTheme={onTheme}
         />

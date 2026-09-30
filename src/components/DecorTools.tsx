@@ -1,9 +1,12 @@
-import { Eraser, Highlighter, Palette, PenLine, Pencil, Sparkles, Sticker } from 'lucide-react';
-import { useRef } from 'react';
+import { Eraser, Highlighter, Palette, PenLine, Pencil, Sparkles, Sticker, Undo2 } from 'lucide-react';
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import {
   BASE_COLORS,
+  hexToHsv,
+  hsvToHex,
   inkCss,
   isCustomColor,
+  normalizeHex,
   PEN_TOOLS,
   PEN_WIDTHS,
   STICKERS,
@@ -14,6 +17,7 @@ import {
   type PenWidth,
   type ThemeId,
 } from '../domain/decor';
+import { PIN_BOX, PIN_PATH } from '../lib/pingPaths';
 
 const RAIL: { tool: DecorTool; label: string; Icon: typeof Sticker }[] = [
   { tool: 'sticker', label: '스티커', Icon: Sticker },
@@ -46,6 +50,9 @@ interface DecorTrayProps {
   onArm: (emoji: string | null) => void;
   pen: PenSettings;
   onPen: (pen: PenSettings) => void;
+  /** Takes back the day's last stroke (eraser passes included). */
+  canUndo: boolean;
+  onUndo: () => void;
   theme: ThemeId;
   onTheme: (theme: ThemeId) => void;
 }
@@ -67,9 +74,11 @@ const WIDTH_LABELS: Record<PenWidth, string> = { thin: '가늘게', medium: '보
  * from the same rail button that opened it.
  */
 export function DecorTray(p: DecorTrayProps) {
-  const paletteInput = useRef<HTMLInputElement | null>(null);
+  const [picking, setPicking] = useState(false);
   const custom = isCustomColor(p.pen.color) ? p.pen.color : null;
   const label = RAIL.find((r) => r.tool === p.tool)?.label;
+  // Picking a colour means drawing with it: the eraser hands over to the pen.
+  const setColor = (color: string) => p.onPen({ ...p.pen, color, tool: p.pen.tool === 'eraser' ? 'pen' : p.pen.tool });
 
   return (
     <div className={`decor-tray decor-tray--${p.tool}`} role="toolbar" aria-label={label}>
@@ -129,7 +138,7 @@ export function DecorTray(p: DecorTrayProps) {
                 style={{ color: inkCss(color) }}
                 aria-label={name}
                 aria-pressed={p.pen.color === color}
-                onClick={() => p.onPen({ ...p.pen, color, tool: p.pen.tool === 'eraser' ? 'pen' : p.pen.tool })}
+                onClick={() => setColor(color)}
               >
                 <span aria-hidden />
               </button>
@@ -139,20 +148,19 @@ export function DecorTray(p: DecorTrayProps) {
                 <span aria-hidden />
               </button>
             )}
-            {/* The rainbow opens the system colour picker; its pick becomes the ink. */}
-            <button className="decor-tray__palette" aria-label="팔레트에서 색 고르기" onClick={() => paletteInput.current?.click()}>
+            <button
+              className={`decor-tray__palette ${picking ? 'is-on' : ''}`}
+              aria-label="팔레트에서 색 고르기"
+              aria-expanded={picking}
+              onClick={() => setPicking(!picking)}
+            >
               <span aria-hidden />
             </button>
-            <input
-              ref={paletteInput}
-              className="sr-only"
-              type="color"
-              tabIndex={-1}
-              aria-hidden
-              value={custom ?? '#ff4d6d'}
-              onChange={(e) => p.onPen({ ...p.pen, color: e.target.value, tool: p.pen.tool === 'eraser' ? 'pen' : p.pen.tool })}
-            />
+            <button className="decor-tray__undo" aria-label="되돌리기" disabled={!p.canUndo} onClick={p.onUndo}>
+              <Undo2 size={22} aria-hidden />
+            </button>
           </div>
+          {picking && <ColorPicker color={custom ?? '#ff4d6d'} onPick={setColor} onClose={() => setPicking(false)} />}
         </div>
       )}
 
@@ -166,14 +174,121 @@ export function DecorTray(p: DecorTrayProps) {
               onClick={() => p.onTheme(id)}
             >
               <span className="theme-card" aria-hidden>
+                <svg viewBox={`${PIN_BOX.x} ${PIN_BOX.y} ${PIN_BOX.w} ${PIN_BOX.h}`}>
+                  <path d={PIN_PATH} />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
                 <i />
-                <b />
               </span>
               {name}
             </button>
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * The palette: a round wheel of every hue (saturation grows from the white
+ * centre to the rim), a brightness slider, and a box for a colour code.
+ * Every change is the ink straight away. Taps outside close it.
+ */
+function ColorPicker({ color, onPick, onClose }: { color: string; onPick: (hex: string) => void; onClose: () => void }) {
+  const box = useRef<HTMLDivElement | null>(null);
+  // HSV is kept here rather than derived from the hex, so turning the
+  // brightness all the way down and back up doesn't lose the hue.
+  const [hsv, setHsv] = useState(() => hexToHsv(color));
+  const [code, setCode] = useState(color);
+  const wheel = useRef<HTMLDivElement | null>(null);
+  const dragging = useRef(false);
+
+  useEffect(() => {
+    const away = (e: globalThis.PointerEvent) => {
+      const t = e.target as Element | null;
+      if (box.current?.contains(t) || t?.closest('.decor-tray__palette')) return;
+      onClose();
+    };
+    document.addEventListener('pointerdown', away);
+    return () => document.removeEventListener('pointerdown', away);
+  }, [onClose]);
+
+  const apply = (next: { h: number; s: number; v: number }) => {
+    setHsv(next);
+    const hex = hsvToHex(next.h, next.s, next.v);
+    setCode(hex);
+    onPick(hex);
+  };
+
+  const pickAt = (e: PointerEvent) => {
+    const r = wheel.current!.getBoundingClientRect();
+    const dx = e.clientX - (r.left + r.width / 2);
+    const dy = e.clientY - (r.top + r.height / 2);
+    // Hue runs clockwise from the top, as the conic gradient draws it.
+    const h = ((Math.atan2(dx, -dy) * 180) / Math.PI + 360) % 360;
+    const s = Math.min(1, Math.hypot(dx, dy) / (r.width / 2));
+    // Picking on a black wheel would show nothing: bring the light back.
+    apply({ h, s, v: hsv.v < 0.15 ? 1 : hsv.v });
+  };
+
+  const rad = (hsv.h * Math.PI) / 180;
+  const marker = { left: `${50 + Math.sin(rad) * hsv.s * 50}%`, top: `${50 - Math.cos(rad) * hsv.s * 50}%` };
+  const current = hsvToHex(hsv.h, hsv.s, hsv.v);
+
+  return (
+    <div ref={box} className="color-picker" role="dialog" aria-label="팔레트">
+      <div
+        ref={wheel}
+        className="color-picker__wheel"
+        role="slider"
+        aria-label="색상"
+        aria-valuenow={Math.round(hsv.h)}
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          dragging.current = true;
+          pickAt(e);
+        }}
+        onPointerMove={(e) => dragging.current && pickAt(e)}
+        onPointerUp={() => (dragging.current = false)}
+        onPointerCancel={() => (dragging.current = false)}
+      >
+        <span className="color-picker__shade" style={{ opacity: 1 - hsv.v }} aria-hidden />
+        <span className="color-picker__marker" style={{ ...marker, background: current }} aria-hidden />
+      </div>
+      <div className="color-picker__side">
+        <input
+          className="color-picker__value"
+          type="range"
+          min={0}
+          max={100}
+          aria-label="밝기"
+          value={Math.round(hsv.v * 100)}
+          style={{ '--picker-top': hsvToHex(hsv.h, hsv.s, 1) } as CSSProperties}
+          onChange={(e) => apply({ ...hsv, v: Number(e.target.value) / 100 })}
+        />
+        <label className="color-picker__code">
+          <span className="color-picker__chip" style={{ background: current }} aria-hidden />
+          <input
+            type="text"
+            inputMode="text"
+            autoCapitalize="off"
+            autoComplete="off"
+            spellCheck={false}
+            maxLength={7}
+            aria-label="색상 코드"
+            value={code}
+            onChange={(e) => {
+              setCode(e.target.value);
+              const hex = normalizeHex(e.target.value);
+              if (hex) {
+                setHsv(hexToHsv(hex));
+                onPick(hex);
+              }
+            }}
+            onBlur={() => setCode(current)}
+          />
+        </label>
+      </div>
     </div>
   );
 }
