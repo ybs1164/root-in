@@ -66,7 +66,7 @@ map.on('style.load', () => {
     layout: lineLayout,
     paint: {
       'line-color': token('--map-road-case'),
-      'line-width': width(1.8, 10, 26),
+      'line-width': width(5.4, 30, 78),
     },
   });
   map.addLayer({
@@ -77,7 +77,7 @@ map.on('style.load', () => {
     layout: lineLayout,
     paint: {
       'line-color': token('--map-road'),
-      'line-width': width(1, 7.5, 22),
+      'line-width': width(3, 22.5, 66),
     },
   });
   map.addLayer({
