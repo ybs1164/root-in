@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addDays } from './calendar';
-import { classifyPress, daySwipeTarget, dayTitle, EDGE_STYLES, edgeKey, latestPingIndex, layoutPings, pingKey, pinchOutcome, pinchProgress, pingsForDate, SAMPLE_TODAY_PINGS } from './dayPings';
+import { classifyPress, daySwipeTarget, dayTitle, EDGE_STYLES, edgeKey, latestPingIndex, layoutPings, pingKey, pinchOutcome, pinchProgress, pingsForDate, SAMPLE_TODAY_PINGS, pingsLandedMs } from './dayPings';
 
 describe('calendar day screen', () => {
   it('titles today as TODAY and other days as DAY <n>', () => {
@@ -98,5 +98,12 @@ describe('calendar day screen', () => {
     expect(edgeKey('2026-09-30', a, b)).toBe('2026-09-30|10:30|성수연방>13:00|서울숲');
     expect(edgeKey('2026-09-30', b, a)).not.toBe(edgeKey('2026-09-30', a, b));
     expect(EDGE_STYLES.map((e) => e.style)).toEqual(['solid', 'dashed', 'dotted', 'bold']);
+  });
+
+  it('knows when a day’s pins and lines have landed, for the decorations to follow', () => {
+    expect(pingsLandedMs(0)).toBe(0);
+    expect(pingsLandedMs(1)).toBe(570); // one pin, no line
+    expect(pingsLandedMs(3)).toBe(1050); // the lines finish last
+    expect(pingsLandedMs(8)).toBe(120 + 7 * 110 + 450); // many pins: the last drop
   });
 });

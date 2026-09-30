@@ -142,3 +142,12 @@ export function pinchOutcome(scale: number, released: boolean): PinchResult {
   if (scale < 1) return scale <= (released ? PINCH.outRelease : PINCH.outCommit) ? 'switch' : 'stay';
   return scale >= (released ? PINCH.inRelease : PINCH.inCommit) ? 'switch' : 'stay';
 }
+
+/**
+ * When a day's drawing has finished arriving, in ms after it mounts: the
+ * last pin's drop (each starts 110ms after the one before, from 120ms, and
+ * takes 450ms) and the lines drawing in (350ms + 700ms), as in styles.css.
+ * The day's decorations settle in after this.
+ */
+export const pingsLandedMs = (count: number): number =>
+  count === 0 ? 0 : Math.max(count > 1 ? 1050 : 0, 120 + (count - 1) * 110 + 450);

@@ -23,6 +23,8 @@ interface DecorLayerProps {
   armed: string | null;
   pen: PenSettings;
   onChange: (decor: DayDecor) => void;
+  /** Stickers and ink settle in from above once the pins have landed (it mounts with the day). */
+  enterDelayMs?: number;
 }
 
 const strokePath = (points: [number, number][]) =>
@@ -93,7 +95,7 @@ const newId = () =>
  * places the picked sticker and placed ones can be dragged or removed;
  * with the pen, a finger draws. Otherwise the layer is just a picture.
  */
-export default function DecorLayer({ decor, tool, armed, pen, onChange }: DecorLayerProps) {
+export default function DecorLayer({ decor, tool, armed, pen, onChange, enterDelayMs = 0 }: DecorLayerProps) {
   const layer = useRef<HTMLDivElement | null>(null);
   const [drawing, setDrawing] = useState<Stroke | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -231,6 +233,7 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange }: DecorL
       onPointerMove={tool === 'pen' ? onPenMove : tool === 'sticker' ? onStickerMove : undefined}
       onPointerUp={tool === 'pen' ? onPenUp : tool === 'sticker' ? onStickerUp : undefined}
       onPointerCancel={tool === 'pen' ? onPenUp : tool === 'sticker' ? onStickerUp : undefined}
+      style={{ animationDelay: `${enterDelayMs}ms` }}
       aria-hidden={!active}
     >
       {strokes.length > 0 && (

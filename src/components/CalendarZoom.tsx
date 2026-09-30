@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'react';
 import { swipeCommits, SWIPE } from '../domain/appTabs';
-import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, type EdgeStyle, type PingShape } from '../domain/dayPings';
+import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, pingsLandedMs, type EdgeStyle, type PingShape } from '../domain/dayPings';
 import { addDays } from '../domain/calendar';
 import {
   canUndo,
@@ -587,6 +587,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
                 armed={armed}
                 pen={pen}
                 onChange={changeDecor}
+                enterDelayMs={pingsLandedMs(pings.length)}
               />
             </DayPings>
           </div>

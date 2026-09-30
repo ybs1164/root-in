@@ -1224,6 +1224,22 @@ button:disabled {
   inset: 0;
   z-index: 2;
   pointer-events: none;
+  /* A day's stickers and ink come down gently onto the drawing once its
+     pins have dropped (the delay is set inline). */
+  animation: decor-settle 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@keyframes decor-settle {
+  from {
+    opacity: 0;
+    translate: 0 -22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .decor {
+    animation: none;
+  }
 }
 
 .decor--pen,
