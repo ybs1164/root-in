@@ -1255,7 +1255,8 @@ input.timeline__time:focus {
   right: 0;
   bottom: 0;
   z-index: 12;
-  padding-bottom: var(--safe-bottom);
+  /* A little lift so the big pin button clears the screen edge. */
+  padding-bottom: calc(var(--safe-bottom) + 6px);
   /* No bar: only the round buttons take touches. */
   pointer-events: none;
 }
@@ -1303,6 +1304,17 @@ input.timeline__time:focus {
 .bottom-bar__btn--pin {
   background: var(--accent);
   color: var(--on-accent);
+}
+
+/* The pin is the app's main action, so it grows a little more than the others. */
+.bottom-bar__btn--pin.is-on {
+  width: 66px;
+  height: 66px;
+}
+
+.bottom-bar__btn--pin.is-on svg {
+  width: 30px;
+  height: 30px;
 }
 
 .bottom-bar__btn:active {
@@ -1952,6 +1964,44 @@ input.timeline__time:focus {
 .maplibregl-ctrl-bottom-right,
 .maplibregl-ctrl-bottom-left {
   bottom: calc(var(--sheet-peek) + var(--bar-h) + var(--safe-bottom));
+}
+
+/* ---------- Phones: the pin screen's sheet hangs from the top ---------- */
+
+@media (max-width: 899px) {
+  .sheet--top {
+    --sheet-top-head: calc(76px + var(--safe-top)); /* room for the search bar */
+    top: 0;
+    bottom: auto;
+    height: calc(var(--sheet-peek) + var(--sheet-top-head));
+    max-height: calc(100dvh - var(--bar-h) - var(--safe-bottom) - 12px);
+    padding-top: var(--sheet-top-head);
+    border-radius: 0 0 22px 22px;
+    box-shadow: var(--shadow);
+  }
+
+  .sheet--top.sheet--full {
+    height: calc(var(--sheet-full) + var(--sheet-top-head));
+  }
+
+  /* Grip on the bottom edge, where the sheet is pulled from. */
+  .sheet--top .sheet__grip {
+    order: 2;
+  }
+
+  .app--searching .sheet--top,
+  .app--pinning .sheet--top {
+    transform: translateY(-110%);
+  }
+
+  .app--sheet-top .place-card {
+    bottom: calc(var(--bar-h) + var(--safe-bottom) + 12px);
+  }
+
+  .app--sheet-top .maplibregl-ctrl-bottom-right,
+  .app--sheet-top .maplibregl-ctrl-bottom-left {
+    bottom: calc(var(--bar-h) + var(--safe-bottom));
+  }
 }
 
 /* ---------- Desktop: sheet becomes a left panel ---------- */
