@@ -1,5 +1,6 @@
 import maplibregl, { type Map as MapLibreMap, type Marker } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import type { DistrictMap } from '../domain/districtMap';
 import type { PlaceRef } from '../types/course';
 import {
   attachLongPress,
@@ -15,6 +16,13 @@ import {
 const STYLE_URL = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
 const LINE_SOURCE = 'course-line';
 const GUIDE_SOURCE = 'guide-line';
+const DISTRICT_COVER = 'district-cover';
+const DISTRICT_BLOCKS = 'district-blocks';
+// Covers the whole basemap (labels included) in the road color.
+const WORLD: GeoJSON.Polygon = {
+  type: 'Polygon',
+  coordinates: [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]]],
+};
 const FOCUS_ZOOM = 15;
 
 export class MapLibreCourseMap implements CourseMap {
@@ -25,6 +33,7 @@ export class MapLibreCourseMap implements CourseMap {
   private previewMarker: Marker | null = null;
   private pinMarkers: Marker[] = [];
   private guide: [number, number][] = [];
+  private district: DistrictMap | null = null;
   private readonly detachLongPress: () => void;
 
   constructor(container: HTMLElement, private readonly options: CourseMapOptions) {
@@ -39,9 +48,33 @@ export class MapLibreCourseMap implements CourseMap {
       const at = this.map.unproject([x, y]);
       options.onLongPress?.([at.lng, at.lat]);
     });
+    const emitViewport = () => {
+      const b = this.map.getBounds();
+      options.onViewportChange?.({
+        bounds: { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() },
+        widthPx: container.clientWidth,
+      });
+    };
+    this.map.on('load', emitViewport);
+    this.map.on('moveend', emitViewport);
     this.map.on('load', () => {
       const token = (name: string, fallback: string) =>
         getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+      // Added first so the guide/course lines draw above the blocks.
+      this.map.addSource(DISTRICT_COVER, { type: 'geojson', data: this.coverData() });
+      this.map.addLayer({
+        id: DISTRICT_COVER,
+        type: 'fill',
+        source: DISTRICT_COVER,
+        paint: { 'fill-color': token('--map-road', '#f4ede2') },
+      });
+      this.map.addSource(DISTRICT_BLOCKS, { type: 'geojson', data: this.blocksData() });
+      this.map.addLayer({
+        id: DISTRICT_BLOCKS,
+        type: 'fill',
+        source: DISTRICT_BLOCKS,
+        paint: { 'fill-color': token('--map-block', '#a9c1c1'), 'fill-antialias': true },
+      });
       this.map.addSource(GUIDE_SOURCE, { type: 'geojson', data: this.guideData() });
       this.map.addLayer({
         id: GUIDE_SOURCE,
@@ -80,6 +113,30 @@ export class MapLibreCourseMap implements CourseMap {
       properties: {},
       geometry: { type: 'LineString', coordinates: this.guide.length >= 2 ? this.guide : [] },
     };
+  }
+
+  private coverData(): GeoJSON.FeatureCollection {
+    return {
+      type: 'FeatureCollection',
+      features: this.district ? [{ type: 'Feature', properties: {}, geometry: WORLD }] : [],
+    };
+  }
+
+  private blocksData(): GeoJSON.FeatureCollection {
+    return {
+      type: 'FeatureCollection',
+      features: (this.district?.blocks ?? []).map((block) => ({
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'Polygon', coordinates: [block.outer, ...block.holes] },
+      })),
+    };
+  }
+
+  setDistrictMap(district: DistrictMap | null): void {
+    this.district = district;
+    (this.map.getSource(DISTRICT_COVER) as maplibregl.GeoJSONSource | undefined)?.setData(this.coverData());
+    (this.map.getSource(DISTRICT_BLOCKS) as maplibregl.GeoJSONSource | undefined)?.setData(this.blocksData());
   }
 
   setPins(pins: PinMarker[]): void {

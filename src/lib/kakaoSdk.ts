@@ -42,6 +42,16 @@ export interface KakaoMapsNamespace {
     strokeStyle: string;
     map?: KakaoMapInstance;
   }) => { setMap(map: KakaoMapInstance | null): void };
+  Polygon: new (options: {
+    /** Several paths = outer ring followed by holes. */
+    path: KakaoLatLng[] | KakaoLatLng[][];
+    strokeWeight: number;
+    strokeOpacity?: number;
+    fillColor: string;
+    fillOpacity: number;
+    zIndex?: number;
+    map?: KakaoMapInstance;
+  }) => { setMap(map: KakaoMapInstance | null): void };
   event: {
     addListener(target: unknown, type: string, handler: (...args: unknown[]) => void): void;
   };
@@ -72,6 +82,7 @@ export interface KakaoMapInstance {
   setCenter(latlng: KakaoLatLng): void;
   setLevel(level: number, options?: { animate?: boolean }): void;
   getLevel(): number;
+  getBounds(): { getSouthWest(): KakaoLatLng; getNorthEast(): KakaoLatLng };
   panTo(latlng: KakaoLatLng): void;
   setBounds(bounds: unknown, paddingTop?: number, paddingRight?: number, paddingBottom?: number, paddingLeft?: number): void;
   relayout(): void;
