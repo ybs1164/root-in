@@ -13,11 +13,11 @@ describe('bottom-bar tabs', () => {
     expect(tabForIncoming('pins', 'influencer')).toBe('influencer');
   });
 
-  it('every bottom-bar button switches to its screen; the active pin button drops a pin', () => {
+  it('every bottom-bar button switches to its screen; tapped again, pin drops a pin and calendar flips TODAY/month', () => {
     expect(bottomBarAction('calendar', 'pins')).toBe('switch');
     expect(bottomBarAction('pins', 'influencer')).toBe('switch');
     expect(bottomBarAction('pins', 'pins')).toBe('pin');
-    expect(bottomBarAction('calendar', 'calendar')).toBe('none');
+    expect(bottomBarAction('calendar', 'calendar')).toBe('calendar');
     expect(bottomBarAction('influencer', 'influencer')).toBe('none');
   });
 

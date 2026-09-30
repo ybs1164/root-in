@@ -44,7 +44,12 @@ const monthOf = (key: string) => ({ year: Number(key.slice(0, 4)), month: Number
  * reads as one continuous zoom. Ctrl+wheel (trackpad pinch) does the same
  * on desktop, and taps cover it without gestures.
  */
-export default function CalendarZoom() {
+interface CalendarZoomProps {
+  /** Bumped each time the calendar button is tapped again: flips TODAY ↔ month. */
+  flip: number;
+}
+
+export default function CalendarZoom({ flip }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
   const [date, setDate] = useState(today);
@@ -124,6 +129,17 @@ export default function CalendarZoom() {
     if (replay) setVisit((v) => v + 1);
     setMode('day');
   };
+
+  // Calendar button again: a day zooms out to the month, the month zooms
+  // back into TODAY (not the day last opened).
+  const lastFlip = useRef(flip);
+  useEffect(() => {
+    if (flip === lastFlip.current) return;
+    lastFlip.current = flip;
+    if (gesture.current) return;
+    if (modeRef.current === 'day') toMonth();
+    else toDay(today);
+  });
 
   // ----- Pinch (touch) and ctrl+wheel (trackpad) -----
 

@@ -6,6 +6,8 @@ interface BottomBarProps {
   pinning: boolean;
   onTab: (tab: AppTab) => void;
   onPin: () => void;
+  /** Calendar button tapped while the calendar is showing. */
+  onCalendarAgain: () => void;
 }
 
 const BUTTONS: { tab: AppTab; label: string; Icon: LucideIcon }[] = [
@@ -19,11 +21,12 @@ const BUTTONS: { tab: AppTab; label: string; Icon: LucideIcon }[] = [
  * screen's button is the big one; size is the only "selected" signal, so
  * the labels live in aria-label instead of on screen.
  */
-export default function BottomBar({ tab, pinning, onTab, onPin }: BottomBarProps) {
+export default function BottomBar({ tab, pinning, onTab, onPin, onCalendarAgain }: BottomBarProps) {
   const press = (target: AppTab) => () => {
     const action = bottomBarAction(target, tab);
     if (action === 'switch') onTab(target);
     else if (action === 'pin') onPin();
+    else if (action === 'calendar') onCalendarAgain();
   };
   return (
     <nav className="bottom-bar" aria-label="메뉴">

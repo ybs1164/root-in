@@ -80,6 +80,7 @@ export default function App() {
   const [previewPinning, setPreviewPinning] = useState(false);
 
   const [pinning, setPinning] = useState(false);
+  const [calendarFlip, setCalendarFlip] = useState(0);
   const [dropBusy, setDropBusy] = useState(false);
   const [activePinId, setActivePinId] = useState<string | null>(null);
   const [pinFilter, setPinFilter] = useState<string | null>(null);
@@ -667,7 +668,7 @@ export default function App() {
               <SettingsIcon size={22} aria-hidden />
             </button>
           </header>
-          {calendarZoom ? <CalendarZoom /> : renderSheet()}
+          {calendarZoom ? <CalendarZoom flip={calendarFlip} /> : renderSheet()}
         </section>
       ) : (
         <section ref={sheetEl} className={`sheet sheet--${sheet} ${sheetTop ? 'sheet--top' : ''}`} aria-label="패널">
@@ -684,7 +685,13 @@ export default function App() {
       )}
 
       <div ref={barEl} className="bottom-bar-wrap">
-        <BottomBar tab={swipe.leaving ? 'pins' : tab} pinning={pinning} onTab={changeTab} onPin={startPinning} />
+        <BottomBar
+          tab={swipe.leaving ? 'pins' : tab}
+          pinning={pinning}
+          onTab={changeTab}
+          onPin={startPinning}
+          onCalendarAgain={() => setCalendarFlip((n) => n + 1)}
+        />
       </div>
 
       {shareTarget && <ShareSheet target={shareTarget} onClose={() => setShareTarget(null)} />}
