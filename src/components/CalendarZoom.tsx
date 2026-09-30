@@ -96,6 +96,9 @@ interface CalendarZoomProps {
   onDayTheme: (theme: ThemeId) => void;
 }
 
+/** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
+const TRAY_SWAP_MS = 170;
+
 export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
@@ -245,6 +248,24 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
   // The app hides the tab buttons while a tool is out. Leaving the day
   // screen (to the month) puts the tools away.
   useEffect(() => onDecorating(tool !== null), [tool]);
+  // The sheet shows `trayTool`, which trails `tool`: switching tools sends the
+  // open sheet down first, then the new one comes up.
+  const [trayTool, setTrayTool] = useState<DecorTool | null>(null);
+  const [trayLeaving, setTrayLeaving] = useState(false);
+  useEffect(() => {
+    if (!tool || !trayTool) {
+      setTrayTool(tool);
+      setTrayLeaving(false);
+      return;
+    }
+    if (tool === trayTool) return;
+    setTrayLeaving(true);
+    const swap = window.setTimeout(() => {
+      setTrayTool(tool);
+      setTrayLeaving(false);
+    }, TRAY_SWAP_MS);
+    return () => window.clearTimeout(swap);
+  }, [tool]);
   // Touching anywhere but the drawing box or the tools puts the tool away,
   // and the tab buttons come back.
   useEffect(() => {
@@ -576,9 +597,11 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
         )}
       </section>
 
-      {tool && (
+      {trayTool && (
         <DecorTray
-          tool={tool}
+          key={trayTool}
+          leaving={trayLeaving}
+          tool={trayTool}
           armed={armed}
           onArm={setArmed}
           pen={pen}

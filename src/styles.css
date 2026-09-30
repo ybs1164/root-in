@@ -115,11 +115,17 @@
   --swatch-sky-accent: #3f7fc4;
   --swatch-mono-bg: #efefee;
   --swatch-mono-accent: #2b2b2b;
+  --swatch-lovely-bg: #fdeef4;
+  --swatch-lovely-accent: #e8609a;
+  --swatch-love-bg: #fdecec;
+  --swatch-love-accent: #d7263d;
 }
 
 /* Themes (꾸미기 → 테마), set on <html data-theme>. They win over the
    system dark mode: a light theme stays light, 밤 is dark everywhere. */
 :root[data-theme='mint'],
+:root[data-theme='lovely'],
+:root[data-theme='love'],
 :root[data-theme='lavender'],
 :root[data-theme='sky'],
 :root[data-theme='mono'] {
@@ -160,6 +166,26 @@
   --accent-strong: #6446a8;
   --accent-soft: #e6ddf8;
   --route: #7c5cc4;
+}
+
+:root[data-theme='lovely'] {
+  --bg: #fdf1f6;
+  --surface: #fff9fb;
+  --surface-2: #fbe3ee;
+  --accent: #e8609a;
+  --accent-strong: #cc4580;
+  --accent-soft: #fbdbe9;
+  --route: #e8609a;
+}
+
+:root[data-theme='love'] {
+  --bg: #fdf0f0;
+  --surface: #fffafa;
+  --surface-2: #fbe1e1;
+  --accent: #d7263d;
+  --accent-strong: #b01a2f;
+  --accent-soft: #f9d6da;
+  --route: #d7263d;
 }
 
 :root[data-theme='sky'] {
@@ -1272,6 +1298,18 @@ button:disabled {
   }
 }
 
+/* Switching tools: this sheet goes down, then the next one comes up. */
+.decor-tray.is-leaving {
+  animation: tray-down 0.17s ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes tray-down {
+  to {
+    translate: 0 100%;
+  }
+}
+
 .decor-tray__grip {
   flex: none;
   align-self: center;
@@ -1581,6 +1619,8 @@ button:disabled {
 
 /* Themes: rectangle cards that scroll sideways. */
 .decor-tray--theme {
+  /* Themes get a taller sheet than the other tools: the cards are the point. */
+  max-height: 30dvh;
   /* The grip's own margin is room the cards can use. */
   padding-top: 4px;
 }
@@ -1623,8 +1663,8 @@ button:disabled {
 .theme-card {
   position: relative;
   display: block;
-  /* As big as the quarter-screen sheet allows (label and padding take ~54px). */
-  height: min(128px, calc(25dvh - 54px));
+  /* As big as the theme sheet allows (label and padding take ~54px). */
+  height: min(132px, calc(30dvh - 54px));
   aspect-ratio: 10 / 13;
   border-radius: 14px;
   background: var(--card-bg);
@@ -1666,6 +1706,8 @@ button:disabled {
 .theme-card--mint { --card-bg: var(--swatch-mint-bg); --card-accent: var(--swatch-mint-accent); }
 .theme-card--lavender { --card-bg: var(--swatch-lavender-bg); --card-accent: var(--swatch-lavender-accent); }
 .theme-card--sky { --card-bg: var(--swatch-sky-bg); --card-accent: var(--swatch-sky-accent); }
+.theme-card--lovely { --card-bg: var(--swatch-lovely-bg); --card-accent: var(--swatch-lovely-accent); }
+.theme-card--love { --card-bg: var(--swatch-love-bg); --card-accent: var(--swatch-love-accent); }
 .theme-card--mono { --card-bg: var(--swatch-mono-bg); --card-accent: var(--swatch-mono-accent); }
 
 /* Eraser masks: keep everything, except where the eraser rubbed. */
@@ -1694,7 +1736,8 @@ button:disabled {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .decor-tray {
+  .decor-tray,
+  .decor-tray.is-leaving {
     animation: none;
   }
 }

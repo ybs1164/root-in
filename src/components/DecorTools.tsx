@@ -46,6 +46,8 @@ export function DecorRail({ tool, onTool }: { tool: DecorTool | null; onTool: (t
 
 interface DecorTrayProps {
   tool: DecorTool;
+  /** Going down before the next tool's sheet comes up. */
+  leaving?: boolean;
   armed: string | null;
   onArm: (emoji: string | null) => void;
   pen: PenSettings;
@@ -87,7 +89,7 @@ export function DecorTray(p: DecorTrayProps) {
   const setColor = (color: string) => p.onPen({ ...p.pen, color, tool: p.pen.tool === 'eraser' ? 'pen' : p.pen.tool });
 
   return (
-    <div className={`decor-tray decor-tray--${p.tool}`} role="toolbar" aria-label={label}>
+    <div className={`decor-tray decor-tray--${p.tool} ${p.leaving ? 'is-leaving' : ''}`} role="toolbar" aria-label={label}>
       <div className="decor-tray__grip" aria-hidden />
 
       {p.tool === 'sticker' && (

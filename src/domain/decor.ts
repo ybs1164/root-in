@@ -142,14 +142,16 @@ export function extendStroke(points: [number, number][], x: number, y: number, m
 }
 
 /** Colour themes for the whole app (tokens in styles.css under :root[data-theme=…]). */
-export type ThemeId = 'default' | 'night' | 'mint' | 'lavender' | 'sky' | 'mono';
+export type ThemeId = 'default' | 'night' | 'lovely' | 'love' | 'sky' | 'mint' | 'lavender' | 'mono';
 
 export const THEMES: { id: ThemeId; label: string }[] = [
   { id: 'default', label: '기본' },
   { id: 'night', label: '밤' },
+  { id: 'lovely', label: '러블리' },
+  { id: 'love', label: '러브' },
+  { id: 'sky', label: '하늘' },
   { id: 'mint', label: '민트' },
   { id: 'lavender', label: '라벤더' },
-  { id: 'sky', label: '하늘' },
   { id: 'mono', label: '모노' },
 ];
 
