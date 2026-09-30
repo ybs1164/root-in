@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BASE_COLORS, STICKER_MAX, stickerGesture, clamp01, extendStroke, hexToHsv, hsvToHex, inkCss, isThemeId, normalizeHex, PEN_TOOLS, STICKERS, THEMES } from './decor';
+import { BASE_COLORS, EMPTY_HISTORY, recordChange, redoDecor, undoDecor, type DayDecor, type Stroke, STICKER_MAX, stickerGesture, clamp01, extendStroke, hexToHsv, hsvToHex, inkCss, isThemeId, normalizeHex, PEN_TOOLS, STICKERS, THEMES } from './decor';
 
 describe('day decorations', () => {
   it('keeps stroke points inside the box and skips tiny moves', () => {
@@ -58,5 +58,26 @@ describe('day decorations', () => {
     expect(out.y).toBeCloseTo(0.5);
     // Spreading a lot stops at the biggest size.
     expect(stickerGesture(base, [{ x: 0, y: 0 }, { x: 10, y: 0 }], [{ x: 0, y: 0 }, { x: 1000, y: 0 }], 300).size).toBe(STICKER_MAX);
+  });
+
+  it('undo and redo step through changes; a new change forgets what was undone', () => {
+    const line = (x: number): Stroke => ({ tool: 'pen', color: 'accent', width: 'thin', points: [[x, x]] });
+    const a: DayDecor = { stickers: [], strokes: [line(0.1)], theme: 'mint' };
+    const b: DayDecor = { ...a, strokes: [...a.strokes, line(0.2)] };
+    let h = recordChange(EMPTY_HISTORY, a);
+    const undone = undoDecor(h, b)!;
+    expect(undone.decor).toEqual(a);
+    const redone = redoDecor(undone.history, undone.decor)!;
+    expect(redone.decor).toEqual(b);
+    // Undo, then draw something else: redo has nothing left.
+    h = recordChange(undone.history, undone.decor);
+    expect(h.future).toEqual([]);
+    expect(redoDecor(h, a)).toBeNull();
+    // Clearing all is a change too, and undo brings it back (theme untouched).
+    const cleared = { ...b, strokes: [], stickers: [] };
+    expect(undoDecor(recordChange(EMPTY_HISTORY, b), cleared)!.decor).toEqual(b);
+    // Nothing remembered (after a reload): undo still takes back the last stroke.
+    expect(undoDecor(EMPTY_HISTORY, b)!.decor.strokes).toEqual(a.strokes);
+    expect(undoDecor(EMPTY_HISTORY, { stickers: [], strokes: [] })).toBeNull();
   });
 });

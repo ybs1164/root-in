@@ -49,6 +49,8 @@ export interface PenSettings {
 export interface DayDecor {
   stickers: PlacedSticker[];
   strokes: Stroke[];
+  /** The day's own colour theme (absent = default); only that day shows it. */
+  theme?: ThemeId;
 }
 
 export const EMPTY_DECOR: DayDecor = { stickers: [], strokes: [] };
@@ -186,3 +188,44 @@ export function hexToHsv(hex: string): { h: number; s: number; v: number } {
   const h = d === 0 ? 0 : max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
   return { h: (h * 60 + 360) % 360, s: max === 0 ? 0 : d / max, v: max };
 }
+
+// ----- Undo / redo -----
+
+/** What undo and redo step through: the drawing, not the theme. */
+export type DecorSnapshot = Pick<DayDecor, 'stickers' | 'strokes'>;
+
+export interface DecorHistory {
+  past: DecorSnapshot[];
+  future: DecorSnapshot[];
+}
+
+export const EMPTY_HISTORY: DecorHistory = { past: [], future: [] };
+
+const HISTORY_LIMIT = 60;
+
+const snap = (d: DayDecor): DecorSnapshot => ({ stickers: d.stickers, strokes: d.strokes });
+
+/** A new change (a stroke, a sticker, clearing all): remember before, and forget anything undone. */
+export const recordChange = (h: DecorHistory, before: DayDecor): DecorHistory => ({
+  past: [...h.past, snap(before)].slice(-HISTORY_LIMIT),
+  future: [],
+});
+
+/**
+ * Steps back. With nothing remembered (the day was drawn on before a reload)
+ * it still takes back the last stroke, as undo always has.
+ */
+export function undoDecor(h: DecorHistory, now: DayDecor): { history: DecorHistory; decor: DayDecor } | null {
+  const prev = h.past[h.past.length - 1];
+  if (prev) return { history: { past: h.past.slice(0, -1), future: [...h.future, snap(now)] }, decor: { ...now, ...prev } };
+  if (!now.strokes.length) return null;
+  return { history: { past: [], future: [...h.future, snap(now)] }, decor: { ...now, strokes: now.strokes.slice(0, -1) } };
+}
+
+export function redoDecor(h: DecorHistory, now: DayDecor): { history: DecorHistory; decor: DayDecor } | null {
+  const next = h.future[h.future.length - 1];
+  if (!next) return null;
+  return { history: { past: [...h.past, snap(now)], future: h.future.slice(0, -1) }, decor: { ...now, ...next } };
+}
+
+export const canUndo = (h: DecorHistory, now: DayDecor): boolean => h.past.length > 0 || now.strokes.length > 0;

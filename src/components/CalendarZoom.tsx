@@ -2,7 +2,21 @@ import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'r
 import { swipeCommits, SWIPE } from '../domain/appTabs';
 import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, type EdgeStyle, type PingShape } from '../domain/dayPings';
 import { addDays } from '../domain/calendar';
-import { DEFAULT_PEN, EMPTY_DECOR, type DayDecor, type DecorTool, type PenSettings, type ThemeId } from '../domain/decor';
+import {
+  canUndo,
+  DEFAULT_PEN,
+  EMPTY_DECOR,
+  EMPTY_HISTORY,
+  recordChange,
+  redoDecor,
+  undoDecor,
+  type DayDecor,
+  type DecorHistory,
+  type DecorTool,
+  type PenSettings,
+  type ThemeId,
+} from '../domain/decor';
+import { loadDays, saveDays, type DayStore } from '../services/dayRepository';
 import { dateKey } from '../domain/diary';
 import DayPings from './DayPings';
 import DayShareSheet from './DayShareSheet';
@@ -78,11 +92,11 @@ interface CalendarZoomProps {
   onMode: (mode: Mode) => void;
   /** Tells the app a decorating tool is out, so it can put the tab buttons away. */
   onDecorating: (on: boolean) => void;
-  theme: ThemeId;
-  onTheme: (theme: ThemeId) => void;
+  /** The theme of the day on screen (each day keeps its own); the app wears it. */
+  onDayTheme: (theme: ThemeId) => void;
 }
 
-export default function CalendarZoom({ command, onMode, onDecorating, theme, onTheme }: CalendarZoomProps) {
+export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
   const [date, setDate] = useState(today);
@@ -91,17 +105,26 @@ export default function CalendarZoom({ command, onMode, onDecorating, theme, onT
   // Pinching out of the month: the day under the fingers, shown as it grows.
   const [preview, setPreview] = useState<string | null>(null);
   const [visit, setVisit] = useState(0);
-  // Chosen ping shapes. Pings aren't stored yet, so this lasts for the session.
-  const [shapes, setShapes] = useState<Map<string, PingShape>>(() => new Map());
-  // 꾸미기: stickers and pen strokes per day (session only, like the shapes),
+  // Everything made of each day (ping shapes, line styles, stickers, strokes,
+  // theme), kept per date in storage so a day looks the same when reopened.
+  const [days, setDays] = useState<DayStore>(loadDays);
+  const loaded = useRef(true);
+  useEffect(() => {
+    if (loaded.current) {
+      loaded.current = false;
+      return;
+    }
+    saveDays(days);
+  }, [days]);
+  // Undo / redo per day, for this visit only.
+  const [history, setHistory] = useState<Record<string, DecorHistory>>({});
+  // 꾸미기: which tool is out.
   // and which tool is out.
-  const [decor, setDecor] = useState<Map<string, DayDecor>>(() => new Map());
   const [tool, setTool] = useState<DecorTool | null>(null);
   const [armed, setArmed] = useState<string | null>(null);
   const [pen, setPen] = useState<PenSettings>(DEFAULT_PEN);
   const toolRef = useRef(tool);
   toolRef.current = tool;
-  const [edgeStyles, setEdgeStyles] = useState<Map<string, EdgeStyle>>(() => new Map());
 
   // Paging days: the day sliding in beside the current one.
   const [neighbor, setNeighbor] = useState<{ date: string; side: -1 | 1 } | null>(null);
@@ -199,7 +222,25 @@ export default function CalendarZoom({ command, onMode, onDecorating, theme, onT
 
   useEffect(() => onMode(mode), [mode]);
 
-  const dayDecor = decor.get(shownDate) ?? EMPTY_DECOR;
+  const dayDecor = days.decor[shownDate] ?? EMPTY_DECOR;
+  const dayHistory = history[shownDate] ?? EMPTY_HISTORY;
+  const setDayDecor = (next: DayDecor) => setDays((d) => ({ ...d, decor: { ...d.decor, [shownDate]: next } }));
+  // A drawing change: undo can bring back what was there; redo is forgotten.
+  const changeDecor = (next: DayDecor) => {
+    setHistory((h) => ({ ...h, [shownDate]: recordChange(dayHistory, dayDecor) }));
+    setDayDecor(next);
+  };
+  const step = (result: { history: DecorHistory; decor: DayDecor } | null) => {
+    if (!result) return;
+    setHistory((h) => ({ ...h, [shownDate]: result.history }));
+    setDayDecor(result.decor);
+  };
+
+  // The app shows the day's theme while the day is on screen; the month and
+  // the rest of the app stay default.
+  const dayTheme = mode === 'day' ? (dayDecor.theme ?? 'default') : 'default';
+  useEffect(() => onDayTheme(dayTheme), [dayTheme]);
+  useEffect(() => () => onDayTheme('default'), []);
 
   // The app hides the tab buttons while a tool is out. Leaving the day
   // screen (to the month) puts the tools away.
@@ -481,11 +522,11 @@ export default function CalendarZoom({ command, onMode, onDecorating, theme, onT
             <DayPings
               key={`${shownDate}-${visit}`}
               pings={pings}
-              shapeOf={(ping) => shapes.get(pingKey(shownDate, ping)) ?? 'pin'}
-              onShape={(ping, shape) => setShapes((prev) => new Map(prev).set(pingKey(shownDate, ping), shape))}
-              edgeStyleOf={(from, to) => edgeStyles.get(edgeKey(shownDate, from, to)) ?? 'solid'}
+              shapeOf={(ping) => days.shapes[pingKey(shownDate, ping)] ?? 'pin'}
+              onShape={(ping, shape) => setDays((d) => ({ ...d, shapes: { ...d.shapes, [pingKey(shownDate, ping)]: shape } }))}
+              edgeStyleOf={(from, to) => days.edges[edgeKey(shownDate, from, to)] ?? 'solid'}
               onEdgeStyle={(from, to, style) =>
-                setEdgeStyles((prev) => new Map(prev).set(edgeKey(shownDate, from, to), style))
+                setDays((d) => ({ ...d, edges: { ...d.edges, [edgeKey(shownDate, from, to)]: style } }))
               }
               onTap={() => {
                 // Recognised on purpose; what a tap opens is decided later.
@@ -497,7 +538,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, theme, onT
                 tool={tool}
                 armed={armed}
                 pen={pen}
-                onChange={(next) => setDecor((prev) => new Map(prev).set(shownDate, next))}
+                onChange={changeDecor}
               />
             </DayPings>
           </div>
@@ -522,10 +563,14 @@ export default function CalendarZoom({ command, onMode, onDecorating, theme, onT
           onArm={setArmed}
           pen={pen}
           onPen={setPen}
-          canUndo={dayDecor.strokes.length > 0}
-          onUndo={() => setDecor((prev) => new Map(prev).set(shownDate, { ...dayDecor, strokes: dayDecor.strokes.slice(0, -1) }))}
-          theme={theme}
-          onTheme={onTheme}
+          canUndo={canUndo(dayHistory, dayDecor)}
+          onUndo={() => step(undoDecor(dayHistory, dayDecor))}
+          canRedo={dayHistory.future.length > 0}
+          onRedo={() => step(redoDecor(dayHistory, dayDecor))}
+          canClear={dayDecor.strokes.length > 0 || dayDecor.stickers.length > 0}
+          onClear={() => changeDecor({ ...dayDecor, stickers: [], strokes: [] })}
+          theme={dayTheme}
+          onTheme={(theme) => setDayDecor({ ...dayDecor, theme: theme === 'default' ? undefined : theme })}
         />
       )}
 
@@ -534,9 +579,9 @@ export default function CalendarZoom({ command, onMode, onDecorating, theme, onT
           date={date}
           title={dayTitle(date, today)}
           pings={pingsForDate(date, today)}
-          shapeOf={(ping) => shapes.get(pingKey(date, ping)) ?? 'pin'}
-          edgeStyleOf={(from, to) => edgeStyles.get(edgeKey(date, from, to)) ?? 'solid'}
-          decor={decor.get(date) ?? EMPTY_DECOR}
+          shapeOf={(ping) => days.shapes[pingKey(date, ping)] ?? 'pin'}
+          edgeStyleOf={(from, to) => days.edges[edgeKey(date, from, to)] ?? 'solid'}
+          decor={days.decor[date] ?? EMPTY_DECOR}
           onClose={() => setSharing(false)}
         />
       )}

@@ -1,15 +1,11 @@
-import { isThemeId, type ThemeId } from '../domain/decor';
-
 const SETTINGS_KEY = 'goodroot:settings:v1';
 
 export interface Settings {
   /** Pin categories used most recently, first = latest; ordering the quick-pin chips. */
   recentCategoryIds: string[];
-  /** App colour theme (달력 → 꾸미기 → 테마). */
-  theme: ThemeId;
 }
 
-export const DEFAULT_SETTINGS: Settings = { recentCategoryIds: [], theme: 'default' };
+export const DEFAULT_SETTINGS: Settings = { recentCategoryIds: [] };
 
 const MAX_RECENT = 8;
 
@@ -21,8 +17,7 @@ export function loadSettings(): Settings {
       recentCategoryIds: Array.isArray(parsed.recentCategoryIds)
         ? parsed.recentCategoryIds.filter((id): id is string => typeof id === 'string').slice(0, MAX_RECENT)
         : [],
-      // An earlier prototype stored other theme names here; unknown ones fall back.
-      theme: isThemeId(parsed.theme) ? parsed.theme : 'default',
+      // An app-wide `theme` used to live here; themes are per calendar day now.
     };
   } catch {
     return DEFAULT_SETTINGS;

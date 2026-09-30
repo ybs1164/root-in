@@ -1,4 +1,4 @@
-import { Eraser, Highlighter, Palette, PenLine, Pencil, Sparkles, Sticker, Undo2 } from 'lucide-react';
+import { Eraser, Highlighter, Palette, PenLine, Pencil, Sparkles, Sticker, Undo2, Redo2, BrushCleaning } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import {
   BASE_COLORS,
@@ -53,6 +53,12 @@ interface DecorTrayProps {
   /** Takes back the day's last stroke (eraser passes included). */
   canUndo: boolean;
   onUndo: () => void;
+  /** Brings back what undo took, until something new is drawn. */
+  canRedo: boolean;
+  onRedo: () => void;
+  /** 전체 지우개: clears the day's strokes and stickers (undo brings them back). */
+  canClear: boolean;
+  onClear: () => void;
   theme: ThemeId;
   onTheme: (theme: ThemeId) => void;
 }
@@ -158,6 +164,12 @@ export function DecorTray(p: DecorTrayProps) {
             </button>
             <button className="decor-tray__undo" aria-label="되돌리기" disabled={!p.canUndo} onClick={p.onUndo}>
               <Undo2 size={22} aria-hidden />
+            </button>
+            <button className="decor-tray__undo" aria-label="다시 실행" disabled={!p.canRedo} onClick={p.onRedo}>
+              <Redo2 size={22} aria-hidden />
+            </button>
+            <button className="decor-tray__undo" aria-label="전체 지우기" disabled={!p.canClear} onClick={p.onClear}>
+              <BrushCleaning size={22} aria-hidden />
             </button>
           </div>
           {picking && <ColorPicker color={custom ?? '#ff4d6d'} onPick={setColor} onClose={() => setPicking(false)} />}

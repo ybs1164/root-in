@@ -1,3 +1,4 @@
+import type { ThemeId } from './domain/decor';
 import { Settings as SettingsIcon, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomBar from './components/BottomBar';
@@ -59,12 +60,14 @@ export default function App() {
 
   const { settings, update: updateSettings } = useSettings();
 
-  // The colour theme lives on <html data-theme>, where styles.css swaps the tokens.
+  // Themes belong to calendar days: the day on screen reports its own, and
+  // it lives on <html data-theme>, where styles.css swaps the tokens.
+  const [dayTheme, setDayTheme] = useState<ThemeId>('default');
   useEffect(() => {
     const root = document.documentElement;
-    if (settings.theme === 'default') delete root.dataset.theme;
-    else root.dataset.theme = settings.theme;
-  }, [settings.theme]);
+    if (dayTheme === 'default') delete root.dataset.theme;
+    else root.dataset.theme = dayTheme;
+  }, [dayTheme]);
   const pinStore = usePins();
   const { pins, categories } = pinStore;
   const course = useCourseDraft();
@@ -690,8 +693,7 @@ export default function App() {
             <CalendarZoom
               command={calendarCommand}
               onDecorating={setDecorating}
-              theme={settings.theme}
-              onTheme={(theme) => updateSettings((st) => ({ ...st, theme }))}
+              onDayTheme={setDayTheme}
               onMode={(mode) => {
                 setCalendarMode(mode);
                 setCalendarMenu(false);
