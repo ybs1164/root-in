@@ -173,13 +173,14 @@ button:disabled {
 }
 
 .logo__in {
+  margin-left: 0.07em;
   color: var(--accent);
 }
 
 /* The pin i: bigger than the letters on purpose; tip on the baseline. */
 .logo__i {
-  width: 0.8em;
-  height: 1.05em;
+  width: 0.72em;
+  height: 0.95em;
   margin: 0 0.01em;
   fill: currentColor;
   overflow: visible;
