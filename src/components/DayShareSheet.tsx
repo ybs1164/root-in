@@ -1,4 +1,4 @@
-import { Download, X } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { downloadDataUrl, renderDayImage, type DayImageInput } from '../lib/dayImage';
 
@@ -10,7 +10,10 @@ interface DayShareSheetProps extends DayImageInput {
 // Shown, not wired yet: sending to each service comes later.
 const SNS_TARGETS = ['카카오톡', '인스타그램', 'X', '페이스북'];
 
-/** 📅 → 공유: the day's pings and lines as an image, to save (SNS buttons are placeholders). */
+/**
+ * 📅 → 공유: the day's pings and lines as an image, to save (SNS buttons are
+ * placeholders), in a centred popup styled like a macOS window.
+ */
 export default function DayShareSheet({ date, onClose, ...image }: DayShareSheetProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const [src, setSrc] = useState<string | null>(null);
@@ -31,22 +34,26 @@ export default function DayShareSheet({ date, onClose, ...image }: DayShareSheet
   return (
     <dialog
       ref={dialogRef}
-      className="share-sheet day-share"
+      className="mac-window day-share"
       aria-labelledby="day-share-title"
       onClose={onClose}
       onClick={(event) => {
         if (event.target === dialogRef.current) onClose();
       }}
     >
-      <div className="share-sheet__body">
-        <div className="sheet-grip" aria-hidden />
-        <div className="share-sheet__head">
-          <h2 id="day-share-title">{image.title} 공유</h2>
-          <button className="icon-btn" aria-label="닫기" onClick={onClose}>
-            <X size={22} aria-hidden />
-          </button>
+      {/* macOS-style title bar: the red light closes; yellow and green are just the look. */}
+      <div className="mac-window__bar">
+        <div className="mac-window__lights">
+          <button className="mac-window__light mac-window__light--close" aria-label="닫기" onClick={onClose} />
+          <span className="mac-window__light mac-window__light--min" aria-hidden />
+          <span className="mac-window__light mac-window__light--max" aria-hidden />
         </div>
+        <h2 id="day-share-title" className="mac-window__title">
+          {image.title} 공유
+        </h2>
+      </div>
 
+      <div className="mac-window__body">
         <div className="day-share__preview">
           {src ? <img src={src} alt={`${image.title}에 다녀온 곳을 잇는 그림`} /> : <span className="hint">이미지 만드는 중…</span>}
         </div>

@@ -22,6 +22,10 @@
   --shadow: 0 10px 30px rgba(47, 38, 34, 0.16);
   --shadow-sm: 0 2px 10px rgba(47, 38, 34, 0.12);
   --pin-shadow: 0 2px 3px rgba(47, 38, 34, 0.25);
+  --mac-close: #ff5f57; /* macOS window lights */
+  --mac-min: #febc2e;
+  --mac-max: #28c840;
+  --mac-light-edge: rgba(0, 0, 0, 0.12);
   --mask-show: #fff; /* SVG masks: white = fully shown (not a colour anyone sees) */
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
   --backdrop: rgba(0, 0, 0, 0.4);
@@ -986,6 +990,121 @@ button:disabled {
   font-size: 14px;
   font-weight: 600;
   text-align: center;
+}
+
+/* ---------- macOS-style popup window ---------- */
+
+.mac-window {
+  width: min(calc(100% - 32px), 420px);
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  /* Vibrancy: a little see-through, blurred behind. */
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: blur(24px) saturate(1.6);
+  color: var(--text);
+  box-shadow:
+    0 30px 80px color-mix(in srgb, var(--text) 35%, transparent),
+    0 0 0 0.5px color-mix(in srgb, var(--text) 20%, transparent);
+}
+
+.mac-window[open] {
+  animation: mac-open 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+}
+
+.mac-window::backdrop {
+  background: color-mix(in srgb, var(--backdrop) 70%, transparent);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+@keyframes mac-open {
+  from {
+    opacity: 0;
+    scale: 0.94;
+  }
+}
+
+.mac-window__bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  height: 40px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-2) 85%, transparent);
+}
+
+/* Mirrors the lights' width on the right so the title stays centred. */
+.mac-window__bar::after {
+  content: '';
+  width: 52px;
+}
+
+.mac-window__lights {
+  display: flex;
+  gap: 8px;
+  width: 52px;
+}
+
+.mac-window__light {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.5px var(--mac-light-edge);
+}
+
+.mac-window__light--close {
+  background: var(--mac-close);
+}
+
+/* The dot stays 12px; the touch target around it is 44px. */
+.mac-window__light--close::after {
+  content: '';
+  position: absolute;
+  inset: -16px;
+}
+
+.mac-window__light--min {
+  background: var(--mac-min);
+}
+
+.mac-window__light--max {
+  background: var(--mac-max);
+}
+
+.mac-window__title {
+  margin: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mac-window__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mac-window[open] {
+    animation: none;
+  }
 }
 
 /* ---------- Day share (📅 → 공유) ---------- */
