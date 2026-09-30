@@ -4,15 +4,15 @@ import { clearAppData, DEFAULT_SETTINGS, loadSettings, saveSettings, withRecentC
 describe('settings', () => {
   it('settings persist in goodroot:settings:v1 and survive a reload', () => {
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS);
-    saveSettings({ recentCategoryIds: ['cafe'] });
+    saveSettings({ recentCategoryIds: ['cafe'], theme: 'mint' });
     expect(JSON.parse(localStorage.getItem('goodroot:settings:v1') ?? '{}').recentCategoryIds).toEqual(['cafe']);
-    expect(loadSettings()).toEqual({ recentCategoryIds: ['cafe'] });
+    expect(loadSettings()).toEqual({ recentCategoryIds: ['cafe'], theme: 'mint' });
   });
 
   it('falls back to defaults for unknown or broken values', () => {
-    // `theme` was saved by an earlier prototype build; it is ignored now.
+    // 'forest' was a theme in an earlier prototype build; unknown themes fall back.
     localStorage.setItem('goodroot:settings:v1', JSON.stringify({ theme: 'forest', recentCategoryIds: [1, 'bar'] }));
-    expect(loadSettings()).toEqual({ recentCategoryIds: ['bar'] });
+    expect(loadSettings()).toEqual({ recentCategoryIds: ['bar'], theme: 'default' });
     localStorage.setItem('goodroot:settings:v1', '{not json');
     expect(loadSettings()).toEqual(DEFAULT_SETTINGS);
   });

@@ -58,6 +58,13 @@ export default function App() {
   const notify = useCallback((text: string, undo?: () => void) => setToast({ text, undo }), []);
 
   const { settings, update: updateSettings } = useSettings();
+
+  // The colour theme lives on <html data-theme>, where styles.css swaps the tokens.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (settings.theme === 'default') delete root.dataset.theme;
+    else root.dataset.theme = settings.theme;
+  }, [settings.theme]);
   const pinStore = usePins();
   const { pins, categories } = pinStore;
   const course = useCourseDraft();
@@ -84,6 +91,8 @@ export default function App() {
   // above the calendar button, and commands sent down from that menu.
   const [calendarMode, setCalendarMode] = useState<'day' | 'month'>('day');
   const [calendarMenu, setCalendarMenu] = useState(false);
+  // A 꾸미기 tool is out on the calendar: the tab buttons step aside for its tray.
+  const [decorating, setDecorating] = useState(false);
   const [calendarCommand, setCalendarCommand] = useState<CalendarCommand | null>(null);
   const sendCalendar = (type: CalendarCommand['type']) => {
     setCalendarMenu(false);
@@ -574,7 +583,7 @@ export default function App() {
   const calendarZoom = tab === 'calendar' && !sharedDiary;
   const onPage = showsPage(tab, Boolean(sharedCourse || sharedPins || searchOpen || preview));
   // Swiping 달력 left / 추천 right slides the page off and uncovers the map (핀).
-  const swipe = usePageSwipe(onPage ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
+  const swipe = usePageSwipe(onPage && !decorating ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
 
   return (
     <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''}`}>
@@ -680,6 +689,9 @@ export default function App() {
           {calendarZoom ? (
             <CalendarZoom
               command={calendarCommand}
+              onDecorating={setDecorating}
+              theme={settings.theme}
+              onTheme={(theme) => updateSettings((st) => ({ ...st, theme }))}
               onMode={(mode) => {
                 setCalendarMode(mode);
                 setCalendarMenu(false);
@@ -703,7 +715,7 @@ export default function App() {
         </section>
       )}
 
-      <div ref={barEl} className="bottom-bar-wrap">
+      <div ref={barEl} className={`bottom-bar-wrap ${decorating && calendarZoom && onPage ? 'is-away' : ''}`} inert={decorating && calendarZoom && onPage}>
         <BottomBar
           tab={swipe.leaving ? 'pins' : tab}
           pinning={pinning}

@@ -1,4 +1,5 @@
 import { latestPingIndex, layoutPings, type DayPing, type EdgeStyle, type PingShape } from '../domain/dayPings';
+import { PEN_WIDTHS, type DayDecor } from '../domain/decor';
 import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
 
 export interface DayImageInput {
@@ -6,6 +7,8 @@ export interface DayImageInput {
   pings: DayPing[];
   shapeOf: (ping: DayPing) => PingShape;
   edgeStyleOf: (from: DayPing, to: DayPing) => EdgeStyle;
+  /** Stickers and pen strokes, in the same box coordinates as the pings. */
+  decor?: DayDecor;
 }
 
 // 4:5 portrait, the shape most feeds show uncropped.
@@ -40,7 +43,7 @@ const DASHES: Record<EdgeStyle, { width: number; dash: number[]; cap: CanvasLine
  * Drawn from the data rather than screenshotting the DOM: sharp at any
  * size, and no capture library needed.
  */
-export async function renderDayImage({ title, pings, shapeOf, edgeStyleOf }: DayImageInput): Promise<string> {
+export async function renderDayImage({ title, pings, shapeOf, edgeStyleOf, decor }: DayImageInput): Promise<string> {
   await document.fonts?.ready;
   const c = tokens();
   const canvas = document.createElement('canvas');
@@ -117,6 +120,8 @@ export async function renderDayImage({ title, pings, shapeOf, edgeStyleOf }: Day
     ctx.fillText(ping.time, x, labelTop + 88);
   });
 
+  if (decor) drawDecor(ctx, decor, c.font);
+
   // A quiet signature: a bit smaller and see-through so the day stays the
   // subject. Drawn whole on its own layer first, then faded as one piece, so
   // the pin's hole stays the background colour instead of a pink blend.
@@ -131,6 +136,30 @@ export async function renderDayImage({ title, pings, shapeOf, edgeStyleOf }: Day
   ctx.restore();
 
   return canvas.toDataURL('image/png');
+}
+
+/** Pen strokes, then stickers, over the drawing, mapped from box fractions onto BOX. */
+function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, font: string) {
+  const css = getComputedStyle(document.documentElement);
+  const px = (v: number) => v * BOX.size;
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  for (const stroke of decor.strokes) {
+    ctx.strokeStyle = css.getPropertyValue(`--${stroke.color}`).trim();
+    ctx.lineWidth = px(PEN_WIDTHS[stroke.width]);
+    ctx.beginPath();
+    stroke.points.forEach(([x, y], i) => (i ? ctx.lineTo : ctx.moveTo).call(ctx, BOX.x + px(x), BOX.y + px(y)));
+    if (stroke.points.length === 1) ctx.lineTo(BOX.x + px(stroke.points[0][0]) + 0.01, BOX.y + px(stroke.points[0][1]));
+    ctx.stroke();
+  }
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  for (const s of decor.stickers) {
+    ctx.font = `${px(s.size * 0.78)}px ${font}`;
+    ctx.fillText(s.emoji, BOX.x + px(s.x), BOX.y + px(s.y));
+  }
+  ctx.restore();
 }
 
 /**

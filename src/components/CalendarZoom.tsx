@@ -2,9 +2,12 @@ import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'r
 import { swipeCommits, SWIPE } from '../domain/appTabs';
 import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, type EdgeStyle, type PingShape } from '../domain/dayPings';
 import { addDays } from '../domain/calendar';
+import { EMPTY_DECOR, type DayDecor, type DecorTool, type PenColor, type PenWidth, type ThemeId } from '../domain/decor';
 import { dateKey } from '../domain/diary';
 import DayPings from './DayPings';
 import DayShareSheet from './DayShareSheet';
+import DecorLayer from './DecorLayer';
+import { DecorRail, DecorTray } from './DecorTools';
 import MonthCalendar from './MonthCalendar';
 
 type Mode = 'day' | 'month';
@@ -73,9 +76,13 @@ interface CalendarZoomProps {
   command: CalendarCommand | null;
   /** Reports day ↔ month, which decides what the calendar button does next. */
   onMode: (mode: Mode) => void;
+  /** Tells the app a decorating tool is out, so it can put the tab buttons away. */
+  onDecorating: (on: boolean) => void;
+  theme: ThemeId;
+  onTheme: (theme: ThemeId) => void;
 }
 
-export default function CalendarZoom({ command, onMode }: CalendarZoomProps) {
+export default function CalendarZoom({ command, onMode, onDecorating, theme, onTheme }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
   const [date, setDate] = useState(today);
@@ -86,6 +93,14 @@ export default function CalendarZoom({ command, onMode }: CalendarZoomProps) {
   const [visit, setVisit] = useState(0);
   // Chosen ping shapes. Pings aren't stored yet, so this lasts for the session.
   const [shapes, setShapes] = useState<Map<string, PingShape>>(() => new Map());
+  // 꾸미기: stickers and pen strokes per day (session only, like the shapes),
+  // and which tool is out.
+  const [decor, setDecor] = useState<Map<string, DayDecor>>(() => new Map());
+  const [tool, setTool] = useState<DecorTool | null>(null);
+  const [armed, setArmed] = useState<string | null>(null);
+  const [pen, setPen] = useState<{ color: PenColor; width: PenWidth }>({ color: 'text', width: 'medium' });
+  const toolRef = useRef(tool);
+  toolRef.current = tool;
   const [edgeStyles, setEdgeStyles] = useState<Map<string, EdgeStyle>>(() => new Map());
 
   // Paging days: the day sliding in beside the current one.
@@ -184,6 +199,16 @@ export default function CalendarZoom({ command, onMode }: CalendarZoomProps) {
 
   useEffect(() => onMode(mode), [mode]);
 
+  const dayDecor = decor.get(shownDate) ?? EMPTY_DECOR;
+
+  // The app hides the tab buttons while a tool is out. Leaving the day
+  // screen (to the month) puts the tools away.
+  useEffect(() => onDecorating(tool !== null), [tool]);
+  useEffect(() => {
+    if (mode !== 'day') setTool(null);
+  }, [mode]);
+  useEffect(() => () => onDecorating(false), []);
+
   // ----- Paging days (one-finger swipe on a day screen) -----
 
   // Like the pinch, drawn straight onto the two panels rather than through
@@ -236,7 +261,7 @@ export default function CalendarZoom({ command, onMode }: CalendarZoomProps) {
   };
 
   const onDayTouchStart = (e: TouchEvent) => {
-    if (e.touches.length !== 1 || modeRef.current !== 'day' || gesture.current || sliding.current) {
+    if (e.touches.length !== 1 || modeRef.current !== 'day' || gesture.current || sliding.current || toolRef.current) {
       if (daySwipe.current?.axis === 'x') endDaySwipe(false); // a second finger: back off for the pinch
       daySwipe.current = null;
       return;
@@ -370,7 +395,8 @@ export default function CalendarZoom({ command, onMode }: CalendarZoomProps) {
 
   const onTouchStart = (e: TouchEvent) => {
     onDayTouchStart(e);
-    if (e.touches.length !== 2) return;
+    // No zooming while a sticker or pen is out: fingers belong to the drawing.
+    if (e.touches.length !== 2 || toolRef.current) return;
     const f = fingers(e);
     begin(f.x, f.y, f.dist);
   };
@@ -396,7 +422,7 @@ export default function CalendarZoom({ command, onMode }: CalendarZoomProps) {
     const stage = stageEl.current;
     if (!stage) return;
     const onWheel = (e: WheelEvent) => {
-      if (!e.ctrlKey) return; // trackpad pinches arrive as ctrl+wheel
+      if (!e.ctrlKey || toolRef.current) return; // trackpad pinches arrive as ctrl+wheel
       e.preventDefault(); // …and would otherwise zoom the whole page
       const h = wheelHandlers.current;
       if (!gesture.current && !h.begin(e.clientX, e.clientY, 1)) return;
@@ -440,6 +466,13 @@ export default function CalendarZoom({ command, onMode }: CalendarZoomProps) {
         inert={mode !== 'day'}
         aria-label={`${shownDate} 기록`}
       >
+        <DecorRail
+          tool={tool}
+          onTool={(next) => {
+            setTool(next);
+            setArmed(null);
+          }}
+        />
         <div ref={curEl} className="cal-day">
           <button className="cal-zoom__title" aria-label={`${dayTitle(shownDate, today)}, 달력 보기`} onClick={() => toMonth()}>
             {dayTitle(shownDate, today)}
@@ -457,8 +490,16 @@ export default function CalendarZoom({ command, onMode }: CalendarZoomProps) {
               onTap={() => {
                 // Recognised on purpose; what a tap opens is decided later.
               }}
-              pressable={() => gesture.current === null && daySwipe.current?.axis !== 'x'}
-            />
+              pressable={() => gesture.current === null && daySwipe.current?.axis !== 'x' && !toolRef.current}
+            >
+              <DecorLayer
+                decor={dayDecor}
+                tool={tool}
+                armed={armed}
+                pen={pen}
+                onChange={(next) => setDecor((prev) => new Map(prev).set(shownDate, next))}
+              />
+            </DayPings>
           </div>
         </div>
         {neighbor && (
@@ -474,6 +515,25 @@ export default function CalendarZoom({ command, onMode }: CalendarZoomProps) {
         )}
       </section>
 
+      {tool && (
+        <DecorTray
+          tool={tool}
+          onDone={() => {
+            setTool(null);
+            setArmed(null);
+          }}
+          armed={armed}
+          onArm={setArmed}
+          pen={pen}
+          onPen={setPen}
+          canUndo={dayDecor.strokes.length > 0}
+          onUndo={() => setDecor((prev) => new Map(prev).set(date, { ...dayDecor, strokes: dayDecor.strokes.slice(0, -1) }))}
+          onClearInk={() => setDecor((prev) => new Map(prev).set(date, { ...dayDecor, strokes: [] }))}
+          theme={theme}
+          onTheme={onTheme}
+        />
+      )}
+
       {sharing && (
         <DayShareSheet
           date={date}
@@ -481,6 +541,7 @@ export default function CalendarZoom({ command, onMode }: CalendarZoomProps) {
           pings={pingsForDate(date, today)}
           shapeOf={(ping) => shapes.get(pingKey(date, ping)) ?? 'pin'}
           edgeStyleOf={(from, to) => edgeStyles.get(edgeKey(date, from, to)) ?? 'solid'}
+          decor={decor.get(date) ?? EMPTY_DECOR}
           onClose={() => setSharing(false)}
         />
       )}

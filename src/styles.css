@@ -77,6 +77,117 @@
   }
 }
 
+:root {
+  /* Theme swatches in the 꾸미기 → 테마 tray: each theme's background and accent. */
+  --swatch-default-bg: #fbf6f0;
+  --swatch-default-accent: #e0664f;
+  --swatch-night-bg: #1b1715;
+  --swatch-night-accent: #f07a62;
+  --swatch-mint-bg: #e6f4ee;
+  --swatch-mint-accent: #2f9e7a;
+  --swatch-lavender-bg: #efeafb;
+  --swatch-lavender-accent: #7c5cc4;
+  --swatch-sky-bg: #e6f0fb;
+  --swatch-sky-accent: #3f7fc4;
+  --swatch-mono-bg: #efefee;
+  --swatch-mono-accent: #2b2b2b;
+}
+
+/* Themes (꾸미기 → 테마), set on <html data-theme>. They win over the
+   system dark mode: a light theme stays light, 밤 is dark everywhere. */
+:root[data-theme='mint'],
+:root[data-theme='lavender'],
+:root[data-theme='sky'],
+:root[data-theme='mono'] {
+  color-scheme: light;
+  --text: #2f2622;
+  --muted: #8b7d74;
+  --border: rgba(47, 38, 34, 0.1);
+  --on-accent: #ffffff;
+  --sage: #4f9a72;
+  --sage-soft: #e1f1e7;
+  --sky: #3f7fc4;
+  --sky-soft: #e2eefa;
+  --on-sky: #ffffff;
+  --amber: #b7791f;
+  --amber-soft: #fbefd9;
+  --danger: #d14b4b;
+  --shadow: 0 10px 30px rgba(47, 38, 34, 0.16);
+  --shadow-sm: 0 2px 10px rgba(47, 38, 34, 0.12);
+  --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
+  --backdrop: rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme='mint'] {
+  --bg: #eef7f3;
+  --surface: #f8fcfa;
+  --surface-2: #e2f1ea;
+  --accent: #2f9e7a;
+  --accent-strong: #23805f;
+  --accent-soft: #d5efe4;
+  --route: #2f9e7a;
+}
+
+:root[data-theme='lavender'] {
+  --bg: #f4f1fb;
+  --surface: #fbfaff;
+  --surface-2: #ebe5f7;
+  --accent: #7c5cc4;
+  --accent-strong: #6446a8;
+  --accent-soft: #e6ddf8;
+  --route: #7c5cc4;
+}
+
+:root[data-theme='sky'] {
+  --bg: #eef5fc;
+  --surface: #f8fbff;
+  --surface-2: #e1edf9;
+  --accent: #3f7fc4;
+  --accent-strong: #2f67a6;
+  --accent-soft: #dce9f8;
+  --route: #3f7fc4;
+  --sky: #2f67a6;
+}
+
+:root[data-theme='mono'] {
+  --bg: #f5f5f4;
+  --surface: #ffffff;
+  --surface-2: #ebebea;
+  --text: #1f1f1f;
+  --muted: #7a7a7a;
+  --accent: #2b2b2b;
+  --accent-strong: #000000;
+  --accent-soft: #e2e2e2;
+  --route: #2b2b2b;
+}
+
+:root[data-theme='night'] {
+  color-scheme: dark;
+  --bg: #1b1715;
+  --surface: #25201d;
+  --surface-2: #2f2926;
+  --text: #f3ebe5;
+  --muted: #a8998f;
+  --border: rgba(243, 235, 229, 0.12);
+  --accent: #f07a62;
+  --accent-strong: #ff8d76;
+  --accent-soft: #4a2a23;
+  --on-accent: #1b1715;
+  --route: #f07a62;
+  --sage: #7cc39b;
+  --sage-soft: #23382c;
+  --sky: #7fb1e6;
+  --sky-soft: #1f3044;
+  --on-sky: #10161d;
+  --amber: #e3b25e;
+  --amber-soft: #3d3020;
+  --danger: #ff7b7b;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
+  --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.45);
+  --backdrop: rgba(0, 0, 0, 0.6);
+}
+
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
@@ -990,6 +1101,290 @@ button:disabled {
   text-align: center;
 }
 
+/* ---------- 꾸미기 (calendar day): stickers, pen, theme ---------- */
+
+/* While a tool's tray is up, the tab buttons slide away under it. */
+.bottom-bar-wrap.is-away {
+  translate: 0 120%;
+  opacity: 0;
+}
+
+.decor-rail {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.decor-rail__btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--muted);
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.decor-rail__btn.is-on {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* The drawing box measures stickers (cqw) so they scale with it. */
+.pings {
+  container-type: inline-size;
+}
+
+.decor {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.decor--pen,
+.decor--sticker {
+  pointer-events: auto;
+  touch-action: none;
+  border-radius: 16px;
+  outline: 2px dashed var(--border);
+  outline-offset: 6px;
+}
+
+.decor--pen,
+.decor--sticker.is-armed {
+  cursor: crosshair;
+}
+
+.decor__ink {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.decor__ink path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.decor__sticker {
+  position: absolute;
+  line-height: 1;
+  translate: -50% -50%;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.decor--sticker .decor__sticker {
+  pointer-events: auto;
+  touch-action: none;
+  cursor: grab;
+}
+
+.decor__sticker.is-selected {
+  border-radius: 10px;
+  outline: 2px dashed var(--accent);
+  outline-offset: 4px;
+}
+
+.decor__remove {
+  position: absolute;
+  top: -16px;
+  right: -16px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--text);
+  color: var(--surface);
+}
+
+/* 44px to touch, 26px to see. */
+.decor__remove::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+}
+
+.decor-tray {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--safe-bottom) + 12px);
+  z-index: 13;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(calc(100% - 24px), 560px);
+  margin: 0 auto;
+  padding: 8px;
+  border-radius: 22px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  animation: tray-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+}
+
+@keyframes tray-in {
+  from {
+    opacity: 0;
+    translate: 0 24px;
+  }
+}
+
+.decor-tray__scroll {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.decor-tray__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.decor-tray__sticker,
+.decor-tray__color,
+.decor-tray__width,
+.decor-tray__icon,
+.decor-tray__done {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+}
+
+.decor-tray__sticker {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.decor-tray__sticker.is-on,
+.decor-tray__width.is-on {
+  background: var(--accent-soft);
+}
+
+.decor-tray__color span {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.decor-tray__color.is-on span {
+  box-shadow:
+    0 0 0 3px var(--surface),
+    0 0 0 5px currentColor;
+}
+
+.decor-tray__width span {
+  width: 24px;
+  min-height: 2px;
+  border-radius: 99px;
+}
+
+.decor-tray__icon:disabled {
+  opacity: 0.35;
+}
+
+.decor-tray__sep {
+  flex: none;
+  width: 1px;
+  height: 28px;
+  margin: 0 4px;
+  background: var(--border);
+}
+
+.decor-tray__theme {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 60px;
+  padding: 4px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.decor-tray__theme.is-on {
+  color: var(--text);
+}
+
+.theme-swatch {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+}
+
+.theme-swatch i {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+
+.decor-tray__theme.is-on .theme-swatch {
+  box-shadow:
+    0 0 0 3px var(--surface),
+    0 0 0 5px var(--accent);
+}
+
+.theme-swatch--default { background: var(--swatch-default-bg); }
+.theme-swatch--default i { background: var(--swatch-default-accent); }
+.theme-swatch--night { background: var(--swatch-night-bg); }
+.theme-swatch--night i { background: var(--swatch-night-accent); }
+.theme-swatch--mint { background: var(--swatch-mint-bg); }
+.theme-swatch--mint i { background: var(--swatch-mint-accent); }
+.theme-swatch--lavender { background: var(--swatch-lavender-bg); }
+.theme-swatch--lavender i { background: var(--swatch-lavender-accent); }
+.theme-swatch--sky { background: var(--swatch-sky-bg); }
+.theme-swatch--sky i { background: var(--swatch-sky-accent); }
+.theme-swatch--mono { background: var(--swatch-mono-bg); }
+.theme-swatch--mono i { background: var(--swatch-mono-accent); }
+
+.decor-tray__done {
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .decor-tray {
+    animation: none;
+  }
+}
+
 /* ---------- macOS-style popup window ---------- */
 
 .mac-window {
@@ -1440,6 +1835,9 @@ input.timeline__time:focus {
   right: 0;
   bottom: 0;
   z-index: 12;
+  transition:
+    translate 0.22s ease,
+    opacity 0.18s ease;
   /* A little lift so the big pin button clears the screen edge. */
   padding-bottom: calc(var(--safe-bottom) + 6px);
   /* No bar: only the round buttons take touches. */
