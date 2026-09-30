@@ -1157,6 +1157,13 @@ button:disabled {
 .bottom-bar-wrap.is-away {
   translate: 0 120%;
   opacity: 0;
+  /* Gone once it has slid away: an invisible layer left at the bottom edge
+     can still show on phones as a smear when colours change under it. */
+  visibility: hidden;
+  transition:
+    translate 0.22s ease,
+    opacity 0.18s ease,
+    visibility 0s 0.22s;
 }
 
 .decor-rail {

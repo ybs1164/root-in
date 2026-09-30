@@ -70,6 +70,14 @@ export default function App() {
     const root = document.documentElement;
     if (dayTheme === 'default') delete root.dataset.theme;
     else root.dataset.theme = dayTheme;
+    // Phone browsers tint their own bars (and the strip under the page at the
+    // bottom edge) from theme-color; left alone it keeps the default theme's
+    // colour, a pale band under a themed page.
+    const metas = document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]');
+    metas.forEach((m) => {
+      m.dataset.base ??= m.content;
+      m.content = dayTheme === 'default' ? m.dataset.base : getComputedStyle(root).getPropertyValue('--surface').trim();
+    });
   }, [dayTheme]);
   const pinStore = usePins();
   const { pins, categories } = pinStore;
