@@ -22,6 +22,7 @@
   --shadow: 0 10px 30px rgba(47, 38, 34, 0.16);
   --shadow-sm: 0 2px 10px rgba(47, 38, 34, 0.12);
   --pin-shadow: 0 2px 3px rgba(47, 38, 34, 0.25);
+  --mask-show: #fff; /* SVG masks: white = fully shown (not a colour anyone sees) */
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
   --backdrop: rgba(0, 0, 0, 0.4);
 }
@@ -2129,17 +2130,82 @@ input.timeline__time:focus {
   overflow: visible;
 }
 
-.pings__line polyline {
+.pings__seg {
   fill: none;
   stroke: var(--route);
-  /* viewBox units (100 = the box); ~3px at the usual size. Not
-     non-scaling-stroke: that breaks the pathLength-based draw-in. */
+  /* viewBox units (100 = the box): ~3px at the usual size. */
   stroke-width: 0.9;
+  stroke-linecap: round;
+  transition: opacity 0.15s ease;
+}
+
+.pings__seg--dashed {
+  stroke-dasharray: 3.2 2.2;
+  stroke-linecap: butt;
+}
+
+.pings__seg--dotted {
+  stroke-width: 1.2;
+  stroke-dasharray: 0.01 2.4; /* round caps turn the zero-length dashes into dots */
+}
+
+.pings__seg--bold {
+  stroke-width: 1.9;
+}
+
+.pings__seg.is-pressed {
+  opacity: 0.55;
+}
+
+/* Draws every line in visiting order, whatever their dash patterns. */
+.pings__reveal {
+  fill: none;
+  stroke: var(--mask-show);
+  stroke-width: 4;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
   animation: ping-line 0.7s 0.35s ease forwards;
+}
+
+/* Press target for a line: wide and invisible (pins sit above it). */
+.pings__hitline {
+  stroke: transparent;
+  stroke-width: 9;
+  stroke-linecap: round;
+  pointer-events: stroke;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  outline: none;
+}
+
+.pings__hitline:focus-visible {
+  stroke: var(--accent-soft);
+}
+
+.ping-picker.ping-picker--edge {
+  /* Just above the line's middle, not above a pin's height. */
+  transform: translate(-50%, calc(-100% - 14px));
+}
+
+.ping-picker__opt svg line {
+  stroke-width: 2.2;
+}
+
+.ping-picker__opt .pings__seg--dashed {
+  stroke-dasharray: 5 3;
+}
+
+.ping-picker__opt .pings__seg--dotted {
+  stroke-width: 2.6;
+  stroke-dasharray: 0.01 4.5;
+}
+
+.ping-picker__opt .pings__seg--bold {
+  stroke-width: 4.2;
 }
 
 /* The point is the pin's tip (other shapes: their centre); the name hangs under it. */
@@ -2309,7 +2375,7 @@ input.timeline__time:focus {
   }
 
   .ping,
-  .pings__line polyline {
+  .pings__reveal {
     animation: none;
     stroke-dashoffset: 0;
   }

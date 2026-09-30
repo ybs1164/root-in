@@ -86,8 +86,22 @@ export const PING_SHAPES: { shape: PingShape; label: string }[] = [
   { shape: 'heart', label: '하트' },
 ];
 
+/** Line styles for the segment between two consecutive pings (long-press a line). */
+export type EdgeStyle = 'solid' | 'dashed' | 'dotted' | 'bold';
+
+export const EDGE_STYLES: { style: EdgeStyle; label: string }[] = [
+  { style: 'solid', label: '실선' },
+  { style: 'dashed', label: '파선' },
+  { style: 'dotted', label: '점선' },
+  { style: 'bold', label: '굵은 선' },
+];
+
 /** Stable key for a ping's per-ping settings (its shape, for now). */
 export const pingKey = (date: string, ping: DayPing): string => `${date}|${ping.time}|${ping.name}`;
+
+/** Key for the segment from one ping to the next; follows the pings, not their order in a list. */
+export const edgeKey = (date: string, from: DayPing, to: DayPing): string =>
+  `${pingKey(date, from)}>${to.time}|${to.name}`;
 
 /**
  * Press on a ping: held this long without drifting is a long press (shape

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'react';
 import { swipeCommits, SWIPE } from '../domain/appTabs';
-import { daySwipeTarget, dayTitle, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, type PingShape } from '../domain/dayPings';
+import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, type EdgeStyle, type PingShape } from '../domain/dayPings';
 import { addDays } from '../domain/calendar';
 import { dateKey } from '../domain/diary';
 import DayPings from './DayPings';
@@ -78,6 +78,7 @@ export default function CalendarZoom({ flip }: CalendarZoomProps) {
   const [visit, setVisit] = useState(0);
   // Chosen ping shapes. Pings aren't stored yet, so this lasts for the session.
   const [shapes, setShapes] = useState<Map<string, PingShape>>(() => new Map());
+  const [edgeStyles, setEdgeStyles] = useState<Map<string, EdgeStyle>>(() => new Map());
 
   // Paging days: the day sliding in beside the current one.
   const [neighbor, setNeighbor] = useState<{ date: string; side: -1 | 1 } | null>(null);
@@ -437,6 +438,10 @@ export default function CalendarZoom({ flip }: CalendarZoomProps) {
               pings={pings}
               shapeOf={(ping) => shapes.get(pingKey(shownDate, ping)) ?? 'pin'}
               onShape={(ping, shape) => setShapes((prev) => new Map(prev).set(pingKey(shownDate, ping), shape))}
+              edgeStyleOf={(from, to) => edgeStyles.get(edgeKey(shownDate, from, to)) ?? 'solid'}
+              onEdgeStyle={(from, to, style) =>
+                setEdgeStyles((prev) => new Map(prev).set(edgeKey(shownDate, from, to), style))
+              }
               onTap={() => {
                 // Recognised on purpose; what a tap opens is decided later.
               }}

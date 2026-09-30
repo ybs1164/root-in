@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addDays } from './calendar';
-import { classifyPress, daySwipeTarget, dayTitle, latestPingIndex, layoutPings, pingKey, pinchOutcome, pinchProgress, pingsForDate, SAMPLE_TODAY_PINGS } from './dayPings';
+import { classifyPress, daySwipeTarget, dayTitle, EDGE_STYLES, edgeKey, latestPingIndex, layoutPings, pingKey, pinchOutcome, pinchProgress, pingsForDate, SAMPLE_TODAY_PINGS } from './dayPings';
 
 describe('calendar day screen', () => {
   it('titles today as TODAY and other days as DAY <n>', () => {
@@ -91,5 +91,12 @@ describe('calendar day screen', () => {
     expect(classifyPress(600, 4)).toBe('long');
     expect(classifyPress(120, 30)).toBe('none');
     expect(pingKey('2026-09-30', SAMPLE_TODAY_PINGS[0])).toBe('2026-09-30|10:30|성수연방');
+  });
+
+  it('keys a line by the two pings it joins, and offers four line styles', () => {
+    const [a, b] = SAMPLE_TODAY_PINGS;
+    expect(edgeKey('2026-09-30', a, b)).toBe('2026-09-30|10:30|성수연방>13:00|서울숲');
+    expect(edgeKey('2026-09-30', b, a)).not.toBe(edgeKey('2026-09-30', a, b));
+    expect(EDGE_STYLES.map((e) => e.style)).toEqual(['solid', 'dashed', 'dotted', 'bold']);
   });
 });
