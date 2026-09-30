@@ -1,5 +1,5 @@
-import { CalendarDays, MapPin, Sparkles } from 'lucide-react';
-import type { AppTab } from '../domain/appTabs';
+import { CalendarDays, MapPin, Sparkles, type LucideIcon } from 'lucide-react';
+import { bottomBarAction, type AppTab } from '../domain/appTabs';
 
 interface BottomBarProps {
   tab: AppTab;
@@ -8,29 +8,41 @@ interface BottomBarProps {
   onPin: () => void;
 }
 
+const BUTTONS: { tab: AppTab; label: string; Icon: LucideIcon }[] = [
+  { tab: 'calendar', label: '달력', Icon: CalendarDays },
+  { tab: 'pins', label: '핀', Icon: MapPin },
+  { tab: 'influencer', label: '추천', Icon: Sparkles },
+];
+
 /**
- * 📅 달력 · 📍 핀 · ✨ 추천. The side buttons are tabs (tapping the active
- * one again returns to the pin map); the center one is an action.
+ * Three floating round buttons (📅 · 📍 · ✨), icon only. The current
+ * screen's button is the big one; size is the only "selected" signal, so
+ * the labels live in aria-label instead of on screen.
  */
 export default function BottomBar({ tab, pinning, onTab, onPin }: BottomBarProps) {
-  const side = (target: AppTab) => () => onTab(tab === target ? 'pins' : target);
+  const press = (target: AppTab) => () => {
+    const action = bottomBarAction(target, tab);
+    if (action === 'switch') onTab(target);
+    else if (action === 'pin') onPin();
+  };
   return (
     <nav className="bottom-bar" aria-label="메뉴">
-      <button className={`bottom-bar__tab ${tab === 'calendar' ? 'is-on' : ''}`} aria-pressed={tab === 'calendar'} onClick={side('calendar')}>
-        <CalendarDays size={24} aria-hidden />
-        <span>달력</span>
-      </button>
-      <button className={`bottom-bar__pin ${pinning ? 'is-on' : ''}`} aria-pressed={pinning} aria-label="지도에 핀 꽂기" onClick={onPin}>
-        <MapPin size={28} aria-hidden />
-      </button>
-      <button
-        className={`bottom-bar__tab ${tab === 'influencer' ? 'is-on' : ''}`}
-        aria-pressed={tab === 'influencer'}
-        onClick={side('influencer')}
-      >
-        <Sparkles size={24} aria-hidden />
-        <span>추천</span>
-      </button>
+      {BUTTONS.map(({ tab: target, label, Icon }) => {
+        const on = tab === target;
+        const isPin = target === 'pins';
+        return (
+          <button
+            key={target}
+            className={`bottom-bar__btn ${isPin ? 'bottom-bar__btn--pin' : ''} ${on ? 'is-on' : ''} ${isPin && pinning ? 'is-pinning' : ''}`}
+            aria-label={isPin && on ? '지도에 핀 꽂기' : label}
+            aria-current={on ? 'page' : undefined}
+            aria-pressed={isPin && on ? pinning : undefined}
+            onClick={press(target)}
+          >
+            <Icon aria-hidden />
+          </button>
+        );
+      })}
     </nav>
   );
 }

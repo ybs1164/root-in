@@ -1,5 +1,15 @@
-/** Bottom-bar tabs. The center pin button is an action, not a tab. */
+/** Bottom-bar tabs, one round button each. */
 export type AppTab = 'calendar' | 'pins' | 'influencer';
+
+/**
+ * What a bottom-bar tap does. Every button switches to its screen; the pin
+ * button, once its screen is already showing, doubles as "drop a pin" so the
+ * quick-drop action keeps its one-tap reach.
+ */
+export function bottomBarAction(target: AppTab, current: AppTab): 'switch' | 'pin' | 'none' {
+  if (target !== current) return 'switch';
+  return target === 'pins' ? 'pin' : 'none';
+}
 
 export type IncomingKind = 'course' | 'day' | 'pins';
 

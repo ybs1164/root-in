@@ -1,6 +1,6 @@
 /**
  * "root-in" wordmark ("rootin"). The i is the app's map-pin icon (Lucide
- * `map-pin`, the same one on the bottom-bar pin button), filled and larger
+ * `map-pin`, the same one on the bottom pin button), filled and larger
  * than the letters so it reads as a pin first; its tip sits on the baseline.
  * Icon geometry: Lucide, ISC license.
  */
