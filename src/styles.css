@@ -173,13 +173,14 @@ button:disabled {
 }
 
 .logo__in {
+  margin-left: 0.07em;
   color: var(--accent);
 }
 
 /* The pin i: bigger than the letters on purpose; tip on the baseline. */
 .logo__i {
-  width: 0.8em;
-  height: 1.05em;
+  width: 0.72em;
+  height: 0.95em;
   margin: 0 0.01em;
   fill: currentColor;
   overflow: visible;
@@ -1254,60 +1255,82 @@ input.timeline__time:focus {
   right: 0;
   bottom: 0;
   z-index: 12;
-  padding-bottom: var(--safe-bottom);
-  background: var(--surface);
-  border-top: 1px solid var(--border);
+  /* A little lift so the big pin button clears the screen edge. */
+  padding-bottom: calc(var(--safe-bottom) + 6px);
+  /* No bar: only the round buttons take touches. */
+  pointer-events: none;
 }
 
 .bottom-bar {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  height: var(--bar-h);
-  padding: 0 12px;
-}
-
-.bottom-bar__tab {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  height: 56px;
-  border: 0;
-  border-radius: 14px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
+  gap: 20px;
+  height: var(--bar-h);
 }
 
-.bottom-bar__tab.is-on {
-  color: var(--accent-strong);
-}
-
-.bottom-bar__pin {
+/* Round, icon-only. The current screen's button grows, the others shrink. */
+.bottom-bar__btn {
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
-  margin: -26px 20px 0;
+  width: 44px;
+  height: 44px;
   padding: 0;
-  border: 4px solid var(--surface);
+  border: 0;
   border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  box-shadow: var(--shadow);
-  transition: transform 0.15s ease;
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: var(--shadow-sm);
+  pointer-events: auto;
+  transition: width 0.25s ease, height 0.25s ease, transform 0.15s ease;
 }
 
-.bottom-bar__pin:active {
+.bottom-bar__btn svg {
+  width: 20px;
+  height: 20px;
+  transition: width 0.25s ease, height 0.25s ease;
+}
+
+.bottom-bar__btn.is-on {
+  width: 58px;
+  height: 58px;
+}
+
+.bottom-bar__btn.is-on svg {
+  width: 26px;
+  height: 26px;
+}
+
+.bottom-bar__btn--pin {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* The pin is the app's main action, so it grows a little more than the others. */
+.bottom-bar__btn--pin.is-on {
+  width: 66px;
+  height: 66px;
+}
+
+.bottom-bar__btn--pin.is-on svg {
+  width: 30px;
+  height: 30px;
+}
+
+.bottom-bar__btn:active {
   transform: scale(0.94);
 }
 
-.bottom-bar__pin.is-on {
-  background: var(--accent-strong);
+/* Pin-drop mode: same colours, the pin tilts as before. */
+.bottom-bar__btn.is-pinning {
   transform: rotate(-12deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bottom-bar__btn,
+  .bottom-bar__btn svg {
+    transition: none;
+  }
 }
 
 /* ---------- Pins on the map ---------- */
@@ -1943,6 +1966,86 @@ input.timeline__time:focus {
   bottom: calc(var(--sheet-peek) + var(--bar-h) + var(--safe-bottom));
 }
 
+/* ---------- Tab pages (달력 · 추천): full screens, no map ---------- */
+
+.page {
+  position: absolute;
+  inset: 0;
+  z-index: 11; /* over the map, under the round buttons */
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--safe-top);
+  padding-bottom: calc(var(--bar-h) + var(--safe-bottom) + 6px);
+  background: var(--surface);
+}
+
+.page__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  margin: 0 auto;
+  padding: 4px 8px 0 16px;
+}
+
+.page__head h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.page__head,
+.page .sheet__content {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* The map's own controls belong to the map screen. */
+.app--page .search,
+.app--page .corner-btn {
+  display: none;
+}
+
+/* ---------- Phones: the pin screen's sheet hangs from the top ---------- */
+
+@media (max-width: 899px) {
+  .sheet--top {
+    --sheet-top-head: calc(76px + var(--safe-top)); /* room for the search bar */
+    top: 0;
+    bottom: auto;
+    height: calc(var(--sheet-peek) + var(--sheet-top-head));
+    max-height: calc(100dvh - var(--bar-h) - var(--safe-bottom) - 12px);
+    padding-top: var(--sheet-top-head);
+    border-radius: 0 0 22px 22px;
+    box-shadow: var(--shadow);
+  }
+
+  .sheet--top.sheet--full {
+    height: calc(var(--sheet-full) + var(--sheet-top-head));
+  }
+
+  /* Grip on the bottom edge, where the sheet is pulled from. */
+  .sheet--top .sheet__grip {
+    order: 2;
+  }
+
+  .app--searching .sheet--top,
+  .app--pinning .sheet--top {
+    transform: translateY(-110%);
+  }
+
+  .app--sheet-top .place-card {
+    bottom: calc(var(--bar-h) + var(--safe-bottom) + 12px);
+  }
+
+  .app--sheet-top .maplibregl-ctrl-bottom-right,
+  .app--sheet-top .maplibregl-ctrl-bottom-left {
+    bottom: calc(var(--bar-h) + var(--safe-bottom));
+  }
+}
+
 /* ---------- Desktop: sheet becomes a left panel ---------- */
 
 @media (min-width: 900px) {
@@ -1989,7 +2092,7 @@ input.timeline__time:focus {
   .sheet,
   .sheet--full {
     bottom: calc(12px + var(--bar-h));
-    border-radius: var(--radius) var(--radius) 0 0;
+    border-radius: var(--radius);
   }
 
   .bottom-bar-wrap {
@@ -1998,8 +2101,13 @@ input.timeline__time:focus {
     bottom: 12px;
     width: 400px;
     padding-bottom: 0;
-    border-radius: 0 0 var(--radius) var(--radius);
-    box-shadow: var(--shadow);
+  }
+
+  /* Tab pages span the window, so their buttons centre on it. */
+  .app--page .bottom-bar-wrap {
+    left: 0;
+    right: 0;
+    width: auto;
   }
 
   .search.search--open {

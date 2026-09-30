@@ -12,7 +12,7 @@ import SettingsSheet from './components/SettingsSheet';
 import SharedCourseView from './components/SharedCourseView';
 import SharedPinsView from './components/SharedPinsView';
 import ShareSheet from './components/ShareSheet';
-import { tabForIncoming, type AppTab } from './domain/appTabs';
+import { PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { addStop, COURSE_LIMITS, emptyDraft } from './domain/course';
 import { DIARY_LIMITS, diaryKind } from './domain/diary';
 import { buildPinSet, categoryStyle, filterPins } from './domain/pin';
@@ -90,6 +90,8 @@ export default function App() {
   const sharedPins = incomingPins.status === 'ready' ? incomingPins.set : null;
   const activePin = pins.find((p) => p.id === activePinId) ?? null;
   const onPinHome = tab === 'pins' && !sharedCourse && !sharedPins;
+  // On phones the pin screen's sheet drops down from the top, leaving the map's lower half clear.
+  const sheetTop = tab === 'pins';
   const shownPins = useMemo(() => filterPins(pins, categories, pinFilter), [pins, categories, pinFilter]);
 
   // Numbered course markers + solid route line.
@@ -148,7 +150,13 @@ export default function App() {
   const mapPadding = useCallback((extraBottom = 0): MapPadding => {
     const sheetBox = sheetEl.current;
     const desktop = window.matchMedia(DESKTOP_QUERY).matches;
-    const covered = Math.min((sheetBox?.offsetHeight ?? 0) + (barEl.current?.offsetHeight ?? 0), window.innerHeight * 0.5);
+    const barHeight = barEl.current?.offsetHeight ?? 0;
+    const cap = (px: number) => Math.min(px, window.innerHeight * 0.5);
+    if (!desktop && sheetBox?.classList.contains('sheet--top')) {
+      // The pin screen's sheet hangs from the top instead (it includes the search bar area).
+      return { top: cap(sheetBox.offsetHeight) + 30, right: 40, bottom: barHeight + 30 + extraBottom, left: 40 };
+    }
+    const covered = cap((sheetBox?.offsetHeight ?? 0) + barHeight);
     return {
       top: 90,
       right: 40,
@@ -550,9 +558,10 @@ export default function App() {
   };
 
   const cardTargetFull = inCalendar ? dayFull : courseFull;
+  const onPage = showsPage(tab, Boolean(sharedCourse || sharedPins || searchOpen || preview));
 
   return (
-    <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''}`}>
+    <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''}`}>
       <div ref={mapEl} className="map" aria-label="지도" />
 
       <SearchBar
@@ -643,17 +652,29 @@ export default function App() {
         />
       )}
 
-      <section ref={sheetEl} className={`sheet sheet--${sheet}`} aria-label="패널">
-        <button
-          className="sheet__grip"
-          aria-label={sheet === 'full' ? '패널 줄이기' : '패널 펼치기'}
-          aria-expanded={sheet === 'full'}
-          onClick={() => setSheet((s) => (s === 'full' ? 'peek' : 'full'))}
-        >
-          <span aria-hidden />
-        </button>
-        {renderSheet()}
-      </section>
+      {onPage ? (
+        <section className="page" aria-label={PAGE_TITLES[tab]}>
+          <header className="page__head">
+            <h1>{PAGE_TITLES[tab]}</h1>
+            <button className="icon-btn" aria-label="설정" onClick={() => setSettingsOpen(true)}>
+              <SettingsIcon size={22} aria-hidden />
+            </button>
+          </header>
+          {renderSheet()}
+        </section>
+      ) : (
+        <section ref={sheetEl} className={`sheet sheet--${sheet} ${sheetTop ? 'sheet--top' : ''}`} aria-label="패널">
+          <button
+            className="sheet__grip"
+            aria-label={sheet === 'full' ? '패널 줄이기' : '패널 펼치기'}
+            aria-expanded={sheet === 'full'}
+            onClick={() => setSheet((s) => (s === 'full' ? 'peek' : 'full'))}
+          >
+            <span aria-hidden />
+          </button>
+          {renderSheet()}
+        </section>
+      )}
 
       <div ref={barEl} className="bottom-bar-wrap">
         <BottomBar tab={tab} pinning={pinning} onTab={changeTab} onPin={startPinning} />

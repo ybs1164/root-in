@@ -6,3 +6,4 @@ coverage
 .env.*.local
 .vscode/*
 !.vscode/tasks.json
+ui-shots
