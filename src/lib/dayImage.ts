@@ -197,8 +197,12 @@ function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, font: string)
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   for (const s of decor.stickers) {
+    ctx.save();
+    ctx.translate(BOX.x + px(s.x), BOX.y + px(s.y));
+    ctx.rotate(((s.rotate ?? 0) * Math.PI) / 180);
     ctx.font = `${px(s.size * 0.78)}px ${font}`;
-    ctx.fillText(s.emoji, BOX.x + px(s.x), BOX.y + px(s.y));
+    ctx.fillText(s.emoji, 0, 0);
+    ctx.restore();
   }
   ctx.restore();
 }

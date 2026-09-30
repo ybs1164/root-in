@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BASE_COLORS, clamp01, extendStroke, hexToHsv, hsvToHex, inkCss, isThemeId, normalizeHex, PEN_TOOLS, STICKERS, THEMES } from './decor';
+import { BASE_COLORS, STICKER_MAX, stickerGesture, clamp01, extendStroke, hexToHsv, hsvToHex, inkCss, isThemeId, normalizeHex, PEN_TOOLS, STICKERS, THEMES } from './decor';
 
 describe('day decorations', () => {
   it('keeps stroke points inside the box and skips tiny moves', () => {
@@ -44,5 +44,19 @@ describe('day decorations', () => {
     expect(hsvToHex(200, 1, 0)).toBe('#000000'); // brightness all the way down
     const { h, s, v } = hexToHsv('#3aa0ff');
     expect(hsvToHex(h, s, v)).toBe('#3aa0ff');
+  });
+
+  it('moves, scales and turns a sticker under the fingers', () => {
+    const base = { x: 0.5, y: 0.5, size: 0.1, rotate: 0 };
+    // One finger: moves by box fractions.
+    expect(stickerGesture(base, [{ x: 0, y: 0 }], [{ x: 30, y: -30 }], 300)).toMatchObject({ x: 0.6, y: 0.4, size: 0.1 });
+    // Two fingers spreading to twice apart and turning a quarter clockwise.
+    const out = stickerGesture(base, [{ x: 100, y: 100 }, { x: 200, y: 100 }], [{ x: 150, y: 0 }, { x: 150, y: 200 }], 300);
+    expect(out.size).toBeCloseTo(0.2);
+    expect(out.rotate).toBeCloseTo(90);
+    expect(out.x).toBeCloseTo(0.5);
+    expect(out.y).toBeCloseTo(0.5);
+    // Spreading a lot stops at the biggest size.
+    expect(stickerGesture(base, [{ x: 0, y: 0 }, { x: 10, y: 0 }], [{ x: 0, y: 0 }, { x: 1000, y: 0 }], 300).size).toBe(STICKER_MAX);
   });
 });

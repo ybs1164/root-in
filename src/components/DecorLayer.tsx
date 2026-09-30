@@ -7,9 +7,11 @@ import {
   inkCss,
   PEN_WIDTHS,
   STICKER_SIZE,
+  stickerGesture,
   type DayDecor,
   type DecorTool,
   type PenSettings,
+  type StickerPose,
   type Stroke,
 } from '../domain/decor';
 
@@ -95,8 +97,18 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange }: DecorL
   const layer = useRef<HTMLDivElement | null>(null);
   const [drawing, setDrawing] = useState<Stroke | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const drag = useRef<{ id: string; dx: number; dy: number } | null>(null);
-  const [dragged, setDragged] = useState<{ id: string; x: number; y: number } | null>(null);
+  // Fingers on the selected sticker (the first on it, a second anywhere in
+  // the box), and its pose when the current set of fingers came down.
+  const fingers = useRef(new Map<number, { x: number; y: number }>());
+  const gesture = useRef<{ id: string; base: StickerPose; from: { x: number; y: number }[] } | null>(null);
+  const [live, setLiveState] = useState<({ id: string } & StickerPose) | null>(null);
+  // Mirrored in a ref: a finger can lift in the same frame as the last move,
+  // before a re-render hands the handlers the newest pose.
+  const liveRef = useRef(live);
+  const setLive = (next: typeof live) => {
+    liveRef.current = next;
+    setLiveState(next);
+  };
 
   // While drawing or placing, finger moves are ours: stop the browser from
   // turning a quick stroke into a scroll fling, which would swallow the next
@@ -139,8 +151,32 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange }: DecorL
 
   // ----- Stickers -----
 
+  const poseOf = (id: string): StickerPose => {
+    const now = liveRef.current;
+    if (now?.id === id) return now;
+    const st = decor.stickers.find((x) => x.id === id)!;
+    return { x: st.x, y: st.y, size: st.size, rotate: st.rotate ?? 0 };
+  };
+
+  // Each time a finger lands or lifts, the gesture restarts from the pose so
+  // far, so going from one finger to two (or back) never makes it jump.
+  const restart = (id: string) => {
+    gesture.current = fingers.current.size ? { id, base: poseOf(id), from: [...fingers.current.values()].slice(0, 2) } : null;
+  };
+
+  const grab = (id: string, e: PointerEvent) => {
+    // Captured by the layer, so the sticker's fingers and a second finger
+    // elsewhere in the box all report to the same handlers.
+    layer.current!.setPointerCapture(e.pointerId);
+    fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    restart(id);
+  };
+
   const onBoxDown = (e: PointerEvent) => {
     if (e.target !== e.currentTarget) return; // a sticker handles its own press
+    // A second finger while one holds a sticker: pinch and twist it.
+    if (gesture.current && fingers.current.size === 1) return grab(gesture.current.id, e);
+    if (!e.isPrimary) return;
     setSelected(null);
     if (!armed) return;
     const [x, y] = at(e);
@@ -150,26 +186,37 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange }: DecorL
   };
 
   const onStickerDown = (id: string) => (e: PointerEvent) => {
-    if (tool !== 'sticker' || !e.isPrimary) return;
+    if (tool !== 'sticker') return;
     e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    const s = decor.stickers.find((st) => st.id === id)!;
-    const [x, y] = at(e);
-    drag.current = { id, dx: s.x - x, dy: s.y - y };
+    if (gesture.current && gesture.current.id !== id) {
+      // Second finger landed on another sticker: still the first one's pinch.
+      if (fingers.current.size === 1) grab(gesture.current.id, e);
+      return;
+    }
+    if (fingers.current.size >= 2) return;
     setSelected(id);
+    grab(id, e);
   };
+
   const onStickerMove = (e: PointerEvent) => {
-    const d = drag.current;
-    if (!d) return;
-    const [x, y] = at(e);
-    setDragged({ id: d.id, x: clamp01(x + d.dx), y: clamp01(y + d.dy) });
+    const g = gesture.current;
+    if (!g || !fingers.current.has(e.pointerId)) return;
+    fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const to = [...fingers.current.values()].slice(0, 2);
+    if (to.length !== g.from.length) return;
+    const pose = stickerGesture(g.base, g.from, to, layer.current!.getBoundingClientRect().width);
+    setLive({ id: g.id, ...pose });
   };
-  const onStickerUp = () => {
-    const d = drag.current;
-    drag.current = null;
-    if (!d || !dragged) return;
-    onChange({ ...decor, stickers: decor.stickers.map((s) => (s.id === d.id ? { ...s, x: dragged.x, y: dragged.y } : s)) });
-    setDragged(null);
+
+  const onStickerUp = (e: PointerEvent) => {
+    const g = gesture.current;
+    if (!g || !fingers.current.delete(e.pointerId)) return;
+    if (fingers.current.size) return restart(g.id);
+    gesture.current = null;
+    if (!liveRef.current) return;
+    const { id, ...pose } = liveRef.current;
+    onChange({ ...decor, stickers: decor.stickers.map((st) => (st.id === id ? { ...st, ...pose } : st)) });
+    setLive(null);
   };
 
   const strokes = drawing ? [...decor.strokes, drawing] : decor.strokes;
@@ -181,9 +228,9 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange }: DecorL
       ref={layer}
       className={`decor ${active ? `decor--${tool}` : ''} ${tool === 'sticker' && armed ? 'is-armed' : ''} ${tool === 'pen' && pen.tool === 'eraser' ? 'is-erasing' : ''}`}
       onPointerDown={tool === 'pen' ? onPenDown : tool === 'sticker' ? onBoxDown : undefined}
-      onPointerMove={tool === 'pen' ? onPenMove : undefined}
-      onPointerUp={tool === 'pen' ? onPenUp : undefined}
-      onPointerCancel={tool === 'pen' ? onPenUp : undefined}
+      onPointerMove={tool === 'pen' ? onPenMove : tool === 'sticker' ? onStickerMove : undefined}
+      onPointerUp={tool === 'pen' ? onPenUp : tool === 'sticker' ? onStickerUp : undefined}
+      onPointerCancel={tool === 'pen' ? onPenUp : tool === 'sticker' ? onStickerUp : undefined}
       aria-hidden={!active}
     >
       {strokes.length > 0 && (
@@ -199,17 +246,19 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange }: DecorL
         </svg>
       )}
       {decor.stickers.map((s) => {
-        const pos = dragged?.id === s.id ? dragged : s;
+        const pos = live?.id === s.id ? live : s;
         const isSelected = tool === 'sticker' && selected === s.id;
         return (
           <span
             key={s.id}
             className={`decor__sticker ${isSelected ? 'is-selected' : ''}`}
-            style={{ left: `${pos.x * 100}%`, top: `${pos.y * 100}%`, fontSize: `${s.size * 78}cqw` }}
+            style={{
+              left: `${pos.x * 100}%`,
+              top: `${pos.y * 100}%`,
+              fontSize: `${pos.size * 78}cqw`,
+              rotate: `${pos.rotate ?? 0}deg`,
+            }}
             onPointerDown={onStickerDown(s.id)}
-            onPointerMove={onStickerMove}
-            onPointerUp={onStickerUp}
-            onPointerCancel={onStickerUp}
           >
             {s.emoji}
             {isSelected && (

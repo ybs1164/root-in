@@ -1151,16 +1151,15 @@ button:disabled {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--surface-2);
+  /* Same round white buttons as the tab bar; the one in use only changes colour. */
+  background: var(--surface);
   color: var(--muted);
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
+  box-shadow: var(--shadow-sm);
+  transition: color 0.15s ease;
 }
 
 .decor-rail__btn.is-on {
-  background: var(--accent);
-  color: var(--on-accent);
+  color: var(--accent);
 }
 
 /* The drawing box measures stickers (cqw) so they scale with it. */
@@ -1179,9 +1178,6 @@ button:disabled {
 .decor--sticker {
   pointer-events: auto;
   touch-action: none;
-  border-radius: 16px;
-  outline: 2px dashed var(--border);
-  outline-offset: 6px;
 }
 
 .decor--pen,
@@ -1240,11 +1236,12 @@ button:disabled {
   color: var(--surface);
 }
 
-/* 44px to touch, 26px to see. */
+/* 44px to touch, 26px to see; the extra reaches away from the sticker so
+   pressing the sticker itself (to move or pinch it) doesn't hit it. */
 .decor__remove::after {
   content: '';
   position: absolute;
-  inset: -9px;
+  inset: -18px -18px 0 0;
 }
 
 .decor-tray {

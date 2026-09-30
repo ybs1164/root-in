@@ -13,6 +13,8 @@ export interface PlacedSticker {
   y: number;
   /** Width of the sticker as a fraction of the box. */
   size: number;
+  /** Turn in degrees, clockwise (two-finger twist); absent = upright. */
+  rotate?: number;
 }
 
 /**
@@ -81,6 +83,44 @@ export const inkCss = (color: InkColor): string => (isCustomColor(color) ? color
 export const PEN_WIDTHS: Record<PenWidth, number> = { thin: 0.009, medium: 0.016, thick: 0.03 };
 
 export const STICKER_SIZE = 0.13;
+/** How small and big a pinch can make a sticker (box fractions). */
+export const STICKER_MIN = 0.05;
+export const STICKER_MAX = 0.6;
+
+export interface StickerPose {
+  x: number;
+  y: number;
+  size: number;
+  rotate: number;
+}
+
+type Pt = { x: number; y: number };
+
+/**
+ * A sticker's pose under one or two fingers, from where the gesture (re)started:
+ * one finger moves it; two move it by their midpoint, scale it by their spread
+ * and turn it by their angle. Finger positions are in pixels, `boxPx` is the
+ * box's width in pixels (positions are box fractions).
+ */
+export function stickerGesture(base: StickerPose, from: Pt[], to: Pt[], boxPx: number): StickerPose {
+  if (from.length === 1 || to.length === 1) {
+    return { ...base, x: clamp01(base.x + (to[0].x - from[0].x) / boxPx), y: clamp01(base.y + (to[0].y - from[0].y) / boxPx) };
+  }
+  const mid = (a: Pt[]) => ({ x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 });
+  const spread = (a: Pt[]) => Math.hypot(a[1].x - a[0].x, a[1].y - a[0].y);
+  const angle = (a: Pt[]) => (Math.atan2(a[1].y - a[0].y, a[1].x - a[0].x) * 180) / Math.PI;
+  const m0 = mid(from);
+  const m1 = mid(to);
+  const scale = spread(to) / Math.max(1, spread(from));
+  let turn = base.rotate + angle(to) - angle(from);
+  turn = ((turn % 360) + 540) % 360 - 180; // keep it in -180..180
+  return {
+    x: clamp01(base.x + (m1.x - m0.x) / boxPx),
+    y: clamp01(base.y + (m1.y - m0.y) / boxPx),
+    size: Math.min(STICKER_MAX, Math.max(STICKER_MIN, base.size * scale)),
+    rotate: turn,
+  };
+}
 
 /** The eraser is wider than the pen at the same setting (fingers are blunt). */
 export const ERASER_SCALE = 2.5;
