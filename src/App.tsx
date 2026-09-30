@@ -2,6 +2,7 @@ import { Settings as SettingsIcon, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomBar from './components/BottomBar';
 import CalendarSheet from './components/CalendarSheet';
+import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
 import CategoryChips from './components/CategoryChips';
 import InfluencerPanel from './components/InfluencerPanel';
 import PinCard from './components/PinCard';
@@ -12,7 +13,7 @@ import SettingsSheet from './components/SettingsSheet';
 import SharedCourseView from './components/SharedCourseView';
 import SharedPinsView from './components/SharedPinsView';
 import ShareSheet from './components/ShareSheet';
-import { PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
+import { calendarAgain, homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { addStop, COURSE_LIMITS, emptyDraft } from './domain/course';
 import { DIARY_LIMITS, diaryKind } from './domain/diary';
 import { buildPinSet, categoryStyle, filterPins } from './domain/pin';
@@ -22,6 +23,7 @@ import { useDiaryDay } from './hooks/useDiaryDay';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
 import { useIncomingDiary } from './hooks/useIncomingDiary';
 import { useIncomingPins } from './hooks/useIncomingPins';
+import { usePageSwipe } from './hooks/usePageSwipe';
 import { usePins } from './hooks/usePins';
 import { usePlaceSearch } from './hooks/usePlaceSearch';
 import { useSettings } from './hooks/useSettings';
@@ -78,6 +80,15 @@ export default function App() {
   const [previewPinning, setPreviewPinning] = useState(false);
 
   const [pinning, setPinning] = useState(false);
+  // The calendar page: its zoom level (reported by CalendarZoom), the menu
+  // above the calendar button, and commands sent down from that menu.
+  const [calendarMode, setCalendarMode] = useState<'day' | 'month'>('day');
+  const [calendarMenu, setCalendarMenu] = useState(false);
+  const [calendarCommand, setCalendarCommand] = useState<CalendarCommand | null>(null);
+  const sendCalendar = (type: CalendarCommand['type']) => {
+    setCalendarMenu(false);
+    setCalendarCommand((prev) => ({ type, seq: (prev?.seq ?? 0) + 1 }));
+  };
   const [dropBusy, setDropBusy] = useState(false);
   const [activePinId, setActivePinId] = useState<string | null>(null);
   const [pinFilter, setPinFilter] = useState<string | null>(null);
@@ -313,6 +324,7 @@ export default function App() {
 
   const changeTab = (next: AppTab) => {
     setTab(next);
+    setCalendarMenu(false);
     setPinning(false);
     setPreview(null);
     setActivePinId(null);
@@ -558,7 +570,11 @@ export default function App() {
   };
 
   const cardTargetFull = inCalendar ? dayFull : courseFull;
+  // A received day (#diary=) still opens in the old timeline view.
+  const calendarZoom = tab === 'calendar' && !sharedDiary;
   const onPage = showsPage(tab, Boolean(sharedCourse || sharedPins || searchOpen || preview));
+  // Swiping 달력 left / 추천 right slides the page off and uncovers the map (핀).
+  const swipe = usePageSwipe(onPage ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
 
   return (
     <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''}`}>
@@ -653,14 +669,25 @@ export default function App() {
       )}
 
       {onPage ? (
-        <section className="page" aria-label={PAGE_TITLES[tab]}>
+        <section className="page" aria-label={PAGE_TITLES[tab]} style={swipe.style} {...swipe.handlers}>
           <header className="page__head">
-            <h1>{PAGE_TITLES[tab]}</h1>
+            {/* The calendar's own TODAY / DAY n heading takes the stage. */}
+            <h1 className={calendarZoom ? 'sr-only' : ''}>{PAGE_TITLES[tab]}</h1>
             <button className="icon-btn" aria-label="설정" onClick={() => setSettingsOpen(true)}>
               <SettingsIcon size={22} aria-hidden />
             </button>
           </header>
-          {renderSheet()}
+          {calendarZoom ? (
+            <CalendarZoom
+              command={calendarCommand}
+              onMode={(mode) => {
+                setCalendarMode(mode);
+                setCalendarMenu(false);
+              }}
+            />
+          ) : (
+            renderSheet()
+          )}
         </section>
       ) : (
         <section ref={sheetEl} className={`sheet sheet--${sheet} ${sheetTop ? 'sheet--top' : ''}`} aria-label="패널">
@@ -677,7 +704,21 @@ export default function App() {
       )}
 
       <div ref={barEl} className="bottom-bar-wrap">
-        <BottomBar tab={tab} pinning={pinning} onTab={changeTab} onPin={startPinning} />
+        <BottomBar
+          tab={swipe.leaving ? 'pins' : tab}
+          pinning={pinning}
+          onTab={changeTab}
+          onPin={startPinning}
+          onCalendarAgain={() => {
+            const next = calendarAgain(calendarMode, calendarMenu);
+            if (next === 'today') sendCalendar('today');
+            else setCalendarMenu(next === 'open-menu');
+          }}
+          calendarMenu={calendarMenu && tab === 'calendar' && calendarZoom}
+          onCloseCalendarMenu={() => setCalendarMenu(false)}
+          onShareDay={() => sendCalendar('share')}
+          onShowMonth={() => sendCalendar('month')}
+        />
       </div>
 
       {shareTarget && <ShareSheet target={shareTarget} onClose={() => setShareTarget(null)} />}

@@ -21,6 +21,10 @@
   --danger: #d14b4b;
   --shadow: 0 10px 30px rgba(47, 38, 34, 0.16);
   --shadow-sm: 0 2px 10px rgba(47, 38, 34, 0.12);
+  --pin-shadow: 0 2px 3px rgba(47, 38, 34, 0.25);
+  --mac-close: #ff5f57; /* macOS window close light */
+  --mac-light-edge: rgba(0, 0, 0, 0.12);
+  --mask-show: #fff; /* SVG masks: white = fully shown (not a colour anyone sees) */
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
   --backdrop: rgba(0, 0, 0, 0.4);
 }
@@ -986,6 +990,189 @@ button:disabled {
   text-align: center;
 }
 
+/* ---------- macOS-style popup window ---------- */
+
+.mac-window {
+  width: min(calc(100% - 32px), 420px);
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  /* Vibrancy: a little see-through, blurred behind. */
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: blur(24px) saturate(1.6);
+  color: var(--text);
+  box-shadow:
+    0 30px 80px color-mix(in srgb, var(--text) 35%, transparent),
+    0 0 0 0.5px color-mix(in srgb, var(--text) 20%, transparent);
+}
+
+.mac-window[open] {
+  animation: mac-open 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+}
+
+.mac-window::backdrop {
+  background: color-mix(in srgb, var(--backdrop) 70%, transparent);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+@keyframes mac-open {
+  from {
+    opacity: 0;
+    scale: 0.94;
+  }
+}
+
+.mac-window__bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  height: 40px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-2) 85%, transparent);
+}
+
+/* Mirrors the lights' width on the right so the title stays centred. */
+.mac-window__bar::after {
+  content: '';
+  width: 52px;
+}
+
+.mac-window__lights {
+  display: flex;
+  gap: 8px;
+  width: 52px;
+}
+
+.mac-window__light {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.5px var(--mac-light-edge);
+}
+
+.mac-window__light--close {
+  background: var(--mac-close);
+}
+
+/* The dot stays 12px; the touch target around it is 44px. */
+.mac-window__light--close::after {
+  content: '';
+  position: absolute;
+  inset: -16px;
+}
+
+.mac-window__title {
+  margin: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mac-window__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mac-window[open] {
+    animation: none;
+  }
+}
+
+/* ---------- Day share (📅 → 공유) ---------- */
+
+.day-share__preview {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 5;
+  max-height: 52dvh;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-2);
+}
+
+.day-share__preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.day-share__actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(48px, 1fr);
+  gap: 0;
+  /* Six buttons fit a 375px phone; narrower ones scroll sideways instead of squashing. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.day-share__action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.03em;
+  text-align: center;
+  /* Two-word labels (링크 복사, 이미지 저장) break at the space, never mid-word. */
+  word-break: keep-all;
+}
+
+.day-share__action:disabled {
+  color: var(--muted);
+  opacity: 0.55;
+}
+
+.day-share__action-dot {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.day-share__action-dot--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.day-share__action:not(:disabled):active .day-share__action-dot {
+  scale: 0.94;
+}
+
 /* ---------- Toast ---------- */
 
 .toast {
@@ -1321,6 +1508,92 @@ input.timeline__time:focus {
   transform: scale(0.94);
 }
 
+/* Each button sits in a slot so the calendar's menu can stack above it. */
+.bottom-bar__slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.calendar-today text {
+  font-family: inherit;
+}
+
+/* The calendar button's menu: two round buttons on an arc above it
+   (월 달력 up-left, 공유 up-right). Each grows out of the button's centre to
+   its spot (--dx/--dy, set inline) and shrinks back into it on close. */
+.bottom-bar__dial {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+}
+
+.bottom-bar__dial-btn {
+  position: absolute;
+  left: -24px;
+  top: -24px;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: var(--shadow);
+  pointer-events: auto; /* the bar's wrapper lets touches through; its buttons opt back in */
+  translate: var(--dx) var(--dy);
+  animation: dial-in 0.26s cubic-bezier(0.3, 1.3, 0.5, 1) both;
+}
+
+.bottom-bar__dial-btn + .bottom-bar__dial-btn {
+  animation-delay: 40ms;
+}
+
+.bottom-bar__dial-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.bottom-bar__dial-btn:active {
+  background: var(--surface-2);
+}
+
+.bottom-bar__dial.is-closing {
+  pointer-events: none;
+}
+
+.bottom-bar__dial.is-closing .bottom-bar__dial-btn {
+  animation: dial-out 0.17s ease-in both;
+  animation-delay: 0s; /* both at once, within the time the menu stays mounted */
+}
+
+@keyframes dial-in {
+  from {
+    opacity: 0;
+    translate: 0 0;
+    scale: 0.2;
+  }
+}
+
+@keyframes dial-out {
+  to {
+    opacity: 0;
+    translate: 0 0;
+    scale: 0.2;
+  }
+}
+
+/* Tapping anywhere else closes the menu. */
+.bottom-bar__scrim {
+  position: fixed;
+  inset: 0;
+  pointer-events: auto;
+}
+
 /* Pin-drop mode: same colours, the pin tilts as before. */
 .bottom-bar__btn.is-pinning {
   transform: rotate(-12deg);
@@ -1330,6 +1603,11 @@ input.timeline__time:focus {
   .bottom-bar__btn,
   .bottom-bar__btn svg {
     transition: none;
+  }
+
+  .bottom-bar__dial-btn,
+  .bottom-bar__dial.is-closing .bottom-bar__dial-btn {
+    animation: none;
   }
 }
 
@@ -1678,8 +1956,11 @@ input.timeline__time:focus {
 
 .calendar__dots {
   display: flex;
-  gap: 3px;
-  height: 5px;
+  flex-wrap: wrap; /* one dot per place: from the 6th, a second row (10 at most, see dayDots) */
+  justify-content: center;
+  gap: 2px 3px;
+  max-width: 37px; /* exactly five 5px dots with 3px gaps */
+  min-height: 5px;
 }
 
 .calendar__dots i {
@@ -1977,6 +2258,9 @@ input.timeline__time:focus {
   padding-top: var(--safe-top);
   padding-bottom: calc(var(--bar-h) + var(--safe-bottom) + 6px);
   background: var(--surface);
+  box-shadow: var(--shadow); /* shows as the page slides off the map */
+  /* Vertical scrolling stays native; sideways moves are the swipe home. */
+  touch-action: pan-y;
 }
 
 .page__head {
@@ -1987,6 +2271,10 @@ input.timeline__time:focus {
   min-height: 56px;
   margin: 0 auto;
   padding: 4px 8px 0 16px;
+}
+
+.page__head .icon-btn {
+  margin-left: auto;
 }
 
 .page__head h1 {
@@ -2006,6 +2294,372 @@ input.timeline__time:focus {
 .app--page .search,
 .app--page .corner-btn {
   display: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- Calendar zoom: TODAY / DAY n ↔ month ---------- */
+
+.cal-zoom {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  /* Pinches drive the zoom instead of zooming the page. */
+  touch-action: none;
+}
+
+.cal-zoom__layer {
+  position: absolute;
+  inset: 0;
+  /* No fill: mid-zoom the two screens cross-fade instead of covering each other. */
+  transition:
+    transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.4s ease;
+  will-change: transform, opacity;
+}
+
+.cal-zoom.is-live .cal-zoom__layer {
+  transition: none;
+}
+
+.cal-zoom__layer:not(.is-on) {
+  pointer-events: none;
+}
+
+.cal-zoom__layer.is-on {
+  z-index: 1;
+}
+
+.cal-zoom__month {
+  /* Vertically centred, then nudged up: the extra bottom padding lifts it. */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 16px 16px 12dvh;
+}
+
+.cal-zoom__month .calendar {
+  width: 100%; /* full width again inside the centring flex column */
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.cal-zoom__day {
+  overflow: hidden; /* days paging in from the side stay inside the screen */
+}
+
+/* One day's screen; a second one slides in beside it while paging days. */
+.cal-day {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36px 24px 0;
+}
+
+.cal-day--neighbor {
+  pointer-events: none;
+}
+
+.cal-day--neighbor .cal-zoom__title {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* The pings sit in the middle of the space left under the title. */
+.cal-zoom__pings {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 0;
+}
+
+.cal-zoom__title {
+  min-height: 56px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.pings {
+  position: relative;
+  width: min(100%, 360px);
+  aspect-ratio: 1;
+  /* Sits a little above the middle of the space under the title. */
+  translate: 0 -8px;
+}
+
+.pings__line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.pings__seg {
+  fill: none;
+  stroke: var(--route);
+  /* viewBox units (100 = the box): ~3px at the usual size. */
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  transition: opacity 0.15s ease;
+}
+
+.pings__seg--dashed {
+  stroke-dasharray: 3.2 2.2;
+  stroke-linecap: butt;
+}
+
+.pings__seg--dotted {
+  stroke-width: 1.2;
+  stroke-dasharray: 0.01 2.4; /* round caps turn the zero-length dashes into dots */
+}
+
+.pings__seg--bold {
+  stroke-width: 1.9;
+}
+
+.pings__seg.is-pressed {
+  opacity: 0.55;
+}
+
+/* Draws every line in visiting order, whatever their dash patterns. */
+.pings__reveal {
+  fill: none;
+  stroke: var(--mask-show);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: ping-line 0.7s 0.35s ease forwards;
+}
+
+/* Press target for a line: wide and invisible (pins sit above it). */
+.pings__hitline {
+  stroke: transparent;
+  stroke-width: 9;
+  stroke-linecap: round;
+  pointer-events: stroke;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  outline: none;
+}
+
+.pings__hitline:focus-visible {
+  stroke: var(--accent-soft);
+}
+
+.ping-picker.ping-picker--edge {
+  /* Just above the line's middle, not above a pin's height. */
+  transform: translate(-50%, calc(-100% - 14px));
+}
+
+.ping-picker__opt svg line {
+  stroke-width: 2.2;
+}
+
+.ping-picker__opt .pings__seg--dashed {
+  stroke-dasharray: 5 3;
+}
+
+.ping-picker__opt .pings__seg--dotted {
+  stroke-width: 2.6;
+  stroke-dasharray: 0.01 4.5;
+}
+
+.ping-picker__opt .pings__seg--bold {
+  stroke-width: 4.2;
+}
+
+/* The point is the pin's tip (other shapes: their centre); the name hangs under it. */
+.ping {
+  --k: 1; /* size factor: the latest ping is bigger */
+  --w: 34px;
+  --h: 44px;
+  --anchor: 1; /* 1: bottom on the point, 0.5: centre on it */
+  --lift: calc(-1 * var(--h) * var(--k) * var(--anchor));
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, var(--lift));
+  animation: ping-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+.ping--dot,
+.ping--star,
+.ping--heart {
+  --w: 30px;
+  --h: 30px;
+  --anchor: 0.5;
+}
+
+.ping--latest {
+  --k: 1.4;
+  z-index: 1;
+}
+
+/* Long-press target: the icon plus a margin, at least 44px. */
+.ping__hit {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  margin: calc((44px - var(--h) * var(--k)) / 2 * -1) 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ping__hit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+.ping__icon {
+  width: calc(var(--w) * var(--k));
+  height: calc(var(--h) * var(--k));
+  overflow: visible; /* the shapes touch the viewBox edge; don't shave them or their shadow */
+  fill: var(--accent);
+  filter: drop-shadow(var(--pin-shadow));
+  transition: transform 0.15s ease;
+}
+
+.ping.is-pressed .ping__icon {
+  transform: scale(0.9);
+}
+
+.ping__hole {
+  fill: var(--surface);
+}
+
+.ping__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.ping--latest .ping__label {
+  font-size: 15px;
+}
+
+.ping__label small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Shape picker, above the long-pressed ping. */
+.ping-picker__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+}
+
+.ping-picker {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  /* Centred over the ping, kept inside the drawing box. */
+  left: clamp(100px, var(--x, 50%), calc(100% - 100px));
+  transform: translate(-50%, calc(-100% - 70px));
+  animation: picker-in 0.18s ease both;
+}
+
+.ping-picker__opt {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+}
+
+.ping-picker__opt svg {
+  width: 26px;
+  height: 26px;
+  fill: var(--accent);
+}
+
+.ping-picker__opt .ping__hole {
+  fill: var(--surface);
+}
+
+.ping-picker__opt.is-on {
+  background: var(--accent-soft);
+}
+
+@keyframes picker-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+
+@keyframes ping-drop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(var(--lift) - 36px));
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, var(--lift));
+  }
+}
+
+@keyframes ping-line {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cal-zoom__layer {
+    transition: opacity 0.2s ease;
+  }
+
+  .ping,
+  .pings__reveal {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
 }
 
 /* ---------- Phones: the pin screen's sheet hangs from the top ---------- */
@@ -2091,23 +2745,17 @@ input.timeline__time:focus {
 
   .sheet,
   .sheet--full {
-    bottom: calc(12px + var(--bar-h));
+    /* Ends above the button row: at narrow desktop widths the centred
+       buttons pass under the panel, and the big pin is taller than the row. */
+    bottom: calc(12px + var(--bar-h) + 8px);
     border-radius: var(--radius);
   }
 
+  /* The round buttons stay centred on the window at every width (the
+     left panel keeps clear of them by ending above the button row). */
   .bottom-bar-wrap {
-    left: 12px;
-    right: auto;
     bottom: 12px;
-    width: 400px;
     padding-bottom: 0;
-  }
-
-  /* Tab pages span the window, so their buttons centre on it. */
-  .app--page .bottom-bar-wrap {
-    left: 0;
-    right: 0;
-    width: auto;
   }
 
   .search.search--open {
