@@ -26,43 +26,45 @@ export interface PatternTile {
 
 const dot = (cx: number, cy: number, r: number) => `M${cx - r} ${cy}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`;
 
+// Spaced out and bold enough to read at a glance on the page, like the
+// previews in the 꾸미기 sheet, while staying a backdrop.
 export const PATTERN_TILES: Record<Exclude<PatternId, 'none'>, PatternTile> = {
-  dots: { size: 22, marks: [{ d: dot(5.5, 5.5, 2.2) }, { d: dot(16.5, 16.5, 2.2) }] },
-  grid: { size: 24, stroke: 1, marks: [{ d: 'M0 0.5H24M0.5 0V24' }] },
+  dots: { size: 44, marks: [{ d: dot(11, 11, 4) }, { d: dot(33, 33, 4) }] },
+  grid: { size: 44, stroke: 2, marks: [{ d: 'M0 1H44M1 0V44' }] },
   stripes: {
-    size: 18,
-    stroke: 4,
-    marks: [{ d: 'M-4.5 4.5L4.5 -4.5M0 18L18 0M13.5 22.5L22.5 13.5' }],
-    flow: { x: 18, y: 0, seconds: 3 },
-  },
-  waves: {
     size: 36,
-    stroke: 2.2,
-    marks: [{ d: 'M0 9Q9 3 18 9T36 9' }, { d: 'M0 27Q9 21 18 27T36 27' }],
+    stroke: 7,
+    marks: [{ d: 'M-9 9L9 -9M0 36L36 0M27 45L45 27' }],
     flow: { x: 36, y: 0, seconds: 4 },
   },
+  waves: {
+    size: 64,
+    stroke: 4,
+    marks: [{ d: 'M0 16Q16 6 32 16T64 16' }, { d: 'M0 48Q16 38 32 48T64 48' }],
+    flow: { x: 64, y: 0, seconds: 5 },
+  },
   hearts: {
-    size: 44,
+    size: 80,
     marks: [
-      { d: HEART_PATH, x: 4, y: 4, scale: 0.55 },
-      { d: HEART_PATH, x: 26, y: 26, scale: 0.4, rotate: -12 },
+      { d: HEART_PATH, x: 8, y: 8, scale: 1 },
+      { d: HEART_PATH, x: 48, y: 46, scale: 0.75, rotate: -12 },
     ],
-    flow: { x: 0, y: -44, seconds: 6 },
+    flow: { x: 0, y: -80, seconds: 8 },
   },
   stars: {
-    size: 48,
+    size: 88,
     marks: [
-      { d: STAR_PATH, x: 6, y: 8, scale: 0.5 },
-      { d: STAR_PATH, x: 30, y: 30, scale: 0.35, rotate: 18 },
-      { d: dot(40, 10, 1.6) },
-      { d: dot(14, 38, 1.2) },
+      { d: STAR_PATH, x: 10, y: 12, scale: 0.95 },
+      { d: STAR_PATH, x: 54, y: 54, scale: 0.65, rotate: 18 },
+      { d: dot(74, 18, 3) },
+      { d: dot(24, 70, 2.4) },
     ],
-    flow: { x: -48, y: 0, seconds: 10 },
+    flow: { x: -88, y: 0, seconds: 12 },
   },
   snow: {
-    size: 60,
-    marks: [{ d: dot(10, 12, 3) }, { d: dot(38, 6, 2) }, { d: dot(26, 34, 3.6) }, { d: dot(50, 44, 2.4) }, { d: dot(8, 50, 1.8) }],
-    flow: { x: 0, y: 60, seconds: 7 },
+    size: 100,
+    marks: [{ d: dot(16, 20, 5.5) }, { d: dot(64, 10, 3.6) }, { d: dot(44, 58, 6.5) }, { d: dot(84, 74, 4.4) }, { d: dot(14, 84, 3.2) }],
+    flow: { x: 0, y: 100, seconds: 9 },
   },
 };
 
@@ -108,4 +110,4 @@ export function paintPattern(
 }
 
 /** How strongly a pattern shows: a backdrop, never competing with the pings. */
-export const PATTERN_ALPHA = 0.16;
+export const PATTERN_ALPHA = 0.22;

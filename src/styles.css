@@ -3145,7 +3145,7 @@ input.timeline__time:focus {
   z-index: -1;
   width: 100%;
   height: 100%;
-  opacity: 0.16;
+  opacity: 0.22; /* PATTERN_ALPHA in lib/dayPatterns.ts, for the share image */
   pointer-events: none;
 }
 
