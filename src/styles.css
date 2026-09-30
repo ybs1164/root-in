@@ -2271,16 +2271,14 @@ input.timeline__time:focus {
 .bottom-bar__btn.is-on {
   width: 58px;
   height: 58px;
+  /* The current tab's button carries the accent colour, whichever it is. */
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .bottom-bar__btn.is-on svg {
   width: 26px;
   height: 26px;
-}
-
-.bottom-bar__btn--pin {
-  background: var(--accent);
-  color: var(--on-accent);
 }
 
 /* The pin is the app's main action, so it grows a little more than the others. */
