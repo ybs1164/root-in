@@ -10,7 +10,7 @@ describe('settings', () => {
   });
 
   it('falls back to defaults for unknown or broken values', () => {
-    // `theme` was saved by an earlier prototype build; it is ignored now.
+    // `theme` was app-wide in an earlier build; it's per calendar day now and dropped here.
     localStorage.setItem('goodroot:settings:v1', JSON.stringify({ theme: 'forest', recentCategoryIds: [1, 'bar'] }));
     expect(loadSettings()).toEqual({ recentCategoryIds: ['bar'] });
     localStorage.setItem('goodroot:settings:v1', '{not json');

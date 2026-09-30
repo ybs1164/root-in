@@ -1,4 +1,4 @@
-import { Download, Link } from 'lucide-react';
+import { Download, Link, Share2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { downloadDataUrl, renderDayImage, type DayImageInput } from '../lib/dayImage';
 
@@ -7,14 +7,11 @@ interface DayShareSheetProps extends DayImageInput {
   onClose: () => void;
 }
 
-// Shown, not wired yet: sending to each service comes later.
-const SNS_TARGETS = ['카카오톡', '인스타그램', 'X', '페이스북'];
-
 /**
  * 📅 → 공유: the day's pings and lines as an image, in a centred popup
- * styled like a macOS window. One row of round buttons: 링크 복사 (which link
- * is still to be decided, so it's inert for now), 이미지 저장, then the SNS
- * targets (placeholders).
+ * styled like a macOS window. One row of round, icon-only buttons (names
+ * in aria-label): 링크 복사 (which link is still to be decided), 이미지 저장,
+ * and SNS 공유 (not wired yet). The two unfinished ones are disabled.
  */
 export default function DayShareSheet({ date, onClose, ...image }: DayShareSheetProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
@@ -60,32 +57,28 @@ export default function DayShareSheet({ date, onClose, ...image }: DayShareSheet
 
         <div className="day-share__actions" role="group" aria-label="공유">
           {/* TODO: decide what 링크 복사 copies, then wire it up. */}
-          <button className="day-share__action" disabled title="준비 중">
+          <button className="day-share__action" aria-label="링크 복사" disabled>
             <span className="day-share__action-dot" aria-hidden>
               <Link size={20} />
             </span>
-            링크 복사
           </button>
           <button
             className="day-share__action"
+            aria-label="이미지 저장"
             disabled={!src}
             onClick={() => src && downloadDataUrl(src, `root-in-${date}.png`)}
           >
             <span className="day-share__action-dot day-share__action-dot--primary" aria-hidden>
               <Download size={20} />
             </span>
-            이미지 저장
           </button>
-          {SNS_TARGETS.map((name) => (
-            <button key={name} className="day-share__action" disabled title="준비 중">
-              <span className="day-share__action-dot" aria-hidden>
-                {name.slice(0, 1)}
-              </span>
-              {name}
-            </button>
-          ))}
+          {/* TODO: one button for every SNS (likely the system share sheet); not wired yet. */}
+          <button className="day-share__action" aria-label="SNS 공유" disabled>
+            <span className="day-share__action-dot" aria-hidden>
+              <Share2 size={20} />
+            </span>
+          </button>
         </div>
-        <p className="hint hint--muted">링크 복사와 SNS 공유는 준비 중이에요.</p>
       </div>
     </dialog>
   );

@@ -1,3 +1,5 @@
+import type { PatternId, ThemeId } from './domain/decor';
+import DayPattern from './components/DayPattern';
 import { Settings as SettingsIcon, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomBar from './components/BottomBar';
@@ -61,6 +63,25 @@ export default function App() {
   const notify = useCallback((text: string, undo?: () => void) => setToast({ text, undo }), []);
 
   const { settings, update: updateSettings } = useSettings();
+
+  // Themes belong to calendar days: the day on screen reports its own, and
+  // it lives on <html data-theme>, where styles.css swaps the tokens.
+  const [dayTheme, setDayTheme] = useState<ThemeId>('default');
+  // …and so do background patterns, drawn across the calendar page.
+  const [dayPattern, setDayPattern] = useState<PatternId>('none');
+  useEffect(() => {
+    const root = document.documentElement;
+    if (dayTheme === 'default') delete root.dataset.theme;
+    else root.dataset.theme = dayTheme;
+    // Phone browsers tint their own bars (and the strip under the page at the
+    // bottom edge) from theme-color; left alone it keeps the default theme's
+    // colour, a pale band under a themed page.
+    const metas = document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]');
+    metas.forEach((m) => {
+      m.dataset.base ??= m.content;
+      m.content = dayTheme === 'default' ? m.dataset.base : getComputedStyle(root).getPropertyValue('--surface').trim();
+    });
+  }, [dayTheme]);
   const pinStore = usePins();
   const { pins, categories } = pinStore;
   const course = useCourseDraft();
@@ -87,6 +108,8 @@ export default function App() {
   // above the calendar button, and commands sent down from that menu.
   const [calendarMode, setCalendarMode] = useState<'day' | 'month'>('day');
   const [calendarMenu, setCalendarMenu] = useState(false);
+  // A 꾸미기 tool is out on the calendar: the tab buttons step aside for its tray.
+  const [decorating, setDecorating] = useState(false);
   const [calendarCommand, setCalendarCommand] = useState<CalendarCommand | null>(null);
   const sendCalendar = (type: CalendarCommand['type']) => {
     setCalendarMenu(false);
@@ -583,7 +606,7 @@ export default function App() {
   const calendarZoom = tab === 'calendar' && !sharedDiary;
   const onPage = showsPage(tab, Boolean(sharedCourse || sharedPins || searchOpen || preview));
   // Swiping 달력 left / 추천 right slides the page off and uncovers the map (핀).
-  const swipe = usePageSwipe(onPage ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
+  const swipe = usePageSwipe(onPage && !decorating ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
 
   return (
     <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''}`}>
@@ -679,6 +702,7 @@ export default function App() {
 
       {onPage ? (
         <section className="page" aria-label={PAGE_TITLES[tab]} style={swipe.style} {...swipe.handlers}>
+          {calendarZoom && <DayPattern pattern={dayPattern} />}
           <header className="page__head">
             {/* The calendar's own TODAY / DAY n heading takes the stage. */}
             <h1 className={calendarZoom ? 'sr-only' : ''}>{PAGE_TITLES[tab]}</h1>
@@ -689,6 +713,9 @@ export default function App() {
           {calendarZoom ? (
             <CalendarZoom
               command={calendarCommand}
+              onDecorating={setDecorating}
+              onDayTheme={setDayTheme}
+              onDayPattern={setDayPattern}
               onMode={(mode) => {
                 setCalendarMode(mode);
                 setCalendarMenu(false);
@@ -712,7 +739,7 @@ export default function App() {
         </section>
       )}
 
-      <div ref={barEl} className="bottom-bar-wrap">
+      <div ref={barEl} className={`bottom-bar-wrap ${decorating && calendarZoom && onPage ? 'is-away' : ''}`} inert={decorating && calendarZoom && onPage}>
         <BottomBar
           tab={swipe.leaving ? 'pins' : tab}
           pinning={pinning}

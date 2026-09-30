@@ -17,6 +17,7 @@ export function loadSettings(): Settings {
       recentCategoryIds: Array.isArray(parsed.recentCategoryIds)
         ? parsed.recentCategoryIds.filter((id): id is string => typeof id === 'string').slice(0, MAX_RECENT)
         : [],
+      // An app-wide `theme` used to live here; themes are per calendar day now.
     };
   } catch {
     return DEFAULT_SETTINGS;
