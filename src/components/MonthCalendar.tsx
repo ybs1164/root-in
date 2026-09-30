@@ -19,7 +19,7 @@ interface MonthCalendarProps {
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
-/** Month grid; dots under a day = places that day (up to 3). */
+/** Month grid; dots under a day = places that day, one dot each. */
 export default function MonthCalendar({ counts, plans, onPick, view: controlled, onView }: MonthCalendarProps) {
   const today = dateKey();
   const [own, setOwn] = useState<MonthView>(() => {
@@ -68,7 +68,7 @@ export default function MonthCalendar({ counts, plans, onPick, view: controlled,
             >
               <span>{d.day}</span>
               <span className="calendar__dots" aria-hidden>
-                {Array.from({ length: Math.min(count, 3) }, (_, i) => (
+                {Array.from({ length: count }, (_, i) => (
                   <i key={i} />
                 ))}
               </span>

@@ -1679,8 +1679,11 @@ input.timeline__time:focus {
 
 .calendar__dots {
   display: flex;
-  gap: 3px;
-  height: 5px;
+  flex-wrap: wrap; /* one dot per place: a busy day wraps to a second row */
+  justify-content: center;
+  gap: 2px 3px;
+  max-width: 37px; /* five dots a row */
+  min-height: 5px;
 }
 
 .calendar__dots i {
