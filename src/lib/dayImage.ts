@@ -117,7 +117,18 @@ export async function renderDayImage({ title, pings, shapeOf, edgeStyleOf }: Day
     ctx.fillText(ping.time, x, labelTop + 88);
   });
 
-  drawLogo(ctx, c, W / 2, H - 64, 50);
+  // A quiet signature: a bit smaller and see-through so the day stays the
+  // subject. Drawn whole on its own layer first, then faded as one piece, so
+  // the pin's hole stays the background colour instead of a pink blend.
+  const logo = document.createElement('canvas');
+  logo.width = W;
+  logo.height = H;
+  const lctx = logo.getContext('2d')!;
+  drawLogo(lctx, c, W / 2, H - 64, 42);
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  ctx.drawImage(logo, 0, 0);
+  ctx.restore();
 
   return canvas.toDataURL('image/png');
 }
