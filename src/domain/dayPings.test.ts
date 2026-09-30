@@ -36,16 +36,17 @@ describe('calendar day screen', () => {
   });
 
   it('pinch in switches to the month, pinch out switches to the day, small pinches snap back', () => {
-    expect(pinchOutcome(0.5, false)).toBe('switch');
-    expect(pinchOutcome(0.7, false)).toBe('stay');
-    expect(pinchOutcome(0.7, true)).toBe('switch');
-    expect(pinchOutcome(0.9, true)).toBe('stay');
-    expect(pinchOutcome(2.1, false)).toBe('switch');
-    expect(pinchOutcome(1.5, true)).toBe('switch');
-    expect(pinchOutcome(1.1, true)).toBe('stay');
+    expect(pinchOutcome(0.7, false)).toBe('switch');
+    expect(pinchOutcome(0.8, false)).toBe('stay');
+    expect(pinchOutcome(0.88, true)).toBe('switch');
+    expect(pinchOutcome(0.95, true)).toBe('stay');
+    expect(pinchOutcome(1.5, false)).toBe('switch');
+    expect(pinchOutcome(1.4, false)).toBe('stay');
+    expect(pinchOutcome(1.15, true)).toBe('switch');
+    expect(pinchOutcome(1.05, true)).toBe('stay');
     expect(pinchProgress(1)).toBe(0);
-    expect(pinchProgress(0.55)).toBe(1);
-    expect(pinchProgress(1.5)).toBeCloseTo(0.5);
+    expect(pinchProgress(0.7)).toBe(1);
+    expect(pinchProgress(1.25)).toBeCloseTo(0.5);
   });
 
   it('picks the latest ping by time, whatever the list order', () => {

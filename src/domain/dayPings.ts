@@ -98,11 +98,11 @@ export function classifyPress(heldMs: number, movedPx: number): 'tap' | 'long' |
  */
 export const PINCH = {
   /** Past this the switch happens while the fingers are still moving. */
-  outCommit: 0.55,
-  inCommit: 2,
-  /** On release, anything past these switches; less snaps back. */
-  outRelease: 0.8,
-  inRelease: 1.3,
+  outCommit: 0.7,
+  inCommit: 1.5,
+  /** On release (or a held pause), anything past these switches; less snaps back. */
+  outRelease: 0.9,
+  inRelease: 1.12,
   /** Fingers held still this long past a release threshold finish the zoom on their own. */
   stallMs: 220,
 } as const;
