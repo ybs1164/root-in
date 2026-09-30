@@ -1,11 +1,16 @@
-import { Check, Palette, PenLine, Sticker, Trash2, Undo2 } from 'lucide-react';
+import { Eraser, Highlighter, Palette, PenLine, Pencil, Sparkles, Sticker } from 'lucide-react';
+import { useRef } from 'react';
 import {
-  PEN_COLORS,
+  BASE_COLORS,
+  inkCss,
+  isCustomColor,
+  PEN_TOOLS,
   PEN_WIDTHS,
   STICKERS,
   THEMES,
   type DecorTool,
-  type PenColor,
+  type PenSettings,
+  type PenTool,
   type PenWidth,
   type ThemeId,
 } from '../domain/decor';
@@ -37,29 +42,42 @@ export function DecorRail({ tool, onTool }: { tool: DecorTool | null; onTool: (t
 
 interface DecorTrayProps {
   tool: DecorTool;
-  onDone: () => void;
   armed: string | null;
   onArm: (emoji: string | null) => void;
-  pen: { color: PenColor; width: PenWidth };
-  onPen: (pen: { color: PenColor; width: PenWidth }) => void;
-  canUndo: boolean;
-  onUndo: () => void;
-  onClearInk: () => void;
+  pen: PenSettings;
+  onPen: (pen: PenSettings) => void;
   theme: ThemeId;
   onTheme: (theme: ThemeId) => void;
 }
 
+const PEN_ICONS: Record<PenTool, typeof PenLine> = {
+  pen: Pencil,
+  highlighter: Highlighter,
+  neon: Sparkles,
+  eraser: Eraser,
+};
+
+const WIDTH_LABELS: Record<PenWidth, string> = { thin: '가늘게', medium: '보통', thick: '굵게' };
+
 /**
- * The tool's tray, in the bottom bar's place while decorating: sticker
- * list, pen colours and widths, or themes, all in one scrolling row, with
- * a 완료 button to put the tools away.
+ * The tool's panel, rising from the bottom in the tab buttons' place: a
+ * dark see-through sheet across the screen, at most a quarter of it tall.
+ * Stickers scroll up and down, themes sideways as cards; the pen fits
+ * without scrolling (tools and width on top, colours below). It closes
+ * from the same rail button that opened it.
  */
 export function DecorTray(p: DecorTrayProps) {
+  const paletteInput = useRef<HTMLInputElement | null>(null);
+  const custom = isCustomColor(p.pen.color) ? p.pen.color : null;
+  const label = RAIL.find((r) => r.tool === p.tool)?.label;
+
   return (
-    <div className={`decor-tray decor-tray--${p.tool}`} role="toolbar" aria-label={RAIL.find((r) => r.tool === p.tool)?.label}>
-      <div className="decor-tray__scroll">
-        {p.tool === 'sticker' &&
-          STICKERS.map((emoji) => (
+    <div className={`decor-tray decor-tray--${p.tool}`} role="toolbar" aria-label={label}>
+      <div className="decor-tray__grip" aria-hidden />
+
+      {p.tool === 'sticker' && (
+        <div className="decor-tray__stickers">
+          {STICKERS.map((emoji) => (
             <button
               key={emoji}
               className={`decor-tray__sticker ${p.armed === emoji ? 'is-on' : ''}`}
@@ -70,61 +88,92 @@ export function DecorTray(p: DecorTrayProps) {
               {emoji}
             </button>
           ))}
+        </div>
+      )}
 
-        {p.tool === 'pen' && (
-          <>
-            {PEN_COLORS.map(({ color, label }) => (
-              <button
-                key={color}
-                className={`decor-tray__color ${p.pen.color === color ? 'is-on' : ''}`}
-                style={{ color: `var(--${color})` }}
-                aria-label={`${label} 펜`}
-                aria-pressed={p.pen.color === color}
-                onClick={() => p.onPen({ ...p.pen, color })}
-              >
-                <span aria-hidden />
-              </button>
-            ))}
+      {p.tool === 'pen' && (
+        <div className="decor-tray__pen">
+          <div className="decor-tray__row">
+            {PEN_TOOLS.map(({ tool, label: name }) => {
+              const Icon = PEN_ICONS[tool];
+              return (
+                <button
+                  key={tool}
+                  className={`decor-tray__tool ${p.pen.tool === tool ? 'is-on' : ''}`}
+                  aria-label={name}
+                  aria-pressed={p.pen.tool === tool}
+                  onClick={() => p.onPen({ ...p.pen, tool })}
+                >
+                  <Icon size={22} aria-hidden />
+                </button>
+              );
+            })}
             <span className="decor-tray__sep" aria-hidden />
             {(Object.keys(PEN_WIDTHS) as PenWidth[]).map((width) => (
               <button
                 key={width}
                 className={`decor-tray__width ${p.pen.width === width ? 'is-on' : ''}`}
-                aria-label={{ thin: '가는 펜', medium: '보통 펜', thick: '굵은 펜' }[width]}
+                aria-label={`굵기 ${WIDTH_LABELS[width]}`}
                 aria-pressed={p.pen.width === width}
                 onClick={() => p.onPen({ ...p.pen, width })}
               >
-                <span style={{ height: `${PEN_WIDTHS[width] * 360}px`, background: `var(--${p.pen.color})` }} aria-hidden />
+                <span style={{ width: `${PEN_WIDTHS[width] * 520}px`, height: `${PEN_WIDTHS[width] * 520}px` }} aria-hidden />
               </button>
             ))}
-            <span className="decor-tray__sep" aria-hidden />
-            <button className="decor-tray__icon" aria-label="되돌리기" disabled={!p.canUndo} onClick={p.onUndo}>
-              <Undo2 size={20} aria-hidden />
+          </div>
+          <div className="decor-tray__row">
+            {BASE_COLORS.map(({ color, label: name }) => (
+              <button
+                key={color}
+                className={`decor-tray__color ${p.pen.color === color ? 'is-on' : ''}`}
+                style={{ color: inkCss(color) }}
+                aria-label={name}
+                aria-pressed={p.pen.color === color}
+                onClick={() => p.onPen({ ...p.pen, color, tool: p.pen.tool === 'eraser' ? 'pen' : p.pen.tool })}
+              >
+                <span aria-hidden />
+              </button>
+            ))}
+            {custom && (
+              <button className="decor-tray__color is-on" style={{ color: custom }} aria-label="팔레트에서 고른 색" aria-pressed>
+                <span aria-hidden />
+              </button>
+            )}
+            {/* The rainbow opens the system colour picker; its pick becomes the ink. */}
+            <button className="decor-tray__palette" aria-label="팔레트에서 색 고르기" onClick={() => paletteInput.current?.click()}>
+              <span aria-hidden />
             </button>
-            <button className="decor-tray__icon" aria-label="그린 것 모두 지우기" disabled={!p.canUndo} onClick={p.onClearInk}>
-              <Trash2 size={20} aria-hidden />
-            </button>
-          </>
-        )}
+            <input
+              ref={paletteInput}
+              className="sr-only"
+              type="color"
+              tabIndex={-1}
+              aria-hidden
+              value={custom ?? '#ff4d6d'}
+              onChange={(e) => p.onPen({ ...p.pen, color: e.target.value, tool: p.pen.tool === 'eraser' ? 'pen' : p.pen.tool })}
+            />
+          </div>
+        </div>
+      )}
 
-        {p.tool === 'theme' &&
-          THEMES.map(({ id, label }) => (
+      {p.tool === 'theme' && (
+        <div className="decor-tray__themes">
+          {THEMES.map(({ id, label: name }) => (
             <button
               key={id}
-              className={`decor-tray__theme ${p.theme === id ? 'is-on' : ''}`}
+              className={`decor-tray__theme theme-card--${id} ${p.theme === id ? 'is-on' : ''}`}
               aria-pressed={p.theme === id}
               onClick={() => p.onTheme(id)}
             >
-              <span className={`theme-swatch theme-swatch--${id}`} aria-hidden>
+              <span className="theme-card" aria-hidden>
                 <i />
+                <b />
               </span>
-              {label}
+              {name}
             </button>
           ))}
-      </div>
-      <button className="decor-tray__done" aria-label="완료" onClick={p.onDone}>
-        <Check size={22} aria-hidden />
-      </button>
+        </div>
+      )}
     </div>
   );
 }

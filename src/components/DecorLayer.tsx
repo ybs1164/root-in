@@ -1,14 +1,15 @@
 import { X } from 'lucide-react';
-import { useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useId, useRef, useState, type PointerEvent } from 'react';
 import {
   clamp01,
+  eraseAt,
   extendStroke,
+  inkCss,
   PEN_WIDTHS,
   STICKER_SIZE,
   type DayDecor,
   type DecorTool,
-  type PenColor,
-  type PenWidth,
+  type PenSettings,
   type Stroke,
 } from '../domain/decor';
 
@@ -18,7 +19,7 @@ interface DecorLayerProps {
   tool: DecorTool | null;
   /** Sticker picked in the tray, placed where the box is tapped. */
   armed: string | null;
-  pen: { color: PenColor; width: PenWidth };
+  pen: PenSettings;
   onChange: (decor: DayDecor) => void;
 }
 
@@ -26,6 +27,33 @@ const strokePath = (points: [number, number][]) =>
   points.map(([x, y], i) => `${i ? 'L' : 'M'}${(x * 100).toFixed(2)} ${(y * 100).toFixed(2)}`).join(' ') +
   // A single tap still leaves a dot.
   (points.length === 1 ? ` l0.01 0` : '');
+
+/**
+ * One stroke as SVG, styled by its pen: plain ink; a wide see-through
+ * highlighter; or a neon tube (blurred glow in the colour, then the colour,
+ * then a bright core).
+ */
+function Ink({ stroke, glowId }: { stroke: Stroke; glowId: string }) {
+  const d = strokePath(stroke.points);
+  const w = PEN_WIDTHS[stroke.width] * 100;
+  const color = inkCss(stroke.color);
+  if (stroke.tool === 'highlighter') {
+    return <path d={d} className="decor__hl" style={{ stroke: color, strokeWidth: w * 2.4 }} />;
+  }
+  if (stroke.tool === 'neon') {
+    return (
+      <g>
+        <path d={d} filter={`url(#${glowId})`} style={{ stroke: color, strokeWidth: w * 1.8 }} />
+        <path d={d} style={{ stroke: color, strokeWidth: w }} />
+        <path d={d} className="decor__neon-core" style={{ strokeWidth: w * 0.35 }} />
+      </g>
+    );
+  }
+  return <path d={d} style={{ stroke: color, strokeWidth: w }} />;
+}
+
+/** How far the eraser reaches around the finger, by width (box fractions). */
+const eraserRadius = (pen: PenSettings) => PEN_WIDTHS[pen.width] * 1.5 + 0.02;
 
 const newId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `s-${Date.now()}-${Math.random()}`;
@@ -43,6 +71,19 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange }: DecorL
   const drag = useRef<{ id: string; dx: number; dy: number } | null>(null);
   const [dragged, setDragged] = useState<{ id: string; x: number; y: number } | null>(null);
 
+  // While drawing or placing, finger moves are ours: stop the browser from
+  // turning a quick stroke into a scroll fling, which would swallow the next
+  // tap (on a tool button, say) as "stop the fling". Needs a non-passive
+  // listener, so it can't be a React prop.
+  const active = tool === 'sticker' || tool === 'pen';
+  useEffect(() => {
+    const el = layer.current;
+    if (!el || !active) return;
+    const hold = (e: TouchEvent) => e.preventDefault();
+    el.addEventListener('touchmove', hold, { passive: false });
+    return () => el.removeEventListener('touchmove', hold);
+  }, [active]);
+
   const at = (e: PointerEvent): [number, number] => {
     const box = layer.current!.getBoundingClientRect();
     return [(e.clientX - box.left) / box.width, (e.clientY - box.top) / box.height];
@@ -55,18 +96,32 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange }: DecorL
     if (!e.isPrimary) return setDrawing(null);
     e.currentTarget.setPointerCapture(e.pointerId);
     const [x, y] = at(e);
-    setDrawing({ ...pen, points: extendStroke([], x, y) });
+    if (pen.tool === 'eraser') {
+      erasing.current = true;
+      return erase(x, y);
+    }
+    setDrawing({ tool: pen.tool, color: pen.color, width: pen.width, points: extendStroke([], x, y) });
   };
   const onPenMove = (e: PointerEvent) => {
+    if (erasing.current) {
+      const [x, y] = at(e);
+      return erase(x, y);
+    }
     if (!drawing) return;
     const [x, y] = at(e);
     const points = extendStroke(drawing.points, x, y);
     if (points !== drawing.points) setDrawing({ ...drawing, points });
   };
   const onPenUp = () => {
+    erasing.current = false;
     if (!drawing) return;
     onChange({ ...decor, strokes: [...decor.strokes, drawing] });
     setDrawing(null);
+  };
+  const erasing = useRef(false);
+  const erase = (x: number, y: number) => {
+    const strokes = eraseAt(decor.strokes, x, y, eraserRadius(pen));
+    if (strokes !== decor.strokes) onChange({ ...decor, strokes });
   };
 
   // ----- Stickers -----
@@ -105,12 +160,12 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange }: DecorL
   };
 
   const strokes = drawing ? [...decor.strokes, drawing] : decor.strokes;
-  const active = tool === 'sticker' || tool === 'pen';
+  const glowId = `neon-${useId().replace(/:/g, '')}`;
 
   return (
     <div
       ref={layer}
-      className={`decor ${active ? `decor--${tool}` : ''} ${tool === 'sticker' && armed ? 'is-armed' : ''}`}
+      className={`decor ${active ? `decor--${tool}` : ''} ${tool === 'sticker' && armed ? 'is-armed' : ''} ${tool === 'pen' && pen.tool === 'eraser' ? 'is-erasing' : ''}`}
       onPointerDown={tool === 'pen' ? onPenDown : tool === 'sticker' ? onBoxDown : undefined}
       onPointerMove={tool === 'pen' ? onPenMove : undefined}
       onPointerUp={tool === 'pen' ? onPenUp : undefined}
@@ -119,12 +174,15 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange }: DecorL
     >
       {strokes.length > 0 && (
         <svg className="decor__ink" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
-          {strokes.map((s, i) => (
-            <path
-              key={i}
-              d={strokePath(s.points)}
-              style={{ stroke: `var(--${s.color})`, strokeWidth: PEN_WIDTHS[s.width] * 100 }}
-            />
+          <defs>
+            {/* Filter region in box units, not the stroke's own bounds: a flat
+                stroke's bounds are too thin and would clip the glow square. */}
+            <filter id={glowId} filterUnits="userSpaceOnUse" x="-10" y="-10" width="120" height="120">
+              <feGaussianBlur stdDeviation="1.4" />
+            </filter>
+          </defs>
+          {strokes.map((stroke, i) => (
+            <Ink key={i} stroke={stroke} glowId={glowId} />
           ))}
         </svg>
       )}

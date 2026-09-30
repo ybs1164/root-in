@@ -15,14 +15,28 @@ export interface PlacedSticker {
   size: number;
 }
 
-/** Pen colours are token names, so strokes follow the theme (and dark mode). */
-export type PenColor = 'text' | 'accent' | 'sky' | 'sage' | 'amber' | 'pin-5' | 'pin-3';
+/** Pen tools: three kinds of ink, and an eraser that lifts whole strokes. */
+export type PenTool = 'pen' | 'highlighter' | 'neon' | 'eraser';
+export type InkTool = Exclude<PenTool, 'eraser'>;
 export type PenWidth = 'thin' | 'medium' | 'thick';
 
+/**
+ * Ink colour: a token name (the three base colours, so the theme's main
+ * colour follows the theme) or a '#rrggbb' picked from the palette.
+ */
+export type InkColor = string;
+
 export interface Stroke {
-  color: PenColor;
+  tool: InkTool;
+  color: InkColor;
   width: PenWidth;
   points: [number, number][];
+}
+
+export interface PenSettings {
+  tool: PenTool;
+  color: InkColor;
+  width: PenWidth;
 }
 
 export interface DayDecor {
@@ -37,20 +51,53 @@ export const STICKERS = [
   '🍺', '📷', '🎈', '🎁', '🎵', '🐶', '🐱', '🚲', '🌊', '⛰️', '👍', '😊',
 ];
 
-export const PEN_COLORS: { color: PenColor; label: string }[] = [
-  { color: 'text', label: '검정' },
-  { color: 'accent', label: '포인트' },
-  { color: 'sky', label: '파랑' },
-  { color: 'sage', label: '초록' },
-  { color: 'amber', label: '노랑' },
-  { color: 'pin-5', label: '분홍' },
-  { color: 'pin-3', label: '보라' },
+export const PEN_TOOLS: { tool: PenTool; label: string }[] = [
+  { tool: 'pen', label: '일반펜' },
+  { tool: 'highlighter', label: '형광펜' },
+  { tool: 'neon', label: '네온펜' },
+  { tool: 'eraser', label: '지우개' },
 ];
+
+/** Always-there colours; anything else comes from the palette. */
+export const BASE_COLORS: { color: InkColor; label: string }[] = [
+  { color: 'ink-black', label: '검정' },
+  { color: 'ink-white', label: '흰색' },
+  { color: 'accent', label: '테마 색' },
+];
+
+export const DEFAULT_PEN: PenSettings = { tool: 'pen', color: 'ink-black', width: 'medium' };
+
+export const isCustomColor = (color: InkColor): boolean => /^#[0-9a-f]{6}$/i.test(color);
+
+/** CSS for an ink colour: tokens by variable, palette picks as they are. */
+export const inkCss = (color: InkColor): string => (isCustomColor(color) ? color : `var(--${color})`);
 
 /** Stroke widths as fractions of the box width (~3 / 5 / 10px on a phone). */
 export const PEN_WIDTHS: Record<PenWidth, number> = { thin: 0.009, medium: 0.016, thick: 0.03 };
 
 export const STICKER_SIZE = 0.13;
+
+/**
+ * The eraser lifts every stroke that passes within `radius` (box fractions)
+ * of the point: whole strokes, the way a stroke eraser works.
+ */
+export function eraseAt(strokes: Stroke[], x: number, y: number, radius: number): Stroke[] {
+  const near = (s: Stroke) =>
+    s.points.some((p, i) => {
+      const q = s.points[i + 1] ?? p;
+      return distToSegment(x, y, p, q) <= radius;
+    });
+  const kept = strokes.filter((s) => !near(s));
+  return kept.length === strokes.length ? strokes : kept;
+}
+
+function distToSegment(x: number, y: number, [ax, ay]: [number, number], [bx, by]: [number, number]): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  const t = len2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / len2)) : 0;
+  return Math.hypot(x - (ax + t * dx), y - (ay + t * dy));
+}
 
 export const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
 

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'r
 import { swipeCommits, SWIPE } from '../domain/appTabs';
 import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, type EdgeStyle, type PingShape } from '../domain/dayPings';
 import { addDays } from '../domain/calendar';
-import { EMPTY_DECOR, type DayDecor, type DecorTool, type PenColor, type PenWidth, type ThemeId } from '../domain/decor';
+import { DEFAULT_PEN, EMPTY_DECOR, type DayDecor, type DecorTool, type PenSettings, type ThemeId } from '../domain/decor';
 import { dateKey } from '../domain/diary';
 import DayPings from './DayPings';
 import DayShareSheet from './DayShareSheet';
@@ -98,7 +98,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, theme, onT
   const [decor, setDecor] = useState<Map<string, DayDecor>>(() => new Map());
   const [tool, setTool] = useState<DecorTool | null>(null);
   const [armed, setArmed] = useState<string | null>(null);
-  const [pen, setPen] = useState<{ color: PenColor; width: PenWidth }>({ color: 'text', width: 'medium' });
+  const [pen, setPen] = useState<PenSettings>(DEFAULT_PEN);
   const toolRef = useRef(tool);
   toolRef.current = tool;
   const [edgeStyles, setEdgeStyles] = useState<Map<string, EdgeStyle>>(() => new Map());
@@ -518,17 +518,10 @@ export default function CalendarZoom({ command, onMode, onDecorating, theme, onT
       {tool && (
         <DecorTray
           tool={tool}
-          onDone={() => {
-            setTool(null);
-            setArmed(null);
-          }}
           armed={armed}
           onArm={setArmed}
           pen={pen}
           onPen={setPen}
-          canUndo={dayDecor.strokes.length > 0}
-          onUndo={() => setDecor((prev) => new Map(prev).set(date, { ...dayDecor, strokes: dayDecor.strokes.slice(0, -1) }))}
-          onClearInk={() => setDecor((prev) => new Map(prev).set(date, { ...dayDecor, strokes: [] }))}
           theme={theme}
           onTheme={onTheme}
         />
