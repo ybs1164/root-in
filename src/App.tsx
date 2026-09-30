@@ -2,6 +2,7 @@ import { Settings as SettingsIcon, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomBar from './components/BottomBar';
 import CalendarSheet from './components/CalendarSheet';
+import CalendarZoom from './components/CalendarZoom';
 import CategoryChips from './components/CategoryChips';
 import InfluencerPanel from './components/InfluencerPanel';
 import PinCard from './components/PinCard';
@@ -558,6 +559,8 @@ export default function App() {
   };
 
   const cardTargetFull = inCalendar ? dayFull : courseFull;
+  // A received day (#diary=) still opens in the old timeline view.
+  const calendarZoom = tab === 'calendar' && !sharedDiary;
   const onPage = showsPage(tab, Boolean(sharedCourse || sharedPins || searchOpen || preview));
 
   return (
@@ -655,12 +658,13 @@ export default function App() {
       {onPage ? (
         <section className="page" aria-label={PAGE_TITLES[tab]}>
           <header className="page__head">
-            <h1>{PAGE_TITLES[tab]}</h1>
+            {/* The calendar's own TODAY / DAY n heading takes the stage. */}
+            <h1 className={calendarZoom ? 'sr-only' : ''}>{PAGE_TITLES[tab]}</h1>
             <button className="icon-btn" aria-label="설정" onClick={() => setSettingsOpen(true)}>
               <SettingsIcon size={22} aria-hidden />
             </button>
           </header>
-          {renderSheet()}
+          {calendarZoom ? <CalendarZoom /> : renderSheet()}
         </section>
       ) : (
         <section ref={sheetEl} className={`sheet sheet--${sheet} ${sheetTop ? 'sheet--top' : ''}`} aria-label="패널">

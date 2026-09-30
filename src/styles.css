@@ -21,6 +21,7 @@
   --danger: #d14b4b;
   --shadow: 0 10px 30px rgba(47, 38, 34, 0.16);
   --shadow-sm: 0 2px 10px rgba(47, 38, 34, 0.12);
+  --pin-shadow: 0 2px 3px rgba(47, 38, 34, 0.25);
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
   --backdrop: rgba(0, 0, 0, 0.4);
 }
@@ -1989,6 +1990,10 @@ input.timeline__time:focus {
   padding: 4px 8px 0 16px;
 }
 
+.page__head .icon-btn {
+  margin-left: auto;
+}
+
 .page__head h1 {
   margin: 0;
   font-size: 22px;
@@ -2006,6 +2011,170 @@ input.timeline__time:focus {
 .app--page .search,
 .app--page .corner-btn {
   display: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- Calendar zoom: TODAY / DAY n ↔ month ---------- */
+
+.cal-zoom {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  /* Pinches drive the zoom instead of zooming the page. */
+  touch-action: none;
+}
+
+.cal-zoom__layer {
+  position: absolute;
+  inset: 0;
+  /* No fill: mid-zoom the two screens cross-fade instead of covering each other. */
+  transition:
+    transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.4s ease;
+  will-change: transform, opacity;
+}
+
+.cal-zoom.is-live .cal-zoom__layer {
+  transition: none;
+}
+
+.cal-zoom__layer:not(.is-on) {
+  pointer-events: none;
+}
+
+.cal-zoom__layer.is-on {
+  z-index: 1;
+}
+
+.cal-zoom__month {
+  padding: 8px 16px 0;
+}
+
+.cal-zoom__month .calendar {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.cal-zoom__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 24px 0;
+}
+
+.cal-zoom__title {
+  min-height: 56px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.pings {
+  position: relative;
+  width: min(100%, 360px);
+  aspect-ratio: 1;
+  margin-top: 16px;
+}
+
+.pings__line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.pings__line polyline {
+  fill: none;
+  stroke: var(--route);
+  /* viewBox units (100 = the box); ~3px at the usual size. Not
+     non-scaling-stroke: that breaks the pathLength-based draw-in. */
+  stroke-width: 0.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: ping-line 0.7s 0.35s ease forwards;
+}
+
+/* The point is the pin's tip; the name hangs under it. */
+.ping {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, -44px);
+  animation: ping-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+.ping__pin {
+  width: 34px;
+  height: 44px;
+  fill: var(--accent);
+  filter: drop-shadow(var(--pin-shadow));
+}
+
+.ping__pin circle {
+  fill: var(--surface);
+}
+
+.ping__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ping__label small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@keyframes ping-drop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -80px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -44px);
+  }
+}
+
+@keyframes ping-line {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cal-zoom__layer {
+    transition: opacity 0.2s ease;
+  }
+
+  .ping,
+  .pings__line polyline {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
 }
 
 /* ---------- Phones: the pin screen's sheet hangs from the top ---------- */
