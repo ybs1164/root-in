@@ -23,9 +23,10 @@
   --shadow-sm: 0 2px 10px rgba(47, 38, 34, 0.12);
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
   --backdrop: rgba(0, 0, 0, 0.4);
-  /* Self-drawn road map (roads.html): roads read by contrast, not color. */
-  --map-land: #f3ede5;
-  --map-road: #ffffff;
+  /* Self-drawn road map (roads.html): flat illustrated look — muted sage
+     land with roads cut out of it in paper cream. */
+  --map-land: #a9c0c1;
+  --map-road: #f5eee3;
 }
 
 /* Layout tokens and the pin palette (same in light and dark: a pin keeps
@@ -73,8 +74,8 @@
     --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
     --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.45);
     --backdrop: rgba(0, 0, 0, 0.6);
-    --map-land: #1f1b18;
-    --map-road: #3b3430;
+    --map-land: #34474a;
+    --map-road: #1f1b18;
   }
 }
 
