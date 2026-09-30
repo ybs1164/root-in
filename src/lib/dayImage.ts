@@ -1,5 +1,6 @@
 import { latestPingIndex, layoutPings, type DayPing, type EdgeStyle, type PingShape } from '../domain/dayPings';
 import { ERASER_SCALE, isCustomColor, PEN_WIDTHS, type DayDecor } from '../domain/decor';
+import { paintPattern } from './dayPatterns';
 import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
 
 export interface DayImageInput {
@@ -53,6 +54,8 @@ export async function renderDayImage({ title, pings, shapeOf, edgeStyleOf, decor
 
   ctx.fillStyle = c.bg;
   ctx.fillRect(0, 0, W, H);
+  // The day's background pattern, as a still frame even if it flows on screen.
+  if (decor?.pattern) paintPattern(ctx, decor.pattern, { w: W, h: H }, W / 390, c.accent);
 
   ctx.fillStyle = c.text;
   ctx.textAlign = 'center';

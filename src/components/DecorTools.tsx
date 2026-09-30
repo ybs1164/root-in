@@ -1,4 +1,4 @@
-import { Eraser, Highlighter, Palette, PenLine, Pencil, Sparkles, Sticker, Undo2, Redo2, BrushCleaning } from 'lucide-react';
+import { Eraser, Highlighter, Palette, PenLine, Pencil, Sparkles, Sticker, Undo2, Redo2, BrushCleaning, Wallpaper } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import {
   BASE_COLORS,
@@ -10,19 +10,23 @@ import {
   PEN_TOOLS,
   PEN_WIDTHS,
   STICKERS,
+  PATTERNS,
   THEMES,
   type DecorTool,
   type PenSettings,
   type PenTool,
+  type PatternId,
   type PenWidth,
   type ThemeId,
 } from '../domain/decor';
 import { PIN_BOX, PIN_PATH } from '../lib/pingPaths';
+import DayPattern from './DayPattern';
 
 const RAIL: { tool: DecorTool; label: string; Icon: typeof Sticker }[] = [
   { tool: 'sticker', label: '스티커', Icon: Sticker },
   { tool: 'pen', label: '펜', Icon: PenLine },
   { tool: 'theme', label: '테마', Icon: Palette },
+  { tool: 'pattern', label: '꾸미기', Icon: Wallpaper },
 ];
 
 /** 스티커 · 펜 · 테마, stacked under the settings button. */
@@ -58,11 +62,14 @@ interface DecorTrayProps {
   /** Brings back what undo took, until something new is drawn. */
   canRedo: boolean;
   onRedo: () => void;
-  /** 전체 지우개: clears the day's strokes and stickers (undo brings them back). */
+  /** 전체 지우개: clears the day's pen strokes, keeping stickers (undo brings them back). */
   canClear: boolean;
   onClear: () => void;
   theme: ThemeId;
   onTheme: (theme: ThemeId) => void;
+  /** The day's background pattern: one at a time, like the theme. */
+  pattern: PatternId;
+  onPattern: (pattern: PatternId) => void;
 }
 
 const PEN_ICONS: Record<PenTool, typeof PenLine> = {
@@ -188,11 +195,29 @@ export function DecorTray(p: DecorTrayProps) {
               onClick={() => p.onTheme(id)}
             >
               <span className="theme-card" aria-hidden>
-                <svg viewBox={`${PIN_BOX.x} ${PIN_BOX.y} ${PIN_BOX.w} ${PIN_BOX.h}`}>
+                <svg className="theme-card__pin" viewBox={`${PIN_BOX.x} ${PIN_BOX.y} ${PIN_BOX.w} ${PIN_BOX.h}`}>
                   <path d={PIN_PATH} />
                   <circle cx="12" cy="10" r="3" />
                 </svg>
                 <i />
+              </span>
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {p.tool === 'pattern' && (
+        <div className="decor-tray__themes">
+          {PATTERNS.map(({ id, label: name }) => (
+            <button
+              key={id}
+              className={`decor-tray__theme ${p.pattern === id ? 'is-on' : ''}`}
+              aria-pressed={p.pattern === id}
+              onClick={() => p.onPattern(id)}
+            >
+              <span className="theme-card pattern-card" aria-hidden>
+                <DayPattern pattern={id} className="day-pattern--preview" />
               </span>
               {name}
             </button>

@@ -13,6 +13,7 @@ import {
   type DayDecor,
   type DecorHistory,
   type DecorTool,
+  type PatternId,
   type PenSettings,
   type ThemeId,
 } from '../domain/decor';
@@ -94,12 +95,14 @@ interface CalendarZoomProps {
   onDecorating: (on: boolean) => void;
   /** The theme of the day on screen (each day keeps its own); the app wears it. */
   onDayTheme: (theme: ThemeId) => void;
+  /** Likewise the day's background pattern, which the app lays across the page. */
+  onDayPattern: (pattern: PatternId) => void;
 }
 
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
 
-export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme }: CalendarZoomProps) {
+export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme, onDayPattern }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
   const [date, setDate] = useState(today);
@@ -244,6 +247,10 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
   const dayTheme = mode === 'day' ? (dayDecor.theme ?? 'default') : 'default';
   useEffect(() => onDayTheme(dayTheme), [dayTheme]);
   useEffect(() => () => onDayTheme('default'), []);
+  // While a pinch-out only previews a day, its pattern waits for the landing, like its pins.
+  const dayPattern = mode === 'day' && !preview ? (dayDecor.pattern ?? 'none') : 'none';
+  useEffect(() => onDayPattern(dayPattern), [dayPattern]);
+  useEffect(() => () => onDayPattern('none'), []);
 
   // The app hides the tab buttons while a tool is out. Leaving the day
   // screen (to the month) puts the tools away.
@@ -610,10 +617,12 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
           onUndo={() => step(undoDecor(dayHistory, dayDecor))}
           canRedo={dayHistory.future.length > 0}
           onRedo={() => step(redoDecor(dayHistory, dayDecor))}
-          canClear={dayDecor.strokes.length > 0 || dayDecor.stickers.length > 0}
-          onClear={() => changeDecor({ ...dayDecor, stickers: [], strokes: [] })}
+          canClear={dayDecor.strokes.length > 0}
+          onClear={() => changeDecor({ ...dayDecor, strokes: [] })}
           theme={dayTheme}
           onTheme={(theme) => setDayDecor({ ...dayDecor, theme: theme === 'default' ? undefined : theme })}
+          pattern={dayDecor.pattern ?? 'none'}
+          onPattern={(pattern) => setDayDecor({ ...dayDecor, pattern: pattern === 'none' ? undefined : pattern })}
         />
       )}
 

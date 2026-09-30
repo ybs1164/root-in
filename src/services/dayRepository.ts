@@ -2,6 +2,7 @@ import {
   BASE_COLORS,
   clamp01,
   isCustomColor,
+  isPatternId,
   isThemeId,
   PEN_TOOLS,
   PEN_WIDTHS,
@@ -16,7 +17,8 @@ import type { EdgeStyle, PingShape } from '../domain/dayPings';
 
 /**
  * What a calendar day has been made into, kept per date so any day opened
- * later looks the way it was left: stickers, pen strokes, the day's theme,
+ * later looks the way it was left: stickers, pen strokes, the day's theme
+ * and background pattern,
  * and the shapes and line styles chosen for its pings.
  */
 const DAYS_KEY = 'goodroot:days:v1';
@@ -75,7 +77,12 @@ function readDecor(v: unknown): DayDecor | null {
     .map(readSticker)
     .filter((s): s is PlacedSticker => !!s)
     .slice(-MAX_STICKERS);
-  return { stickers, strokes, ...(isThemeId(d.theme) && d.theme !== 'default' ? { theme: d.theme } : {}) };
+  return {
+    stickers,
+    strokes,
+    ...(isThemeId(d.theme) && d.theme !== 'default' ? { theme: d.theme } : {}),
+    ...(isPatternId(d.pattern) && d.pattern !== 'none' ? { pattern: d.pattern } : {}),
+  };
 }
 
 const pick = <T>(raw: unknown, ok: (v: unknown) => v is T): Record<string, T> => {
@@ -113,7 +120,7 @@ export function saveDays(store: DayStore): void {
   const decor: Record<string, DayDecor> = {};
   for (const [date, d] of Object.entries(store.decor)) {
     // Days left blank again aren't worth a row.
-    if (!d.strokes.length && !d.stickers.length && !d.theme) continue;
+    if (!d.strokes.length && !d.stickers.length && !d.theme && !d.pattern) continue;
     decor[date] = { ...d, strokes: d.strokes.map((s) => ({ ...s, points: s.points.map(([x, y]) => [round(x), round(y)]) })) };
   }
   try {

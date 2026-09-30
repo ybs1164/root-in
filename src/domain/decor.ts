@@ -4,7 +4,7 @@
  * drawing box (0..1), so they survive any screen size and the share image.
  */
 
-export type DecorTool = 'sticker' | 'pen' | 'theme';
+export type DecorTool = 'sticker' | 'pen' | 'theme' | 'pattern';
 
 export interface PlacedSticker {
   id: string;
@@ -51,6 +51,8 @@ export interface DayDecor {
   strokes: Stroke[];
   /** The day's own colour theme (absent = default); only that day shows it. */
   theme?: ThemeId;
+  /** A background pattern behind the day (absent = none); one at a time. */
+  pattern?: PatternId;
 }
 
 export const EMPTY_DECOR: DayDecor = { stickers: [], strokes: [] };
@@ -154,6 +156,22 @@ export const THEMES: { id: ThemeId; label: string }[] = [
   { id: 'lavender', label: '라벤더' },
   { id: 'mono', label: '모노' },
 ];
+
+/** Background patterns (꾸미기); some drift slowly on screen, the share image is a still. */
+export type PatternId = 'none' | 'dots' | 'grid' | 'stripes' | 'waves' | 'hearts' | 'stars' | 'snow';
+
+export const PATTERNS: { id: PatternId; label: string }[] = [
+  { id: 'none', label: '없음' },
+  { id: 'dots', label: '도트' },
+  { id: 'grid', label: '모눈' },
+  { id: 'stripes', label: '사선' },
+  { id: 'waves', label: '물결' },
+  { id: 'hearts', label: '하트' },
+  { id: 'stars', label: '별' },
+  { id: 'snow', label: '눈' },
+];
+
+export const isPatternId = (value: unknown): value is PatternId => PATTERNS.some((p) => p.id === value);
 
 export const isThemeId = (value: unknown): value is ThemeId => THEMES.some((t) => t.id === value);
 

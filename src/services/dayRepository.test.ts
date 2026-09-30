@@ -9,6 +9,7 @@ describe('calendar days', () => {
           stickers: [{ id: 's1', emoji: '⭐', x: 0.2, y: 0.3, size: 0.2, rotate: 45 }],
           strokes: [{ tool: 'pen', color: '#3aa0ff', width: 'thin', points: [[0.123456, 0.5], [0.6, 0.7]] }],
           theme: 'mint',
+          pattern: 'hearts',
         },
         '2026-09-30': { stickers: [], strokes: [] }, // blank: not stored
       },
@@ -18,6 +19,7 @@ describe('calendar days', () => {
     const days = loadDays();
     expect(Object.keys(days.decor)).toEqual(['2026-09-29']);
     expect(days.decor['2026-09-29'].theme).toBe('mint');
+    expect(days.decor['2026-09-29'].pattern).toBe('hearts');
     expect(days.decor['2026-09-29'].stickers[0].rotate).toBe(45);
     expect(days.decor['2026-09-29'].strokes[0].points[0]).toEqual([0.1235, 0.5]);
     expect(days.shapes['2026-09-29|10:30|성수연방']).toBe('heart');
@@ -33,6 +35,7 @@ describe('calendar days', () => {
             stickers: [{ id: 's', emoji: '⭐', x: 9, y: 0.5, size: 99 }, { id: 1 }],
             strokes: [{ tool: 'laser', color: 'red', width: 'thin', points: [[0, 0]] }, { tool: 'pen', color: 'accent', width: 'medium', points: [[2, -1]] }],
             theme: 'forest',
+            pattern: 'plaid',
           },
           nope: { stickers: [], strokes: [] },
         },
@@ -45,6 +48,7 @@ describe('calendar days', () => {
     expect(d.stickers).toEqual([{ id: 's', emoji: '⭐', x: 1, y: 0.5, size: 0.6 }]);
     expect(d.strokes).toEqual([{ tool: 'pen', color: 'accent', width: 'medium', points: [[1, 0]] }]);
     expect(d.theme).toBeUndefined();
+    expect(d.pattern).toBeUndefined();
     expect(days.decor.nope).toBeUndefined();
     expect(days.shapes).toEqual({ '2026-09-29|y': 'star' });
     expect(days.edges).toEqual({});

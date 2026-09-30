@@ -1,4 +1,5 @@
-import type { ThemeId } from './domain/decor';
+import type { PatternId, ThemeId } from './domain/decor';
+import DayPattern from './components/DayPattern';
 import { Settings as SettingsIcon, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomBar from './components/BottomBar';
@@ -63,6 +64,8 @@ export default function App() {
   // Themes belong to calendar days: the day on screen reports its own, and
   // it lives on <html data-theme>, where styles.css swaps the tokens.
   const [dayTheme, setDayTheme] = useState<ThemeId>('default');
+  // …and so do background patterns, drawn across the calendar page.
+  const [dayPattern, setDayPattern] = useState<PatternId>('none');
   useEffect(() => {
     const root = document.documentElement;
     if (dayTheme === 'default') delete root.dataset.theme;
@@ -682,6 +685,7 @@ export default function App() {
 
       {onPage ? (
         <section className="page" aria-label={PAGE_TITLES[tab]} style={swipe.style} {...swipe.handlers}>
+          {calendarZoom && <DayPattern pattern={dayPattern} />}
           <header className="page__head">
             {/* The calendar's own TODAY / DAY n heading takes the stage. */}
             <h1 className={calendarZoom ? 'sr-only' : ''}>{PAGE_TITLES[tab]}</h1>
@@ -694,6 +698,7 @@ export default function App() {
               command={calendarCommand}
               onDecorating={setDecorating}
               onDayTheme={setDayTheme}
+              onDayPattern={setDayPattern}
               onMode={(mode) => {
                 setCalendarMode(mode);
                 setCalendarMenu(false);
