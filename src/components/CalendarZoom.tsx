@@ -245,6 +245,26 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
   // The app hides the tab buttons while a tool is out. Leaving the day
   // screen (to the month) puts the tools away.
   useEffect(() => onDecorating(tool !== null), [tool]);
+  // Touching anywhere but the drawing box or the tools puts the tool away,
+  // and the tab buttons come back.
+  useEffect(() => {
+    if (!tool) return;
+    const away = (e: PointerEvent) => {
+      const t = e.target as Element | null;
+      if (t?.closest('.decor, .decor-tray, .decor-rail, .color-picker')) return;
+      setTool(null);
+      // That touch only closes: its click shouldn't also open something
+      // (the title would zoom out to the month). Dropped if no click follows.
+      const swallow = (c: MouseEvent) => {
+        c.stopPropagation();
+        c.preventDefault();
+      };
+      document.addEventListener('click', swallow, { capture: true, once: true });
+      window.setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 500);
+    };
+    document.addEventListener('pointerdown', away);
+    return () => document.removeEventListener('pointerdown', away);
+  }, [tool]);
   useEffect(() => {
     if (mode !== 'day') setTool(null);
   }, [mode]);

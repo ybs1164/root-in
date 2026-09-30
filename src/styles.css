@@ -1178,6 +1178,10 @@ button:disabled {
 .decor--sticker {
   pointer-events: auto;
   touch-action: none;
+  /* Where drawing and stickers go; touching outside it puts the tool away. */
+  border-radius: 16px;
+  outline: 2px dashed var(--border);
+  outline-offset: 6px;
 }
 
 .decor--pen,
