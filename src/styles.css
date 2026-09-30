@@ -2067,10 +2067,26 @@ input.timeline__time:focus {
 }
 
 .cal-zoom__day {
+  overflow: hidden; /* days paging in from the side stay inside the screen */
+}
+
+/* One day's screen; a second one slides in beside it while paging days. */
+.cal-day {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 36px 24px 0;
+}
+
+.cal-day--neighbor {
+  pointer-events: none;
+}
+
+.cal-day--neighbor .cal-zoom__title {
+  display: inline-flex;
+  align-items: center;
 }
 
 /* The pings sit in the middle of the space left under the title. */

@@ -1,3 +1,4 @@
+import { addDays } from './calendar';
 import { dateKey } from './diary';
 
 /** One place visited on a day, as drawn on the calendar's day screen. */
@@ -19,8 +20,29 @@ export const SAMPLE_TODAY_PINGS: DayPing[] = [
   { name: '뚝섬한강공원', time: '17:40', center: [127.067, 37.529] },
 ];
 
+/** Temporary test data for yesterday, so paging back a day has something to show. */
+export const SAMPLE_YESTERDAY_PINGS: DayPing[] = [
+  { name: '익선동 한옥거리', time: '11:00', center: [126.9895, 37.574] },
+  { name: '창덕궁', time: '13:20', center: [126.991, 37.5794] },
+  { name: '인사동', time: '16:00', center: [126.9853, 37.5718] },
+  { name: '을지로 노가리골목', time: '19:10', center: [126.9912, 37.566] },
+];
+
 export function pingsForDate(key: string, today: string = dateKey()): DayPing[] {
-  return key === today ? SAMPLE_TODAY_PINGS : [];
+  if (key === today) return SAMPLE_TODAY_PINGS;
+  if (key === addDays(today, -1)) return SAMPLE_YESTERDAY_PINGS;
+  return [];
+}
+
+/**
+ * Sideways swipe on a day screen. Left-to-right (dx > 0) always pages to
+ * the day before. Right-to-left pages to the next day, except on TODAY,
+ * where it isn't the calendar's: the page slides off to the map instead.
+ */
+export function daySwipeTarget(date: string, today: string, dx: number): string | null {
+  if (dx > 0) return addDays(date, -1);
+  if (dx < 0 && date !== today) return addDays(date, 1);
+  return null;
 }
 
 /** The most recent ping (latest time; the later one on ties), drawn bigger. */

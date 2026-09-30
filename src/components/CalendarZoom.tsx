@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'react';
-import { dayTitle, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, type PingShape } from '../domain/dayPings';
+import { swipeCommits, SWIPE } from '../domain/appTabs';
+import { daySwipeTarget, dayTitle, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, type PingShape } from '../domain/dayPings';
+import { addDays } from '../domain/calendar';
 import { dateKey } from '../domain/diary';
 import DayPings from './DayPings';
 import MonthCalendar from './MonthCalendar';
@@ -17,6 +19,22 @@ interface Gesture {
 }
 
 const NO_PLANS = new Set<string>();
+const SLIDE_MS = 260;
+
+/** One-finger sideways drag on a day screen, paging to the day before / after. */
+interface DaySwipe {
+  x: number;
+  y: number;
+  axis: 'x' | 'other' | null;
+  /** The day being paged to, and the side it comes in from (-1 left, 1 right). */
+  to: string | null;
+  side: -1 | 1;
+  dx: number;
+  lastX: number;
+  lastT: number;
+  prevX: number;
+  prevT: number;
+}
 
 type LayerLook = { transform: string; opacity: string };
 
@@ -61,6 +79,14 @@ export default function CalendarZoom({ flip }: CalendarZoomProps) {
   // Chosen ping shapes. Pings aren't stored yet, so this lasts for the session.
   const [shapes, setShapes] = useState<Map<string, PingShape>>(() => new Map());
 
+  // Paging days: the day sliding in beside the current one.
+  const [neighbor, setNeighbor] = useState<{ date: string; side: -1 | 1 } | null>(null);
+  const daySwipe = useRef<DaySwipe | null>(null);
+  const sliding = useRef(false);
+  const resetSlide = useRef(false);
+  const curEl = useRef<HTMLDivElement | null>(null);
+  const nbEl = useRef<HTMLDivElement | null>(null);
+
   const stageEl = useRef<HTMLDivElement | null>(null);
   const monthEl = useRef<HTMLDivElement | null>(null);
   const dayEl = useRef<HTMLElement | null>(null);
@@ -73,7 +99,9 @@ export default function CalendarZoom({ flip }: CalendarZoomProps) {
 
   const shownDate = preview ?? date;
   const pings = pingsForDate(shownDate, today);
-  const counts = new Map([[today, pingsForDate(today, today).length]]);
+  const counts = new Map(
+    [today, addDays(today, -1)].map((key) => [key, pingsForDate(key, today).length] as [string, number]),
+  );
 
   // The layers are moved by writing their style directly, not through
   // React state: a pinch fires dozens of moves a second, and re-rendering
@@ -140,6 +168,115 @@ export default function CalendarZoom({ flip }: CalendarZoomProps) {
     if (modeRef.current === 'day') toMonth();
     else toDay(today);
   });
+
+  // ----- Paging days (one-finger swipe on a day screen) -----
+
+  // Like the pinch, drawn straight onto the two panels rather than through
+  // state, one paint per frame.
+  const paintSlide = (dx: number, side: -1 | 1, animate: boolean) => {
+    const width = stageEl.current?.clientWidth ?? window.innerWidth;
+    const transition = animate ? `transform ${SLIDE_MS}ms cubic-bezier(0.2, 0.8, 0.2, 1)` : 'none';
+    if (curEl.current) {
+      curEl.current.style.transition = transition;
+      curEl.current.style.transform = dx ? `translateX(${dx}px)` : '';
+    }
+    if (nbEl.current) {
+      nbEl.current.style.transition = transition;
+      nbEl.current.style.transform = `translateX(${side * width + dx}px)`;
+    }
+  };
+
+  // After a page lands, the current panel (now showing the new day) snaps
+  // back to the middle in the same frame the neighbour goes away.
+  useLayoutEffect(() => {
+    if (!resetSlide.current) return;
+    resetSlide.current = false;
+    if (curEl.current) {
+      curEl.current.style.transition = 'none';
+      curEl.current.style.transform = '';
+    }
+  });
+
+  const endDaySwipe = (commit: boolean) => {
+    const sw = daySwipe.current;
+    daySwipe.current = null;
+    cancelAnimationFrame(frame.current);
+    frame.current = 0;
+    if (!sw || sw.axis !== 'x' || !sw.to) return;
+    const width = stageEl.current?.clientWidth ?? window.innerWidth;
+    const to = sw.to;
+    sliding.current = true;
+    // The current day leaves the way the finger went; the neighbour lands.
+    paintSlide(commit ? -sw.side * width : 0, sw.side, true);
+    window.setTimeout(() => {
+      sliding.current = false;
+      if (commit) {
+        resetSlide.current = true;
+        setDate(to);
+        setMonth(monthOf(to));
+        setVisit((v) => v + 1); // the new day's pins drop in now
+      }
+      setNeighbor(null);
+    }, SLIDE_MS);
+  };
+
+  const onDayTouchStart = (e: TouchEvent) => {
+    if (e.touches.length !== 1 || modeRef.current !== 'day' || gesture.current || sliding.current) {
+      if (daySwipe.current?.axis === 'x') endDaySwipe(false); // a second finger: back off for the pinch
+      daySwipe.current = null;
+      return;
+    }
+    const { clientX: x, clientY: y } = e.touches[0];
+    const t = performance.now();
+    daySwipe.current = { x, y, axis: null, to: null, side: -1, dx: 0, lastX: x, lastT: t, prevX: x, prevT: t };
+  };
+
+  const onDayTouchMove = (e: TouchEvent) => {
+    const sw = daySwipe.current;
+    if (!sw || e.touches.length !== 1) return;
+    const { clientX: x, clientY: y } = e.touches[0];
+    const mx = x - sw.x;
+    if (sw.axis === null) {
+      if (Math.abs(mx) < SWIPE.startPx && Math.abs(y - sw.y) < SWIPE.startPx) return;
+      const to = Math.abs(mx) > Math.abs(y - sw.y) ? daySwipeTarget(date, today, mx) : null;
+      // Not ours (vertical, or right-to-left on TODAY): let the page have it.
+      if (!to) {
+        sw.axis = 'other';
+        return;
+      }
+      sw.axis = 'x';
+      sw.to = to;
+      sw.side = mx > 0 ? -1 : 1; // the day before comes in from the left
+      setNeighbor({ date: to, side: sw.side });
+    }
+    if (sw.axis !== 'x') return;
+    e.stopPropagation(); // keeps the page's swipe-to-map out of it
+    sw.prevX = sw.lastX;
+    sw.prevT = sw.lastT;
+    sw.lastX = x;
+    sw.lastT = performance.now();
+    // Dragging back past the start just resists.
+    sw.dx = mx * -sw.side > 0 ? mx : mx * 0.15;
+    if (!frame.current) {
+      frame.current = requestAnimationFrame(() => {
+        frame.current = 0;
+        if (daySwipe.current === sw) paintSlide(sw.dx, sw.side, false);
+      });
+    }
+  };
+
+  const onDayTouchEnd = (e: TouchEvent) => {
+    const sw = daySwipe.current;
+    if (!sw || e.touches.length > 0) return;
+    if (sw.axis !== 'x') {
+      daySwipe.current = null;
+      return;
+    }
+    e.stopPropagation();
+    const width = stageEl.current?.clientWidth ?? window.innerWidth;
+    const velocity = (sw.lastX - sw.prevX) / Math.max(1, sw.lastT - sw.prevT);
+    endDaySwipe(swipeCommits(-sw.side as -1 | 1, sw.dx, width, velocity));
+  };
 
   // ----- Pinch (touch) and ctrl+wheel (trackpad) -----
 
@@ -217,18 +354,21 @@ export default function CalendarZoom({ flip }: CalendarZoomProps) {
   };
 
   const onTouchStart = (e: TouchEvent) => {
+    onDayTouchStart(e);
     if (e.touches.length !== 2) return;
     const f = fingers(e);
     begin(f.x, f.y, f.dist);
   };
 
   const onTouchMove = (e: TouchEvent) => {
+    onDayTouchMove(e);
     const g = gesture.current;
     if (!g || e.touches.length !== 2) return;
     move(fingers(e).dist / g.startDist);
   };
 
   const onTouchEnd = (e: TouchEvent) => {
+    onDayTouchEnd(e);
     if (e.touches.length < 2) release();
   };
 
@@ -285,21 +425,34 @@ export default function CalendarZoom({ flip }: CalendarZoomProps) {
         inert={mode !== 'day'}
         aria-label={`${shownDate} 기록`}
       >
-        <button className="cal-zoom__title" aria-label={`${dayTitle(shownDate, today)}, 달력 보기`} onClick={() => toMonth()}>
-          {dayTitle(shownDate, today)}
-        </button>
-        <div className="cal-zoom__pings">
-          <DayPings
-            key={`${shownDate}-${visit}`}
-            pings={pings}
-            shapeOf={(ping) => shapes.get(pingKey(shownDate, ping)) ?? 'pin'}
-            onShape={(ping, shape) => setShapes((prev) => new Map(prev).set(pingKey(shownDate, ping), shape))}
-            onTap={() => {
-              // Recognised on purpose; what a tap opens is decided later.
-            }}
-            pressable={() => gesture.current === null}
-          />
+        <div ref={curEl} className="cal-day">
+          <button className="cal-zoom__title" aria-label={`${dayTitle(shownDate, today)}, 달력 보기`} onClick={() => toMonth()}>
+            {dayTitle(shownDate, today)}
+          </button>
+          <div className="cal-zoom__pings">
+            <DayPings
+              key={`${shownDate}-${visit}`}
+              pings={pings}
+              shapeOf={(ping) => shapes.get(pingKey(shownDate, ping)) ?? 'pin'}
+              onShape={(ping, shape) => setShapes((prev) => new Map(prev).set(pingKey(shownDate, ping), shape))}
+              onTap={() => {
+                // Recognised on purpose; what a tap opens is decided later.
+              }}
+              pressable={() => gesture.current === null && daySwipe.current?.axis !== 'x'}
+            />
+          </div>
         </div>
+        {neighbor && (
+          // The day sliding in: its title only; its pins drop in once it lands.
+          <div
+            ref={nbEl}
+            className="cal-day cal-day--neighbor"
+            style={{ transform: `translateX(${neighbor.side * 100}%)` }}
+            aria-hidden
+          >
+            <span className="cal-zoom__title">{dayTitle(neighbor.date, today)}</span>
+          </div>
+        )}
       </section>
     </div>
   );

@@ -32,4 +32,10 @@ export function stopCountsByDate(entries: { date: string; stops: unknown[] }[]):
   return counts;
 }
 
+/** The 'YYYY-MM-DD' key `delta` days away (local calendar, month/year aware). */
+export function addDays(key: string, delta: number): string {
+  const [y, m, d] = key.split('-').map(Number);
+  return dateKey(new Date(y, m - 1, d + delta));
+}
+
 export const isFutureDate = (key: string, today: string = dateKey()): boolean => key > today;

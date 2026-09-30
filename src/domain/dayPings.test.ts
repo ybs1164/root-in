@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { classifyPress, dayTitle, latestPingIndex, layoutPings, pingKey, pinchOutcome, pinchProgress, pingsForDate, SAMPLE_TODAY_PINGS } from './dayPings';
+import { addDays } from './calendar';
+import { classifyPress, daySwipeTarget, dayTitle, latestPingIndex, layoutPings, pingKey, pinchOutcome, pinchProgress, pingsForDate, SAMPLE_TODAY_PINGS } from './dayPings';
 
 describe('calendar day screen', () => {
   it('titles today as TODAY and other days as DAY <n>', () => {
@@ -8,10 +9,23 @@ describe('calendar day screen', () => {
     expect(dayTitle('2026-10-05', '2026-09-30')).toBe('DAY 5');
   });
 
-  it('only today has (temporary test) pings; other days are empty', () => {
+  it('only today and yesterday have (temporary test) pings; other days are empty', () => {
     expect(pingsForDate('2026-09-30', '2026-09-30')).toBe(SAMPLE_TODAY_PINGS);
     expect(SAMPLE_TODAY_PINGS).toHaveLength(3);
-    expect(pingsForDate('2026-09-29', '2026-09-30')).toEqual([]);
+    expect(pingsForDate('2026-09-29', '2026-09-30')).toHaveLength(4);
+    expect(pingsForDate('2026-09-28', '2026-09-30')).toEqual([]);
+    expect(pingsForDate('2026-10-01', '2026-09-30')).toEqual([]);
+  });
+
+  it('pages days by swiping: left-to-right goes back, right-to-left goes forward except on TODAY', () => {
+    const today = '2026-09-30';
+    expect(daySwipeTarget(today, today, 80)).toBe('2026-09-29');
+    expect(daySwipeTarget('2026-09-29', today, 80)).toBe('2026-09-28');
+    expect(daySwipeTarget(today, today, -80)).toBeNull(); // the page goes to the map
+    expect(daySwipeTarget('2026-09-28', today, -80)).toBe('2026-09-29');
+    expect(daySwipeTarget('2026-09-29', today, -80)).toBe(today);
+    expect(daySwipeTarget('2026-10-01', '2026-10-01', 5)).toBe('2026-09-30'); // across months
+    expect(addDays('2026-01-01', -1)).toBe('2025-12-31');
   });
 
   it('lays pings out inside the margins, keeping east/west and north/south', () => {
