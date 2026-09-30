@@ -98,7 +98,9 @@ export default function CalendarZoom({ flip }: CalendarZoomProps) {
   modeRef.current = mode;
 
   const shownDate = preview ?? date;
-  const pings = pingsForDate(shownDate, today);
+  // While a pinch-out is only previewing the day, its pins stay out: they
+  // drop in once the zoom lands, like every other way of opening a day.
+  const pings = preview ? [] : pingsForDate(shownDate, today);
   const counts = new Map(
     [today, addDays(today, -1)].map((key) => [key, pingsForDate(key, today).length] as [string, number]),
   );
@@ -148,13 +150,13 @@ export default function CalendarZoom({ flip }: CalendarZoomProps) {
     setMode('month');
   };
 
-  /** `replay`: remount the drawing so the pins drop in (not when a pinch already showed it). */
-  const toDay = (key: string, at?: Point, replay = true) => {
+  /** Opens a day; remounting the drawing (visit) makes its pins drop in. */
+  const toDay = (key: string, at?: Point) => {
     setOrigin(at ?? cellCenter(key) ?? stageCenter());
     setDate(key);
     setMonth(monthOf(key));
     setPreview(null);
-    if (replay) setVisit((v) => v + 1);
+    setVisit((v) => v + 1);
     setMode('day');
   };
 
@@ -315,7 +317,7 @@ export default function CalendarZoom({ flip }: CalendarZoomProps) {
     } else if (modeRef.current === 'day') {
       toMonth(g.mid);
     } else if (g.target) {
-      toDay(g.target, g.mid, false);
+      toDay(g.target, g.mid);
     }
   };
 
