@@ -25,6 +25,14 @@ export function shiftMonth(year: number, month: number, delta: number): { year: 
   return { year: date.getFullYear(), month: date.getMonth() };
 }
 
+/**
+ * Dots under a day in the month grid: one per place, five to a row, and
+ * no more than two rows — past ten a day just shows ten.
+ */
+export const DOTS_PER_ROW = 5;
+export const MAX_DAY_DOTS = 10;
+export const dayDots = (count: number): number => Math.max(0, Math.min(count, MAX_DAY_DOTS));
+
 /** Number of stops per date — drives the dots under each day. */
 export function stopCountsByDate(entries: { date: string; stops: unknown[] }[]): Map<string, number> {
   const counts = new Map<string, number>();

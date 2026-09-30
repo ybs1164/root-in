@@ -1679,10 +1679,10 @@ input.timeline__time:focus {
 
 .calendar__dots {
   display: flex;
-  flex-wrap: wrap; /* one dot per place: a busy day wraps to a second row */
+  flex-wrap: wrap; /* one dot per place: from the 6th, a second row (10 at most, see dayDots) */
   justify-content: center;
   gap: 2px 3px;
-  max-width: 37px; /* five dots a row */
+  max-width: 37px; /* exactly five 5px dots with 3px gaps */
   min-height: 5px;
 }
 

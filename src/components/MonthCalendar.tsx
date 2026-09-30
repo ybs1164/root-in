@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
-import { monthGrid, shiftMonth } from '../domain/calendar';
+import { dayDots, monthGrid, shiftMonth } from '../domain/calendar';
 import { dateKey } from '../domain/diary';
 
 interface MonthView {
@@ -19,7 +19,7 @@ interface MonthCalendarProps {
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
-/** Month grid; dots under a day = places that day, one dot each. */
+/** Month grid; dots under a day = places that day, one dot each (5 a row, 10 at most). */
 export default function MonthCalendar({ counts, plans, onPick, view: controlled, onView }: MonthCalendarProps) {
   const today = dateKey();
   const [own, setOwn] = useState<MonthView>(() => {
@@ -68,7 +68,7 @@ export default function MonthCalendar({ counts, plans, onPick, view: controlled,
             >
               <span>{d.day}</span>
               <span className="calendar__dots" aria-hidden>
-                {Array.from({ length: count }, (_, i) => (
+                {Array.from({ length: dayDots(count) }, (_, i) => (
                   <i key={i} />
                 ))}
               </span>
