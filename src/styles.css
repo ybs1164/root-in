@@ -27,7 +27,6 @@
   --map-land: #f3ede5;
   --map-road: #ffffff;
   --map-road-case: #d9cec2;
-  --map-road-major-case: #c4b5a6;
   --map-path: #bfb1a3;
   --map-label: #7a6c63;
   --map-label-halo: #ffffff;
@@ -81,7 +80,6 @@
     --map-land: #1f1b18;
     --map-road: #3b3430;
     --map-road-case: #2a2421;
-    --map-road-major-case: #4d443e;
     --map-path: #5a4f48;
     --map-label: #b3a59b;
     --map-label-halo: #1f1b18;

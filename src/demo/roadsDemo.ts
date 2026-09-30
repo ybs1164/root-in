@@ -32,13 +32,11 @@ const map = new maplibregl.Map({
   attributionControl: { compact: true },
 });
 
-type Stops = [z12: number, z16: number, z19: number];
-// Road width in px by zoom and rank; exponential so it grows like the ground
-// does. `zoom` must be the top-level interpolate, so rank goes inside each stop.
-const width = (major: Stops, mid: Stops, minor: Stops): ExpressionSpecification => {
-  const at = (i: number): ExpressionSpecification => ['match', ['get', 'rank'], 'major', major[i], 'mid', mid[i], minor[i]];
-  return ['interpolate', ['exponential', 1.6], ['zoom'], 12, at(0), 16, at(1), 19, at(2)];
-};
+// Road width in px by zoom, the same for every rank so the course line is
+// the only thing that stands out; exponential so it grows like the ground does.
+const width = (z12: number, z16: number, z19: number): ExpressionSpecification => [
+  'interpolate', ['exponential', 1.6], ['zoom'], 12, z12, 16, z16, 19, z19,
+];
 const rank = (r: string): ExpressionSpecification => ['==', ['get', 'rank'], r];
 const road = ['==', ['get', 'kind'], 'road'] as ExpressionSpecification;
 
@@ -67,8 +65,8 @@ map.on('style.load', () => {
     filter: ['all', road, ['!=', ['get', 'rank'], 'path']],
     layout: lineLayout,
     paint: {
-      'line-color': ['match', ['get', 'rank'], 'major', token('--map-road-major-case'), token('--map-road-case')],
-      'line-width': width([2.5, 13, 34], [1.8, 10, 26], [1, 7, 19]),
+      'line-color': token('--map-road-case'),
+      'line-width': width(1.8, 10, 26),
     },
   });
   map.addLayer({
@@ -79,7 +77,7 @@ map.on('style.load', () => {
     layout: lineLayout,
     paint: {
       'line-color': token('--map-road'),
-      'line-width': width([1.5, 10, 30], [1, 7.5, 22], [0.4, 5, 16]),
+      'line-width': width(1, 7.5, 22),
     },
   });
   map.addLayer({
@@ -115,7 +113,7 @@ function drawSampleCourse() {
     type: 'line',
     source: 'course',
     layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: { 'line-color': token('--route'), 'line-width': 4, 'line-opacity': 0.9, 'line-dasharray': [1.5, 1.5] },
+    paint: { 'line-color': token('--route'), 'line-width': 12, 'line-opacity': 0.9, 'line-dasharray': [1.5, 1.5] },
   });
   stops.forEach((p, i) => new maplibregl.Marker({ element: createMarkerElement(String(i + 1), 'stop') }).setLngLat(p).addTo(map));
 }
