@@ -1,3 +1,4 @@
+import type { DistrictMap } from '../domain/districtMap';
 import type { KakaoMapInstance, KakaoMapsNamespace } from '../lib/kakaoSdk';
 import type { PlaceRef } from '../types/course';
 import {
@@ -23,6 +24,9 @@ export class KakaoCourseMap implements CourseMap {
   private preview: Overlay | null = null;
   private pinOverlays: Overlay[] = [];
   private guide: Overlay | null = null;
+  private districtOverlays: Overlay[] = [];
+  private readonly container: HTMLElement;
+  private attribution: HTMLElement | null = null;
   private readonly detachLongPress: () => void;
 
   constructor(
@@ -30,15 +34,66 @@ export class KakaoCourseMap implements CourseMap {
     container: HTMLElement,
     private readonly options: CourseMapOptions,
   ) {
+    this.container = container;
     this.map = new maps.Map(container, { center: this.latLng(options.center), level: 6 });
     this.detachLongPress = attachLongPress(container, (x, y) => {
       const at = this.map.getProjection().coordsFromContainerPoint(new maps.Point(x, y));
       options.onLongPress?.([at.getLng(), at.getLat()]);
     });
+    const emitViewport = () => {
+      const b = this.map.getBounds();
+      const sw = b.getSouthWest();
+      const ne = b.getNorthEast();
+      options.onViewportChange?.({
+        bounds: { west: sw.getLng(), south: sw.getLat(), east: ne.getLng(), north: ne.getLat() },
+        widthPx: container.clientWidth,
+      });
+    };
+    maps.event.addListener(this.map, 'idle', emitViewport);
+    // Not every SDK version fires idle for the first render.
+    setTimeout(emitViewport, 0);
   }
 
   private routeColor(token: string, fallback: string): string {
     return getComputedStyle(document.documentElement).getPropertyValue(token).trim() || fallback;
+  }
+
+  setDistrictMap(district: DistrictMap | null): void {
+    this.districtOverlays.forEach((o) => o.setMap(null));
+    this.districtOverlays = [];
+    this.attribution?.remove();
+    this.attribution = null;
+    if (!district) return;
+    const ring = (points: [number, number][]) => points.map((p) => this.latLng(p));
+    // Kakao tiles can't be restyled, so a Korea-sized polygon hides them.
+    const cover = new this.maps.Polygon({
+      path: ring([[120, 30], [135, 30], [135, 45], [120, 45]]),
+      strokeWeight: 0,
+      strokeOpacity: 0,
+      fillColor: this.routeColor('--map-road', '#f4ede2'),
+      fillOpacity: 1,
+      zIndex: 0,
+      map: this.map,
+    });
+    const blockColor = this.routeColor('--map-block', '#a9c1c1');
+    const blocks = district.blocks.map(
+      (block) =>
+        new this.maps.Polygon({
+          path: [ring(block.outer), ...block.holes.map(ring)],
+          strokeWeight: 0,
+          strokeOpacity: 0,
+          fillColor: blockColor,
+          fillOpacity: 1,
+          zIndex: 1,
+          map: this.map,
+        }),
+    );
+    this.districtOverlays = [cover, ...blocks];
+    // The block shapes come from OSM (ODbL), which Kakao's own credit doesn't cover.
+    this.attribution = document.createElement('div');
+    this.attribution.className = 'map-attribution';
+    this.attribution.textContent = '© OpenStreetMap contributors';
+    this.container.appendChild(this.attribution);
   }
 
   setPins(pins: PinMarker[]): void {
@@ -146,6 +201,7 @@ export class KakaoCourseMap implements CourseMap {
 
   destroy(): void {
     this.detachLongPress();
+    this.setDistrictMap(null);
     this.pinOverlays.forEach((o) => o.setMap(null));
     this.guide?.setMap(null);
     this.stopOverlays.forEach((o) => o.setMap(null));

@@ -18,10 +18,12 @@ import ShareSheet from './components/ShareSheet';
 import { calendarAgain, homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { addStop, COURSE_LIMITS, emptyDraft } from './domain/course';
 import { DIARY_LIMITS, diaryKind } from './domain/diary';
+import type { MapViewport } from './domain/districtMap';
 import { buildPinSet, categoryStyle, filterPins } from './domain/pin';
 import { orderByNearest } from './domain/routeOrder';
 import { useCourseDraft } from './hooks/useCourseDraft';
 import { useDiaryDay } from './hooks/useDiaryDay';
+import { useDistrictMap } from './hooks/useDistrictMap';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
 import { useIncomingDiary } from './hooks/useIncomingDiary';
 import { useIncomingPins } from './hooks/useIncomingPins';
@@ -55,6 +57,7 @@ export default function App() {
   const mapRef = useRef<CourseMap | null>(null);
   const [searchService, setSearchService] = useState<PlaceSearchService | null>(null);
   const [mapProvider, setMapProvider] = useState<'kakao' | 'maplibre' | null>(null);
+  const [viewport, setViewport] = useState<MapViewport | null>(null);
 
   const [toast, setToast] = useState<Toast | null>(null);
   const notify = useCallback((text: string, undo?: () => void) => setToast({ text, undo }), []);
@@ -210,6 +213,7 @@ export default function App() {
       onStopClick: (index) => mapEvents.current.stop(index),
       onPinClick: (id) => mapEvents.current.pin(id),
       onLongPress: (center) => mapEvents.current.longPress(center),
+      onViewportChange: setViewport,
     }).then(({ map, search: service }) => {
       if (disposed) return map.destroy();
       created = map;
@@ -225,6 +229,11 @@ export default function App() {
       mapRef.current = null;
     };
   }, []);
+
+  const districtMap = useDistrictMap(viewport);
+  useEffect(() => {
+    mapRef.current?.setDistrictMap(districtMap);
+  }, [districtMap, mapProvider]);
 
   const stopsKey = shownStops.map((p) => p.id).join('|');
   useEffect(() => {

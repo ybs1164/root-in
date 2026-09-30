@@ -70,6 +70,9 @@
   --pin-6: #16a085;
   --pin-7: #eaa21a;
   --pin-8: #7f8c8d;
+  /* Illustrated block map: roads are the background, blocks sit on top. */
+  --map-road: #f4ede2;
+  --map-block: #a9c1c1;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -98,6 +101,8 @@
     --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
     --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.45);
     --backdrop: rgba(0, 0, 0, 0.6);
+    --map-road: #2a2521;
+    --map-block: #3d5253;
   }
 }
 
@@ -429,6 +434,20 @@ button:disabled {
 }
 
 /* ---------- Map markers ---------- */
+
+.map-attribution {
+  position: absolute;
+  right: 6px;
+  top: calc(var(--safe-top) + 76px);
+  z-index: 2;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 10px;
+  opacity: 0.85;
+  pointer-events: none;
+}
 
 .map-marker {
   display: grid;

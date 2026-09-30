@@ -1,3 +1,4 @@
+import type { DistrictMap, MapViewport } from '../domain/districtMap';
 import type { PlaceRef } from '../types/course';
 import type { PinColor } from '../types/pin';
 
@@ -22,6 +23,11 @@ export interface CourseMap {
   setPins(pins: PinMarker[]): void;
   /** A faint dashed line (e.g. "이 카테고리 잇기"); not a saved course. */
   setGuideLine(points: [number, number][] | null): void;
+  /**
+   * Illustrated block map of the visible area: hides the basemap under the
+   * road color and draws only the rounded blocks. null restores the basemap.
+   */
+  setDistrictMap(district: DistrictMap | null): void;
   fitCourse(padding: MapPadding): void;
   /** Fits arbitrary points (pins, a guide line). */
   fitPoints(points: [number, number][], padding: MapPadding): void;
@@ -47,6 +53,8 @@ export interface CourseMapOptions {
   onPinClick?: (id: string) => void;
   /** Long-press (touch) or right-click (mouse) on the map itself. */
   onLongPress?: (center: [number, number]) => void;
+  /** The visible area, once the map settles after a pan/zoom (and at start). */
+  onViewportChange?: (viewport: MapViewport) => void;
 }
 
 export const SEOUL_CENTER: [number, number] = [126.978, 37.5665];
