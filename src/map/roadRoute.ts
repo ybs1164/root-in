@@ -11,12 +11,9 @@
  * don't share vertices. We re-node it (snap nearby vertices, join piece ends
  * onto the segment they overlap) before running Dijkstra.
  */
+import { projection, type LngLat, type Projection, type Xy } from './localProjection';
 import type { RoadCollection, RoadRank } from './roadFeatures';
 
-type LngLat = [number, number];
-type Xy = [number, number];
-
-const METERS_PER_DEG = 111_320;
 /** Vertices this close are the same node. */
 const SNAP_M = 2;
 /** A piece's loose end this close to another road's segment is joined onto it (tile seams, T-junctions). */
@@ -56,14 +53,6 @@ export function roadsAlongCourse(input: RoadCollection, stops: LngLat[]): Course
 
 // --- geometry -------------------------------------------------------------
 
-function projection(originLat: number) {
-  const kx = METERS_PER_DEG * Math.cos((originLat * Math.PI) / 180);
-  return {
-    toXy: ([lng, lat]: LngLat): Xy => [lng * kx, lat * METERS_PER_DEG],
-    toLngLat: ([x, y]: Xy): LngLat => [x / kx, y / METERS_PER_DEG],
-  };
-}
-type Projection = ReturnType<typeof projection>;
 
 const dist = (a: Xy, b: Xy) => Math.hypot(a[0] - b[0], a[1] - b[1]);
 

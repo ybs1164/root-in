@@ -12,6 +12,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import '../styles.css';
 import { createMarkerElement } from '../map/courseMap';
 import { toRoadCollection, type RoadCollection } from '../map/roadFeatures';
+import { junctionFillets } from '../map/roadFillets';
 import { roadsAlongCourse } from '../map/roadRoute';
 
 const STYLE_URL = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
@@ -35,10 +36,15 @@ const map = new maplibregl.Map({
   attributionControl: { compact: true },
 });
 
-// Road width in px by zoom, the same for every rank so the course line is
-// the only thing that stands out; exponential so it grows like the ground does.
-const width = (z12: number, z16: number, z19: number): ExpressionSpecification => [
-  'interpolate', ['exponential', 1.6], ['zoom'], 12, z12, 16, z16, 19, z19,
+// Roads have a fixed ground width (one for every rank, so the course line is
+// the only thing that stands out) and junction corners are rounded with
+// ground-sized fillets; both scale together at every zoom.
+const ROAD_WIDTH_M = 28;
+const FILLET_RADIUS_M = 22;
+// MapLibre's 512px tiles: meters per pixel = C·cos(lat) / (512·2^z).
+const metersPerPixel = (z: number) => (2 * Math.PI * 6_378_137 * Math.cos((lat * Math.PI) / 180)) / (512 * 2 ** z);
+const groundWidth = (meters: number): ExpressionSpecification => [
+  'interpolate', ['exponential', 2], ['zoom'], 10, meters / metersPerPixel(10), 20, meters / metersPerPixel(20),
 ];
 const road = ['==', ['get', 'kind'], 'road'] as ExpressionSpecification;
 
@@ -59,9 +65,11 @@ map.on('style.load', () => {
     layout: lineLayout,
     paint: {
       'line-color': token('--map-road'),
-      'line-width': width(5.4, 30, 78),
+      'line-width': groundWidth(ROAD_WIDTH_M),
     },
   });
+  map.addSource('fillets', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+  map.addLayer({ id: 'roads-fillet', type: 'fill', source: 'fillets', paint: { 'fill-color': token('--map-road') } });
 
   drawSampleCourse();
 });
@@ -103,6 +111,9 @@ function extract() {
   const streets: RoadCollection = { ...all, features: all.features.filter((f) => f.properties.rank !== 'path') };
   const result = roadsAlongCourse(streets, stops);
   roads = result.roads;
+  (map.getSource('fillets') as maplibregl.GeoJSONSource | undefined)?.setData(
+    junctionFillets(roads, ROAD_WIDTH_M / 2, FILLET_RADIUS_M),
+  );
   (map.getSource('roads') as maplibregl.GeoJSONSource | undefined)?.setData(roads);
   const missed = result.missedLegs > 0 ? ` · 못 이은 구간 ${result.missedLegs}개` : '';
   document.getElementById('count')!.textContent = `코스 도로 ${roads.features.length}구간${missed}`;
