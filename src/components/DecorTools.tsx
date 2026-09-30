@@ -79,6 +79,10 @@ const PEN_ICONS: Record<PenTool, typeof PenLine> = {
   eraser: Eraser,
 };
 
+// Previews shrink some patterns to fit a small card: the grid reads as zoomed
+// in at full size, and the scattered ones would show only a mark or two.
+const PREVIEW_SCALE: Partial<Record<PatternId, number>> = { grid: 0.7, hearts: 0.55, stars: 0.55, snow: 0.55 };
+
 const WIDTH_LABELS: Record<PenWidth, string> = { thin: '가늘게', medium: '보통', thick: '굵게' };
 
 /**
@@ -217,7 +221,7 @@ export function DecorTray(p: DecorTrayProps) {
               onClick={() => p.onPattern(id)}
             >
               <span className="theme-card pattern-card" aria-hidden>
-                <DayPattern pattern={id} className="day-pattern--preview" />
+                <DayPattern pattern={id} className="day-pattern--preview" scale={PREVIEW_SCALE[id] ?? 1} />
               </span>
               {name}
             </button>

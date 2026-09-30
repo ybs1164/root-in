@@ -14,6 +14,8 @@ export interface PatternMark {
   y?: number;
   scale?: number;
   rotate?: number;
+  /** The path's own centre (both axes), so it turns and scales in place. */
+  origin?: number;
 }
 
 export interface PatternTile {
@@ -25,6 +27,60 @@ export interface PatternTile {
 }
 
 const dot = (cx: number, cy: number, r: number) => `M${cx - r} ${cy}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`;
+
+/** Small seeded random numbers: the same scatter every time, on screen and in the image. */
+function seeded(seed: number) {
+  let a = seed;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+interface Scatter {
+  /** Marks to place: a path (drawn in a 24-unit box) or a dot, and its size range. */
+  kind: { path: string } | 'dot';
+  count: number;
+  /** Radius range in px (for a path: half its drawn size). */
+  r: [number, number];
+  /** Largest turn either way, degrees. */
+  turn?: number;
+}
+
+/**
+ * Scattered marks over a big tile, so hearts, stars and snow fall unevenly
+ * instead of in a visible grid. Spacing is measured around the tile's
+ * wrap-around, so neighbours across a seam keep their distance too, and
+ * marks stay clear of the edges (a tile clips what crosses them).
+ */
+function scatter(seed: number, size: number, groups: Scatter[]): PatternMark[] {
+  const rnd = seeded(seed);
+  const placed: { x: number; y: number; r: number }[] = [];
+  const marks: PatternMark[] = [];
+  const far = (x: number, y: number, r: number) =>
+    placed.every((p) => {
+      const dx = Math.min(Math.abs(p.x - x), size - Math.abs(p.x - x));
+      const dy = Math.min(Math.abs(p.y - y), size - Math.abs(p.y - y));
+      return Math.hypot(dx, dy) > (p.r + r) * 1.6 + 10;
+    });
+  for (const g of groups) {
+    for (let i = 0; i < g.count; i++) {
+      for (let tries = 0; tries < 60; tries++) {
+        const r = g.r[0] + rnd() * (g.r[1] - g.r[0]);
+        const x = r + 1 + rnd() * (size - 2 * r - 2);
+        const y = r + 1 + rnd() * (size - 2 * r - 2);
+        if (!far(x, y, r)) continue;
+        placed.push({ x, y, r });
+        if (g.kind === 'dot') marks.push({ d: dot(x, y, r) });
+        else marks.push({ d: g.kind.path, x, y, scale: r / 12, rotate: (rnd() * 2 - 1) * (g.turn ?? 0), origin: 12 });
+        break;
+      }
+    }
+  }
+  return marks;
+}
 
 // Spaced out and bold enough to read at a glance on the page, like the
 // previews in the 꾸미기 sheet, while staying a backdrop.
@@ -43,34 +99,30 @@ export const PATTERN_TILES: Record<Exclude<PatternId, 'none'>, PatternTile> = {
     marks: [{ d: 'M0 16Q16 6 32 16T64 16' }, { d: 'M0 48Q16 38 32 48T64 48' }],
     flow: { x: 64, y: 0, seconds: 5 },
   },
+  // Scattered over a big tile rather than in rows (see `scatter`).
   hearts: {
-    size: 80,
-    marks: [
-      { d: HEART_PATH, x: 8, y: 8, scale: 1 },
-      { d: HEART_PATH, x: 48, y: 46, scale: 0.75, rotate: -12 },
-    ],
-    flow: { x: 0, y: -80, seconds: 8 },
+    size: 320,
+    marks: scatter(7, 320, [{ kind: { path: HEART_PATH }, count: 12, r: [7, 15], turn: 25 }]),
+    flow: { x: 0, y: -320, seconds: 32 },
   },
   stars: {
-    size: 88,
-    marks: [
-      { d: STAR_PATH, x: 10, y: 12, scale: 0.95 },
-      { d: STAR_PATH, x: 54, y: 54, scale: 0.65, rotate: 18 },
-      { d: dot(74, 18, 3) },
-      { d: dot(24, 70, 2.4) },
-    ],
-    flow: { x: -88, y: 0, seconds: 12 },
+    size: 320,
+    marks: scatter(11, 320, [
+      { kind: { path: STAR_PATH }, count: 11, r: [6, 13], turn: 36 },
+      { kind: 'dot', count: 12, r: [1.6, 3.2] },
+    ]),
+    flow: { x: -320, y: 0, seconds: 44 },
   },
   snow: {
-    size: 100,
-    marks: [{ d: dot(16, 20, 5.5) }, { d: dot(64, 10, 3.6) }, { d: dot(44, 58, 6.5) }, { d: dot(84, 74, 4.4) }, { d: dot(14, 84, 3.2) }],
-    flow: { x: 0, y: 100, seconds: 9 },
+    size: 320,
+    marks: scatter(3, 320, [{ kind: 'dot', count: 22, r: [2.2, 7] }]),
+    flow: { x: 0, y: 320, seconds: 29 },
   },
 };
 
 /** SVG transform for a mark within its tile. */
 export const markTransform = (m: PatternMark): string =>
-  `translate(${m.x ?? 0} ${m.y ?? 0}) rotate(${m.rotate ?? 0}) scale(${m.scale ?? 1})`;
+  `translate(${m.x ?? 0} ${m.y ?? 0}) rotate(${m.rotate ?? 0}) scale(${m.scale ?? 1}) translate(${-(m.origin ?? 0)} ${-(m.origin ?? 0)})`;
 
 /**
  * Tiles a canvas area with a pattern, still. `unit` is canvas pixels per CSS
@@ -100,6 +152,7 @@ export function paintPattern(
         ctx.translate(tx + (m.x ?? 0), ty + (m.y ?? 0));
         ctx.rotate(((m.rotate ?? 0) * Math.PI) / 180);
         ctx.scale(m.scale ?? 1, m.scale ?? 1);
+        ctx.translate(-(m.origin ?? 0), -(m.origin ?? 0));
         if (tile.stroke) ctx.stroke(path);
         else ctx.fill(path);
         ctx.restore();
