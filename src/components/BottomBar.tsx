@@ -1,5 +1,5 @@
 import { CalendarDays, MapPin, Share, Sparkles } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { bottomBarAction, type AppTab } from '../domain/appTabs';
 import { CalendarToday } from './icons';
 
@@ -20,6 +20,18 @@ interface BottomBarProps {
 /** Matches the dial's scale-out in styles.css, so it stays mounted until it has shrunk away. */
 const DIAL_OUT_MS = 170;
 
+/** Distance from the calendar button's centre to each menu button's centre. */
+const ARC_RADIUS = 85;
+
+/** Offset of a menu button at `deg` on the arc (0° = right, 90° = straight up). */
+const arcSpot = (deg: number): CSSProperties => {
+  const rad = (deg * Math.PI) / 180;
+  return {
+    '--dx': `${Math.round(Math.cos(rad) * ARC_RADIUS)}px`,
+    '--dy': `${Math.round(-Math.sin(rad) * ARC_RADIUS)}px`,
+  } as CSSProperties;
+};
+
 const BUTTONS: { tab: AppTab; label: string; icon: ReactNode }[] = [
   { tab: 'calendar', label: '달력', icon: <CalendarToday /> },
   { tab: 'pins', label: '핀', icon: <MapPin aria-hidden /> },
@@ -30,8 +42,8 @@ const BUTTONS: { tab: AppTab; label: string; icon: ReactNode }[] = [
  * Three floating round buttons (📅 · 📍 · ✨), icon only. The current
  * screen's button is the big one; size is the only "selected" signal, so
  * the labels live in aria-label instead of on screen. Tapped again on a
- * day screen, the calendar button grows a small bar above itself with
- * 월 달력 and 공유.
+ * day screen, the calendar button sends out two round buttons on an arc
+ * above itself: 월 달력 and 공유.
  */
 export default function BottomBar({
   tab,
@@ -81,16 +93,16 @@ export default function BottomBar({
         return (
           <div key={target} className="bottom-bar__slot">
             {isCalendar && (calendarMenu || dialClosing) && (
-              // A rounded bar that grows out of the calendar button: 월 달력 left, 공유 right.
+              // Two round buttons on an arc above the calendar button: 월 달력 up-left, 공유 up-right.
               <div
                 className={`bottom-bar__dial ${calendarMenu ? 'is-open' : 'is-closing'}`}
                 role="menu"
                 aria-label="달력 메뉴"
               >
-                <button className="bottom-bar__dial-btn" role="menuitem" aria-label="월 달력" onClick={onShowMonth}>
+                <button className="bottom-bar__dial-btn" style={arcSpot(120)} role="menuitem" aria-label="월 달력" onClick={onShowMonth}>
                   <CalendarDays aria-hidden />
                 </button>
-                <button className="bottom-bar__dial-btn" role="menuitem" aria-label="공유" onClick={onShareDay}>
+                <button className="bottom-bar__dial-btn" style={arcSpot(60)} role="menuitem" aria-label="공유" onClick={onShareDay}>
                   <Share aria-hidden />
                 </button>
               </div>
