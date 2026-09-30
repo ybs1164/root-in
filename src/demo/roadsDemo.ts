@@ -1,7 +1,8 @@
 /**
  * Dev-only example (open /roads.html): pulls road geometry out of the Carto
  * vector tiles as GeoJSON and draws it with our own tokens. Nothing of the
- * provider's rendering is shown — the map is exactly the JSON you can download.
+ * provider's rendering is shown — the map is exactly the JSON you can download:
+ * streets (no footpaths) within CORRIDOR_METERS of the sample course.
  *
  * `?at=lng,lat,zoom` picks the spot (default: 용산).
  */
@@ -9,13 +10,15 @@ import maplibregl, { type ExpressionSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import '../styles.css';
 import { createMarkerElement } from '../map/courseMap';
-import { toRoadCollection, type RoadCollection } from '../map/roadFeatures';
+import { clipToCorridor, toRoadCollection, type RoadCollection } from '../map/roadFeatures';
 
 const STYLE_URL = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
 const CARTO = 'carto';
 // An invisible layer on the Carto source: MapLibre only loads tiles for
 // sources that have a visible layer, and we still need the tiles to query.
 const PROBE = 'roads-probe';
+// Roads farther than this from the course's straight line aren't drawn.
+const CORRIDOR_METERS = 100;
 
 const [lng = 126.978, lat = 37.5275, zoom = 16] = (new URLSearchParams(location.search).get('at') ?? '')
   .split(',')
@@ -37,7 +40,6 @@ const map = new maplibregl.Map({
 const width = (z12: number, z16: number, z19: number): ExpressionSpecification => [
   'interpolate', ['exponential', 1.6], ['zoom'], 12, z12, 16, z16, 19, z19,
 ];
-const rank = (r: string): ExpressionSpecification => ['==', ['get', 'rank'], r];
 const road = ['==', ['get', 'kind'], 'road'] as ExpressionSpecification;
 
 map.on('style.load', () => {
@@ -49,20 +51,12 @@ map.on('style.load', () => {
 
   map.addSource('roads', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
   const lineLayout = { 'line-cap': 'round', 'line-join': 'round' } as const;
-  map.addLayer({
-    id: 'roads-path',
-    type: 'line',
-    source: 'roads',
-    filter: ['all', road, rank('path')],
-    layout: lineLayout,
-    paint: { 'line-color': token('--map-path'), 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.5, 16, 1.2, 19, 2.5], 'line-dasharray': [2, 1.5] },
-  });
   // All casings under all fills, so crossings merge instead of stacking.
   map.addLayer({
     id: 'roads-case',
     type: 'line',
     source: 'roads',
-    filter: ['all', road, ['!=', ['get', 'rank'], 'path']],
+    filter: road,
     layout: lineLayout,
     paint: {
       'line-color': token('--map-road-case'),
@@ -73,7 +67,7 @@ map.on('style.load', () => {
     id: 'roads-fill',
     type: 'line',
     source: 'roads',
-    filter: ['all', road, ['!=', ['get', 'rank'], 'path']],
+    filter: road,
     layout: lineLayout,
     paint: {
       'line-color': token('--map-road'),
@@ -100,13 +94,14 @@ map.on('style.load', () => {
   drawSampleCourse();
 });
 
-// A sample course on top, so the example reads like the app.
+// A sample course; only the roads around it are drawn.
+const stops: [number, number][] = [
+  [lng - 0.0022, lat + 0.0016],
+  [lng + 0.0004, lat - 0.0012],
+  [lng + 0.0024, lat + 0.0018],
+];
+
 function drawSampleCourse() {
-  const stops: [number, number][] = [
-    [lng - 0.0022, lat + 0.0016],
-    [lng + 0.0004, lat - 0.0012],
-    [lng + 0.0024, lat + 0.0018],
-  ];
   map.addSource('course', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: stops } } });
   map.addLayer({
     id: 'course',
@@ -131,14 +126,17 @@ map.on('sourcedata', (e) => {
 });
 
 function extract() {
-  roads = toRoadCollection(
+  const all = toRoadCollection(
     map.querySourceFeatures(CARTO, { sourceLayer: 'transportation' }),
     map.querySourceFeatures(CARTO, { sourceLayer: 'transportation_name' }),
   );
+  // Footpaths are left out: the course is read off the street grid.
+  const streets: RoadCollection = { ...all, features: all.features.filter((f) => f.properties.rank !== 'path') };
+  roads = clipToCorridor(streets, stops, CORRIDOR_METERS);
   (map.getSource('roads') as maplibregl.GeoJSONSource | undefined)?.setData(roads);
   const lines = roads.features.filter((f) => f.properties.kind === 'road').length;
   const names = new Set(roads.features.flatMap((f) => (f.properties.name ? [f.properties.name] : []))).size;
-  document.getElementById('count')!.textContent = `도로 조각 ${lines}개 · 도로명 ${names}개`;
+  document.getElementById('count')!.textContent = `코스 주변 도로 ${lines}개 · 도로명 ${names}개`;
 }
 
 document.getElementById('download')!.addEventListener('click', () => {
