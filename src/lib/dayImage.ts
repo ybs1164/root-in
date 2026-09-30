@@ -117,11 +117,51 @@ export async function renderDayImage({ title, pings, shapeOf, edgeStyleOf }: Day
     ctx.fillText(ping.time, x, labelTop + 88);
   });
 
-  ctx.fillStyle = c.muted;
-  ctx.font = `800 40px ${c.font}`;
-  ctx.fillText('root-in', W / 2, H - 60);
+  drawLogo(ctx, c, W / 2, H - 64, 50);
 
   return canvas.toDataURL('image/png');
+}
+
+/**
+ * The root-in wordmark (components/Logo.tsx) drawn centred on (cx, baseline):
+ * "root" in text colour, then the pin standing in for the i and "n" in the
+ * accent. Proportions follow .logo / .logo__i in styles.css (em = size).
+ */
+function drawLogo(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, cx: number, baseline: number, size: number) {
+  ctx.save();
+  ctx.font = `800 ${size}px ${c.font}`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  if ('letterSpacing' in ctx) ctx.letterSpacing = `${-0.02 * size}px`;
+  const root = ctx.measureText('root').width;
+  const n = ctx.measureText('n').width;
+  const gap = 0.07 * size + 0.01 * size; // .logo__in margin + the pin's own margin
+  const pinW = 0.72 * size;
+  const pinH = 0.95 * size;
+  const x0 = cx - (root + gap + pinW + 0.01 * size + n) / 2;
+
+  ctx.fillStyle = c.text;
+  ctx.fillText('root', x0, baseline);
+
+  // Pin viewBox is 4 1.5 16 21; it fits the 0.72em × 0.95em box by width,
+  // centred in the height, so the tip lands on the baseline like on screen.
+  const pinX = x0 + root + gap;
+  const k = Math.min(pinW / 16, pinH / 21);
+  ctx.save();
+  ctx.translate(pinX + (pinW - 16 * k) / 2, baseline - pinH + (pinH - 21 * k) / 2);
+  ctx.scale(k, k);
+  ctx.translate(-4, -1.5);
+  ctx.fillStyle = c.accent;
+  ctx.fill(new Path2D(PIN_PATH));
+  ctx.fillStyle = c.bg;
+  ctx.beginPath();
+  ctx.arc(12, 10, 3.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.fillStyle = c.accent;
+  ctx.fillText('n', pinX + pinW + 0.01 * size, baseline);
+  ctx.restore();
 }
 
 /** Saves a data URL as a file (on phones this opens the image to keep or share). */
