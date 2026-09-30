@@ -2,6 +2,7 @@ import { Settings as SettingsIcon, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomBar from './components/BottomBar';
 import CalendarSheet from './components/CalendarSheet';
+import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
 import CategoryChips from './components/CategoryChips';
 import InfluencerPanel from './components/InfluencerPanel';
 import PinCard from './components/PinCard';
@@ -12,7 +13,7 @@ import SettingsSheet from './components/SettingsSheet';
 import SharedCourseView from './components/SharedCourseView';
 import SharedPinsView from './components/SharedPinsView';
 import ShareSheet from './components/ShareSheet';
-import { tabForIncoming, type AppTab } from './domain/appTabs';
+import { calendarAgain, homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { addStop, COURSE_LIMITS, emptyDraft } from './domain/course';
 import { DIARY_LIMITS, diaryKind } from './domain/diary';
 import type { MapViewport } from './domain/districtMap';
@@ -24,6 +25,7 @@ import { useDistrictMap } from './hooks/useDistrictMap';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
 import { useIncomingDiary } from './hooks/useIncomingDiary';
 import { useIncomingPins } from './hooks/useIncomingPins';
+import { usePageSwipe } from './hooks/usePageSwipe';
 import { usePins } from './hooks/usePins';
 import { usePlaceSearch } from './hooks/usePlaceSearch';
 import { useSettings } from './hooks/useSettings';
@@ -81,6 +83,15 @@ export default function App() {
   const [previewPinning, setPreviewPinning] = useState(false);
 
   const [pinning, setPinning] = useState(false);
+  // The calendar page: its zoom level (reported by CalendarZoom), the menu
+  // above the calendar button, and commands sent down from that menu.
+  const [calendarMode, setCalendarMode] = useState<'day' | 'month'>('day');
+  const [calendarMenu, setCalendarMenu] = useState(false);
+  const [calendarCommand, setCalendarCommand] = useState<CalendarCommand | null>(null);
+  const sendCalendar = (type: CalendarCommand['type']) => {
+    setCalendarMenu(false);
+    setCalendarCommand((prev) => ({ type, seq: (prev?.seq ?? 0) + 1 }));
+  };
   const [dropBusy, setDropBusy] = useState(false);
   const [activePinId, setActivePinId] = useState<string | null>(null);
   const [pinFilter, setPinFilter] = useState<string | null>(null);
@@ -93,6 +104,8 @@ export default function App() {
   const sharedPins = incomingPins.status === 'ready' ? incomingPins.set : null;
   const activePin = pins.find((p) => p.id === activePinId) ?? null;
   const onPinHome = tab === 'pins' && !sharedCourse && !sharedPins;
+  // On phones the pin screen's sheet drops down from the top, leaving the map's lower half clear.
+  const sheetTop = tab === 'pins';
   const shownPins = useMemo(() => filterPins(pins, categories, pinFilter), [pins, categories, pinFilter]);
 
   // Numbered course markers + solid route line.
@@ -151,7 +164,13 @@ export default function App() {
   const mapPadding = useCallback((extraBottom = 0): MapPadding => {
     const sheetBox = sheetEl.current;
     const desktop = window.matchMedia(DESKTOP_QUERY).matches;
-    const covered = Math.min((sheetBox?.offsetHeight ?? 0) + (barEl.current?.offsetHeight ?? 0), window.innerHeight * 0.5);
+    const barHeight = barEl.current?.offsetHeight ?? 0;
+    const cap = (px: number) => Math.min(px, window.innerHeight * 0.5);
+    if (!desktop && sheetBox?.classList.contains('sheet--top')) {
+      // The pin screen's sheet hangs from the top instead (it includes the search bar area).
+      return { top: cap(sheetBox.offsetHeight) + 30, right: 40, bottom: barHeight + 30 + extraBottom, left: 40 };
+    }
+    const covered = cap((sheetBox?.offsetHeight ?? 0) + barHeight);
     return {
       top: 90,
       right: 40,
@@ -314,6 +333,7 @@ export default function App() {
 
   const changeTab = (next: AppTab) => {
     setTab(next);
+    setCalendarMenu(false);
     setPinning(false);
     setPreview(null);
     setActivePinId(null);
@@ -559,9 +579,14 @@ export default function App() {
   };
 
   const cardTargetFull = inCalendar ? dayFull : courseFull;
+  // A received day (#diary=) still opens in the old timeline view.
+  const calendarZoom = tab === 'calendar' && !sharedDiary;
+  const onPage = showsPage(tab, Boolean(sharedCourse || sharedPins || searchOpen || preview));
+  // Swiping 달력 left / 추천 right slides the page off and uncovers the map (핀).
+  const swipe = usePageSwipe(onPage ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
 
   return (
-    <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''}`}>
+    <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''}`}>
       <div ref={mapEl} className="map" aria-label="지도" />
 
       <SearchBar
@@ -652,20 +677,57 @@ export default function App() {
         />
       )}
 
-      <section ref={sheetEl} className={`sheet sheet--${sheet}`} aria-label="패널">
-        <button
-          className="sheet__grip"
-          aria-label={sheet === 'full' ? '패널 줄이기' : '패널 펼치기'}
-          aria-expanded={sheet === 'full'}
-          onClick={() => setSheet((s) => (s === 'full' ? 'peek' : 'full'))}
-        >
-          <span aria-hidden />
-        </button>
-        {renderSheet()}
-      </section>
+      {onPage ? (
+        <section className="page" aria-label={PAGE_TITLES[tab]} style={swipe.style} {...swipe.handlers}>
+          <header className="page__head">
+            {/* The calendar's own TODAY / DAY n heading takes the stage. */}
+            <h1 className={calendarZoom ? 'sr-only' : ''}>{PAGE_TITLES[tab]}</h1>
+            <button className="icon-btn" aria-label="설정" onClick={() => setSettingsOpen(true)}>
+              <SettingsIcon size={22} aria-hidden />
+            </button>
+          </header>
+          {calendarZoom ? (
+            <CalendarZoom
+              command={calendarCommand}
+              onMode={(mode) => {
+                setCalendarMode(mode);
+                setCalendarMenu(false);
+              }}
+            />
+          ) : (
+            renderSheet()
+          )}
+        </section>
+      ) : (
+        <section ref={sheetEl} className={`sheet sheet--${sheet} ${sheetTop ? 'sheet--top' : ''}`} aria-label="패널">
+          <button
+            className="sheet__grip"
+            aria-label={sheet === 'full' ? '패널 줄이기' : '패널 펼치기'}
+            aria-expanded={sheet === 'full'}
+            onClick={() => setSheet((s) => (s === 'full' ? 'peek' : 'full'))}
+          >
+            <span aria-hidden />
+          </button>
+          {renderSheet()}
+        </section>
+      )}
 
       <div ref={barEl} className="bottom-bar-wrap">
-        <BottomBar tab={tab} pinning={pinning} onTab={changeTab} onPin={startPinning} />
+        <BottomBar
+          tab={swipe.leaving ? 'pins' : tab}
+          pinning={pinning}
+          onTab={changeTab}
+          onPin={startPinning}
+          onCalendarAgain={() => {
+            const next = calendarAgain(calendarMode, calendarMenu);
+            if (next === 'today') sendCalendar('today');
+            else setCalendarMenu(next === 'open-menu');
+          }}
+          calendarMenu={calendarMenu && tab === 'calendar' && calendarZoom}
+          onCloseCalendarMenu={() => setCalendarMenu(false)}
+          onShareDay={() => sendCalendar('share')}
+          onShowMonth={() => sendCalendar('month')}
+        />
       </div>
 
       {shareTarget && <ShareSheet target={shareTarget} onClose={() => setShareTarget(null)} />}

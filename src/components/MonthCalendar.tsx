@@ -1,23 +1,33 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
-import { monthGrid, shiftMonth } from '../domain/calendar';
+import { dayDots, monthGrid, shiftMonth } from '../domain/calendar';
 import { dateKey } from '../domain/diary';
+
+interface MonthView {
+  year: number;
+  month: number;
+}
 
 interface MonthCalendarProps {
   counts: Map<string, number>;
   plans: Set<string>;
   onPick: (key: string) => void;
+  /** Controlled month (optional); otherwise the grid keeps its own. */
+  view?: MonthView;
+  onView?: (view: MonthView) => void;
 }
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
-/** Month grid; dots under a day = places that day (up to 3). */
-export default function MonthCalendar({ counts, plans, onPick }: MonthCalendarProps) {
+/** Month grid; dots under a day = places that day, one dot each (5 a row, 10 at most). */
+export default function MonthCalendar({ counts, plans, onPick, view: controlled, onView }: MonthCalendarProps) {
   const today = dateKey();
-  const [view, setView] = useState(() => {
+  const [own, setOwn] = useState<MonthView>(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
   });
+  const view = controlled ?? own;
+  const setView = (next: MonthView) => (onView ? onView(next) : setOwn(next));
   const days = monthGrid(view.year, view.month);
 
   return (
@@ -47,6 +57,7 @@ export default function MonthCalendar({ counts, plans, onPick }: MonthCalendarPr
               key={d.key}
               role="gridcell"
               aria-label={label}
+              data-date={d.key}
               className={[
                 'calendar__day',
                 d.inMonth ? '' : 'is-out',
@@ -57,7 +68,7 @@ export default function MonthCalendar({ counts, plans, onPick }: MonthCalendarPr
             >
               <span>{d.day}</span>
               <span className="calendar__dots" aria-hidden>
-                {Array.from({ length: Math.min(count, 3) }, (_, i) => (
+                {Array.from({ length: dayDots(count) }, (_, i) => (
                   <i key={i} />
                 ))}
               </span>
