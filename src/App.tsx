@@ -12,7 +12,7 @@ import SettingsSheet from './components/SettingsSheet';
 import SharedCourseView from './components/SharedCourseView';
 import SharedPinsView from './components/SharedPinsView';
 import ShareSheet from './components/ShareSheet';
-import { tabForIncoming, type AppTab } from './domain/appTabs';
+import { PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { addStop, COURSE_LIMITS, emptyDraft } from './domain/course';
 import { DIARY_LIMITS, diaryKind } from './domain/diary';
 import { buildPinSet, categoryStyle, filterPins } from './domain/pin';
@@ -558,9 +558,10 @@ export default function App() {
   };
 
   const cardTargetFull = inCalendar ? dayFull : courseFull;
+  const onPage = showsPage(tab, Boolean(sharedCourse || sharedPins || searchOpen || preview));
 
   return (
-    <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''} ${sheetTop ? 'app--sheet-top' : ''}`}>
+    <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''}`}>
       <div ref={mapEl} className="map" aria-label="지도" />
 
       <SearchBar
@@ -651,17 +652,29 @@ export default function App() {
         />
       )}
 
-      <section ref={sheetEl} className={`sheet sheet--${sheet} ${sheetTop ? 'sheet--top' : ''}`} aria-label="패널">
-        <button
-          className="sheet__grip"
-          aria-label={sheet === 'full' ? '패널 줄이기' : '패널 펼치기'}
-          aria-expanded={sheet === 'full'}
-          onClick={() => setSheet((s) => (s === 'full' ? 'peek' : 'full'))}
-        >
-          <span aria-hidden />
-        </button>
-        {renderSheet()}
-      </section>
+      {onPage ? (
+        <section className="page" aria-label={PAGE_TITLES[tab]}>
+          <header className="page__head">
+            <h1>{PAGE_TITLES[tab]}</h1>
+            <button className="icon-btn" aria-label="설정" onClick={() => setSettingsOpen(true)}>
+              <SettingsIcon size={22} aria-hidden />
+            </button>
+          </header>
+          {renderSheet()}
+        </section>
+      ) : (
+        <section ref={sheetEl} className={`sheet sheet--${sheet} ${sheetTop ? 'sheet--top' : ''}`} aria-label="패널">
+          <button
+            className="sheet__grip"
+            aria-label={sheet === 'full' ? '패널 줄이기' : '패널 펼치기'}
+            aria-expanded={sheet === 'full'}
+            onClick={() => setSheet((s) => (s === 'full' ? 'peek' : 'full'))}
+          >
+            <span aria-hidden />
+          </button>
+          {renderSheet()}
+        </section>
+      )}
 
       <div ref={barEl} className="bottom-bar-wrap">
         <BottomBar tab={tab} pinning={pinning} onTab={changeTab} onPin={startPinning} />

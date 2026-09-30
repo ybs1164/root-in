@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bottomBarAction, tabForIncoming } from './appTabs';
+import { bottomBarAction, showsPage, tabForIncoming } from './appTabs';
 
 describe('bottom-bar tabs', () => {
   it('incoming #share= / #diary= / #pins= links open the matching tab', () => {
@@ -19,5 +19,13 @@ describe('bottom-bar tabs', () => {
     expect(bottomBarAction('pins', 'pins')).toBe('pin');
     expect(bottomBarAction('calendar', 'calendar')).toBe('none');
     expect(bottomBarAction('influencer', 'influencer')).toBe('none');
+  });
+
+  it('달력 and 추천 are full screens; the map shows through only when it is needed', () => {
+    expect(showsPage('calendar', false)).toBe(true);
+    expect(showsPage('influencer', false)).toBe(true);
+    expect(showsPage('pins', false)).toBe(false);
+    expect(showsPage('calendar', true)).toBe(false);
+    expect(showsPage('influencer', true)).toBe(false);
   });
 });

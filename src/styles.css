@@ -1966,6 +1966,48 @@ input.timeline__time:focus {
   bottom: calc(var(--sheet-peek) + var(--bar-h) + var(--safe-bottom));
 }
 
+/* ---------- Tab pages (달력 · 추천): full screens, no map ---------- */
+
+.page {
+  position: absolute;
+  inset: 0;
+  z-index: 11; /* over the map, under the round buttons */
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--safe-top);
+  padding-bottom: calc(var(--bar-h) + var(--safe-bottom) + 6px);
+  background: var(--surface);
+}
+
+.page__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  margin: 0 auto;
+  padding: 4px 8px 0 16px;
+}
+
+.page__head h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.page__head,
+.page .sheet__content {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* The map's own controls belong to the map screen. */
+.app--page .search,
+.app--page .corner-btn {
+  display: none;
+}
+
 /* ---------- Phones: the pin screen's sheet hangs from the top ---------- */
 
 @media (max-width: 899px) {
@@ -2059,6 +2101,13 @@ input.timeline__time:focus {
     bottom: 12px;
     width: 400px;
     padding-bottom: 0;
+  }
+
+  /* Tab pages span the window, so their buttons centre on it. */
+  .app--page .bottom-bar-wrap {
+    left: 0;
+    right: 0;
+    width: auto;
   }
 
   .search.search--open {
