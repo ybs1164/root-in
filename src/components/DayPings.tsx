@@ -45,17 +45,15 @@ interface Press {
 }
 
 /**
- * A day's pings drawn without a map: pins at their relative real positions
- * around the latest one, joined in visiting order. Mounted fresh on each
- * visit so the pins drop in and the line draws itself again. Long-press a
- * ping to change its shape; a short tap is reported through `onTap`.
+ * A day's pings drawn without a map, spread over the drawing in their
+ * relative directions and joined in visiting order; the latest is bigger.
+ * Mounted fresh on each visit so the pins drop in and the line draws itself
+ * again. Long-press a ping to change its shape; a short tap is reported
+ * through `onTap`.
  */
 export default function DayPings({ pings, shapeOf, onShape, onTap, pressable }: DayPingsProps) {
   const latest = latestPingIndex(pings);
-  const points = layoutPings(
-    pings.map((p) => p.center),
-    latest,
-  );
+  const points = layoutPings(pings.map((p) => p.center));
   const press = useRef<Press | null>(null);
   const [pressed, setPressed] = useState(-1);
   const [picking, setPicking] = useState(-1);

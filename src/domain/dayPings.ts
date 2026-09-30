@@ -34,37 +34,24 @@ export function dayTitle(key: string, today: string = dateKey()): string {
 }
 
 /**
- * Places pings inside a unit square (0..1, y down) keeping their real
- * relative positions, so the drawing reads like a tiny map without one.
- * Longitude is scaled by cos(latitude) so east-west distances aren't stretched.
- * With `focus`, that ping (the latest) sits in the middle and the rest are
- * scaled around it to fit; otherwise the whole group is centred.
+ * Places pings inside a unit square (0..1, y down) so they spread over the
+ * whole drawing. Each axis is stretched to the margins on its own: the
+ * drawing keeps which place is east/west and north/south of which, but
+ * not true distances, so a day around one neighbourhood doesn't bunch up
+ * in a corner. Longitude is scaled by cos(latitude) before comparing.
  */
-export function layoutPings(centers: [number, number][], focus = -1, margin = 0.18): { x: number; y: number }[] {
+export function layoutPings(centers: [number, number][], margin = 0.18): { x: number; y: number }[] {
   if (centers.length === 0) return [];
   const midLat = centers.reduce((sum, [, lat]) => sum + lat, 0) / centers.length;
   const kx = Math.cos((midLat * Math.PI) / 180);
-  const xs = centers.map(([lng]) => lng * kx);
-  const ys = centers.map(([, lat]) => -lat);
-
-  if (focus >= 0 && focus < centers.length) {
-    const room = 0.5 - margin;
-    const reach = Math.max(...xs.map((x) => Math.abs(x - xs[focus])), ...ys.map((y) => Math.abs(y - ys[focus])));
-    const k = reach === 0 ? 0 : room / reach;
-    return xs.map((x, i) => ({ x: 0.5 + (x - xs[focus]) * k, y: 0.5 + (ys[i] - ys[focus]) * k }));
-  }
-
-  const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
-  const span = Math.max(maxX - minX, maxY - minY);
-  const size = 1 - margin * 2;
-  if (span === 0) return centers.map(() => ({ x: 0.5, y: 0.5 }));
-  // Centre the smaller axis instead of pinning it to the top-left.
-  const offX = (size - ((maxX - minX) / span) * size) / 2;
-  const offY = (size - ((maxY - minY) / span) * size) / 2;
-  return xs.map((x, i) => ({
-    x: margin + offX + ((x - minX) / span) * size,
-    y: margin + offY + ((ys[i] - minY) / span) * size,
-  }));
+  const spread = (values: number[]) => {
+    const [min, max] = [Math.min(...values), Math.max(...values)];
+    // All on one line along this axis: keep them on the middle of it.
+    return values.map((v) => (max === min ? 0.5 : margin + ((v - min) / (max - min)) * (1 - margin * 2)));
+  };
+  const xs = spread(centers.map(([lng]) => lng * kx));
+  const ys = spread(centers.map(([, lat]) => -lat));
+  return xs.map((x, i) => ({ x, y: ys[i] }));
 }
 
 /** Shapes a ping can take (long-press to choose). */

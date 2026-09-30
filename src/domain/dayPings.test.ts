@@ -56,18 +56,20 @@ describe('calendar day screen', () => {
     expect(latestPingIndex([])).toBe(-1);
   });
 
-  it('with a focus ping (the latest), puts it in the middle and keeps the rest inside the margins', () => {
-    const centers: [number, number][] = SAMPLE_TODAY_PINGS.map((p) => p.center);
-    const points = layoutPings(centers, 2);
-    expect(points[2]).toEqual({ x: 0.5, y: 0.5 });
-    for (const p of points) {
-      for (const v of [p.x, p.y]) {
-        expect(v).toBeGreaterThanOrEqual(0.18 - 1e-9);
-        expect(v).toBeLessThanOrEqual(0.82 + 1e-9);
-      }
-    }
-    expect(points[1].x).toBeLessThan(points[2].x); // 서울숲 is west of 뚝섬
-    expect(layoutPings([[127, 37.5]], 0)).toEqual([{ x: 0.5, y: 0.5 }]);
+  it('spreads pings over the whole drawing on both axes', () => {
+    const points = layoutPings(SAMPLE_TODAY_PINGS.map((p) => p.center));
+    const xs = points.map((p) => p.x);
+    const ys = points.map((p) => p.y);
+    expect(Math.min(...xs)).toBeCloseTo(0.18);
+    expect(Math.max(...xs)).toBeCloseTo(0.82);
+    expect(Math.min(...ys)).toBeCloseTo(0.18);
+    expect(Math.max(...ys)).toBeCloseTo(0.82);
+    // Two places on the same latitude stay level, in the middle.
+    const level = layoutPings([
+      [127.0, 37.5],
+      [127.02, 37.5],
+    ]);
+    expect(level.map((p) => p.y)).toEqual([0.5, 0.5]);
   });
 
   it('tells a tap from a long press, and ignores drags', () => {
