@@ -9,12 +9,13 @@ describe('calendar day screen', () => {
     expect(dayTitle('2026-10-05', '2026-09-30')).toBe('DAY 5');
   });
 
-  it('only today and yesterday have (temporary test) pings; other days are empty', () => {
-    expect(pingsForDate('2026-09-30', '2026-09-30')).toBe(SAMPLE_TODAY_PINGS);
+  it('pings belong to their date: the (temporary test) places stay put as days pass', () => {
+    expect(pingsForDate('2026-09-30')).toBe(SAMPLE_TODAY_PINGS);
     expect(SAMPLE_TODAY_PINGS).toHaveLength(3);
-    expect(pingsForDate('2026-09-29', '2026-09-30')).toHaveLength(4);
-    expect(pingsForDate('2026-09-28', '2026-09-30')).toEqual([]);
-    expect(pingsForDate('2026-10-01', '2026-09-30')).toEqual([]);
+    expect(pingsForDate('2026-09-29')).toHaveLength(4);
+    expect(pingsForDate('2026-09-28')).toEqual([]);
+    // The next day starts empty; 9/30 keeps its places.
+    expect(pingsForDate('2026-10-01')).toEqual([]);
   });
 
   it('pages days by swiping: left-to-right goes back, right-to-left goes forward except on TODAY', () => {
