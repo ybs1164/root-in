@@ -2114,9 +2114,8 @@ input.timeline__time:focus {
   position: relative;
   width: min(100%, 360px);
   aspect-ratio: 1;
-  /* Points are pin tips and the pins rise above them: nudge down so the
-     drawing, not the tips, looks centred. */
-  translate: 0 22px;
+  /* Sits a little above the middle of the space under the title. */
+  translate: 0 -8px;
 }
 
 .pings__line {
