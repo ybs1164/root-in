@@ -372,12 +372,9 @@ export default function App() {
     focusPoint(pin.place.center, 150);
   };
 
-  const railAction = (entry: PinRailEntry) => {
-    const next = pinRailNext(railMode, entry);
-    // Closing the 핀 list lets every pin back onto the map.
-    if (next !== 'pins') setPicked(new Set());
-    setRailMode(next);
-  };
+  // The picked categories outlast the 핀 list: closing it keeps the map
+  // filtered, and reopening shows what is picked.
+  const railAction = (entry: PinRailEntry) => setRailMode(pinRailNext(railMode, entry));
 
   // ----- Adding places -----
 

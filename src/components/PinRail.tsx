@@ -30,7 +30,7 @@ const ENTRIES: { entry: PinRailEntry; label: string; icon: ReactNode }[] = [
  * and 경로 each open on a tap: the tapped one takes the accent colour, the
  * other shrinks away (경로 slides up into the top spot), and a second tap
  * brings it back. 핀 opens one button per category below it; picking some
- * narrows the map to them.
+ * narrows the map to them, and the map stays narrowed after 핀 closes.
  */
 export default function PinRail({ mode, onAction, categories, counts, picked, onToggle }: PinRailProps) {
   // The category list trails the mode so it can play out before unmounting.
