@@ -30,7 +30,9 @@
   --ink-black: #151515;
   --ink-white: #ffffff;
   --tray-bg: rgba(14, 14, 14, 0.74);
-  --tray-tab: rgba(14, 14, 14, 0.48);
+  /* 경로 폴더: frosted white, the open folder more solid than the ones behind. */
+  --folder-bg: rgba(255, 255, 255, 0.86);
+  --folder-tab: rgba(236, 226, 215, 0.82);
   --tray-fg: #ffffff;
   --tray-dim: rgba(255, 255, 255, 0.55);
   --tray-line: rgba(255, 255, 255, 0.16);
@@ -101,6 +103,8 @@
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
     --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.45);
+    --folder-bg: rgba(37, 32, 29, 0.86);
+    --folder-tab: rgba(60, 52, 48, 0.78);
     --backdrop: rgba(0, 0, 0, 0.6);
     --map-road: #2a2521;
     --map-block: #3d5253;
@@ -241,6 +245,8 @@
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.45);
+  --folder-bg: rgba(37, 32, 29, 0.86);
+  --folder-tab: rgba(60, 52, 48, 0.78);
   --backdrop: rgba(0, 0, 0, 0.6);
 }
 
@@ -2310,10 +2316,9 @@ input.timeline__time:focus {
   height: 22px;
 }
 
-/* 경로 폴더: a see-through sheet rising in the tab buttons' place (the same
-   dark glass as the calendar's 꾸미기 tray), with index tabs on its top edge
-   like a file folder's. The open tab matches the sheet so it reads as the
-   front folder; the others are fainter. */
+/* 경로 폴더: a frosted white sheet rising in the tab buttons' place, with
+   index tabs on its top edge like a file folder's. The open tab matches the
+   sheet so it reads as the front folder; the others are fainter. */
 .route-folders {
   position: fixed;
   left: 0;
@@ -2324,7 +2329,7 @@ input.timeline__time:focus {
   flex-direction: column;
   /* Up to about the middle of the screen, the rail and search bar stay clear above. */
   height: 52dvh;
-  color: var(--tray-fg);
+  color: var(--text);
   animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 
@@ -2360,16 +2365,17 @@ input.timeline__time:focus {
   padding: 0 12px;
   border: 0;
   border-radius: 14px 14px 0 0;
-  background: var(--tray-tab);
-  color: var(--tray-dim);
+  background: var(--folder-tab);
+  box-shadow: var(--shadow-up);
+  color: var(--muted);
   font-size: 15px;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .route-folders__tab.is-on {
-  background: var(--tray-bg);
-  color: var(--tray-fg);
+  background: var(--folder-bg);
+  color: var(--text);
 }
 
 .route-folders__icon {
@@ -2390,12 +2396,13 @@ input.timeline__time:focus {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 10px 16px calc(var(--safe-bottom) + 14px);
-  background: var(--tray-bg);
+  background: var(--folder-bg);
+  box-shadow: var(--shadow-up);
 }
 
 .route-folders__empty {
   margin: 18px 0;
-  color: var(--tray-dim);
+  color: var(--muted);
   text-align: center;
 }
 
@@ -2419,7 +2426,7 @@ input.timeline__time:focus {
 }
 
 .route-folders__icon-btn.is-on {
-  background: var(--tray-hi);
+  background: var(--surface-2);
 }
 
 .route-folders__list {
@@ -2432,7 +2439,7 @@ input.timeline__time:focus {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  border-bottom: 1px solid var(--tray-line);
+  border-bottom: 1px solid var(--border);
 }
 
 .route-row:last-child {
@@ -2449,7 +2456,7 @@ input.timeline__time:focus {
   padding: 8px 4px;
   border: 0;
   background: none;
-  color: var(--tray-fg);
+  color: var(--text);
   text-align: left;
 }
 
@@ -2461,21 +2468,21 @@ input.timeline__time:focus {
 }
 
 .route-row__main span {
-  color: var(--tray-dim);
+  color: var(--muted);
   font-size: 13px;
 }
 
 /* The route drawn on the map. */
 .route-row.is-shown .route-row__main strong {
-  color: var(--accent);
+  color: var(--accent-strong);
 }
 
 .route-row__file {
-  color: var(--tray-dim);
+  color: var(--muted);
 }
 
 .route-row__file:not(:disabled):active {
-  background: var(--tray-hi);
+  background: var(--surface-2);
 }
 
 .route-row__chooser {
@@ -2492,10 +2499,10 @@ input.timeline__time:focus {
   min-width: 44px;
   height: 44px;
   padding: 0 10px;
-  border: 1px solid var(--tray-line);
+  border: 1px solid var(--border);
   border-radius: 22px;
   background: none;
-  color: var(--tray-fg);
+  color: var(--text);
   font-size: 20px;
   line-height: 1;
 }
@@ -2507,7 +2514,7 @@ input.timeline__time:focus {
 
 .route-row__to.is-on {
   border-color: var(--accent);
-  background: var(--tray-hi);
+  background: var(--surface-2);
 }
 
 @media (prefers-reduced-motion: reduce) {
