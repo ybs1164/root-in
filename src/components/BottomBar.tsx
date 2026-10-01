@@ -1,4 +1,4 @@
-import { CalendarDays, MapPin, Sparkles } from 'lucide-react';
+import { CalendarDays, MapPin } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { bottomBarAction, type AppTab } from '../domain/appTabs';
 import { CalendarToday } from './icons';
@@ -20,11 +20,10 @@ interface BottomBarProps {
 const BUTTONS: { tab: AppTab; label: string; icon: ReactNode }[] = [
   { tab: 'calendar', label: '달력', icon: <CalendarToday /> },
   { tab: 'pins', label: '핀', icon: <MapPin aria-hidden /> },
-  { tab: 'influencer', label: '추천', icon: <Sparkles aria-hidden /> },
 ];
 
 /**
- * Three floating round buttons (📅 · 📍 · ✨), icon only. The current
+ * Two floating round buttons (📅 · 📍), icon only. The current
  * screen's button is the big one; size is the only "selected" signal, so
  * the labels live in aria-label instead of on screen. Tapped again, the
  * calendar button flips a day screen to the month and the month to TODAY.

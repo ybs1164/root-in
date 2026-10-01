@@ -3845,91 +3845,13 @@ input.timeline__time:focus {
   color: var(--danger);
 }
 
-/* ---------- 추천 feed ---------- */
-
-.curator-row {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.curator {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  width: 76px;
-  padding: 4px 0;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.curator__avatar {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  border: 3px solid var(--border);
-  border-radius: 50%;
-  background: var(--surface-2);
-  font-size: 26px;
-}
-
-.curator.is-on {
-  color: var(--text);
-}
-
-.curator.is-on .curator__avatar {
-  border-color: var(--accent);
-}
-
-.curator__name {
-  max-width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.feed__bio {
-  margin: 0;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.feed-card {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--muted);
-  text-align: left;
-}
-
-.feed-card__main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  color: var(--text);
-}
-
 /* MapLibre fallback: keep attribution clear of the sheet on phones. */
 .maplibregl-ctrl-bottom-right,
 .maplibregl-ctrl-bottom-left {
   bottom: calc(var(--sheet-peek) + var(--bar-h) + var(--safe-bottom));
 }
 
-/* ---------- Tab pages (달력 · 추천): full screens, no map ---------- */
+/* ---------- Tab pages (달력): full screens, no map ---------- */
 
 .page {
   position: absolute;

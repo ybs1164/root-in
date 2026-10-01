@@ -6,7 +6,6 @@ import BottomBar from './components/BottomBar';
 import CalendarSheet from './components/CalendarSheet';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
 import CategoryChips from './components/CategoryChips';
-import InfluencerPanel from './components/InfluencerPanel';
 import PinCard from './components/PinCard';
 import PinDropTray from './components/PinDropTray';
 import PinRail from './components/PinRail';
@@ -44,9 +43,6 @@ import { useSettings } from './hooks/useSettings';
 import { kakaoPlaceUrl } from './lib/directionsLink';
 import { SEOUL_CENTER, type CourseMap, type MapPadding, type PinMarker } from './map/courseMap';
 import { createMapStack } from './map/createCourseMap';
-import { encodeSharedCourse } from './services/courseShareService';
-import type { CuratorItem } from './services/curatorFeedService';
-import { encodeSharedPinSet } from './services/pinShareService';
 import { pointPlace, type PlaceSearchService } from './services/placeSearch/placeSearchService';
 import { withRecentCategory } from './services/settingsRepository';
 import type { ShareTarget } from './services/shareTargets';
@@ -325,7 +321,7 @@ export default function App() {
     }
     if (incomingCourse.status === 'ready') {
       setSharedSaved(false);
-      setTab((t) => tabForIncoming('course', t));
+      setTab(tabForIncoming('course'));
       // Recipients should see the route on the map first; the list is one tap away.
       setSheet('peek');
     }
@@ -337,7 +333,7 @@ export default function App() {
       dismissDiary();
     }
     if (incomingDiary.status === 'ready') {
-      setTab((t) => tabForIncoming('day', t));
+      setTab(tabForIncoming('day'));
       setSheet('peek');
     }
   }, [incomingDiary, dismissDiary, notify]);
@@ -349,7 +345,7 @@ export default function App() {
     }
     if (incomingPins.status === 'ready') {
       setSharedPinsSaved(false);
-      setTab((t) => tabForIncoming('pins', t));
+      setTab(tabForIncoming('pins'));
       setSheet('peek');
     }
   }, [incomingPins, dismissPins, notify]);
@@ -603,12 +599,6 @@ export default function App() {
     setPinning(true);
   };
 
-  const openCuratorItem = (item: CuratorItem) => {
-    // Reuse the link flow: the same views, validation and "save" buttons as a received link.
-    window.location.hash =
-      item.kind === 'course' ? `share=${encodeSharedCourse(item.course).token}` : `pins=${encodeSharedPinSet(item.pins).token}`;
-  };
-
   // ----- Render -----
 
   const providerLabel =
@@ -689,13 +679,6 @@ export default function App() {
         </div>
       );
     }
-    if (tab === 'influencer') {
-      return (
-        <div className="sheet__content">
-          <InfluencerPanel onOpen={openCuratorItem} />
-        </div>
-      );
-    }
     return null;
   };
 
@@ -703,7 +686,7 @@ export default function App() {
   // A received day (#diary=) still opens in the old timeline view.
   const calendarZoom = tab === 'calendar' && !sharedDiary;
   const onPage = showsPage(tab, Boolean(sharedCourse || sharedPins || searchOpen || preview));
-  // Swiping 달력 left / 추천 right slides the page off and uncovers the map (핀).
+  // Swiping 달력 left slides the page off and uncovers the map (핀).
   const swipe = usePageSwipe(onPage && !decorating ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
 
   // The tab buttons step aside for a 꾸미기 tool's tray, and for the 경로 폴더.
