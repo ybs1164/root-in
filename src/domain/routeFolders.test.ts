@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Course } from '../types/course';
-import { addFolder, deleteFolder, EMPTY_ROUTE_FOLDERS, moveFolder, folderOf, moveRoute, nextFolderName, renameFolder, ROUTE_FOLDER_LIMITS, routesInTab, setFolderIcon } from './routeFolders';
+import { addFolder, deleteFolder, EMPTY_ROUTE_FOLDERS, moveFolder, folderOf, moveRoute, neighborRoute, nextFolderName, renameFolder, ROUTE_FOLDER_LIMITS, routesInTab, setFolderIcon } from './routeFolders';
 
 const course = (id: string, createdAt: string): Course => ({
   id, userId: 'u', title: id, theme: 'date', travelMode: 'walk', stops: [], createdAt,
@@ -59,5 +59,22 @@ describe('route folders', () => {
     expect(after.folders.map((f) => f.id)).toEqual(['b']);
     expect(after.assign).toEqual({ r2: 'b' });
     expect(folderOf(after, 'r1')).toBeNull();
+  });
+
+  it('the < > arrows step through the open tab\'s list, wrapping round', () => {
+    // 전체: 1 2 3 4 top to bottom (1 saved last); 2–4 in the heart folder.
+    let state = addFolder(EMPTY_ROUTE_FOLDERS, 'heart')!;
+    for (const id of ['r2', 'r3', 'r4']) state = moveRoute(state, id, 'heart');
+    const courses = [course('r4', '2026-09-01'), course('r3', '2026-09-02'), course('r2', '2026-09-03'), course('r1', '2026-09-04')];
+    const walk = (tab: string, from: string, steps: (-1 | 1)[]) =>
+      steps.reduce<string[]>((seen, step) => [...seen, neighborRoute(courses, state, tab, seen[seen.length - 1], step)!.id], [from]).slice(1);
+    expect(walk('all', 'r1', [1, 1, 1, 1])).toEqual(['r2', 'r3', 'r4', 'r1']);
+    expect(walk('heart', 'r3', [1])).toEqual(['r4']);
+    expect(walk('heart', 'r3', [-1, -1])).toEqual(['r2', 'r4']);
+    // Not in the tab's list, or alone in it: nowhere to go.
+    expect(neighborRoute(courses, state, 'heart', 'r1', 1)).toBeNull();
+    expect(neighborRoute(courses, state, 'none', 'r1', 1)).toBeNull();
+    // A folder gone missing falls back to 전체, as the sheet does.
+    expect(neighborRoute(courses, state, 'gone', 'r4', 1)!.id).toBe('r1');
   });
 });

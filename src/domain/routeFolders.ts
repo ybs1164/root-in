@@ -95,10 +95,28 @@ export function folderOf(state: RouteFolders, courseId: string): string | null {
   return id && state.folders.some((f) => f.id === id) ? id : null;
 }
 
+/** The tab actually open: a folder deleted elsewhere falls back to 전체. */
+export function openRouteTab(state: RouteFolders, tab: RouteTab): RouteTab {
+  return tab === 'all' || tab === 'none' || state.folders.some((f) => f.id === tab) ? tab : 'all';
+}
+
 /** The routes a tab shows, newest first. */
 export function routesInTab(courses: Course[], state: RouteFolders, tab: RouteTab): Course[] {
   const newest = [...courses].sort((a, b) => (b.updatedAt ?? b.createdAt).localeCompare(a.updatedAt ?? a.createdAt));
   if (tab === 'all') return newest;
   if (tab === 'none') return newest.filter((c) => folderOf(state, c.id) === null);
   return newest.filter((c) => folderOf(state, c.id) === tab);
+}
+
+/**
+ * The route next to `id` in the open tab's list, as the < > arrows over a
+ * route on show step through it: -1 is the row above (saved later), 1 the
+ * row below (saved earlier), wrapping round at either end. Null when the
+ * route isn't in that list or has no neighbour to step to.
+ */
+export function neighborRoute(courses: Course[], state: RouteFolders, tab: RouteTab, id: string, step: -1 | 1): Course | null {
+  const routes = routesInTab(courses, state, openRouteTab(state, tab));
+  const at = routes.findIndex((c) => c.id === id);
+  if (at < 0 || routes.length < 2) return null;
+  return routes[(at + step + routes.length) % routes.length];
 }

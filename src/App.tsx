@@ -28,7 +28,7 @@ import { pinRailNext, togglePicked, type PinRailEntry, type PinRailMode } from '
 import { PRESS } from './domain/dayPings';
 import { nextRouteName, toggleBuildStop } from './domain/routeBuild';
 import { withEdgeStyle, withStopShape } from './domain/routeStyle';
-import { moveRoute, type RouteTab } from './domain/routeFolders';
+import { moveRoute, neighborRoute, type RouteTab } from './domain/routeFolders';
 import { useCourseDraft } from './hooks/useCourseDraft';
 import { useDiaryDay } from './hooks/useDiaryDay';
 import { useDistrictMap } from './hooks/useDistrictMap';
@@ -135,6 +135,8 @@ export default function App() {
   const [shownRouteId, setShownRouteId] = useState<string | null>(null);
   // The 경로 폴더's open tab (kept here: the sheet unmounts while it is down).
   const [routeTab, setRouteTab] = useState<RouteTab>('all');
+  // The route the < > arrows last stepped to and the side its name slides in from.
+  const [routeStep, setRouteStep] = useState<{ id: string; from: -1 | 1 } | null>(null);
   // Making a new route from pins (the folder's +): the pins tapped so far, in order.
   const [building, setBuilding] = useState<string[] | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
@@ -247,7 +249,7 @@ export default function App() {
       const lowered = folderTray.classList.contains('is-lowered');
       const covered = lowered ? FOLDER_LOWERED_PX : folderTray.offsetHeight;
       // A route on show has its name under the rail; the route sits below it.
-      const title = document.querySelector<HTMLElement>('.route-title');
+      const title = document.querySelector<HTMLElement>('.route-title:not(.route-title--out)');
       const top = lowered && title ? title.getBoundingClientRect().bottom + 30 : 90;
       return { top, right: 40, bottom: covered + 30 + extraBottom, left: 40 };
     }
@@ -764,7 +766,10 @@ export default function App() {
           folders={routeFolders.folders}
           onFolders={routeFolders.setFolders}
           shownId={shownRoute?.id ?? null}
-          onShow={(c) => setShownRouteId(c?.id ?? null)}
+          onShow={(c) => {
+            setRouteStep(null); // picked from the list: the name just appears
+            setShownRouteId(c?.id ?? null);
+          }}
           tab={routeTab}
           onTab={setRouteTab}
           onNewRoute={startBuilding}
@@ -799,8 +804,22 @@ export default function App() {
       {/* The route on show, named at the top of the map like a calendar day's TODAY. */}
       {shownRoute && !buildPins && (
         <RouteTitle
+          routeId={shownRoute.id}
           title={shownRoute.title}
           onRename={(title) => course.save({ ...shownRoute, title })}
+          slideFrom={routeStep?.id === shownRoute.id ? routeStep.from : 0}
+          // Each arrow puts the neighbour on show the usual way, so the map
+          // glides over and its stops drop in afresh.
+          onStep={
+            neighborRoute(course.courses, routeFolders.folders, routeTab, shownRoute.id, 1)
+              ? (step) => {
+                  const next = neighborRoute(course.courses, routeFolders.folders, routeTab, shownRoute.id, step);
+                  if (!next) return;
+                  setRouteStep({ id: next.id, from: step });
+                  setShownRouteId(next.id);
+                }
+              : undefined
+          }
         />
       )}
 

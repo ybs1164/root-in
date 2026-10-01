@@ -8,6 +8,7 @@ import {
   moveFolder,
   moveRoute,
   ROUTE_FOLDER_LIMITS,
+  openRouteTab,
   routesInTab,
   setFolderIcon,
   type RouteFolders,
@@ -98,8 +99,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
   foldersRef.current = folders;
 
   // A deleted-elsewhere folder can't stay selected.
-  const tabOk = tab === 'all' || tab === 'none' || folders.folders.some((f) => f.id === tab);
-  const current = tabOk ? tab : 'all';
+  const current = openRouteTab(folders, tab);
   const routes = routesInTab(courses, folders, current);
 
   const add = () => {
