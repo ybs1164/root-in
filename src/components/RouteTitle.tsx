@@ -11,9 +11,12 @@ interface RouteTitleProps {
  * The name of the route on show, big at the top of the map like a calendar
  * day's "TODAY", with a small pen at its bottom right: tap it to rename in
  * place (the pen again, Enter or a tap elsewhere sets it; Escape keeps the old one).
+ * The field looks just like the name, so only the text changes while editing.
  */
 export default function RouteTitle({ title, onRename }: RouteTitleProps) {
   const [editing, setEditing] = useState(false);
+  // What's typed so far, mirrored into a hidden copy that sizes the field to its text.
+  const [draft, setDraft] = useState(title);
   const inputEl = useRef<HTMLInputElement | null>(null);
 
   // Another route: back to just its name.
@@ -28,20 +31,25 @@ export default function RouteTitle({ title, onRename }: RouteTitleProps) {
   return (
     <div className="route-title">
       {editing ? (
-        <input
-          ref={inputEl}
-          className="route-title__input"
-          aria-label="루트 이름"
-          defaultValue={title}
-          maxLength={COURSE_LIMITS.title}
-          autoFocus
-          onFocus={(e) => e.currentTarget.select()}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') e.currentTarget.blur();
-            if (e.key === 'Escape') setEditing(false);
-          }}
-        />
+        <span className="route-title__name route-title__field">
+          <span className="route-title__sizer" aria-hidden>
+            {draft || ' '}
+          </span>
+          <input
+            ref={inputEl}
+            className="route-title__input"
+            aria-label="루트 이름"
+            value={draft}
+            maxLength={COURSE_LIMITS.title}
+            autoFocus
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.currentTarget.blur();
+              if (e.key === 'Escape') setEditing(false);
+            }}
+          />
+        </span>
       ) : (
         <h2 className="route-title__name">{title}</h2>
       )}
@@ -52,7 +60,11 @@ export default function RouteTitle({ title, onRename }: RouteTitleProps) {
         // While editing, keep the field focused: a blur first would save and close
         // it, and this tap would then open it again.
         onPointerDown={(e) => editing && e.preventDefault()}
-        onClick={() => (editing ? commit() : setEditing(true))}
+        onClick={() => {
+          if (editing) return commit();
+          setDraft(title);
+          setEditing(true);
+        }}
       >
         <Pencil size={13} aria-hidden />
       </button>

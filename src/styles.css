@@ -2650,20 +2650,36 @@ input.timeline__time:focus {
     0 0 2px var(--surface);
 }
 
+.route-title__field {
+  /* A hidden copy of the text sizes the field and the input lies over it,
+     so the field is exactly as wide as the name: editing changes only the text. */
+  position: relative;
+  display: inline-block;
+  max-width: min(calc(100vw - 80px), 320px);
+}
+
+.route-title__sizer {
+  display: block;
+  min-width: 1ch;
+  overflow: hidden;
+  visibility: hidden;
+  white-space: pre;
+}
+
 .route-title__input {
-  /* Leaves room for the pen inside the title's width. */
-  width: min(calc(100vw - 80px), 320px);
-  height: 44px;
-  padding: 0 10px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
-  color: var(--text);
+  position: absolute;
+  inset: 0;
+  width: 100%;
   font: inherit;
-  font-size: 22px;
-  font-weight: 800;
+  letter-spacing: inherit;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  caret-color: var(--accent);
   text-align: center;
+  text-shadow: inherit;
 }
 
 .route-title__pen {
