@@ -91,6 +91,8 @@ interface DecorTrayProps {
   tool: DecorTool;
   /** Going down before the next tool's sheet comes up. */
   leaving?: boolean;
+  /** Out of the way below the screen for now (a piece is being dragged). */
+  away?: boolean;
   armed: string | null;
   onArm: (emoji: string | null) => void;
   pen: PenSettings;
@@ -179,7 +181,7 @@ export function DecorTray(p: DecorTrayProps) {
   const picker = picking && <ColorPicker color={custom ?? '#ff4d6d'} onPick={setColor} onClose={() => setPicking(false)} />;
 
   return (
-    <div className={`decor-tray decor-tray--${p.tool} ${p.leaving ? 'is-leaving' : ''}`} role="toolbar" aria-label={label}>
+    <div className={`decor-tray decor-tray--${p.tool} ${p.leaving ? 'is-leaving' : ''} ${p.away ? 'is-away' : ''}`} role="toolbar" aria-label={label}>
       <div className="decor-tray__grip" aria-hidden />
 
       {p.tool === 'sticker' && (

@@ -46,6 +46,8 @@ interface DecorLayerProps {
   onTextFocus?: (focus: TextFocus) => void;
   /** How a new text box starts out (the last style picked). */
   textStyle?: TextStyle;
+  /** A sticker or text box is being dragged (the tool sheet steps aside for the trash under the box). */
+  onDragging?: (on: boolean) => void;
 }
 
 /** How far a finger may wander and still count as a tap on a box (px). */
@@ -140,6 +142,7 @@ export default function DecorLayer({
   textFocus = null,
   onTextFocus = () => {},
   textStyle = { font: 'sans', color: 'ink-black', align: 'center' },
+  onDragging,
 }: DecorLayerProps) {
   const layer = useRef<HTMLDivElement | null>(null);
   const [drawing, setDrawing] = useState<Stroke | null>(null);
@@ -281,9 +284,12 @@ export default function DecorLayer({
   };
 
   // Dragged pieces may go anywhere; where the finger lets go decides: the
-  // trash deletes, off the box puts it back, on the box leaves it there.
+  // trash (just under the box, shown while dragging) deletes; anywhere else
+  // the piece lands at the nearest spot on the box.
   const trashEl = useRef<HTMLSpanElement | null>(null);
   const [overTrash, setOverTrash] = useState(false);
+  const dragging = !!live;
+  useEffect(() => onDragging?.(dragging), [dragging]); // eslint-disable-line react-hooks/exhaustive-deps
   const landing = (e: PointerEvent) =>
     dropOutcome(
       { x: e.clientX, y: e.clientY },
@@ -308,10 +314,9 @@ export default function DecorLayer({
     const { id, ...moved } = liveRef.current;
     setOverTrash(false);
     setLive(null);
-    // A cancelled touch (the system took it) puts the piece back too.
-    const where = e.type === 'pointercancel' ? 'outside' : landing(e);
-    if (where === 'outside') return;
-    if (where === 'trash') {
+    // A cancelled touch (the system took it) puts the piece back where it was.
+    if (e.type === 'pointercancel') return;
+    if (landing(e) === 'trash') {
       if (g.kind === 'sticker') {
         onChange({ ...decor, stickers: decor.stickers.filter((st) => st.id !== id) });
         setSelected(null);
@@ -321,7 +326,7 @@ export default function DecorLayer({
       }
       return;
     }
-    // Let go on the box: the piece stays, its centre kept on the box.
+    // On the box it stays where it is; off it, it comes to the nearest spot on it.
     const pose = { ...moved, x: clamp01(moved.x), y: clamp01(moved.y) };
     if (g.kind === 'sticker') onChange({ ...decor, stickers: decor.stickers.map((st) => (st.id === id ? { ...st, ...pose } : st)) });
     else onChange({ ...decor, texts: (decor.texts ?? []).map((t) => (t.id === id ? { ...t, ...pose } : t)) });
@@ -525,13 +530,9 @@ export default function DecorLayer({
           </div>
         );
       })}
-      {(tool === 'sticker' || tool === 'text') && (
+      {(tool === 'sticker' || tool === 'text') && live && (
         // Drag a sticker or text box here to throw it away.
-        <span
-          ref={trashEl}
-          className={`decor__trash ${live ? 'is-dragging' : ''} ${overTrash ? 'is-over' : ''}`}
-          aria-hidden
-        >
+        <span ref={trashEl} className={`decor__trash ${overTrash ? 'is-over' : ''}`} aria-hidden>
           <Trash2 size={22} />
         </span>
       )}

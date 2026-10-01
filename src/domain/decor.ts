@@ -213,8 +213,8 @@ type Rect = { left: number; top: number; right: number; bottom: number };
 
 /**
  * Where a dragged sticker or text box lands, by where the finger lets go:
- * on the trash (deleted), outside the drawing box (back where it was), or
- * inside it (stays there). The trash sits inside the box, so it wins.
+ * on the trash (deleted), outside the drawing box or inside it (either way
+ * it's kept, its centre brought onto the box). The trash is checked first.
  * `slop` widens the trash a little: fingers cover what they aim at.
  */
 export function dropOutcome(at: Pt, box: Rect, trash: Rect | null, slop = 12): 'trash' | 'outside' | 'inside' {

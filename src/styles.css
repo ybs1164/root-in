@@ -1304,29 +1304,33 @@ button:disabled {
 }
 
 .decor__trash {
+  /* Just under the drawing, outside it; the tool sheet goes down while a
+     piece is dragged so it's in view. */
   position: absolute;
   left: 50%;
-  bottom: 8px;
+  top: calc(100% + 18px);
   z-index: 3; /* over the pieces, even the one being dragged onto it */
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: var(--surface-2);
   color: var(--muted);
-  opacity: 0.55;
   translate: -50% 0;
-  pointer-events: none; /* taps go through to the box (a new text box there) */
+  pointer-events: none;
+  animation: trash-in 0.18s ease-out both;
   transition:
-    opacity 0.15s,
     scale 0.15s,
     background-color 0.15s,
     color 0.15s;
 }
 
-.decor__trash.is-dragging {
-  opacity: 1;
+@keyframes trash-in {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
 }
 
 .decor__trash.is-over {
@@ -1437,6 +1441,17 @@ button:disabled {
   from {
     translate: 0 100%;
   }
+}
+
+/* A piece being dragged: the sheet steps down out of the way of the trash
+   under the drawing (transform, so it doesn't fight the translate animations). */
+.decor-tray {
+  transition: transform 0.2s ease;
+}
+
+.decor-tray.is-away {
+  transform: translateY(100%);
+  pointer-events: none;
 }
 
 /* Switching tools: this sheet goes down, then the next one comes up. */

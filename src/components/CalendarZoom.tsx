@@ -135,6 +135,8 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
   // Text tool: the box picked or being typed in, and how the next new box looks.
   const [textFocus, setTextFocus] = useState<TextFocus>(null);
   const [textStyle, setTextStyle] = useState<TextStyle>(DEFAULT_TEXT_STYLE);
+  // A sticker or text box is being dragged: the tool sheet steps aside for the trash.
+  const [draggingPiece, setDraggingPiece] = useState(false);
   const toolRef = useRef(tool);
   toolRef.current = tool;
 
@@ -620,6 +622,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
                 textFocus={textFocus}
                 onTextFocus={setTextFocus}
                 textStyle={textStyle}
+                onDragging={setDraggingPiece}
               />
             </DayPings>
           </div>
@@ -641,6 +644,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
         <DecorTray
           key={trayTool}
           leaving={trayLeaving}
+          away={draggingPiece}
           tool={trayTool}
           armed={armed}
           onArm={setArmed}

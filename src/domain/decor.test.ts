@@ -118,12 +118,12 @@ describe('day decorations', () => {
     expect(stickerGesture(base, [{ x: 0, y: 0 }], [{ x: 60, y: 0 }], 300).x).toBe(1);
   });
 
-  it('a drop on the trash deletes, outside the box puts back, inside stays', () => {
+  it('a drop on the trash (under the box) deletes; otherwise it says on or off the box', () => {
     const box = { left: 0, top: 0, right: 300, bottom: 300 };
-    const trash = { left: 128, top: 248, right: 172, bottom: 292 };
-    expect(dropOutcome({ x: 150, y: 270 }, box, trash)).toBe('trash');
-    expect(dropOutcome({ x: 150, y: 302 }, box, trash)).toBe('trash'); // just off it, finger-sized
-    expect(dropOutcome({ x: 150, y: 350 }, box, trash)).toBe('outside');
+    const trash = { left: 124, top: 318, right: 176, bottom: 370 };
+    expect(dropOutcome({ x: 150, y: 340 }, box, trash)).toBe('trash');
+    expect(dropOutcome({ x: 150, y: 380 }, box, trash)).toBe('trash'); // just off it, finger-sized
+    expect(dropOutcome({ x: 150, y: 450 }, box, trash)).toBe('outside');
     expect(dropOutcome({ x: -5, y: 100 }, box, trash)).toBe('outside');
     expect(dropOutcome({ x: 100, y: 100 }, box, trash)).toBe('inside');
     expect(dropOutcome({ x: 100, y: 100 }, box, null)).toBe('inside');
