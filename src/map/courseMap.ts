@@ -28,9 +28,10 @@ export interface CourseMap {
    * road color and draws only the rounded blocks. null restores the basemap.
    */
   setDistrictMap(district: DistrictMap | null): void;
-  fitCourse(padding: MapPadding): void;
-  /** Fits arbitrary points (pins, a guide line). */
-  fitPoints(points: [number, number][], padding: MapPadding): void;
+  /** Resolves once the map has finished moving there (never rejects). */
+  fitCourse(padding: MapPadding): Promise<void>;
+  /** Fits arbitrary points (pins, a guide line). Resolves once the move ends. */
+  fitPoints(points: [number, number][], padding: MapPadding): Promise<void>;
   focus(center: [number, number], padding?: MapPadding): void;
   /** Pans so `center` sits in the middle of the map, leaving the zoom as it is. */
   centerOn(center: [number, number]): void;

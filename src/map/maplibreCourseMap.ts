@@ -13,8 +13,9 @@ import {
 } from './courseMap';
 
 // Keyless fallback basemap for development / when the Kakao SDK is unavailable.
-/** A route's glide into view (App's ROUTE_GLIDE_MS is a little longer). */
+/** A route's glide into view (App waits for its end before playing the route in). */
 const GLIDE_MS = 1000;
+const FOCUS_MS = 500;
 
 /** Slow at both ends, with no sudden push in the middle. */
 function easeInOutSine(t: number): number {
@@ -165,15 +166,38 @@ export class MapLibreCourseMap implements CourseMap {
     source?.setData(this.guideData());
   }
 
-  fitPoints(points: [number, number][], padding: MapPadding): void {
-    if (points.length === 0) return;
-    if (points.length === 1) return this.focus(points[0], padding);
+  fitPoints(points: [number, number][], padding: MapPadding): Promise<void> {
+    if (points.length === 0) return Promise.resolve();
+    if (points.length === 1) {
+      this.focus(points[0], padding);
+      return this.moveSettled(this.duration(FOCUS_MS));
+    }
     const bounds = new maplibregl.LngLatBounds();
     points.forEach((p) => bounds.extend(p));
-    // Slow enough to read as a glide, gently eased in and out (App's
-    // ROUTE_GLIDE_MS waits for it). A plain ease, not the default fly's
+    // Slow enough to read as a glide, gently eased in and out. A plain ease, not the default fly's
     // zoom-out-and-back arc, which on a short hop reads as a lurch.
     this.map.fitBounds(bounds, { padding, maxZoom: 16, linear: true, easing: easeInOutSine, duration: this.duration(GLIDE_MS) });
+    return this.moveSettled(this.duration(GLIDE_MS));
+  }
+
+  /**
+   * The end of the move just started (`ms` long; 0 = a jump, already over).
+   * Listened for after starting it: starting a move ends the one before,
+   * whose moveend must not count. The eased tail of a glide is too slow to
+   * see, so it counts as over a little early; a move that never starts
+   * (already there) or never runs (no render) still resolves.
+   */
+  private moveSettled(ms: number): Promise<void> {
+    if (ms === 0) return Promise.resolve();
+    return new Promise((resolve) => {
+      const done = () => {
+        window.clearTimeout(timer);
+        this.map.off('moveend', done);
+        resolve();
+      };
+      const timer = window.setTimeout(done, ms * 0.9);
+        this.map.on('moveend', done);
+    });
   }
 
   setCourse(stops: PlaceRef[]): void {
@@ -197,8 +221,8 @@ export class MapLibreCourseMap implements CourseMap {
       : null;
   }
 
-  fitCourse(padding: MapPadding): void {
-    this.fitPoints(
+  fitCourse(padding: MapPadding): Promise<void> {
+    return this.fitPoints(
       this.stops.map((s) => s.center),
       padding,
     );
@@ -210,7 +234,7 @@ export class MapLibreCourseMap implements CourseMap {
     const offset: [number, number] = padding
       ? [(padding.left - padding.right) / 2, (padding.top - padding.bottom) / 2]
       : [0, 0];
-    this.map.easeTo({ center, zoom: Math.max(this.map.getZoom(), FOCUS_ZOOM), offset, duration: this.duration(500) });
+    this.map.easeTo({ center, zoom: Math.max(this.map.getZoom(), FOCUS_ZOOM), offset, duration: this.duration(FOCUS_MS) });
   }
 
   /**

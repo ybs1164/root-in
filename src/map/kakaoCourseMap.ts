@@ -125,12 +125,17 @@ export class KakaoCourseMap implements CourseMap {
         : null;
   }
 
-  fitPoints(points: [number, number][], padding: MapPadding): void {
-    if (points.length === 0) return;
-    if (points.length === 1) return this.focus(points[0]);
+  fitPoints(points: [number, number][], padding: MapPadding): Promise<void> {
+    if (points.length === 0) return Promise.resolve();
+    if (points.length === 1) {
+      this.focus(points[0]);
+      return Promise.resolve();
+    }
     const bounds = new this.maps.LatLngBounds();
     points.forEach((p) => bounds.extend(this.latLng(p)));
+    // setBounds jumps: the map is there as soon as it returns.
     this.map.setBounds(bounds, padding.top, padding.right, padding.bottom, padding.left);
+    return Promise.resolve();
   }
 
   private latLng([lon, lat]: [number, number]) {
@@ -178,8 +183,8 @@ export class KakaoCourseMap implements CourseMap {
       : null;
   }
 
-  fitCourse(padding: MapPadding): void {
-    this.fitPoints(
+  fitCourse(padding: MapPadding): Promise<void> {
+    return this.fitPoints(
       this.stops.map((s) => s.center),
       padding,
     );
