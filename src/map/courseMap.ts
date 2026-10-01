@@ -34,6 +34,8 @@ export interface CourseMap {
   focus(center: [number, number], padding?: MapPadding): void;
   /** Pans so `center` sits in the middle of the map, leaving the zoom as it is. */
   centerOn(center: [number, number]): void;
+  /** Turns one-finger / mouse dragging of the map on or off (off while a route is drawn over pins). */
+  setPanEnabled(enabled: boolean): void;
   getCenter(): [number, number];
   /** Call after the container changes size (e.g. sheet resize, rotation). */
   resize(): void;
@@ -86,6 +88,8 @@ export function createPinElement(pin: PinMarker, onClick?: (id: string) => void)
   el.style.setProperty('--pin', `var(--pin-${pin.color})`);
   el.textContent = pin.emoji;
   el.setAttribute('aria-label', pin.name);
+  // Lets a finger drawing a route over the map find the pin under it.
+  el.dataset.pinId = pin.id;
   el.addEventListener('click', (event) => {
     event.stopPropagation();
     onClick?.(pin.id);

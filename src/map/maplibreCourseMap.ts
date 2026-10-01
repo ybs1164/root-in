@@ -206,6 +206,11 @@ export class MapLibreCourseMap implements CourseMap {
     return this.map.isStyleLoaded() ? ms : 0;
   }
 
+  setPanEnabled(enabled: boolean): void {
+    if (enabled) this.map.dragPan.enable();
+    else this.map.dragPan.disable();
+  }
+
   centerOn(center: [number, number]): void {
     this.map.easeTo({ center, duration: this.duration(400) });
   }

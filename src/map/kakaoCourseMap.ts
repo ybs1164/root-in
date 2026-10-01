@@ -190,6 +190,10 @@ export class KakaoCourseMap implements CourseMap {
     this.map.panTo(this.latLng(center));
   }
 
+  setPanEnabled(enabled: boolean): void {
+    this.map.setDraggable(enabled);
+  }
+
   centerOn(center: [number, number]): void {
     this.map.panTo(this.latLng(center));
   }

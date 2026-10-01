@@ -10,6 +10,7 @@ import InfluencerPanel from './components/InfluencerPanel';
 import PinCard from './components/PinCard';
 import PinDropTray from './components/PinDropTray';
 import PinRail from './components/PinRail';
+import RouteBuildLayer from './components/RouteBuildLayer';
 import RouteFolderTray from './components/RouteFolderTray';
 import SearchBar from './components/SearchBar';
 import SettingsSheet from './components/SettingsSheet';
@@ -264,7 +265,9 @@ export default function App() {
     mapRef.current?.setCourse(shownStops);
   }, [shownStops, mapProvider]);
   useEffect(() => {
-    if (!mapRef.current || shownStops.length === 0) return;
+    // While a route is being made from pins the map stays put: re-fitting on
+    // every added stop would move the next pin out from under the finger.
+    if (!mapRef.current || shownStops.length === 0 || buildPins) return;
     const id = requestAnimationFrame(() => mapRef.current?.fitCourse(mapPadding()));
     return () => cancelAnimationFrame(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -365,7 +368,7 @@ export default function App() {
   };
 
   mapEvents.current.longPress = async (center: [number, number]) => {
-    if (pinning || sharedCourse || sharedPins) return;
+    if (pinning || sharedCourse || sharedPins || (building && routeMode)) return;
     const place = pointPlace(center);
     setActivePinId(null);
     setPreview(place);
@@ -432,10 +435,10 @@ export default function App() {
     setBuilding([]);
   };
 
-  const saveBuilt = async () => {
+  const saveBuilt = async (title: string, note: string) => {
     if (!buildPins || buildPins.length < COURSE_LIMITS.minStops) return;
     const stops = buildPins.map((p) => ({ place: p.place }));
-    const saved = await course.save({ title: buildRouteTitle(stops.map((s) => s.place)), theme: 'etc', travelMode: 'walk', stops });
+    const saved = await course.save({ title, note: note || undefined, theme: 'etc', travelMode: 'walk', stops });
     // Made from inside a folder: it goes in that folder.
     if (routeTab !== 'all' && routeTab !== 'none') routeFolders.setFolders((f) => moveRoute(f, saved.id, routeTab));
     setBuilding(null);
@@ -656,22 +659,18 @@ export default function App() {
         />
       )}
 
-      {buildPins && (
-        <div className="route-build" role="region" aria-label="경로 만들기">
-          <p className="route-build__hint" aria-live="polite">
-            {buildPins.length === 0
-              ? '지도에서 핀을 순서대로 눌러 경로를 만들어요.'
-              : `${buildPins.length}곳 · 다시 누르면 빠져요${buildPins.length >= COURSE_LIMITS.maxStops ? ` (최대 ${COURSE_LIMITS.maxStops}곳)` : ''}`}
-          </p>
-          <div className="route-build__actions">
-            <button className="btn btn--ghost" onClick={() => setBuilding(null)}>
-              취소
-            </button>
-            <button className="btn btn--primary" disabled={buildPins.length < COURSE_LIMITS.minStops} onClick={saveBuilt}>
-              경로 저장
-            </button>
-          </div>
-        </div>
+      {buildPins && building && (
+        <RouteBuildLayer
+          mapEl={mapEl.current}
+          chosen={building}
+          onAdd={(id) =>
+            setBuilding((b) => (b && !b.includes(id) && b.length < COURSE_LIMITS.maxStops ? [...b, id] : b))
+          }
+          onCancel={() => setBuilding(null)}
+          onPanEnabled={(on) => mapRef.current?.setPanEnabled(on)}
+          defaultTitle={buildRouteTitle(buildPins.map((p) => p.place))}
+          onCreate={saveBuilt}
+        />
       )}
 
       {pinning && (
