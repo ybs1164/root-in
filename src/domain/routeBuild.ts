@@ -1,5 +1,4 @@
 import { COURSE_LIMITS } from './course';
-import type { PlaceRef } from '../types/course';
 
 /**
  * Making a route from pins: pins tapped in order become its stops. Tapping
@@ -11,11 +10,13 @@ export function toggleBuildStop(chosen: readonly string[], pinId: string): strin
   return [...chosen, pinId];
 }
 
-/** A new route's title: '첫 곳 → 마지막 곳' (just the place for one stop). */
-export function buildRouteTitle(stops: readonly PlaceRef[]): string {
-  if (stops.length === 0) return '새 경로';
-  const first = stops[0].name;
-  const last = stops[stops.length - 1].name;
-  const title = stops.length === 1 ? first : `${first} → ${last}`;
-  return title.slice(0, COURSE_LIMITS.title);
+export const DEFAULT_ROUTE_NAME = '나만의 루트';
+
+/** A new route's name: '나만의 루트', or '나만의 루트2', '나만의 루트3', … when taken. */
+export function nextRouteName(taken: Iterable<string>): string {
+  const names = new Set([...taken].map((t) => t.trim()));
+  if (!names.has(DEFAULT_ROUTE_NAME)) return DEFAULT_ROUTE_NAME;
+  let n = 2;
+  while (names.has(`${DEFAULT_ROUTE_NAME}${n}`)) n += 1;
+  return `${DEFAULT_ROUTE_NAME}${n}`;
 }

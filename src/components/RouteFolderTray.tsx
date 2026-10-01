@@ -130,7 +130,8 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     if (!shownId) return;
     const row = sheetEl.current?.querySelector<HTMLElement>('.route-row.is-shown');
     const body = row?.closest<HTMLElement>('.route-folders__body');
-    if (row && body) body.scrollTo({ top: row.offsetTop - body.offsetTop - 4, behavior: 'smooth' });
+    // The route becomes the first thing in view (the + row scrolls away above it).
+    if (row && body) body.scrollTo({ top: row.offsetTop - body.offsetTop - 6, behavior: 'smooth' });
   }, [shownId]);
 
   // A touch anywhere but the picker closes it. Listened for on the document:
@@ -313,6 +314,8 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
             return;
           }
           setFiling(null);
+          // Any tab lets go of a route on show (the sheet comes back up).
+          if (shownId) onShow(null);
           // The second tap on an open folder brings out its icon picker and,
           // with it, the ✕ (as a long press does); the first tap only selects.
           const opening = on && custom && picking !== id;
@@ -413,7 +416,14 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
         </button>
       </div>
 
-      <div className="route-folders__body" role="tabpanel">
+      <div
+        className="route-folders__body"
+        role="tabpanel"
+        onClick={(e) => {
+          // A tap on the sheet's empty space (not a row or a button) lets go of a route on show.
+          if (shownId && !(e.target as Element).closest('button, a, input')) onShow(null);
+        }}
+      >
         <button className="route-folders__new" aria-label="새 경로 만들기" onClick={onNewRoute}>
           <Plus size={20} aria-hidden />
         </button>

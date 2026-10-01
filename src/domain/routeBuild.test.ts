@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { COURSE_LIMITS } from './course';
-import { buildRouteTitle, toggleBuildStop } from './routeBuild';
-
-const place = (name: string) => ({ id: name, name, center: [127, 37.5] as [number, number] });
+import { nextRouteName, toggleBuildStop } from './routeBuild';
 
 describe('building a route from pins', () => {
   it('adds pins in the order tapped; a second tap takes one out', () => {
@@ -19,8 +17,10 @@ describe('building a route from pins', () => {
     expect(toggleBuildStop(full, 'p0')).toHaveLength(COURSE_LIMITS.maxStops - 1);
   });
 
-  it('titles the route by its first and last place', () => {
-    expect(buildRouteTitle([place('어니언'), place('서울숲'), place('갈비집')])).toBe('어니언 → 갈비집');
-    expect(buildRouteTitle([place('어니언')])).toBe('어니언');
+  it("names new routes '나만의 루트', then 2, 3, … when taken", () => {
+    expect(nextRouteName([])).toBe('나만의 루트');
+    expect(nextRouteName(['나만의 루트'])).toBe('나만의 루트2');
+    expect(nextRouteName(['나만의 루트', '나만의 루트2', '산책'])).toBe('나만의 루트3');
+    expect(nextRouteName(['나만의 루트2'])).toBe('나만의 루트');
   });
 });

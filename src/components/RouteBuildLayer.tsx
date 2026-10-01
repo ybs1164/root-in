@@ -14,6 +14,12 @@ interface RouteBuildLayerProps {
   onCancel: () => void;
   onPanEnabled: (enabled: boolean) => void;
   defaultTitle: string;
+  /**
+   * A stroke begun before this layer appeared (dragging from a pin in the
+   * folder view): the app keeps its finger here so the dashed preview line
+   * can follow it too.
+   */
+  handoff?: { current: { x: number; y: number } | null };
   onCreate: (title: string, note: string, icon: string | undefined) => void;
 }
 
@@ -47,7 +53,9 @@ export function pinAt(x: number, y: number): string | null {
  * basemap has loaded. A tap on bare map cancels; ✓ asks for a name and a
  * description, and 루트 생성 saves it.
  */
-export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanEnabled, defaultTitle, onCreate }: RouteBuildLayerProps) {
+export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanEnabled, defaultTitle, handoff, onCreate }: RouteBuildLayerProps) {
+  const handoffRef = useRef(handoff);
+  handoffRef.current = handoff;
   const trailEl = useRef<SVGLineElement | null>(null);
   const stroke = useRef<Stroke | null>(null);
   const chosenRef = useRef(chosen);
@@ -60,7 +68,9 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
   useEffect(() => {
     let frame = 0;
     const draw = () => {
-      const s = stroke.current;
+      const own = stroke.current;
+      const outer = handoffRef.current?.current ?? null;
+      const s = own?.drawing ? own : outer ? { drawing: true, fingerX: outer.x, fingerY: outer.y } : null;
       const last = stopCentre(chosenRef.current.length);
       const trail = trailEl.current;
       if (trail) {
@@ -142,7 +152,8 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
   const dialogEl = useRef<HTMLDialogElement | null>(null);
   const [asking, setAsking] = useState(false);
   // The route's decorative icon, and whether its picker is open.
-  const [icon, setIcon] = useState<string | undefined>(undefined);
+  // Starts on the first icon, so every new route has one.
+  const [icon, setIcon] = useState<string>(ROUTE_ICONS[0]);
   const [pickingIcon, setPickingIcon] = useState(false);
   useEffect(() => {
     const d = dialogEl.current;
@@ -178,12 +189,12 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
             <div className="route-build__name">
               <button
                 type="button"
-                className={`route-build__icon ${icon ? '' : 'is-empty'}`}
-                aria-label={icon ? `아이콘 ${icon}, 바꾸기` : '아이콘 고르기'}
+                className="route-build__icon"
+                aria-label={`아이콘 ${icon}, 바꾸기`}
                 aria-expanded={pickingIcon}
                 onClick={() => setPickingIcon((v) => !v)}
               >
-                {icon ?? '＋'}
+                {icon}
               </button>
               <input name="title" className="route-build__field" aria-label="이름" placeholder="이름" defaultValue={defaultTitle} maxLength={COURSE_LIMITS.title} />
             </div>
@@ -196,8 +207,7 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
                     className={`folder-picker__opt ${icon === i ? 'is-on' : ''}`}
                     aria-pressed={icon === i}
                     onClick={() => {
-                      // Tapping the chosen one again clears it (icons are optional).
-                      setIcon(icon === i ? undefined : i);
+                      setIcon(i);
                       setPickingIcon(false);
                     }}
                   >

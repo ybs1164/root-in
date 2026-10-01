@@ -2337,6 +2337,11 @@ input.timeline__time:focus {
   transform: translateY(calc(100% - 190px));
 }
 
+/* Room to scroll any route, even the last, up to the top of the strip. */
+.route-folders.is-lowered .route-folders__body {
+  padding-bottom: 60dvh;
+}
+
 .route-folders.is-leaving {
   animation: tray-down 0.17s ease-in forwards;
   pointer-events: none;
@@ -2451,18 +2456,15 @@ input.timeline__time:focus {
   background: var(--surface);
 }
 
-/* + : make a new route from pins. Top-right inside the folder, staying put
-   while the list scrolls. */
+/* + : make a new route from pins. Top-right inside the folder, on its own
+   line above the routes (it scrolls with them). */
 .route-folders__new {
-  position: sticky;
-  top: 0;
-  z-index: 1;
   display: grid;
   place-items: center;
   width: 44px;
   height: 44px;
-  /* Takes no line of its own: the list starts beside it. */
-  margin: 0 0 -44px auto;
+  /* On its own line, the routes start below it. */
+  margin: 0 0 4px auto;
   padding: 0;
   border: 0;
   border-radius: 12px;

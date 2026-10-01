@@ -26,7 +26,7 @@ import type { MapViewport } from './domain/districtMap';
 import { categoryFamily, categoryStyle, filterPinsByCategories } from './domain/pin';
 import { pinRailNext, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
 import { PRESS } from './domain/dayPings';
-import { buildRouteTitle, toggleBuildStop } from './domain/routeBuild';
+import { nextRouteName, toggleBuildStop } from './domain/routeBuild';
 import { withEdgeStyle, withStopShape } from './domain/routeStyle';
 import { moveRoute, type RouteTab } from './domain/routeFolders';
 import { useCourseDraft } from './hooks/useCourseDraft';
@@ -448,6 +448,10 @@ export default function App() {
   // after the build layer mounts (that layer only takes strokes it began).
   const buildingRef = useRef(building);
   buildingRef.current = building;
+  const shownRouteRef = useRef(shownRouteId);
+  shownRouteRef.current = shownRouteId;
+  // That stroke's finger, for the build layer's dashed preview line.
+  const handoffStroke = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => {
     const el = mapEl.current;
     if (!routeMode || !el) return;
@@ -472,12 +476,14 @@ export default function App() {
       }
       if (!s.drawing) return;
       e.preventDefault();
+      handoffStroke.current = { x: e.clientX, y: e.clientY };
       const id = pinAt(e.clientX, e.clientY);
       if (id) setBuilding((b) => (b && !b.includes(id) && b.length < COURSE_LIMITS.maxStops ? [...b, id] : b));
     };
     const up = (e: PointerEvent) => {
       const s = stroke;
       stroke = null;
+      handoffStroke.current = null;
       if (!s || !e.isPrimary) return;
       if (s.pin) mapRef.current?.setPanEnabled(true);
       if (s.drawing) {
@@ -490,10 +496,12 @@ export default function App() {
         window.setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 300);
         return;
       }
-      // A quick tap on bare map (not a pan, not a long press, not on a marker) closes 경로.
+      // A quick tap on bare map (not a pan, not a long press, not on a marker):
+      // with a route on show it just lets go of it (the sheet comes back up);
+      // otherwise it closes 경로.
       const onMarker = (e.target as Element | null)?.closest('.map-marker');
       if (!s.moved && !s.pin && !onMarker && performance.now() - s.at < PRESS.longMs && el.contains(e.target as Node)) {
-        setShownRouteId(null);
+        if (shownRouteRef.current) return setShownRouteId(null);
         setRailMode('menu');
       }
     };
@@ -775,7 +783,8 @@ export default function App() {
           }
           onCancel={() => setBuilding(null)}
           onPanEnabled={(on) => mapRef.current?.setPanEnabled(on)}
-          defaultTitle={buildRouteTitle(buildPins.map((p) => p.place))}
+          handoff={handoffStroke}
+          defaultTitle={nextRouteName(course.courses.map((c) => c.title))}
           onCreate={saveBuilt}
         />
       )}
