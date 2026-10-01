@@ -2819,6 +2819,27 @@ input.timeline__time:focus {
   font-weight: 600;
 }
 
+/* The icon picker pops up above the card (the folder tabs' bubble, pinned to
+   the card's left edge instead of a tab). Each icon wears its colour. */
+.pin-card__icons {
+  left: 0;
+  bottom: calc(100% + 10px);
+}
+
+.pin-card__icon-opt {
+  border-radius: 50%;
+  background: var(--pin, var(--surface-2));
+  font-size: 22px;
+}
+
+/* The current one keeps its colour (the folder bubble would tint it) and gets a ring. */
+.pin-card__icons .pin-card__icon-opt.is-on {
+  background: var(--pin, var(--surface-2));
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--accent);
+}
+
 /* ⋯ on the left, the bin at the bottom right. */
 .pin-card__bottom {
   display: flex;

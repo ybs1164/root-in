@@ -732,9 +732,9 @@ export default function App() {
           onRename={(name) => pinStore.updatePin(activePin.id, { place: { ...activePin.place, name } })}
           onMemo={(memo) => pinStore.updatePin(activePin.id, { memo: memo || undefined })}
           onDelete={() => {
-            const undo = pinStore.removePin(activePin.id);
+            // Gone at once, without an undo toast.
+            pinStore.removePin(activePin.id);
             setActivePinId(null);
-            notify(`${activePin.place.name} 핀을 지웠어요.`, undo);
           }}
           onClose={closePinCard}
         />

@@ -1,9 +1,8 @@
 import { Ellipsis, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { categoryPath, categoryStyle, PIN_LIMITS } from '../domain/pin';
+import { categoryPath, categoryStyle, orderedCategories, PIN_LIMITS } from '../domain/pin';
 import { kakaoPlaceUrl } from '../lib/directionsLink';
 import type { Pin, PinCategory } from '../types/pin';
-import CategoryChips from './CategoryChips';
 
 interface PinCardProps {
   pin: Pin;
@@ -17,9 +16,10 @@ interface PinCardProps {
 
 /**
  * What tapping a pin opens: a card standing just above the pin, which the map
- * has centred. Top row: the pin's icon (tap → pick another category, which is
- * what sets the icon), its name, and a pen to rename it. Bottom row: ⋯ for the
- * details, and the bin at the right, which deletes at once (the toast can undo).
+ * has centred. Top row: the pin's icon (tap → a bubble of icons pops up above
+ * it, like a folder tab's; a pin's icon is its category's), its name, and a pen
+ * that opens the name for editing and, tapped again, sets it. Bottom row: ⋯ for
+ * the details, and the bin at the right, which deletes at once.
  * A touch outside the card closes it.
  */
 export default function PinCard({ pin, categories, onRecategorize, onRename, onMemo, onDelete, onClose }: PinCardProps) {
@@ -28,6 +28,7 @@ export default function PinCard({ pin, categories, onRecategorize, onRename, onM
   const [details, setDetails] = useState(false);
   const style = categoryStyle(categories, pin.categoryId);
   const cardEl = useRef<HTMLDivElement | null>(null);
+  const nameEl = useRef<HTMLInputElement | null>(null);
 
   // Another pin: start from the plain card again.
   useEffect(() => {
@@ -57,6 +58,29 @@ export default function PinCard({ pin, categories, onRecategorize, onRename, onM
   return (
     <div ref={cardEl} className="place-card place-card--pin pin-card" role="dialog" aria-label={pin.place.name}>
       <div className="pin-card__top">
+        {picking && (
+          <div className="folder-picker pin-card__icons" role="dialog" aria-label="아이콘 바꾸기">
+            {orderedCategories(categories).map(({ category }) => {
+              const s = categoryStyle(categories, category.id);
+              const on = category.id === pin.categoryId;
+              return (
+                <button
+                  key={category.id}
+                  className={`folder-picker__opt pin-card__icon-opt ${on ? 'is-on' : ''}`}
+                  style={{ '--pin': `var(--pin-${s.color})` } as CSSProperties}
+                  aria-label={categoryPath(categories, category.id)}
+                  aria-pressed={on}
+                  onClick={() => {
+                    onRecategorize(category.id);
+                    setPicking(false);
+                  }}
+                >
+                  {s.emoji}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <button
           className="pin-card__icon"
           style={{ '--pin': `var(--pin-${style.color})` } as CSSProperties}
@@ -68,6 +92,7 @@ export default function PinCard({ pin, categories, onRecategorize, onRename, onM
         </button>
         {renaming ? (
           <input
+            ref={nameEl}
             className="pin-card__name-input"
             aria-label="위치 이름"
             defaultValue={pin.place.name}
@@ -83,22 +108,18 @@ export default function PinCard({ pin, categories, onRecategorize, onRename, onM
         ) : (
           <strong className="pin-card__name">{pin.place.name}</strong>
         )}
-        <button className="icon-btn pin-card__tool" aria-label="이름 바꾸기" aria-pressed={renaming} onClick={() => setRenaming((v) => !v)}>
+        <button
+          className="icon-btn pin-card__tool"
+          aria-label={renaming ? '이름 확정' : '이름 바꾸기'}
+          aria-pressed={renaming}
+          // Keep the field focused: a blur first would save and close it, and
+          // this tap would then open it again.
+          onPointerDown={(e) => renaming && e.preventDefault()}
+          onClick={() => (renaming ? commitName(nameEl.current?.value ?? pin.place.name) : setRenaming(true))}
+        >
           <Pencil size={20} aria-hidden />
         </button>
       </div>
-
-      {picking && (
-        <CategoryChips
-          categories={categories}
-          selected={pin.categoryId}
-          label="아이콘(카테고리) 바꾸기"
-          onPick={(id) => {
-            onRecategorize(id);
-            setPicking(false);
-          }}
-        />
-      )}
 
       {details && (
         <dl className="pin-card__details">
