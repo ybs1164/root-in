@@ -12,9 +12,8 @@ describe('pin rail', () => {
     expect(pinRailNext('route', 'route')).toBe('menu');
   });
 
-  it('the hidden entry cannot open over the open one', () => {
-    expect(pinRailNext('pins', 'route')).toBe('pins');
-    expect(pinRailNext('route', 'pins')).toBe('route');
+  it('핀 stays out while 경로 is open, and tapping it switches over', () => {
+    expect(pinRailNext('route', 'pins')).toBe('pins');
   });
 
   it('picks several categories, and a second tap drops one', () => {

@@ -27,9 +27,8 @@ const ENTRIES: { entry: PinRailEntry; label: string; icon: ReactNode }[] = [
 
 /**
  * Round buttons under ⚙ on the pin screen, in place of the old sheet. 핀
- * and 경로 each open on a tap: the tapped one takes the accent colour, the
- * other shrinks away (경로 slides up into the top spot), and a second tap
- * brings it back. 핀 opens one button per category below it; picking some
+ * and 경로 each open on a tap and take the accent colour; a second tap
+ * closes. 핀 shrinks 경로 away for its list, while 경로 leaves 핀 in place. 핀 opens one button per category below it; picking some
  * narrows the map to them, and the map stays narrowed after 핀 closes.
  */
 export default function PinRail({ mode, onAction, categories, counts, picked, onToggle }: PinRailProps) {
@@ -46,7 +45,8 @@ export default function PinRail({ mode, onAction, categories, counts, picked, on
     <nav className="pin-rail" aria-label="핀 메뉴">
       {ENTRIES.map(({ entry, label, icon }) => {
         const on = mode === entry;
-        const hidden = mode !== 'menu' && !on;
+        // Only 핀's category list puts the other button away; 경로 keeps 핀 in view.
+        const hidden = mode === 'pins' && entry === 'route';
         return (
           // Collapsing the slot (not just hiding the button) lets the one below move up.
           <div key={entry} className={`pin-rail__slot ${hidden ? 'is-hidden' : ''}`} inert={hidden}>
