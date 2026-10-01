@@ -251,7 +251,9 @@ export default function App() {
       // A route on show has its name under the rail; the route sits below it.
       const title = document.querySelector<HTMLElement>('.route-title:not(.route-title--out)');
       const top = lowered && title ? title.getBoundingClientRect().bottom + 30 : 90;
-      return { top, right: 40, bottom: covered + 30 + extraBottom, left: 40 };
+      // …and clear of the < > strips at its sides (.route-step, 64px wide).
+      const side = lowered ? 80 : 40;
+      return { top, right: side, bottom: covered + 30 + extraBottom, left: side };
     }
     if (!desktop && sheetBox?.classList.contains('sheet--top')) {
       // The pin screen's sheet hangs from the top instead (it includes the search bar area).

@@ -2719,27 +2719,29 @@ input.timeline__time:focus {
 }
 
 /* < > stepping to the route above / below in the open tab: bare light-grey
-   chevrons at the screen's edges, a little above the middle of the screen. */
+   chevrons at the screen's edges, level with the middle of the screen. The
+   button is bigger than the chevron so it's easy to hit from the edge. */
 .route-step {
   position: fixed;
-  top: calc(42% - 22px);
+  top: 50%;
   z-index: 14;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 64px;
+  height: 104px;
   padding: 0;
   border: 0;
   background: none;
   color: var(--step-arrow);
+  translate: 0 -50%;
 }
 
 .route-step--prev {
-  left: 2px;
+  left: 0;
 }
 
 .route-step--next {
-  right: 2px;
+  right: 0;
 }
 
 /* Paging names like the calendar pages days: the new one comes in from the
