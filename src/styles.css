@@ -1303,27 +1303,47 @@ button:disabled {
   outline-offset: 4px;
 }
 
-.decor__remove {
+.decor__trash {
   position: absolute;
-  top: -16px;
-  right: -16px;
+  left: 50%;
+  bottom: 8px;
+  z-index: 3; /* over the pieces, even the one being dragged onto it */
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: 0;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: var(--text);
-  color: var(--surface);
+  background: var(--surface-2);
+  color: var(--muted);
+  opacity: 0.55;
+  translate: -50% 0;
+  pointer-events: none; /* taps go through to the box (a new text box there) */
+  transition:
+    opacity 0.15s,
+    scale 0.15s,
+    background-color 0.15s,
+    color 0.15s;
 }
 
-/* 44px to touch, 26px to see; the extra reaches away from the sticker so
-   pressing the sticker itself (to move or pinch it) doesn't hit it. */
-.decor__remove::after {
-  content: '';
-  position: absolute;
-  inset: -18px -18px 0 0;
+.decor__trash.is-dragging {
+  opacity: 1;
+}
+
+.decor__trash.is-over {
+  background: var(--danger);
+  color: var(--on-accent);
+  scale: 1.25;
+}
+
+/* A piece being dragged goes over the others; over the trash it fades, about to go. */
+.decor__sticker.is-lifted,
+.decor__text.is-lifted {
+  z-index: 2;
+}
+
+.decor__sticker.is-doomed,
+.decor__text.is-doomed {
+  opacity: 0.45;
 }
 
 /* Text boxes: centred on their spot, lines only where Enter was pressed. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BASE_COLORS, EMPTY_HISTORY, recordChange, redoDecor, undoDecor, type DayDecor, type Stroke, STICKER_MAX, stickerGesture, clamp01, extendStroke, hexToHsv, hsvToHex, inkCss, isBlankText, cleanTextStyle, TEXT_MIN, TEXT_MAX, isThemeId, normalizeHex, PEN_TOOLS, STICKERS, THEMES } from './decor';
+import { BASE_COLORS, EMPTY_HISTORY, recordChange, redoDecor, undoDecor, type DayDecor, type Stroke, STICKER_MAX, stickerGesture, clamp01, extendStroke, hexToHsv, hsvToHex, inkCss, isBlankText, cleanTextStyle, dropOutcome, TEXT_MIN, TEXT_MAX, isThemeId, normalizeHex, PEN_TOOLS, STICKERS, THEMES } from './decor';
 
 describe('day decorations', () => {
   it('keeps stroke points inside the box and skips tiny moves', () => {
@@ -107,5 +107,25 @@ describe('day decorations', () => {
     expect(undoDecor(h, after)!.decor.texts).toEqual([]);
     // From a day saved before texts existed: undo clears the new box.
     expect(undoDecor(recordChange(EMPTY_HISTORY, { stickers: [], strokes: [] }), after)!.decor.texts).toBeUndefined();
+  });
+
+  it('a free drag can take a piece off the box, but not miles away', () => {
+    const base = { x: 0.9, y: 0.5, size: 0.1, rotate: 0 };
+    const limits = { min: 0.05, max: 0.6, free: true };
+    expect(stickerGesture(base, [{ x: 0, y: 0 }], [{ x: 60, y: 0 }], 300, limits).x).toBeCloseTo(1.1);
+    expect(stickerGesture(base, [{ x: 0, y: 0 }], [{ x: 9000, y: -9000 }], 300, limits)).toMatchObject({ x: 2, y: -1 });
+    // Not free (as before): kept on the box.
+    expect(stickerGesture(base, [{ x: 0, y: 0 }], [{ x: 60, y: 0 }], 300).x).toBe(1);
+  });
+
+  it('a drop on the trash deletes, outside the box puts back, inside stays', () => {
+    const box = { left: 0, top: 0, right: 300, bottom: 300 };
+    const trash = { left: 128, top: 248, right: 172, bottom: 292 };
+    expect(dropOutcome({ x: 150, y: 270 }, box, trash)).toBe('trash');
+    expect(dropOutcome({ x: 150, y: 302 }, box, trash)).toBe('trash'); // just off it, finger-sized
+    expect(dropOutcome({ x: 150, y: 350 }, box, trash)).toBe('outside');
+    expect(dropOutcome({ x: -5, y: 100 }, box, trash)).toBe('outside');
+    expect(dropOutcome({ x: 100, y: 100 }, box, trash)).toBe('inside');
+    expect(dropOutcome({ x: 100, y: 100 }, box, null)).toBe('inside');
   });
 });

@@ -1,13 +1,16 @@
-import { X } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import {
   clamp01,
   cleanTextStyle,
+  dropOutcome,
   ERASER_SCALE,
   extendStroke,
   inkCss,
   isBlankText,
   PEN_WIDTHS,
+  STICKER_MAX,
+  STICKER_MIN,
   STICKER_SIZE,
   stickerGesture,
   TEXT_LINE_HEIGHT,
@@ -270,10 +273,23 @@ export default function DecorLayer({
     g.moved = true;
     const to = [...fingers.current.values()].slice(0, 2);
     if (to.length !== g.from.length) return;
-    const limits = g.kind === 'text' ? { min: TEXT_MIN, max: TEXT_MAX } : undefined;
+    const limits = g.kind === 'text' ? { min: TEXT_MIN, max: TEXT_MAX, free: true } : { min: STICKER_MIN, max: STICKER_MAX, free: true };
     const pose = stickerGesture(g.base, g.from, to, layer.current!.getBoundingClientRect().width, limits);
     setLive({ id: g.id, ...pose });
+    const over = landing(e) === 'trash';
+    if (over !== overTrash) setOverTrash(over);
   };
+
+  // Dragged pieces may go anywhere; where the finger lets go decides: the
+  // trash deletes, off the box puts it back, on the box leaves it there.
+  const trashEl = useRef<HTMLSpanElement | null>(null);
+  const [overTrash, setOverTrash] = useState(false);
+  const landing = (e: PointerEvent) =>
+    dropOutcome(
+      { x: e.clientX, y: e.clientY },
+      layer.current!.getBoundingClientRect(),
+      trashEl.current?.getBoundingClientRect() ?? null,
+    );
 
   const onStickerUp = (e: PointerEvent) => {
     if (pendingPinch.current?.pointerId === e.pointerId) {
@@ -289,10 +305,26 @@ export default function DecorLayer({
       if (g.kind === 'text' && !g.moved && g.start?.picked) startTyping(g.id);
       return;
     }
-    const { id, ...pose } = liveRef.current;
+    const { id, ...moved } = liveRef.current;
+    setOverTrash(false);
+    setLive(null);
+    // A cancelled touch (the system took it) puts the piece back too.
+    const where = e.type === 'pointercancel' ? 'outside' : landing(e);
+    if (where === 'outside') return;
+    if (where === 'trash') {
+      if (g.kind === 'sticker') {
+        onChange({ ...decor, stickers: decor.stickers.filter((st) => st.id !== id) });
+        setSelected(null);
+      } else {
+        onChange({ ...decor, texts: (decor.texts ?? []).filter((t) => t.id !== id) });
+        onTextFocus(null);
+      }
+      return;
+    }
+    // Let go on the box: the piece stays, its centre kept on the box.
+    const pose = { ...moved, x: clamp01(moved.x), y: clamp01(moved.y) };
     if (g.kind === 'sticker') onChange({ ...decor, stickers: decor.stickers.map((st) => (st.id === id ? { ...st, ...pose } : st)) });
     else onChange({ ...decor, texts: (decor.texts ?? []).map((t) => (t.id === id ? { ...t, ...pose } : t)) });
-    setLive(null);
   };
 
   // ----- Text -----
@@ -438,7 +470,7 @@ export default function DecorLayer({
         return (
           <span
             key={s.id}
-            className={`decor__sticker ${isSelected ? 'is-selected' : ''}`}
+            className={`decor__sticker ${isSelected ? 'is-selected' : ''} ${live?.id === s.id ? `is-lifted ${overTrash ? 'is-doomed' : ''}` : ''}`}
             style={{
               left: `${pos.x * 100}%`,
               top: `${pos.y * 100}%`,
@@ -448,21 +480,6 @@ export default function DecorLayer({
             onPointerDown={onStickerDown(s.id)}
           >
             {s.emoji}
-            {isSelected && (
-              <button
-                className="decor__remove"
-                // Upright however the sticker is turned: an ✕, never a +.
-                style={{ rotate: `${-(pos.rotate ?? 0)}deg` }}
-                aria-label="스티커 떼기"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => {
-                  onChange({ ...decor, stickers: decor.stickers.filter((st) => st.id !== s.id) });
-                  setSelected(null);
-                }}
-              >
-                <X size={14} aria-hidden />
-              </button>
-            )}
           </span>
         );
       })}
@@ -473,7 +490,7 @@ export default function DecorLayer({
         return (
           <div
             key={t.id}
-            className={`decor__text ${picked ? 'is-selected' : ''} ${typing ? 'is-typing' : ''}`}
+            className={`decor__text ${picked ? 'is-selected' : ''} ${typing ? 'is-typing' : ''} ${live?.id === t.id ? `is-lifted ${overTrash ? 'is-doomed' : ''}` : ''}`}
             style={{
               left: `${pos.x * 100}%`,
               top: `${pos.y * 100}%`,
@@ -505,23 +522,19 @@ export default function DecorLayer({
             ) : (
               t.text
             )}
-            {picked && !typing && (
-              <button
-                className="decor__remove"
-                style={{ rotate: `${-(pos.rotate ?? 0)}deg` }}
-                aria-label="텍스트 지우기"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => {
-                  onChange({ ...decor, texts: savedTexts.filter((x) => x.id !== t.id) });
-                  onTextFocus(null);
-                }}
-              >
-                <X size={14} aria-hidden />
-              </button>
-            )}
           </div>
         );
       })}
+      {(tool === 'sticker' || tool === 'text') && (
+        // Drag a sticker or text box here to throw it away.
+        <span
+          ref={trashEl}
+          className={`decor__trash ${live ? 'is-dragging' : ''} ${overTrash ? 'is-over' : ''}`}
+          aria-hidden
+        >
+          <Trash2 size={22} />
+        </span>
+      )}
     </div>
   );
 }

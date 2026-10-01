@@ -185,10 +185,13 @@ export function stickerGesture(
   from: Pt[],
   to: Pt[],
   boxPx: number,
-  limits: { min: number; max: number } = { min: STICKER_MIN, max: STICKER_MAX },
+  limits: { min: number; max: number; free?: boolean } = { min: STICKER_MIN, max: STICKER_MAX },
 ): StickerPose {
+  // Free: the piece may be dragged off the box (a drop there puts it back,
+  // see dropOutcome); still kept within a box's width of it.
+  const pos = limits.free ? (v: number) => Math.min(2, Math.max(-1, v)) : clamp01;
   if (from.length === 1 || to.length === 1) {
-    return { ...base, x: clamp01(base.x + (to[0].x - from[0].x) / boxPx), y: clamp01(base.y + (to[0].y - from[0].y) / boxPx) };
+    return { ...base, x: pos(base.x + (to[0].x - from[0].x) / boxPx), y: pos(base.y + (to[0].y - from[0].y) / boxPx) };
   }
   const mid = (a: Pt[]) => ({ x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 });
   const spread = (a: Pt[]) => Math.hypot(a[1].x - a[0].x, a[1].y - a[0].y);
@@ -199,11 +202,25 @@ export function stickerGesture(
   let turn = base.rotate + angle(to) - angle(from);
   turn = ((turn % 360) + 540) % 360 - 180; // keep it in -180..180
   return {
-    x: clamp01(base.x + (m1.x - m0.x) / boxPx),
-    y: clamp01(base.y + (m1.y - m0.y) / boxPx),
+    x: pos(base.x + (m1.x - m0.x) / boxPx),
+    y: pos(base.y + (m1.y - m0.y) / boxPx),
     size: Math.min(limits.max, Math.max(limits.min, base.size * scale)),
     rotate: turn,
   };
+}
+
+type Rect = { left: number; top: number; right: number; bottom: number };
+
+/**
+ * Where a dragged sticker or text box lands, by where the finger lets go:
+ * on the trash (deleted), outside the drawing box (back where it was), or
+ * inside it (stays there). The trash sits inside the box, so it wins.
+ * `slop` widens the trash a little: fingers cover what they aim at.
+ */
+export function dropOutcome(at: Pt, box: Rect, trash: Rect | null, slop = 12): 'trash' | 'outside' | 'inside' {
+  const within = (r: Rect, pad: number) => at.x >= r.left - pad && at.x <= r.right + pad && at.y >= r.top - pad && at.y <= r.bottom + pad;
+  if (trash && within(trash, slop)) return 'trash';
+  return within(box, 0) ? 'inside' : 'outside';
 }
 
 /** The eraser is wider than the pen at the same setting (fingers are blunt). */
