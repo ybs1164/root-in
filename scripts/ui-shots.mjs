@@ -82,7 +82,7 @@ const STATES = {
     await page.getByRole('searchbox').or(page.locator('input[type=search], input')).first().fill('성수 카페');
     await settle(page, 3000);
   },
-  'rail-folded': async (page) => { await click(page, '접기'); },
+  'rail-route': async (page) => { await click(page, '경로'); },
   'rail-pins': async (page) => {
     await page.getByRole('button', { name: '핀', exact: true }).click({ timeout: 3000 });
     await page.getByRole('button', { name: /^카페 / }).first().click({ timeout: 3000 });

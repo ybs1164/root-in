@@ -1,23 +1,16 @@
 /**
- * The round buttons under ⚙ on the pin screen. A fold button always sits
- * on top; under it either the two entries (핀 · 경로), the category list
- * that 핀 opens, the (still empty) 경로 view, or nothing when folded. There
- * is no back button: the fold button is the way back.
+ * The round buttons under ⚙ on the pin screen: 핀 and 경로. Tapping one
+ * opens it (it turns the accent colour and the other button steps aside);
+ * tapping it again closes it and both are back.
  */
-export type PinRailMode = 'folded' | 'menu' | 'pins' | 'route';
+export type PinRailMode = 'menu' | 'pins' | 'route';
 
-export type PinRailAction = 'fold' | 'pins' | 'route';
+export type PinRailEntry = 'pins' | 'route';
 
-export function pinRailNext(mode: PinRailMode, action: PinRailAction): PinRailMode {
-  switch (action) {
-    // From an opened entry the fold button steps back to the entries;
-    // only from the entries does it actually fold them away.
-    case 'fold':
-      return mode === 'menu' ? 'folded' : 'menu';
-    case 'pins':
-    case 'route':
-      return mode === 'menu' ? action : mode;
-  }
+export function pinRailNext(mode: PinRailMode, tapped: PinRailEntry): PinRailMode {
+  if (mode === tapped) return 'menu';
+  // The other entry is hidden while one is open, so only the menu opens one.
+  return mode === 'menu' ? tapped : mode;
 }
 
 /** Taps a category in or out of the picked set. */

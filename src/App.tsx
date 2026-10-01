@@ -20,7 +20,7 @@ import { addStop, COURSE_LIMITS } from './domain/course';
 import { DIARY_LIMITS, diaryKind } from './domain/diary';
 import type { MapViewport } from './domain/districtMap';
 import { categoryFamily, categoryStyle, filterPinsByCategories } from './domain/pin';
-import { pinRailNext, togglePicked, type PinRailAction, type PinRailMode } from './domain/pinRail';
+import { pinRailNext, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
 import { useCourseDraft } from './hooks/useCourseDraft';
 import { useDiaryDay } from './hooks/useDiaryDay';
 import { useDistrictMap } from './hooks/useDistrictMap';
@@ -375,9 +375,9 @@ export default function App() {
     focusPoint(pin.place.center, 150);
   };
 
-  const railAction = (action: PinRailAction) => {
-    const next = pinRailNext(railMode, action);
-    // Leaving the 핀 list lets every pin back onto the map.
+  const railAction = (entry: PinRailEntry) => {
+    const next = pinRailNext(railMode, entry);
+    // Closing the 핀 list lets every pin back onto the map.
     if (next !== 'pins') setPicked(new Set());
     setRailMode(next);
   };

@@ -2239,7 +2239,7 @@ input.timeline__time:focus {
   transform: translateX(calc(100% + 24px));
 }
 
-/* Pin screen: round buttons stacked under ⚙ (fold, then 핀 · 경로 or the category list). */
+/* Pin screen: round buttons stacked under ⚙ (핀 · 경로, then 핀's category list). */
 .pin-rail {
   position: absolute;
   top: calc(12px + var(--safe-top) + 52px + 12px);
@@ -2248,7 +2248,6 @@ input.timeline__time:focus {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
   /* Long category lists scroll above the bottom buttons. */
   max-height: calc(100dvh - var(--safe-top) - 76px - var(--bar-h) - var(--safe-bottom) - 24px);
 }
@@ -2267,21 +2266,43 @@ input.timeline__time:focus {
   color: var(--text);
 }
 
+/* The open entry wears the accent colour. */
+.pin-rail__btn.is-on:not(.pin-rail__pin) {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Each entry's slot carries the gap below it, so collapsing one closes the space too. */
+.pin-rail__slot {
+  flex: none;
+  height: 58px;
+  transition:
+    height 0.22s ease,
+    opacity 0.16s ease;
+}
+
+.pin-rail__slot .pin-rail__btn {
+  transition:
+    transform 0.22s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.pin-rail__slot.is-hidden {
+  height: 0;
+  opacity: 0;
+}
+
+.pin-rail__slot.is-hidden .pin-rail__btn {
+  transform: scale(0.4);
+}
+
 .pin-rail__btn svg {
   width: 22px;
   height: 22px;
 }
 
-/* Folded, the chevron turns to point down (펼치기). */
-.pin-rail__fold svg {
-  transition: transform 0.22s ease;
-}
-
-.pin-rail__fold.is-folded svg {
-  transform: rotate(180deg);
-}
-
-/* Buttons pop out of the fold button one after another… */
+/* Category buttons drop out of 핀 one after another… */
 .pin-rail__item {
   animation: pin-rail-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
   animation-delay: calc(var(--i, 0) * 30ms);
@@ -2312,6 +2333,11 @@ input.timeline__time:focus {
   .pin-rail__item.is-leaving {
     animation-duration: 0.01s;
     animation-delay: 0s;
+  }
+
+  .pin-rail__slot,
+  .pin-rail__slot .pin-rail__btn {
+    transition: none;
   }
 }
 

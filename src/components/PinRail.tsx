@@ -1,12 +1,12 @@
-import { ChevronUp, MapPin, Route } from 'lucide-react';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { MapPin, Route } from 'lucide-react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { categoryStyle, orderedCategories } from '../domain/pin';
-import type { PinRailAction, PinRailMode } from '../domain/pinRail';
+import type { PinRailEntry, PinRailMode } from '../domain/pinRail';
 import type { PinCategory } from '../types/pin';
 
 interface PinRailProps {
   mode: PinRailMode;
-  onAction: (action: PinRailAction) => void;
+  onAction: (entry: PinRailEntry) => void;
   categories: PinCategory[];
   /** Pins per category id, for the labels. */
   counts: Map<string, number>;
@@ -14,77 +14,61 @@ interface PinRailProps {
   onToggle: (categoryId: string) => void;
 }
 
-/** The buttons under the fold button: the entries, the category list, or none. */
-type Group = 'menu' | 'pins' | null;
-const groupOf = (mode: PinRailMode): Group => (mode === 'menu' || mode === 'pins' ? mode : null);
-
-/** Matches `pin-rail-out` in styles.css; the old buttons stay mounted until they have gone. */
+/** Matches `pin-rail-out` in styles.css; the category list stays mounted until it has gone. */
 const OUT_MS = 160;
 
 /** Per-button delay index, capped so a long list doesn't keep the last ones waiting. */
 const stagger = (i: number): CSSProperties => ({ '--i': Math.min(i, 8) }) as CSSProperties;
 
+const ENTRIES: { entry: PinRailEntry; label: string; icon: ReactNode }[] = [
+  { entry: 'pins', label: '핀', icon: <MapPin aria-hidden /> },
+  { entry: 'route', label: '경로', icon: <Route aria-hidden /> },
+];
+
 /**
- * Round buttons under ⚙ on the pin screen, in place of the old sheet. The
- * fold button stays on top; 핀 swaps the entries for one button per
- * category, and picking some narrows the map to them. Buttons pop out of
- * the fold button one after another, and tuck back into it before the next
- * set comes out.
+ * Round buttons under ⚙ on the pin screen, in place of the old sheet. 핀
+ * and 경로 each open on a tap: the tapped one takes the accent colour, the
+ * other shrinks away (경로 slides up into the top spot), and a second tap
+ * brings it back. 핀 opens one button per category below it; picking some
+ * narrows the map to them.
  */
 export default function PinRail({ mode, onAction, categories, counts, picked, onToggle }: PinRailProps) {
-  const folded = mode === 'folded';
-  const target = groupOf(mode);
-  // `shown` trails `target`: a change first plays the old buttons out.
-  const [shown, setShown] = useState<Group>(target);
-  const [leaving, setLeaving] = useState(false);
+  // The category list trails the mode so it can play out before unmounting.
+  const listOpen = mode === 'pins';
+  const [listShown, setListShown] = useState(listOpen);
   useEffect(() => {
-    if (target === shown) {
-      setLeaving(false);
-      return;
-    }
-    if (shown === null) {
-      setShown(target);
-      return;
-    }
-    setLeaving(true);
-    const t = window.setTimeout(() => {
-      setShown(target);
-      setLeaving(false);
-    }, OUT_MS);
+    if (listOpen) return setListShown(true);
+    const t = window.setTimeout(() => setListShown(false), OUT_MS);
     return () => window.clearTimeout(t);
-  }, [target, shown]);
-
-  const motion = `pin-rail__item ${leaving ? 'is-leaving' : ''}`;
+  }, [listOpen]);
 
   return (
     <nav className="pin-rail" aria-label="핀 메뉴">
-      <button
-        className={`pin-rail__btn pin-rail__fold ${folded ? 'is-folded' : ''}`}
-        aria-label={folded ? '펼치기' : '접기'}
-        aria-expanded={!folded}
-        onClick={() => onAction('fold')}
-      >
-        <ChevronUp aria-hidden />
-      </button>
+      {ENTRIES.map(({ entry, label, icon }) => {
+        const on = mode === entry;
+        const hidden = mode !== 'menu' && !on;
+        return (
+          // Collapsing the slot (not just hiding the button) lets the one below move up.
+          <div key={entry} className={`pin-rail__slot ${hidden ? 'is-hidden' : ''}`} inert={hidden}>
+            <button
+              className={`pin-rail__btn ${on ? 'is-on' : ''}`}
+              aria-label={label}
+              aria-expanded={on}
+              onClick={() => onAction(entry)}
+            >
+              {icon}
+            </button>
+          </div>
+        );
+      })}
 
-      {shown === 'menu' && (
-        <>
-          <button className={`pin-rail__btn ${motion}`} style={stagger(0)} aria-label="핀" onClick={() => onAction('pins')}>
-            <MapPin aria-hidden />
-          </button>
-          <button className={`pin-rail__btn ${motion}`} style={stagger(1)} aria-label="경로" onClick={() => onAction('route')}>
-            <Route aria-hidden />
-          </button>
-        </>
-      )}
-
-      {shown === 'pins' && (
+      {listShown && (
         <ul className="pin-rail__list" aria-label="내 핀">
           {orderedCategories(categories).map(({ category }, i) => {
             const style = categoryStyle(categories, category.id);
             const on = picked.has(category.id);
             return (
-              <li key={category.id} className={motion} style={stagger(i)}>
+              <li key={category.id} className={`pin-rail__item ${listOpen ? '' : 'is-leaving'}`} style={stagger(i)}>
                 <button
                   className={`pin-rail__btn pin-rail__pin ${on ? 'is-on' : ''}`}
                   style={{ '--pin': `var(--pin-${style.color})` } as CSSProperties}

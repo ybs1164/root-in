@@ -2,20 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { pinRailNext, togglePicked } from './pinRail';
 
 describe('pin rail', () => {
-  it('folds and unfolds the 핀 · 경로 entries', () => {
-    expect(pinRailNext('menu', 'fold')).toBe('folded');
-    expect(pinRailNext('folded', 'fold')).toBe('menu');
-  });
-
-  it('opens 핀 or 경로 only from the entries, which then step aside', () => {
+  it('opens 핀 or 경로 from the menu', () => {
     expect(pinRailNext('menu', 'pins')).toBe('pins');
     expect(pinRailNext('menu', 'route')).toBe('route');
-    expect(pinRailNext('folded', 'pins')).toBe('folded');
   });
 
-  it('the fold button returns from an opened entry to 핀 · 경로', () => {
-    expect(pinRailNext('pins', 'fold')).toBe('menu');
-    expect(pinRailNext('route', 'fold')).toBe('menu');
+  it('a second tap on the open entry closes it', () => {
+    expect(pinRailNext('pins', 'pins')).toBe('menu');
+    expect(pinRailNext('route', 'route')).toBe('menu');
+  });
+
+  it('the hidden entry cannot open over the open one', () => {
+    expect(pinRailNext('pins', 'route')).toBe('pins');
+    expect(pinRailNext('route', 'pins')).toBe('route');
   });
 
   it('picks several categories, and a second tap drops one', () => {
