@@ -1,5 +1,5 @@
 import { latestPingIndex, layoutPings, type DayPing, type EdgeStyle, type PingShape } from '../domain/dayPings';
-import { ERASER_SCALE, isCustomColor, PEN_WIDTHS, type DayDecor } from '../domain/decor';
+import { ERASER_SCALE, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, type DayDecor, type PlacedText } from '../domain/decor';
 import { paintPattern } from './dayPatterns';
 import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
 
@@ -8,7 +8,7 @@ export interface DayImageInput {
   pings: DayPing[];
   shapeOf: (ping: DayPing) => PingShape;
   edgeStyleOf: (from: DayPing, to: DayPing) => EdgeStyle;
-  /** Stickers and pen strokes, in the same box coordinates as the pings. */
+  /** Stickers, pen strokes and text boxes, in the same box coordinates as the pings. */
   decor?: DayDecor;
 }
 
@@ -46,6 +46,11 @@ const DASHES: Record<EdgeStyle, { width: number; dash: number[]; cap: CanvasLine
  */
 export async function renderDayImage({ title, pings, shapeOf, edgeStyleOf, decor }: DayImageInput): Promise<string> {
   await document.fonts?.ready;
+  // Text boxes' web fonts load only once something shows them; make sure
+  // they're in before drawing (a font that won't load falls back).
+  await Promise.all(
+    (decor?.texts ?? []).map((t) => document.fonts?.load(textFont(t, 40), t.text).catch(() => undefined)),
+  );
   const c = tokens();
   const canvas = document.createElement('canvas');
   canvas.width = W;
@@ -141,7 +146,11 @@ export async function renderDayImage({ title, pings, shapeOf, edgeStyleOf, decor
   return canvas.toDataURL('image/png');
 }
 
-/** Pen strokes, then stickers, over the drawing, mapped from box fractions onto BOX. */
+/** A text box's canvas font at `sizePx`, like its CSS (DecorLayer). */
+const textFont = (t: PlacedText, sizePx: number) =>
+  `${t.italic ? 'italic ' : ''}${t.bold ? 700 : 400} ${sizePx}px ${textFamily(t.font)}`;
+
+/** Pen strokes, then stickers, then text boxes, over the drawing, mapped from box fractions onto BOX. */
 function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, font: string) {
   const css = getComputedStyle(document.documentElement);
   const px = (v: number) => v * BOX.size;
@@ -205,6 +214,33 @@ function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, font: string)
     ctx.rotate(((s.rotate ?? 0) * Math.PI) / 180);
     ctx.font = `${px(s.size * 0.78)}px ${font}`;
     ctx.fillText(s.emoji, 0, 0);
+    ctx.restore();
+  }
+  for (const t of decor.texts ?? []) {
+    const fs = px(t.size);
+    const lh = fs * TEXT_LINE_HEIGHT;
+    ctx.save();
+    ctx.translate(BOX.x + px(t.x), BOX.y + px(t.y));
+    ctx.rotate(((t.rotate ?? 0) * Math.PI) / 180);
+    ctx.font = textFont(t, fs);
+    ctx.fillStyle = isCustomColor(t.color) ? t.color : css.getPropertyValue(`--${t.color}`).trim();
+    ctx.textAlign = t.align;
+    ctx.textBaseline = 'middle';
+    // Centred on its spot as a block; each line aligned inside the block.
+    const lines = t.text.split('\n');
+    const widths = lines.map((line) => ctx.measureText(line).width);
+    const w = Math.max(...widths);
+    const h = lines.length * lh;
+    const x = t.align === 'left' ? -w / 2 : t.align === 'right' ? w / 2 : 0;
+    lines.forEach((line, i) => {
+      const y = -h / 2 + lh * (i + 0.5);
+      ctx.fillText(line, x, y);
+      const lw = widths[i];
+      const from = t.align === 'left' ? x : t.align === 'right' ? x - lw : -lw / 2;
+      const thick = Math.max(1, fs * 0.06);
+      if (t.underline) ctx.fillRect(from, y + fs * 0.42, lw, thick);
+      if (t.strike) ctx.fillRect(from, y + fs * 0.02, lw, thick);
+    });
     ctx.restore();
   }
   ctx.restore();

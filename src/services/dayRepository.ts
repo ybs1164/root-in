@@ -8,16 +8,24 @@ import {
   PEN_WIDTHS,
   STICKER_MAX,
   STICKER_MIN,
+  cleanTextStyle,
+  isBlankText,
+  TEXT_ALIGNS,
+  TEXT_FONTS,
+  TEXT_MAX,
+  TEXT_MAX_LENGTH,
+  TEXT_MIN,
   type DayDecor,
   type PenWidth,
   type PlacedSticker,
+  type PlacedText,
   type Stroke,
 } from '../domain/decor';
 import type { EdgeStyle, PingShape } from '../domain/dayPings';
 
 /**
  * What a calendar day has been made into, kept per date so any day opened
- * later looks the way it was left: stickers, pen strokes, the day's theme
+ * later looks the way it was left: stickers, pen strokes, text boxes, the day's theme
  * and background pattern,
  * and the shapes and line styles chosen for its pings.
  */
@@ -38,6 +46,7 @@ const EDGES: EdgeStyle[] = ['solid', 'dashed', 'dotted', 'bold'];
 const MAX_STROKES = 400;
 const MAX_POINTS = 1500;
 const MAX_STICKERS = 80;
+const MAX_TEXTS = 60;
 
 const isDate = (k: string) => /^\d{4}-\d{2}-\d{2}$/.test(k);
 const num = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -69,6 +78,30 @@ function readSticker(v: unknown): PlacedSticker | null {
   };
 }
 
+function readText(v: unknown): PlacedText | null {
+  const t = v as PlacedText;
+  if (!t || typeof t.id !== 'string' || typeof t.text !== 'string' || isBlankText(t.text)) return null;
+  if (!num(t.x) || !num(t.y) || !num(t.size)) return null;
+  const style = cleanTextStyle({
+    font: TEXT_FONTS.some((f) => f.font === t.font) ? t.font : 'sans',
+    color: isColor(t.color) ? t.color : 'ink-black',
+    align: TEXT_ALIGNS.some((a) => a.align === t.align) ? t.align : 'center',
+    bold: t.bold === true,
+    italic: t.italic === true,
+    underline: t.underline === true,
+    strike: t.strike === true,
+  });
+  return {
+    id: t.id.slice(0, 64),
+    text: t.text.slice(0, TEXT_MAX_LENGTH),
+    x: clamp01(t.x),
+    y: clamp01(t.y),
+    size: Math.min(TEXT_MAX, Math.max(TEXT_MIN, t.size)),
+    ...(num(t.rotate) ? { rotate: t.rotate } : {}),
+    ...style,
+  };
+}
+
 function readDecor(v: unknown): DayDecor | null {
   const d = v as DayDecor;
   if (!d || typeof d !== 'object') return null;
@@ -77,9 +110,14 @@ function readDecor(v: unknown): DayDecor | null {
     .map(readSticker)
     .filter((s): s is PlacedSticker => !!s)
     .slice(-MAX_STICKERS);
+  const texts = (Array.isArray(d.texts) ? d.texts : [])
+    .map(readText)
+    .filter((t): t is PlacedText => !!t)
+    .slice(-MAX_TEXTS);
   return {
     stickers,
     strokes,
+    ...(texts.length ? { texts } : {}),
     ...(isThemeId(d.theme) && d.theme !== 'default' ? { theme: d.theme } : {}),
     ...(isPatternId(d.pattern) && d.pattern !== 'none' ? { pattern: d.pattern } : {}),
   };
@@ -120,7 +158,7 @@ export function saveDays(store: DayStore): void {
   const decor: Record<string, DayDecor> = {};
   for (const [date, d] of Object.entries(store.decor)) {
     // Days left blank again aren't worth a row.
-    if (!d.strokes.length && !d.stickers.length && !d.theme && !d.pattern) continue;
+    if (!d.strokes.length && !d.stickers.length && !d.texts?.length && !d.theme && !d.pattern) continue;
     decor[date] = { ...d, strokes: d.strokes.map((s) => ({ ...s, points: s.points.map(([x, y]) => [round(x), round(y)]) })) };
   }
   try {

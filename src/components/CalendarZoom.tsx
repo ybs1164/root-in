@@ -10,8 +10,11 @@ import {
   recordChange,
   redoDecor,
   undoDecor,
+  cleanTextStyle,
+  DEFAULT_TEXT_STYLE,
   type DayDecor,
   type DecorHistory,
+  type TextStyle,
   type DecorTool,
   type PatternId,
   type PenSettings,
@@ -21,7 +24,7 @@ import { loadDays, saveDays, type DayStore } from '../services/dayRepository';
 import { dateKey } from '../domain/diary';
 import DayPings from './DayPings';
 import DayShareSheet from './DayShareSheet';
-import DecorLayer from './DecorLayer';
+import DecorLayer, { type TextFocus } from './DecorLayer';
 import { DecorRail, DecorTray } from './DecorTools';
 import MonthCalendar from './MonthCalendar';
 
@@ -129,6 +132,9 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
   const [tool, setTool] = useState<DecorTool | null>(null);
   const [armed, setArmed] = useState<string | null>(null);
   const [pen, setPen] = useState<PenSettings>(DEFAULT_PEN);
+  // Text tool: the box picked or being typed in, and how the next new box looks.
+  const [textFocus, setTextFocus] = useState<TextFocus>(null);
+  const [textStyle, setTextStyle] = useState<TextStyle>(DEFAULT_TEXT_STYLE);
   const toolRef = useRef(tool);
   toolRef.current = tool;
 
@@ -251,6 +257,25 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
   useEffect(() => onDayPattern(dayPattern), [dayPattern]);
   useEffect(() => () => onDayPattern('none'), []);
 
+  // The text tool's toolbar is for a written box that's been picked: it
+  // stays down while nothing is picked, and while typing (the keyboard is up).
+  const pickedText = textFocus && !textFocus.editing ? (dayDecor.texts ?? []).find((t) => t.id === textFocus.id) : undefined;
+  const sheetTool = tool === 'text' && !pickedText ? null : tool;
+  const sheetTextStyle: TextStyle = pickedText ?? textStyle;
+  const changeTextStyle = (patch: Partial<TextStyle>) => {
+    const next = cleanTextStyle({ ...sheetTextStyle, ...patch });
+    setTextStyle(next);
+    if (pickedText) {
+      const { id } = pickedText;
+      const texts = (dayDecor.texts ?? []).map((t) => {
+        if (t.id !== id) return t;
+        const { bold: _b, italic: _i, underline: _u, strike: _s, ...rest } = t;
+        return { ...rest, ...next };
+      });
+      changeDecor({ ...dayDecor, texts });
+    }
+  };
+
   // The app hides the tab buttons while a tool is out. Leaving the day
   // screen (to the month) puts the tools away.
   useEffect(() => onDecorating(tool !== null), [tool]);
@@ -259,19 +284,19 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
   const [trayTool, setTrayTool] = useState<DecorTool | null>(null);
   const [trayLeaving, setTrayLeaving] = useState(false);
   useEffect(() => {
-    if (!tool || !trayTool) {
-      setTrayTool(tool);
+    if (!sheetTool || !trayTool) {
+      setTrayTool(sheetTool);
       setTrayLeaving(false);
       return;
     }
-    if (tool === trayTool) return;
+    if (sheetTool === trayTool) return;
     setTrayLeaving(true);
     const swap = window.setTimeout(() => {
-      setTrayTool(tool);
+      setTrayTool(sheetTool);
       setTrayLeaving(false);
     }, TRAY_SWAP_MS);
     return () => window.clearTimeout(swap);
-  }, [tool]);
+  }, [sheetTool]);
   // Touching anywhere but the drawing box or the tools puts the tool away,
   // and the tab buttons come back.
   useEffect(() => {
@@ -559,6 +584,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
           onTool={(next) => {
             setTool(next);
             setArmed(null);
+            setTextFocus(null);
           }}
           onShare={() => {
             setTool(null);
@@ -591,6 +617,9 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
                 pen={pen}
                 onChange={changeDecor}
                 enterDelayMs={pingsLandedMs(pings.length)}
+                textFocus={textFocus}
+                onTextFocus={setTextFocus}
+                textStyle={textStyle}
               />
             </DayPings>
           </div>
@@ -627,6 +656,8 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
           onTheme={(theme) => setDayDecor({ ...dayDecor, theme: theme === 'default' ? undefined : theme })}
           pattern={dayDecor.pattern ?? 'none'}
           onPattern={(pattern) => setDayDecor({ ...dayDecor, pattern: pattern === 'none' ? undefined : pattern })}
+          textStyle={sheetTextStyle}
+          onTextStyle={changeTextStyle}
         />
       )}
 

@@ -2,18 +2,31 @@ import { X } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import {
   clamp01,
+  cleanTextStyle,
   ERASER_SCALE,
   extendStroke,
   inkCss,
+  isBlankText,
   PEN_WIDTHS,
   STICKER_SIZE,
   stickerGesture,
+  TEXT_LINE_HEIGHT,
+  TEXT_MAX,
+  TEXT_MAX_LENGTH,
+  TEXT_MIN,
+  TEXT_SIZE,
+  textFamily,
   type DayDecor,
   type DecorTool,
   type PenSettings,
+  type PlacedText,
   type StickerPose,
   type Stroke,
+  type TextStyle,
 } from '../domain/decor';
+
+/** The text box picked with the text tool, and whether it's being typed in. */
+export type TextFocus = { id: string; editing: boolean } | null;
 
 interface DecorLayerProps {
   decor: DayDecor;
@@ -25,7 +38,26 @@ interface DecorLayerProps {
   onChange: (decor: DayDecor) => void;
   /** Stickers and ink settle in from above once the pins have landed (it mounts with the day). */
   enterDelayMs?: number;
+  /** Text tool: the box picked (its toolbar shows below) or being typed in. */
+  textFocus?: TextFocus;
+  onTextFocus?: (focus: TextFocus) => void;
+  /** How a new text box starts out (the last style picked). */
+  textStyle?: TextStyle;
 }
+
+/** How far a finger may wander and still count as a tap on a box (px). */
+const TAP_SLOP = 6;
+
+/** CSS for a text box's looks (the share image draws the same in lib/dayImage.ts). */
+const textCss = (t: PlacedText) => ({
+  fontFamily: textFamily(t.font),
+  fontWeight: t.bold ? 700 : 400,
+  fontStyle: t.italic ? 'italic' : 'normal',
+  textDecorationLine: [t.underline && 'underline', t.strike && 'line-through'].filter(Boolean).join(' ') || 'none',
+  textAlign: t.align,
+  color: inkCss(t.color),
+  lineHeight: TEXT_LINE_HEIGHT,
+});
 
 const strokePath = (points: [number, number][]) =>
   points.map(([x, y], i) => `${i ? 'L' : 'M'}${(x * 100).toFixed(2)} ${(y * 100).toFixed(2)}`).join(' ') +
@@ -95,14 +127,32 @@ const newId = () =>
  * places the picked sticker and placed ones can be dragged or removed;
  * with the pen, a finger draws. Otherwise the layer is just a picture.
  */
-export default function DecorLayer({ decor, tool, armed, pen, onChange, enterDelayMs = 0 }: DecorLayerProps) {
+export default function DecorLayer({
+  decor,
+  tool,
+  armed,
+  pen,
+  onChange,
+  enterDelayMs = 0,
+  textFocus = null,
+  onTextFocus = () => {},
+  textStyle = { font: 'sans', color: 'ink-black', align: 'center' },
+}: DecorLayerProps) {
   const layer = useRef<HTMLDivElement | null>(null);
   const [drawing, setDrawing] = useState<Stroke | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   // Fingers on the selected sticker (the first on it, a second anywhere in
   // the box), and its pose when the current set of fingers came down.
   const fingers = useRef(new Map<number, { x: number; y: number }>());
-  const gesture = useRef<{ id: string; base: StickerPose; from: { x: number; y: number }[] } | null>(null);
+  const gesture = useRef<{
+    kind: 'sticker' | 'text';
+    id: string;
+    base: StickerPose;
+    from: { x: number; y: number }[];
+    /** Where the first finger came down, and whether the box was already picked then (a tap on it types). */
+    start?: { x: number; y: number; picked: boolean };
+    moved?: boolean;
+  } | null>(null);
   const [live, setLiveState] = useState<({ id: string } & StickerPose) | null>(null);
   // Mirrored in a ref: a finger can lift in the same frame as the last move,
   // before a re-render hands the handlers the newest pose.
@@ -116,7 +166,7 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange, enterDel
   // turning a quick stroke into a scroll fling, which would swallow the next
   // tap (on a tool button, say) as "stop the fling". Needs a non-passive
   // listener, so it can't be a React prop.
-  const active = tool === 'sticker' || tool === 'pen';
+  const active = tool === 'sticker' || tool === 'pen' || tool === 'text';
   useEffect(() => {
     const el = layer.current;
     if (!el || !active) return;
@@ -153,31 +203,37 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange, enterDel
 
   // ----- Stickers -----
 
-  const poseOf = (id: string): StickerPose => {
+  const poseOf = (kind: 'sticker' | 'text', id: string): StickerPose => {
     const now = liveRef.current;
     if (now?.id === id) return now;
-    const st = decor.stickers.find((x) => x.id === id)!;
+    const st = (kind === 'sticker' ? decor.stickers : (decor.texts ?? [])).find((x) => x.id === id)!;
     return { x: st.x, y: st.y, size: st.size, rotate: st.rotate ?? 0 };
   };
 
   // Each time a finger lands or lifts, the gesture restarts from the pose so
   // far, so going from one finger to two (or back) never makes it jump.
-  const restart = (id: string) => {
-    gesture.current = fingers.current.size ? { id, base: poseOf(id), from: [...fingers.current.values()].slice(0, 2) } : null;
+  const restart = (kind: 'sticker' | 'text', id: string) => {
+    const g = gesture.current;
+    gesture.current = fingers.current.size
+      ? { kind, id, base: poseOf(kind, id), from: [...fingers.current.values()].slice(0, 2), start: g?.start, moved: g?.moved }
+      : null;
   };
 
-  const grab = (id: string, e: PointerEvent) => {
-    // Captured by the layer, so the sticker's fingers and a second finger
+  const grab = (kind: 'sticker' | 'text', id: string, e: PointerEvent, picked = false) => {
+    // Captured by the layer, so the box's fingers and a second finger
     // elsewhere in the box all report to the same handlers.
     layer.current!.setPointerCapture(e.pointerId);
     fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    restart(id);
+    const first = !gesture.current;
+    restart(kind, id);
+    if (first && gesture.current) gesture.current.start = { x: e.clientX, y: e.clientY, picked };
+    else if (gesture.current) gesture.current.moved = true; // a second finger: a pinch, not a tap
   };
 
   const onBoxDown = (e: PointerEvent) => {
     if (e.target !== e.currentTarget) return; // a sticker handles its own press
     // A second finger while one holds a sticker: pinch and twist it.
-    if (gesture.current && fingers.current.size === 1) return grab(gesture.current.id, e);
+    if (gesture.current && fingers.current.size === 1) return grab(gesture.current.kind, gesture.current.id, e);
     if (!e.isPrimary) return;
     setSelected(null);
     if (!armed) return;
@@ -192,36 +248,130 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange, enterDel
     e.stopPropagation();
     if (gesture.current && gesture.current.id !== id) {
       // Second finger landed on another sticker: still the first one's pinch.
-      if (fingers.current.size === 1) grab(gesture.current.id, e);
+      if (fingers.current.size === 1) grab(gesture.current.kind, gesture.current.id, e);
       return;
     }
     if (fingers.current.size >= 2) return;
     setSelected(id);
-    grab(id, e);
+    grab('sticker', id, e);
   };
 
   const onStickerMove = (e: PointerEvent) => {
     const g = gesture.current;
     if (!g || !fingers.current.has(e.pointerId)) return;
     fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (!g.moved && g.start && Math.hypot(e.clientX - g.start.x, e.clientY - g.start.y) <= TAP_SLOP) return;
+    g.moved = true;
     const to = [...fingers.current.values()].slice(0, 2);
     if (to.length !== g.from.length) return;
-    const pose = stickerGesture(g.base, g.from, to, layer.current!.getBoundingClientRect().width);
+    const limits = g.kind === 'text' ? { min: TEXT_MIN, max: TEXT_MAX } : undefined;
+    const pose = stickerGesture(g.base, g.from, to, layer.current!.getBoundingClientRect().width, limits);
     setLive({ id: g.id, ...pose });
   };
 
   const onStickerUp = (e: PointerEvent) => {
     const g = gesture.current;
     if (!g || !fingers.current.delete(e.pointerId)) return;
-    if (fingers.current.size) return restart(g.id);
+    if (fingers.current.size) return restart(g.kind, g.id);
     gesture.current = null;
-    if (!liveRef.current) return;
+    if (!liveRef.current) {
+      // A tap on a text box that was already picked: type in it.
+      if (g.kind === 'text' && !g.moved && g.start?.picked) startTyping(g.id);
+      return;
+    }
     const { id, ...pose } = liveRef.current;
-    onChange({ ...decor, stickers: decor.stickers.map((st) => (st.id === id ? { ...st, ...pose } : st)) });
+    if (g.kind === 'sticker') onChange({ ...decor, stickers: decor.stickers.map((st) => (st.id === id ? { ...st, ...pose } : st)) });
+    else onChange({ ...decor, texts: (decor.texts ?? []).map((t) => (t.id === id ? { ...t, ...pose } : t)) });
     setLive(null);
   };
 
+  // ----- Text -----
+
+  // The box being typed in: a copy until it's done (a new one isn't on the
+  // day yet), so a box left blank never makes it into the day or its undo.
+  const [draft, setDraftState] = useState<PlacedText | null>(null);
+  const draftRef = useRef(draft);
+  const setDraft = (next: PlacedText | null) => {
+    draftRef.current = next;
+    setDraftState(next);
+  };
+  const decorRef = useRef(decor);
+  decorRef.current = decor;
+  const changeRef = useRef(onChange);
+  changeRef.current = onChange;
+  const focusRef = useRef(onTextFocus);
+  focusRef.current = onTextFocus;
+
+  const startTyping = (id: string) => {
+    const t = (decor.texts ?? []).find((x) => x.id === id);
+    if (!t) return;
+    setDraft({ ...t });
+    onTextFocus({ id, editing: true });
+  };
+
+  /** Done typing: blank boxes go, others are kept (or updated). Safe to call twice. */
+  const finishTyping = () => {
+    const d = draftRef.current;
+    if (!d) return;
+    setDraft(null);
+    focusRef.current(null);
+    const now = decorRef.current;
+    const texts = now.texts ?? [];
+    const old = texts.find((t) => t.id === d.id);
+    if (isBlankText(d.text)) {
+      if (old) changeRef.current({ ...now, texts: texts.filter((t) => t.id !== d.id) });
+      return;
+    }
+    if (!old) changeRef.current({ ...now, texts: [...texts, d] });
+    else if (old.text !== d.text) changeRef.current({ ...now, texts: texts.map((t) => (t.id === d.id ? { ...t, text: d.text } : t)) });
+  };
+
+  // Putting the text tool away (or leaving the day) ends the typing.
+  useEffect(() => {
+    if (tool !== 'text') finishTyping();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tool]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => () => finishTyping(), []);
+
+  const onTextBoxDown = (e: PointerEvent) => {
+    if (e.target !== e.currentTarget) return; // a box handles its own press
+    if (gesture.current && fingers.current.size === 1) return grab(gesture.current.kind, gesture.current.id, e);
+    if (!e.isPrimary) return;
+    // No mouse events after this: they would move focus off the new box's field.
+    e.preventDefault();
+    // A tap away from the box being typed in or picked lets go of it first.
+    if (draftRef.current) return finishTyping();
+    if (textFocus) return onTextFocus(null);
+    const [x, y] = at(e);
+    const box: PlacedText = { id: newId(), text: '', x: clamp01(x), y: clamp01(y), size: TEXT_SIZE, ...cleanTextStyle(textStyle) };
+    setDraft(box);
+    onTextFocus({ id: box.id, editing: true });
+  };
+
+  const onTextDown = (id: string) => (e: PointerEvent) => {
+    if (tool !== 'text') return;
+    e.stopPropagation();
+    if (draftRef.current?.id === id) return; // typing in it: the finger moves the caret
+    e.preventDefault();
+    if (draftRef.current) finishTyping();
+    if (gesture.current && gesture.current.id !== id) {
+      if (fingers.current.size === 1) grab(gesture.current.kind, gesture.current.id, e);
+      return;
+    }
+    if (fingers.current.size >= 2) return;
+    const picked = textFocus?.id === id && !textFocus.editing;
+    onTextFocus({ id, editing: false });
+    grab('text', id, e, picked);
+  };
+
   const strokes = drawing ? [...decor.strokes, drawing] : decor.strokes;
+  const savedTexts = decor.texts ?? [];
+  const texts = draft
+    ? savedTexts.some((t) => t.id === draft.id)
+      ? savedTexts.map((t) => (t.id === draft.id ? draft : t))
+      : [...savedTexts, draft]
+    : savedTexts;
   const uid = useId().replace(/:/g, '');
   const glowId = `neon-${uid}`;
 
@@ -229,10 +379,10 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange, enterDel
     <div
       ref={layer}
       className={`decor ${active ? `decor--${tool}` : ''} ${tool === 'sticker' && armed ? 'is-armed' : ''} ${tool === 'pen' && pen.tool === 'eraser' ? 'is-erasing' : ''}`}
-      onPointerDown={tool === 'pen' ? onPenDown : tool === 'sticker' ? onBoxDown : undefined}
-      onPointerMove={tool === 'pen' ? onPenMove : tool === 'sticker' ? onStickerMove : undefined}
-      onPointerUp={tool === 'pen' ? onPenUp : tool === 'sticker' ? onStickerUp : undefined}
-      onPointerCancel={tool === 'pen' ? onPenUp : tool === 'sticker' ? onStickerUp : undefined}
+      onPointerDown={tool === 'pen' ? onPenDown : tool === 'sticker' ? onBoxDown : tool === 'text' ? onTextBoxDown : undefined}
+      onPointerMove={tool === 'pen' ? onPenMove : tool === 'sticker' || tool === 'text' ? onStickerMove : undefined}
+      onPointerUp={tool === 'pen' ? onPenUp : tool === 'sticker' || tool === 'text' ? onStickerUp : undefined}
+      onPointerCancel={tool === 'pen' ? onPenUp : tool === 'sticker' || tool === 'text' ? onStickerUp : undefined}
       style={{ animationDelay: `${enterDelayMs}ms` }}
       aria-hidden={!active}
     >
@@ -278,6 +428,61 @@ export default function DecorLayer({ decor, tool, armed, pen, onChange, enterDel
               </button>
             )}
           </span>
+        );
+      })}
+      {texts.map((t) => {
+        const pos = live?.id === t.id ? live : t;
+        const typing = draft?.id === t.id;
+        const picked = tool === 'text' && textFocus?.id === t.id;
+        return (
+          <div
+            key={t.id}
+            className={`decor__text ${picked ? 'is-selected' : ''} ${typing ? 'is-typing' : ''}`}
+            style={{
+              left: `${pos.x * 100}%`,
+              top: `${pos.y * 100}%`,
+              fontSize: `${pos.size * 100}cqw`,
+              rotate: `${pos.rotate ?? 0}deg`,
+              ...textCss(t),
+            }}
+            onPointerDown={onTextDown(t.id)}
+          >
+            {typing ? (
+              // A hidden copy of the text sizes the box; the field lies over it.
+              <span className="decor__text-field">
+                <span className="decor__text-sizer" aria-hidden>
+                  {`${t.text}\u200b`}
+                </span>
+                <textarea
+                  className="decor__text-input"
+                  aria-label="텍스트"
+                  value={t.text}
+                  maxLength={TEXT_MAX_LENGTH}
+                  autoFocus
+                  wrap="off"
+                  spellCheck={false}
+                  onChange={(e) => setDraft({ ...t, text: e.target.value })}
+                  onBlur={finishTyping}
+                  onKeyDown={(e) => e.key === 'Escape' && e.currentTarget.blur()}
+                />
+              </span>
+            ) : (
+              t.text
+            )}
+            {picked && !typing && (
+              <button
+                className="decor__remove"
+                aria-label="텍스트 지우기"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => {
+                  onChange({ ...decor, texts: savedTexts.filter((x) => x.id !== t.id) });
+                  onTextFocus(null);
+                }}
+              >
+                <X size={14} aria-hidden />
+              </button>
+            )}
+          </div>
         );
       })}
     </div>
