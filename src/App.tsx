@@ -194,7 +194,18 @@ export default function App() {
       });
     }
     if (sharedCourse || !(onPinHome || pinning)) return [];
-    return (pinning ? pins : shownPins).map((pin) => {
+    // A saved route on show: a stop given a shape stands in for the pin at
+    // that place, so that pin leaves the map instead of covering the shape.
+    const replaced = new Set<string>();
+    shownRoute?.stops.forEach((stop, i) => {
+      if (!shownRoute.stopShapes?.[i]) return;
+      replaced.add(stop.place.id);
+      replaced.add(stop.place.center.join(','));
+    });
+    const visible = (pinning ? pins : shownPins).filter(
+      (pin) => pinning || !(replaced.has(pin.place.id) || replaced.has(pin.place.center.join(','))),
+    );
+    return visible.map((pin) => {
       const style = categoryStyle(categories, pin.categoryId);
       return {
         id: pin.id,
@@ -206,7 +217,7 @@ export default function App() {
         selected: pin.id === activePinId,
       };
     });
-  }, [sharedPins, sharedCourse, onPinHome, pinning, pins, shownPins, categories, activePinId]);
+  }, [sharedPins, sharedCourse, onPinHome, pinning, pins, shownPins, categories, activePinId, shownRoute]);
 
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
 

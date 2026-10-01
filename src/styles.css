@@ -2527,7 +2527,8 @@ input.timeline__time:focus {
   position: fixed;
   left: 0;
   top: 0;
-  z-index: 0;
+  /* Above the map's pins (z 1, painted earlier), so nearby pins don't cover it. */
+  z-index: 1;
   width: 0;
   height: 0;
   pointer-events: none;
