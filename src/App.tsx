@@ -10,7 +10,7 @@ import InfluencerPanel from './components/InfluencerPanel';
 import PinCard from './components/PinCard';
 import PinDropTray from './components/PinDropTray';
 import PinRail from './components/PinRail';
-import RouteBuildLayer from './components/RouteBuildLayer';
+import RouteBuildLayer, { pinAt } from './components/RouteBuildLayer';
 import RouteFolderTray from './components/RouteFolderTray';
 import RouteStyleLayer from './components/RouteStyleLayer';
 import StopLines from './components/StopLines';
@@ -25,6 +25,7 @@ import { DIARY_LIMITS, diaryKind } from './domain/diary';
 import type { MapViewport } from './domain/districtMap';
 import { categoryFamily, categoryStyle, filterPinsByCategories } from './domain/pin';
 import { pinRailNext, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
+import { PRESS } from './domain/dayPings';
 import { buildRouteTitle, toggleBuildStop } from './domain/routeBuild';
 import { withEdgeStyle, withStopShape } from './domain/routeStyle';
 import { moveRoute, type RouteTab } from './domain/routeFolders';
@@ -438,6 +439,75 @@ export default function App() {
     }
     setRailMode(next);
   };
+
+  // With the 경로 sheet up (and no route being made): a quick tap on bare map
+  // closes 경로 altogether; pressing a pin and dragging goes straight into
+  // making a route, that pin first, then every pin the finger crosses.
+  // Listened for on the document in the capture phase, ahead of the map; the
+  // listener stays for all of 경로 so a stroke that started it keeps going
+  // after the build layer mounts (that layer only takes strokes it began).
+  const buildingRef = useRef(building);
+  buildingRef.current = building;
+  useEffect(() => {
+    const el = mapEl.current;
+    if (!routeMode || !el) return;
+    let stroke: { x: number; y: number; at: number; pin: string | null; drawing: boolean; moved: boolean } | null = null;
+    const down = (e: PointerEvent) => {
+      stroke = null;
+      if (!e.isPrimary || buildingRef.current || !el.contains(e.target as Node)) return;
+      stroke = { x: e.clientX, y: e.clientY, at: performance.now(), pin: pinAt(e.clientX, e.clientY), drawing: false, moved: false };
+      if (stroke.pin) mapRef.current?.setPanEnabled(false);
+    };
+    const move = (e: PointerEvent) => {
+      const s = stroke;
+      if (!s || !e.isPrimary) return;
+      if (!s.moved && Math.hypot(e.clientX - s.x, e.clientY - s.y) > PRESS.slopPx) {
+        s.moved = true;
+        if (s.pin) {
+          s.drawing = true;
+          setShownRouteId(null);
+          setActivePinId(null);
+          setBuilding([s.pin]);
+        }
+      }
+      if (!s.drawing) return;
+      e.preventDefault();
+      const id = pinAt(e.clientX, e.clientY);
+      if (id) setBuilding((b) => (b && !b.includes(id) && b.length < COURSE_LIMITS.maxStops ? [...b, id] : b));
+    };
+    const up = (e: PointerEvent) => {
+      const s = stroke;
+      stroke = null;
+      if (!s || !e.isPrimary) return;
+      if (s.pin) mapRef.current?.setPanEnabled(true);
+      if (s.drawing) {
+        // The stroke may end on a pin; its click shouldn't open the pin card.
+        const swallow = (c: MouseEvent) => {
+          c.stopPropagation();
+          c.preventDefault();
+        };
+        document.addEventListener('click', swallow, { capture: true, once: true });
+        window.setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 300);
+        return;
+      }
+      // A quick tap on bare map (not a pan, not a long press, not on a marker) closes 경로.
+      const onMarker = (e.target as Element | null)?.closest('.map-marker');
+      if (!s.moved && !s.pin && !onMarker && performance.now() - s.at < PRESS.longMs && el.contains(e.target as Node)) {
+        setShownRouteId(null);
+        setRailMode('menu');
+      }
+    };
+    document.addEventListener('pointerdown', down, true);
+    document.addEventListener('pointermove', move, { capture: true, passive: false });
+    document.addEventListener('pointerup', up, true);
+    document.addEventListener('pointercancel', up, true);
+    return () => {
+      document.removeEventListener('pointerdown', down, true);
+      document.removeEventListener('pointermove', move, true);
+      document.removeEventListener('pointerup', up, true);
+      document.removeEventListener('pointercancel', up, true);
+    };
+  }, [routeMode]);
 
   const startBuilding = () => {
     setShownRouteId(null);

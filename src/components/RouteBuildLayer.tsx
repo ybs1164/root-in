@@ -31,7 +31,7 @@ interface Stroke {
 }
 
 /** The pin marker under a screen point, if any (also under a numbered stop drawn on top of it). */
-function pinAt(x: number, y: number): string | null {
+export function pinAt(x: number, y: number): string | null {
   for (const el of document.elementsFromPoint(x, y)) {
     const id = (el as HTMLElement).dataset?.pinId;
     if (id) return id;
