@@ -24,6 +24,11 @@ interface RouteFolderTrayProps {
   /** The route drawn on the map, if any; tapping a row shows (or hides) it. */
   shownId: string | null;
   onShow: (course: Course | null) => void;
+  /** The open tab, kept by the app so it survives the sheet going down. */
+  tab: RouteTab;
+  onTab: (tab: RouteTab) => void;
+  /** The + inside the folder: put the sheet down and make a route from pins. */
+  onNewRoute: () => void;
 }
 
 /** The fixed tabs wear line icons, set apart from the folders' own emoji. */
@@ -60,8 +65,7 @@ const newId = () =>
  * lifts it so it can be dragged among the folders; let go without moving and
  * an ✕ appears on it, which deletes the folder after a confirm.
  */
-export default function RouteFolderTray({ open, courses, folders, onFolders, shownId, onShow }: RouteFolderTrayProps) {
-  const [tab, setTab] = useState<RouteTab>('all');
+export default function RouteFolderTray({ open, courses, folders, onFolders, shownId, onShow, tab, onTab: setTab, onNewRoute }: RouteFolderTrayProps) {
   // The folder whose icon picker is out.
   const [picking, setPicking] = useState<string | null>(null);
   // The route whose 폴더 chooser is out.
@@ -334,9 +338,12 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
       </div>
 
       <div className="route-folders__body" role="tabpanel">
+        <button className="route-folders__new" aria-label="새 경로 만들기" onClick={onNewRoute}>
+          <Plus size={20} aria-hidden />
+        </button>
         {routes.length === 0 ? (
           <p className="route-folders__empty">
-            {courses.length === 0 ? '저장한 경로가 없어요.' : current === 'all' || current === 'none' ? '여기에 있는 경로가 없어요.' : '이 폴더는 비어 있어요. 경로의 폴더 버튼으로 넣어 보세요. 탭을 한 번 더 누르면 아이콘을 바꿀 수 있어요.'}
+            {courses.length === 0 ? '저장한 경로가 없어요. 오른쪽 위 + 로 핀을 이어 만들어 보세요.' : current === 'all' || current === 'none' ? '여기에 있는 경로가 없어요.' : '이 폴더는 비어 있어요. 경로의 폴더 버튼으로 넣어 보세요. 탭을 한 번 더 누르면 아이콘을 바꿀 수 있어요.'}
           </p>
         ) : (
           <ul className="route-folders__list">

@@ -2440,6 +2440,67 @@ input.timeline__time:focus {
   background: var(--surface);
 }
 
+/* + : make a new route from pins. Top-right inside the folder, staying put
+   while the list scrolls. */
+.route-folders__new {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 0 0 4px auto;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.route-folders__new:active {
+  background: var(--accent-strong);
+}
+
+/* Making a route from pins: the folder sheet is down; this card says what to
+   do and holds 취소 / 경로 저장. */
+.route-build {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--safe-bottom) + 12px);
+  z-index: 13;
+  padding: 14px 14px 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.route-build__hint {
+  margin: 0 0 10px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.route-build__actions {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 8px;
+}
+
+@media (min-width: 900px) {
+  .route-build {
+    left: 50%;
+    right: auto;
+    width: 420px;
+    translate: -50% 0;
+  }
+}
+
 .route-folders__empty {
   margin: 18px 0;
   color: var(--muted);

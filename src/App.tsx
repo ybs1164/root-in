@@ -22,6 +22,8 @@ import { DIARY_LIMITS, diaryKind } from './domain/diary';
 import type { MapViewport } from './domain/districtMap';
 import { categoryFamily, categoryStyle, filterPinsByCategories } from './domain/pin';
 import { pinRailNext, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
+import { buildRouteTitle, toggleBuildStop } from './domain/routeBuild';
+import { moveRoute, type RouteTab } from './domain/routeFolders';
 import { useCourseDraft } from './hooks/useCourseDraft';
 import { useDiaryDay } from './hooks/useDiaryDay';
 import { useDistrictMap } from './hooks/useDistrictMap';
@@ -43,7 +45,7 @@ import { pointPlace, type PlaceSearchService } from './services/placeSearch/plac
 import { withRecentCategory } from './services/settingsRepository';
 import type { ShareTarget } from './services/shareTargets';
 import type { PlaceRef } from './types/course';
-import { PIN_ICONS } from './types/pin';
+import { PIN_ICONS, type Pin } from './types/pin';
 
 type SheetSize = 'peek' | 'full';
 type Toast = { text: string; undo?: () => void };
@@ -125,6 +127,10 @@ export default function App() {
   const [railMode, setRailMode] = useState<PinRailMode>('menu');
   // The saved route drawn on the map from the 경로 폴더.
   const [shownRouteId, setShownRouteId] = useState<string | null>(null);
+  // The 경로 폴더's open tab (kept here: the sheet unmounts while it is down).
+  const [routeTab, setRouteTab] = useState<RouteTab>('all');
+  // Making a new route from pins (the folder's +): the pins tapped so far, in order.
+  const [building, setBuilding] = useState<string[] | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
 
   const sharedCourse = incomingCourse.status === 'ready' ? incomingCourse.course : null;
@@ -135,7 +141,10 @@ export default function App() {
   // On phones the pin screen's sheet drops down from the top, leaving the map's lower half clear.
   const sheetTop = tab === 'pins';
   // 경로 open on the pin map: the folder sheet takes the tab buttons' place.
-  const routeOpen = onPinHome && railMode === 'route' && !searchOpen && !pinning;
+  const routeMode = onPinHome && railMode === 'route' && !searchOpen && !pinning;
+  // While a route is being made from pins, the folder sheet steps down out of the way.
+  const routeOpen = routeMode && building === null;
+  const buildPins = building && routeMode ? building.map((id) => pins.find((p) => p.id === id)).filter((p): p is Pin => !!p) : null;
   // Kept mounted a moment after closing so it can slide down.
   const [routeTrayShown, setRouteTrayShown] = useState(routeOpen);
   useEffect(() => {
@@ -150,6 +159,7 @@ export default function App() {
   const shownStops = useMemo(() => {
     if (sharedCourse) return sharedCourse.stops.map((s) => s.place);
     if (sharedPins) return [];
+    if (buildPins) return buildPins.map((p) => p.place);
     if (shownRoute) return shownRoute.stops.map((s) => s.place);
     if (tab === 'calendar') {
       if (sharedDiary) return sharedDiary.stops.map((s) => s.place);
@@ -159,7 +169,7 @@ export default function App() {
     }
     if (tab === 'pins' && sub !== 'pins') return course.draft.stops.map((s) => s.place);
     return [];
-  }, [sharedCourse, sharedPins, shownRoute, sharedDiary, tab, sub, day.screen, day.draft.stops, course.draft.stops]);
+  }, [sharedCourse, sharedPins, buildPins, shownRoute, sharedDiary, tab, sub, day.screen, day.draft.stops, course.draft.stops]);
 
   // Pin markers: a received set as its sender styled it, or my pins on the home tab.
   const pinMarkers = useMemo<PinMarker[]>(() => {
@@ -185,6 +195,7 @@ export default function App() {
         name: pin.place.name,
         emoji: style.emoji,
         color: style.color,
+        // While making a route, chosen pins show their order as numbered stops instead.
         selected: pin.id === activePinId,
       };
     });
@@ -332,6 +343,9 @@ export default function App() {
     requestAnimationFrame(() => mapRef.current?.focus(center, mapPadding(extra)));
 
   mapEvents.current.stop = (index: number) => {
+    // Making a route: a chosen pin is covered by its numbered stop, so a tap
+    // there takes it back out.
+    if (building && routeMode) return setBuilding((b) => (b ? b.filter((_, i) => i !== index) : b));
     const place = shownStops[index];
     if (!place) return;
     mapRef.current?.focus(place.center, mapPadding());
@@ -345,6 +359,8 @@ export default function App() {
       return;
     }
     if (pinning) return;
+    // Making a route: a tap adds the pin as the next stop (or takes it back out).
+    if (building && routeMode) return setBuilding((b) => (b ? toggleBuildStop(b, id) : b));
     openPin(id);
   };
 
@@ -398,9 +414,29 @@ export default function App() {
   // filtered, and reopening shows what is picked.
   const railAction = (entry: PinRailEntry) => {
     const next = pinRailNext(railMode, entry);
-    // Closing 경로 takes its route off the map.
-    if (next !== 'route') setShownRouteId(null);
+    // Closing 경로 takes its route off the map, and drops a route half made.
+    if (next !== 'route') {
+      setShownRouteId(null);
+      setBuilding(null);
+    }
     setRailMode(next);
+  };
+
+  const startBuilding = () => {
+    setShownRouteId(null);
+    setActivePinId(null);
+    setBuilding([]);
+  };
+
+  const saveBuilt = async () => {
+    if (!buildPins || buildPins.length < COURSE_LIMITS.minStops) return;
+    const stops = buildPins.map((p) => ({ place: p.place }));
+    const saved = await course.save({ title: buildRouteTitle(stops.map((s) => s.place)), theme: 'etc', travelMode: 'walk', stops });
+    // Made from inside a folder: it goes in that folder.
+    if (routeTab !== 'all' && routeTab !== 'none') routeFolders.setFolders((f) => moveRoute(f, saved.id, routeTab));
+    setBuilding(null);
+    setShownRouteId(saved.id);
+    notify(`${saved.title} 경로를 저장했어요.`);
   };
 
   // ----- Adding places -----
@@ -566,7 +602,7 @@ export default function App() {
   const swipe = usePageSwipe(onPage && !decorating ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
 
   // The tab buttons step aside for a 꾸미기 tool's tray, and for the 경로 폴더.
-  const barAway = (decorating && calendarZoom && onPage) || routeOpen;
+  const barAway = (decorating && calendarZoom && onPage) || routeMode;
 
   return (
     <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''}`}>
@@ -610,7 +646,28 @@ export default function App() {
           onFolders={routeFolders.setFolders}
           shownId={shownRoute?.id ?? null}
           onShow={(c) => setShownRouteId(c?.id ?? null)}
+          tab={routeTab}
+          onTab={setRouteTab}
+          onNewRoute={startBuilding}
         />
+      )}
+
+      {buildPins && (
+        <div className="route-build" role="region" aria-label="경로 만들기">
+          <p className="route-build__hint" aria-live="polite">
+            {buildPins.length === 0
+              ? '지도에서 핀을 순서대로 눌러 경로를 만들어요.'
+              : `${buildPins.length}곳 · 다시 누르면 빠져요${buildPins.length >= COURSE_LIMITS.maxStops ? ` (최대 ${COURSE_LIMITS.maxStops}곳)` : ''}`}
+          </p>
+          <div className="route-build__actions">
+            <button className="btn btn--ghost" onClick={() => setBuilding(null)}>
+              취소
+            </button>
+            <button className="btn btn--primary" disabled={buildPins.length < COURSE_LIMITS.minStops} onClick={saveBuilt}>
+              경로 저장
+            </button>
+          </div>
+        </div>
       )}
 
       {pinning && (
