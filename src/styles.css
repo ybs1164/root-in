@@ -2663,6 +2663,39 @@ input.timeline__time:focus {
   background: var(--surface-2);
 }
 
+/* A pin's card stands just above the pin, which tapping it pans to the middle
+   of the map (the map fills the screen, so that is the screen's middle). The
+   tail points down at the pin. Placed after the generic bottom positions so
+   it wins on every width. */
+.app .place-card.place-card--pin {
+  /* Half the selected pin's height plus a gap. */
+  bottom: calc(50% + 32px);
+  left: 50%;
+  right: auto;
+  width: min(360px, calc(100vw - 24px));
+  translate: -50% 0;
+  animation: pin-card-in 0.18s ease both;
+}
+
+.app .place-card.place-card--pin::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  width: 16px;
+  height: 16px;
+  background: var(--surface);
+  translate: -50% 0;
+  rotate: 45deg;
+}
+
+@keyframes pin-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .route-folders,
   .route-folders.is-leaving {

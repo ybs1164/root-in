@@ -48,7 +48,13 @@ interface Press {
   /** Lifted: the long press has fired. */
   active: boolean;
   moved: boolean;
+  /** Once lifted: the tab's resting left edge then, and the finger's latest x. */
+  startLeft: number;
+  lastX: number;
 }
+
+/** How long tabs take to slide into new places (and the dragged one to settle). */
+const SLIDE_MS = 180;
 
 const newId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -158,19 +164,70 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
     if (confirming && dialog && !dialog.open) dialog.showModal();
   }, [confirming]);
 
+  // ----- Drag animation -----
+  // Positions are offsetLeft (layout, untouched by transforms), all in the
+  // same offset parent. The dragged tab follows the finger with a transform;
+  // the others glide to their new places (FLIP) when the order changes.
+  const wrapOf = (id: string) => tabsEl.current?.querySelector<HTMLElement>(`[data-folder="${id}"]`) ?? null;
+  const restingLefts = useRef(new Map<string, number>());
+
+  const followFinger = () => {
+    const p = press.current;
+    const el = p?.active ? wrapOf(p.id) : null;
+    if (!p || !el) return;
+    el.style.transition = 'none';
+    el.style.zIndex = '2';
+    el.style.transform = `translateX(${p.startLeft + (p.lastX - p.x) - el.offsetLeft}px)`;
+  };
+
+  useLayoutEffect(() => {
+    const els = [...(tabsEl.current?.querySelectorAll<HTMLElement>('[data-folder]') ?? [])];
+    for (const el of els) {
+      const id = el.dataset.folder!;
+      const before = restingLefts.current.get(id);
+      const now = el.offsetLeft;
+      restingLefts.current.set(id, now);
+      if (id === press.current?.id || before === undefined || before === now) continue;
+      // Start where it was, then let it slide home.
+      el.style.transition = 'none';
+      el.style.transform = `translateX(${before - now}px)`;
+      void el.offsetWidth;
+      el.style.transition = `transform ${SLIDE_MS}ms ease`;
+      el.style.transform = '';
+    }
+    followFinger();
+  });
+
   const endPress = () => {
     const p = press.current;
-    press.current = null;
     if (!p) return;
     window.clearTimeout(p.timer);
-    if (!p.active) return;
+    if (!p.active) {
+      press.current = null;
+      return;
+    }
     // The click that follows a long press shouldn't also select / pick.
     swallowClick.current = true;
     setLifted(null);
+    const el = wrapOf(p.id);
+    press.current = null;
+    // The dragged tab settles into its slot…
+    if (el) {
+      el.style.transition = `transform ${SLIDE_MS}ms ease`;
+      el.style.transform = '';
+    }
+    if (!p.moved) {
+      setDragOrder(null);
+      if (el) el.style.zIndex = '';
+      return setDeleting(p.id);
+    }
+    // …and only then is the new order saved (moving DOM nodes mid-slide would cut it short).
     const order = dragOrderRef.current;
-    setDragOrder(null);
-    if (!p.moved) return setDeleting(p.id);
-    if (order) onFolders(moveFolder(foldersRef.current, p.id, order.indexOf(p.id)));
+    window.setTimeout(() => {
+      if (el) el.style.zIndex = '';
+      setDragOrder(null);
+      if (order) onFolders(moveFolder(foldersRef.current, p.id, order.indexOf(p.id)));
+    }, SLIDE_MS);
   };
 
   /** Long press → lift; then drag to reorder, or let go in place for the ✕. */
@@ -180,9 +237,10 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
       // Keep getting this pointer's moves once it leaves the tab (touch does
       // this by itself; a mouse doesn't).
       e.currentTarget.setPointerCapture?.(e.pointerId);
-      const p: Press = { id, x: e.clientX, y: e.clientY, timer: 0, active: false, moved: false };
+      const p: Press = { id, x: e.clientX, y: e.clientY, timer: 0, active: false, moved: false, startLeft: 0, lastX: e.clientX };
       p.timer = window.setTimeout(() => {
         p.active = true;
+        p.startLeft = wrapOf(id)?.offsetLeft ?? 0;
         setLifted(id);
         setDragOrder(foldersRef.current.folders.map((f) => f.id));
         setDeleting(null);
@@ -203,12 +261,14 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
         return;
       }
       if (Math.abs(dx) > PRESS_SLOP_PX) p.moved = true;
-      // Its new slot: how many of the other folder tabs sit left of the finger.
+      p.lastX = e.clientX;
+      followFinger();
+      // Its new slot: how many of the other folder tabs rest left of the
+      // dragged tab's centre (resting places, not mid-slide ones).
+      const self = wrapOf(id);
+      const centre = p.startLeft + dx + (self?.offsetWidth ?? 0) / 2;
       const others = [...(tabsEl.current?.querySelectorAll<HTMLElement>('[data-folder]') ?? [])].filter((el) => el.dataset.folder !== id);
-      const to = others.filter((el) => {
-        const r = el.getBoundingClientRect();
-        return r.left + r.width / 2 < e.clientX;
-      }).length;
+      const to = others.filter((el) => el.offsetLeft + el.offsetWidth / 2 < centre).length;
       setDragOrder((order) => {
         if (!order || order.indexOf(id) === to) return order;
         const next = order.filter((f) => f !== id);

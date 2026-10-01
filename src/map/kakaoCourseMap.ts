@@ -190,6 +190,10 @@ export class KakaoCourseMap implements CourseMap {
     this.map.panTo(this.latLng(center));
   }
 
+  centerOn(center: [number, number]): void {
+    this.map.panTo(this.latLng(center));
+  }
+
   getCenter(): [number, number] {
     const c = this.map.getCenter();
     return [c.getLng(), c.getLat()];

@@ -197,6 +197,10 @@ export class MapLibreCourseMap implements CourseMap {
     this.map.easeTo({ center, zoom: Math.max(this.map.getZoom(), FOCUS_ZOOM), offset, duration: 500 });
   }
 
+  centerOn(center: [number, number]): void {
+    this.map.easeTo({ center, duration: 400 });
+  }
+
   getCenter(): [number, number] {
     const c = this.map.getCenter();
     return [c.lng, c.lat];

@@ -407,7 +407,8 @@ export default function App() {
     setPreview(null);
     setActivePinId(id);
     setSub('pins');
-    focusPoint(pin.place.center, 150);
+    // Into the middle of the map at the current zoom; its card opens just above it.
+    mapRef.current?.centerOn(pin.place.center);
   };
 
   // The picked categories outlast the 핀 list: closing it keeps the map

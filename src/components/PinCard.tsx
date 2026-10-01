@@ -17,13 +17,13 @@ interface PinCardProps {
   onClose: () => void;
 }
 
-/** What tapping a pin (on the map or in the list) opens. */
+/** What tapping a pin opens: a card standing just above the pin, which the map has centred. */
 export default function PinCard({ pin, categories, addLabel, addDisabled, onAdd, onRecategorize, onMemo, onDelete, onClose }: PinCardProps) {
   const [picking, setPicking] = useState(false);
   const style = categoryStyle(categories, pin.categoryId);
 
   return (
-    <div className="place-card" role="dialog" aria-label={pin.place.name}>
+    <div className="place-card place-card--pin" role="dialog" aria-label={pin.place.name}>
       <div className="place-card__info">
         <strong>{pin.place.name}</strong>
         <button

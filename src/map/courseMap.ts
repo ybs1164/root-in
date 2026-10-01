@@ -32,6 +32,8 @@ export interface CourseMap {
   /** Fits arbitrary points (pins, a guide line). */
   fitPoints(points: [number, number][], padding: MapPadding): void;
   focus(center: [number, number], padding?: MapPadding): void;
+  /** Pans so `center` sits in the middle of the map, leaving the zoom as it is. */
+  centerOn(center: [number, number]): void;
   getCenter(): [number, number];
   /** Call after the container changes size (e.g. sheet resize, rotation). */
   resize(): void;
