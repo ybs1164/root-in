@@ -10,6 +10,7 @@ import InfluencerPanel from './components/InfluencerPanel';
 import PinCard from './components/PinCard';
 import PinDropTray from './components/PinDropTray';
 import PinRail from './components/PinRail';
+import RouteFolderTray from './components/RouteFolderTray';
 import SearchBar from './components/SearchBar';
 import SettingsSheet from './components/SettingsSheet';
 import SharedCourseView from './components/SharedCourseView';
@@ -29,6 +30,7 @@ import { useIncomingDiary } from './hooks/useIncomingDiary';
 import { useIncomingPins } from './hooks/useIncomingPins';
 import { usePageSwipe } from './hooks/usePageSwipe';
 import { usePins } from './hooks/usePins';
+import { useRouteFolders } from './hooks/useRouteFolders';
 import { usePlaceSearch } from './hooks/usePlaceSearch';
 import { useSettings } from './hooks/useSettings';
 import { kakaoPlaceUrl } from './lib/directionsLink';
@@ -47,6 +49,9 @@ type SheetSize = 'peek' | 'full';
 type Toast = { text: string; undo?: () => void };
 
 const DESKTOP_QUERY = '(min-width: 900px)';
+
+/** Matches `tray-down` in styles.css: the 경로 폴더 sheet stays mounted while it slides away. */
+const ROUTE_TRAY_OUT_MS = 170;
 
 export default function App() {
   const mapEl = useRef<HTMLDivElement | null>(null);
@@ -82,6 +87,7 @@ export default function App() {
     });
   }, [dayTheme]);
   const pinStore = usePins();
+  const routeFolders = useRouteFolders();
   const { pins, categories } = pinStore;
   const course = useCourseDraft();
   const day = useDiaryDay(notify);
@@ -117,6 +123,8 @@ export default function App() {
   const [activePinId, setActivePinId] = useState<string | null>(null);
   // The round buttons under ⚙, and the categories picked in its 핀 list.
   const [railMode, setRailMode] = useState<PinRailMode>('menu');
+  // The saved route drawn on the map from the 경로 폴더.
+  const [shownRouteId, setShownRouteId] = useState<string | null>(null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
 
   const sharedCourse = incomingCourse.status === 'ready' ? incomingCourse.course : null;
@@ -126,12 +134,23 @@ export default function App() {
   const onPinHome = tab === 'pins' && !sharedCourse && !sharedPins;
   // On phones the pin screen's sheet drops down from the top, leaving the map's lower half clear.
   const sheetTop = tab === 'pins';
+  // 경로 open on the pin map: the folder sheet takes the tab buttons' place.
+  const routeOpen = onPinHome && railMode === 'route' && !searchOpen && !pinning;
+  // Kept mounted a moment after closing so it can slide down.
+  const [routeTrayShown, setRouteTrayShown] = useState(routeOpen);
+  useEffect(() => {
+    if (routeOpen) return setRouteTrayShown(true);
+    const t = window.setTimeout(() => setRouteTrayShown(false), ROUTE_TRAY_OUT_MS);
+    return () => window.clearTimeout(t);
+  }, [routeOpen]);
+  const shownRoute = routeOpen ? (course.courses.find((c) => c.id === shownRouteId) ?? null) : null;
   const shownPins = useMemo(() => filterPinsByCategories(pins, categories, picked), [pins, categories, picked]);
 
   // Numbered course markers + solid route line.
   const shownStops = useMemo(() => {
     if (sharedCourse) return sharedCourse.stops.map((s) => s.place);
     if (sharedPins) return [];
+    if (shownRoute) return shownRoute.stops.map((s) => s.place);
     if (tab === 'calendar') {
       if (sharedDiary) return sharedDiary.stops.map((s) => s.place);
       if (day.screen.kind === 'edit') return day.draft.stops.map((s) => s.place);
@@ -140,7 +159,7 @@ export default function App() {
     }
     if (tab === 'pins' && sub !== 'pins') return course.draft.stops.map((s) => s.place);
     return [];
-  }, [sharedCourse, sharedPins, sharedDiary, tab, sub, day.screen, day.draft.stops, course.draft.stops]);
+  }, [sharedCourse, sharedPins, shownRoute, sharedDiary, tab, sub, day.screen, day.draft.stops, course.draft.stops]);
 
   // Pin markers: a received set as its sender styled it, or my pins on the home tab.
   const pinMarkers = useMemo<PinMarker[]>(() => {
@@ -180,6 +199,9 @@ export default function App() {
     const desktop = window.matchMedia(DESKTOP_QUERY).matches;
     const barHeight = barEl.current?.offsetHeight ?? 0;
     const cap = (px: number) => Math.min(px, window.innerHeight * 0.5);
+    // The 경로 폴더 sheet stands in for the tab buttons while it is up.
+    const folderTray = document.querySelector<HTMLElement>('.route-folders:not(.is-leaving)');
+    if (folderTray) return { top: 90, right: 80, bottom: folderTray.offsetHeight + 30 + extraBottom, left: 40 };
     if (!desktop && sheetBox?.classList.contains('sheet--top')) {
       // The pin screen's sheet hangs from the top instead (it includes the search bar area).
       return { top: cap(sheetBox.offsetHeight) + 30, right: 40, bottom: barHeight + 30 + extraBottom, left: 40 };
@@ -374,7 +396,12 @@ export default function App() {
 
   // The picked categories outlast the 핀 list: closing it keeps the map
   // filtered, and reopening shows what is picked.
-  const railAction = (entry: PinRailEntry) => setRailMode(pinRailNext(railMode, entry));
+  const railAction = (entry: PinRailEntry) => {
+    const next = pinRailNext(railMode, entry);
+    // Closing 경로 takes its route off the map.
+    if (next !== 'route') setShownRouteId(null);
+    setRailMode(next);
+  };
 
   // ----- Adding places -----
 
@@ -538,6 +565,9 @@ export default function App() {
   // Swiping 달력 left / 추천 right slides the page off and uncovers the map (핀).
   const swipe = usePageSwipe(onPage && !decorating ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
 
+  // The tab buttons step aside for a 꾸미기 tool's tray, and for the 경로 폴더.
+  const barAway = (decorating && calendarZoom && onPage) || routeOpen;
+
   return (
     <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''}`}>
       <div ref={mapEl} className="map" aria-label="지도" />
@@ -569,6 +599,17 @@ export default function App() {
           counts={railCounts}
           picked={picked}
           onToggle={(id) => setPicked((prev) => togglePicked(prev, id))}
+        />
+      )}
+
+      {routeTrayShown && onPinHome && (
+        <RouteFolderTray
+          open={routeOpen}
+          courses={course.courses}
+          folders={routeFolders.folders}
+          onFolders={routeFolders.setFolders}
+          shownId={shownRoute?.id ?? null}
+          onShow={(c) => setShownRouteId(c?.id ?? null)}
         />
       )}
 
@@ -677,7 +718,7 @@ export default function App() {
         </section>
       )}
 
-      <div ref={barEl} className={`bottom-bar-wrap ${decorating && calendarZoom && onPage ? 'is-away' : ''}`} inert={decorating && calendarZoom && onPage}>
+      <div ref={barEl} className={`bottom-bar-wrap ${barAway ? 'is-away' : ''}`} inert={barAway}>
         <BottomBar
           tab={swipe.leaving ? 'pins' : tab}
           pinning={pinning}
