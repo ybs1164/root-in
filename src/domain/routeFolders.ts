@@ -7,8 +7,20 @@ import type { Course } from '../types/course';
  */
 export interface RouteFolder {
   id: string;
+  /** Not shown (tabs show the icon); read out by screen readers. */
   name: string;
+  /** What the folder's index tab shows, one of FOLDER_ICONS. */
+  icon: string;
 }
+
+/** Icons a folder's tab can wear; the first is a new folder's. */
+export const FOLDER_ICONS = [
+  '📁', '❤️', '⭐', '🍽️', '☕', '🍷', '🏖️', '✈️', '🚗', '🌳', '⛰️', '🏛️', '🎉', '🛍️', '📷', '🎵', '🏠', '🌙',
+] as const;
+
+export const DEFAULT_FOLDER_ICON = FOLDER_ICONS[0];
+
+export const isFolderIcon = (v: unknown): v is string => typeof v === 'string' && (FOLDER_ICONS as readonly string[]).includes(v);
 
 export interface RouteFolders {
   folders: RouteFolder[];
@@ -33,7 +45,15 @@ export function nextFolderName(folders: RouteFolder[]): string {
 
 export function addFolder(state: RouteFolders, id: string, name = nextFolderName(state.folders)): RouteFolders | null {
   if (state.folders.length >= ROUTE_FOLDER_LIMITS.maxFolders) return null;
-  return { ...state, folders: [...state.folders, { id, name: name.slice(0, ROUTE_FOLDER_LIMITS.name) }] };
+  return {
+    ...state,
+    folders: [...state.folders, { id, name: name.slice(0, ROUTE_FOLDER_LIMITS.name), icon: DEFAULT_FOLDER_ICON }],
+  };
+}
+
+export function setFolderIcon(state: RouteFolders, id: string, icon: string): RouteFolders {
+  if (!isFolderIcon(icon)) return state;
+  return { ...state, folders: state.folders.map((f) => (f.id === id ? { ...f, icon } : f)) };
 }
 
 /** An empty name keeps the old one. */

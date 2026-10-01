@@ -1,4 +1,4 @@
-import { EMPTY_ROUTE_FOLDERS, ROUTE_FOLDER_LIMITS, type RouteFolder, type RouteFolders } from '../domain/routeFolders';
+import { DEFAULT_FOLDER_ICON, EMPTY_ROUTE_FOLDERS, isFolderIcon, ROUTE_FOLDER_LIMITS, type RouteFolder, type RouteFolders } from '../domain/routeFolders';
 
 const KEY = 'goodroot:route-folders:v1';
 
@@ -14,7 +14,8 @@ export function loadRouteFolders(): RouteFolders {
     const folders = (Array.isArray(parsed.folders) ? parsed.folders : [])
       .filter(isFolder)
       .slice(0, ROUTE_FOLDER_LIMITS.maxFolders)
-      .map((f) => ({ id: f.id, name: f.name.slice(0, ROUTE_FOLDER_LIMITS.name) }));
+      // Folders saved before icons existed (or with an unknown one) get the default.
+      .map((f) => ({ id: f.id, name: f.name.slice(0, ROUTE_FOLDER_LIMITS.name), icon: isFolderIcon(f.icon) ? f.icon : DEFAULT_FOLDER_ICON }));
     const ids = new Set(folders.map((f) => f.id));
     const assign: Record<string, string> = {};
     if (parsed.assign && typeof parsed.assign === 'object') {

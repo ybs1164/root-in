@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Course } from '../types/course';
-import { addFolder, EMPTY_ROUTE_FOLDERS, folderOf, moveRoute, nextFolderName, renameFolder, ROUTE_FOLDER_LIMITS, routesInTab } from './routeFolders';
+import { addFolder, EMPTY_ROUTE_FOLDERS, folderOf, moveRoute, nextFolderName, renameFolder, ROUTE_FOLDER_LIMITS, routesInTab, setFolderIcon } from './routeFolders';
 
 const course = (id: string, createdAt: string): Course => ({
   id, userId: 'u', title: id, theme: 'date', travelMode: 'walk', stops: [], createdAt,
@@ -9,7 +9,7 @@ const course = (id: string, createdAt: string): Course => ({
 describe('route folders', () => {
   it('names new folders 폴더 N, skipping taken names', () => {
     expect(nextFolderName([])).toBe('폴더 1');
-    expect(nextFolderName([{ id: 'a', name: '폴더 2' }])).toBe('폴더 3');
+    expect(nextFolderName([{ id: 'a', name: '폴더 2', icon: '📁' }])).toBe('폴더 3');
   });
 
   it('adds folders up to the limit', () => {
@@ -17,6 +17,13 @@ describe('route folders', () => {
     for (let i = 0; i < ROUTE_FOLDER_LIMITS.maxFolders; i += 1) state = addFolder(state, `f${i}`)!;
     expect(state.folders).toHaveLength(ROUTE_FOLDER_LIMITS.maxFolders);
     expect(addFolder(state, 'over')).toBeNull();
+  });
+
+  it('a new folder wears the default icon; only listed icons can be set', () => {
+    const state = addFolder(EMPTY_ROUTE_FOLDERS, 'f')!;
+    expect(state.folders[0].icon).toBe('📁');
+    expect(setFolderIcon(state, 'f', '✈️').folders[0].icon).toBe('✈️');
+    expect(setFolderIcon(state, 'f', 'x')).toBe(state);
   });
 
   it('renames, keeping the old name when the new one is blank', () => {
