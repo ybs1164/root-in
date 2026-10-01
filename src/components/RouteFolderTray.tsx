@@ -18,6 +18,8 @@ import type { Course } from '../types/course';
 interface RouteFolderTrayProps {
   /** False while it slides away (it stays mounted for that). */
   open: boolean;
+  /** A route is on show: the sheet sinks to a strip so the map has the room. */
+  lowered: boolean;
   courses: Course[];
   folders: RouteFolders;
   onFolders: (next: RouteFolders) => void;
@@ -73,7 +75,7 @@ const newId = () =>
  * lifts it so it can be dragged among the folders; let go without moving and
  * an ✕ appears on it, which deletes the folder after a confirm.
  */
-export default function RouteFolderTray({ open, courses, folders, onFolders, shownId, onShow, tab, onTab: setTab, onNewRoute, onDeleteRoute }: RouteFolderTrayProps) {
+export default function RouteFolderTray({ open, lowered, courses, folders, onFolders, shownId, onShow, tab, onTab: setTab, onNewRoute, onDeleteRoute }: RouteFolderTrayProps) {
   // The folder whose icon picker is out.
   const [picking, setPicking] = useState<string | null>(null);
   // The route whose 폴더 chooser is out.
@@ -121,6 +123,15 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
     const sheet = sheetEl.current?.getBoundingClientRect();
     setPickerX(tab && sheet ? tab.left + tab.width / 2 - sheet.left : null);
   }, [picking]);
+
+  // A route just put on show: bring its row to the top of the list, which is
+  // what stays in view while the sheet is lowered.
+  useEffect(() => {
+    if (!shownId) return;
+    const row = sheetEl.current?.querySelector<HTMLElement>('.route-row.is-shown');
+    const body = row?.closest<HTMLElement>('.route-folders__body');
+    if (row && body) body.scrollTo({ top: row.offsetTop - body.offsetTop - 4, behavior: 'smooth' });
+  }, [shownId]);
 
   // A touch anywhere but the picker closes it. Listened for on the document:
   // the sheet's slide-in keeps a fixed backdrop from covering the screen.
@@ -338,7 +349,7 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
   const pickingFolder = folders.folders.find((f) => f.id === picking) ?? null;
 
   return (
-    <section ref={sheetEl} className={`route-folders ${open ? '' : 'is-leaving'}`} aria-label="경로 폴더" inert={!open}>
+    <section ref={sheetEl} className={`route-folders ${open ? '' : 'is-leaving'} ${lowered ? 'is-lowered' : ''}`} aria-label="경로 폴더" inert={!open}>
       {pickingFolder && pickerX !== null && (
         <>
           <div className="folder-picker" role="dialog" aria-label="폴더 아이콘" style={{ '--x': `${pickerX}px` } as CSSProperties}>

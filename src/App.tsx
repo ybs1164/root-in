@@ -12,6 +12,7 @@ import PinDropTray from './components/PinDropTray';
 import PinRail from './components/PinRail';
 import RouteBuildLayer from './components/RouteBuildLayer';
 import RouteFolderTray from './components/RouteFolderTray';
+import RouteStyleLayer from './components/RouteStyleLayer';
 import StopLines from './components/StopLines';
 import SearchBar from './components/SearchBar';
 import SettingsSheet from './components/SettingsSheet';
@@ -25,6 +26,7 @@ import type { MapViewport } from './domain/districtMap';
 import { categoryFamily, categoryStyle, filterPinsByCategories } from './domain/pin';
 import { pinRailNext, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
 import { buildRouteTitle, toggleBuildStop } from './domain/routeBuild';
+import { withEdgeStyle, withStopShape } from './domain/routeStyle';
 import { moveRoute, type RouteTab } from './domain/routeFolders';
 import { useCourseDraft } from './hooks/useCourseDraft';
 import { useDiaryDay } from './hooks/useDiaryDay';
@@ -56,6 +58,8 @@ const DESKTOP_QUERY = '(min-width: 900px)';
 
 /** Matches `tray-down` in styles.css: the 경로 폴더 sheet stays mounted while it slides away. */
 const ROUTE_TRAY_OUT_MS = 170;
+/** How much of the folder sheet stays up while a route is on show (matches .route-folders.is-lowered). */
+const FOLDER_LOWERED_PX = 190;
 
 export default function App() {
   const mapEl = useRef<HTMLDivElement | null>(null);
@@ -214,7 +218,11 @@ export default function App() {
     const cap = (px: number) => Math.min(px, window.innerHeight * 0.5);
     // The 경로 폴더 sheet stands in for the tab buttons while it is up.
     const folderTray = document.querySelector<HTMLElement>('.route-folders:not(.is-leaving)');
-    if (folderTray) return { top: 90, right: 80, bottom: folderTray.offsetHeight + 30 + extraBottom, left: 40 };
+    if (folderTray) {
+      // Lowered (a route on show) only its top strip covers the map.
+      const covered = folderTray.classList.contains('is-lowered') ? FOLDER_LOWERED_PX : folderTray.offsetHeight;
+      return { top: 90, right: 80, bottom: covered + 30 + extraBottom, left: 40 };
+    }
     if (!desktop && sheetBox?.classList.contains('sheet--top')) {
       // The pin screen's sheet hangs from the top instead (it includes the search bar area).
       return { top: cap(sheetBox.offsetHeight) + 30, right: 40, bottom: barHeight + 30 + extraBottom, left: 40 };
@@ -369,7 +377,8 @@ export default function App() {
   };
 
   mapEvents.current.longPress = async (center: [number, number]) => {
-    if (pinning || sharedCourse || sharedPins || (building && routeMode)) return;
+    // Making a route, or a saved one on show (its long presses restyle it): no place card.
+    if (pinning || sharedCourse || sharedPins || (building && routeMode) || shownRoute) return;
     const place = pointPlace(center);
     setActivePinId(null);
     setPreview(place);
@@ -649,6 +658,7 @@ export default function App() {
       {routeTrayShown && onPinHome && (
         <RouteFolderTray
           open={routeOpen}
+          lowered={!!shownRoute}
           courses={course.courses}
           folders={routeFolders.folders}
           onFolders={routeFolders.setFolders}
@@ -666,7 +676,25 @@ export default function App() {
       )}
 
       {/* Lines between the numbered stops of whatever route is on the map. */}
-      {shownStops.length > 1 && <StopLines count={shownStops.length} />}
+      {shownStops.length > 1 && (
+        <StopLines
+          count={shownStops.length}
+          edgeStyles={buildPins ? undefined : shownRoute?.edgeStyles}
+          stopShapes={buildPins ? undefined : shownRoute?.stopShapes}
+        />
+      )}
+
+      {/* A saved route on the map: long-press its stops or lines to restyle it (kept with the route). */}
+      {shownRoute && !buildPins && (
+        <RouteStyleLayer
+          mapEl={mapEl.current}
+          stopCount={shownRoute.stops.length}
+          stopShapes={shownRoute.stopShapes}
+          edgeStyles={shownRoute.edgeStyles}
+          onStopShape={(i, shape) => course.save({ ...shownRoute, ...withStopShape(shownRoute, shownRoute.stops.length, i, shape) })}
+          onEdgeStyle={(i, style) => course.save({ ...shownRoute, ...withEdgeStyle(shownRoute, shownRoute.stops.length, i, style) })}
+        />
+      )}
 
       {buildPins && building && (
         <RouteBuildLayer

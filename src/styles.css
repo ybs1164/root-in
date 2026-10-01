@@ -2327,6 +2327,16 @@ input.timeline__time:focus {
   animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 
+.route-folders {
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+/* A route on show: the sheet sinks so only its tabs and the route's row stay
+   up (App's FOLDER_LOWERED_PX), leaving the map to the route. */
+.route-folders.is-lowered {
+  transform: translateY(calc(100% - 190px));
+}
+
 .route-folders.is-leaving {
   animation: tray-down 0.17s ease-in forwards;
   pointer-events: none;
@@ -2480,12 +2490,85 @@ input.timeline__time:focus {
 }
 
 .stop-lines polyline,
-.stop-lines line {
+.stop-lines line,
+.stop-lines__seg {
   fill: none;
   stroke: var(--accent);
   stroke-width: 4;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+/* A saved route's line styles (long-press a line), in screen px. */
+.stop-lines__seg--dashed {
+  stroke-dasharray: 12 8;
+  stroke-linecap: butt;
+}
+
+.stop-lines__seg--dotted {
+  stroke-width: 5;
+  stroke-dasharray: 0.01 11;
+}
+
+.stop-lines__seg--bold {
+  stroke-width: 8;
+}
+
+/* A stop given a shape: drawn here, its numbered marker hidden but still
+   there to be tapped or long-pressed. */
+.map-marker[data-shape] {
+  /* !important: MapLibre writes an inline opacity on its markers. */
+  opacity: 0 !important;
+}
+
+.stop-shape {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.stop-shape svg {
+  position: absolute;
+  left: -15px;
+  top: -15px;
+  width: 30px;
+  height: 30px;
+  fill: var(--accent);
+  filter: drop-shadow(0 1px 2px var(--backdrop));
+}
+
+/* A pin stands on its point, like the calendar's. */
+.stop-shape--pin svg {
+  top: -30px;
+}
+
+.stop-shape .ping__hole {
+  fill: var(--surface);
+}
+
+.stop-shape--dot svg {
+  left: -9px;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+}
+
+/* Long-press picker for a route on the map: above the finger, on screen. */
+.ping-picker.route-style-picker {
+  position: fixed;
+  z-index: 25;
+  left: clamp(130px, var(--x), calc(100% - 130px));
+  top: var(--y);
+  transform: translate(-50%, calc(-100% - 28px));
+}
+
+.route-style-picker__num {
+  font-weight: 800;
+  color: var(--accent);
 }
 
 .route-build__trail {

@@ -1,3 +1,4 @@
+import type { EdgeStyle, PingShape } from '../domain/dayPings';
 import type { PlaceRef } from './travelRoute';
 
 export type { PlaceRef };
@@ -35,6 +36,9 @@ export interface Course {
   sharedBy?: string;
   /** A decorative icon shown by its name (one of ROUTE_ICONS); not a category. */
   icon?: string;
+  /** How it is drawn on the map (long-press a stop or a line); see domain/routeStyle. */
+  stopShapes?: (PingShape | null)[];
+  edgeStyles?: (EdgeStyle | null)[];
   createdAt: string;
   updatedAt?: string;
 }
@@ -49,6 +53,8 @@ export interface CourseDraft {
   note?: string;
   sharedBy?: string;
   icon?: string;
+  stopShapes?: (PingShape | null)[];
+  edgeStyles?: (EdgeStyle | null)[];
 }
 
 /** Self-contained snapshot carried by a share link. */
