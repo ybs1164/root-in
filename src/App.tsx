@@ -10,6 +10,7 @@ import PinCard from './components/PinCard';
 import PinDropTray from './components/PinDropTray';
 import PinRail from './components/PinRail';
 import RouteBuildLayer, { pinAt } from './components/RouteBuildLayer';
+import RouteEditTray from './components/RouteEditTray';
 import RouteFolderTray from './components/RouteFolderTray';
 import RouteStyleLayer from './components/RouteStyleLayer';
 import RouteTitle from './components/RouteTitle';
@@ -27,6 +28,7 @@ import { categoryFamily, categoryStyle, filterPinsByCategories } from './domain/
 import { pinRailNext, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
 import { PRESS } from './domain/dayPings';
 import { nextRouteName, toggleBuildStop } from './domain/routeBuild';
+import { addEditStop, moveStop, remapRouteLook, toggleEditStop } from './domain/routeEdit';
 import { withEdgeStyle, withStopShape } from './domain/routeStyle';
 import { moveRoute, neighborRoute, type RouteTab } from './domain/routeFolders';
 import { useCourseDraft } from './hooks/useCourseDraft';
@@ -46,7 +48,7 @@ import { createMapStack } from './map/createCourseMap';
 import { pointPlace, type PlaceSearchService } from './services/placeSearch/placeSearchService';
 import { withRecentCategory } from './services/settingsRepository';
 import type { ShareTarget } from './services/shareTargets';
-import type { PlaceRef } from './types/course';
+import type { CourseStop, PlaceRef } from './types/course';
 import { PIN_ICONS, type Pin } from './types/pin';
 
 type SheetSize = 'peek' | 'full';
@@ -139,6 +141,10 @@ export default function App() {
   const [routeStep, setRouteStep] = useState<{ id: string; from: -1 | 1 } | null>(null);
   // Making a new route from pins (the folder's +): the pins tapped so far, in order.
   const [building, setBuilding] = useState<string[] | null>(null);
+  // Editing the route on show (the pen by its name): its stops and description as they stand.
+  const [editing, setEditing] = useState<{ id: string; stops: CourseStop[]; note: string } | null>(null);
+  // Bumped to send the map back over to the route on show (after editing it).
+  const [refit, setRefit] = useState(0);
   const [picked, setPicked] = useState<Set<string>>(new Set());
 
   const sharedCourse = incomingCourse.status === 'ready' ? incomingCourse.course : null;
@@ -150,17 +156,27 @@ export default function App() {
   const sheetTop = tab === 'pins';
   // 경로 open on the pin map: the folder sheet takes the tab buttons' place.
   const routeMode = onPinHome && railMode === 'route' && !searchOpen && !pinning;
-  // While a route is being made from pins, the folder sheet steps down out of the way.
-  const routeOpen = routeMode && building === null;
+  // A saved route can be on show (and being edited) while 경로 is open and no new one is being made.
+  const routeShowing = routeMode && building === null;
+  // While a route is being made or edited, the folder sheet steps down out of the way.
+  const routeOpen = routeShowing && !editing;
   const buildPins = building && routeMode ? building.map((id) => pins.find((p) => p.id === id)).filter((p): p is Pin => !!p) : null;
-  // Kept mounted a moment after closing so it can slide down.
-  const [routeTrayShown, setRouteTrayShown] = useState(routeOpen);
+  // Kept mounted a moment after closing so it can slide down. Up in the
+  // same render it opens, so a fit right after (leaving editing) measures it.
+  const [routeTrayLingers, setRouteTrayLingers] = useState(routeOpen);
   useEffect(() => {
-    if (routeOpen) return setRouteTrayShown(true);
-    const t = window.setTimeout(() => setRouteTrayShown(false), ROUTE_TRAY_OUT_MS);
+    if (routeOpen) return setRouteTrayLingers(true);
+    const t = window.setTimeout(() => setRouteTrayLingers(false), ROUTE_TRAY_OUT_MS);
     return () => window.clearTimeout(t);
   }, [routeOpen]);
-  const shownRoute = routeOpen ? (course.courses.find((c) => c.id === shownRouteId) ?? null) : null;
+  const routeTrayShown = routeOpen || routeTrayLingers;
+  const shownRoute = routeShowing ? (course.courses.find((c) => c.id === shownRouteId) ?? null) : null;
+  // The route being edited: the one on show, with the edits so far.
+  const editRoute = editing && shownRoute?.id === editing.id ? editing : null;
+  // Leaving the route (경로 closed, another tab) drops an edit not saved with ✓.
+  useEffect(() => {
+    if (!routeShowing) setEditing(null);
+  }, [routeShowing]);
   // A route put on show takes the map in turns: it glides over with the pins
   // still there, and the moment the glide ends the pins fade away and the
   // route's own stops drop in. Switching straight to another route keeps the
@@ -189,6 +205,7 @@ export default function App() {
     if (sharedCourse) return sharedCourse.stops.map((s) => s.place);
     if (sharedPins) return [];
     if (buildPins) return buildPins.map((p) => p.place);
+    if (editRoute) return editRoute.stops.map((s) => s.place);
     if (shownRoute) return shownRoute.stops.map((s) => s.place);
     if (tab === 'calendar') {
       if (sharedDiary) return sharedDiary.stops.map((s) => s.place);
@@ -198,7 +215,7 @@ export default function App() {
     }
     if (tab === 'pins' && sub !== 'pins') return course.draft.stops.map((s) => s.place);
     return [];
-  }, [sharedCourse, sharedPins, buildPins, shownRoute, sharedDiary, tab, sub, day.screen, day.draft.stops, course.draft.stops]);
+  }, [sharedCourse, sharedPins, buildPins, editRoute, shownRoute, sharedDiary, tab, sub, day.screen, day.draft.stops, course.draft.stops]);
 
   // Pin markers: a received set as its sender styled it, or my pins on the home tab.
   const pinMarkers = useMemo<PinMarker[]>(() => {
@@ -218,7 +235,8 @@ export default function App() {
     if (sharedCourse || !(onPinHome || pinning)) return [];
     // A saved route on show has the map to itself: every pin steps aside
     // (its stops, shaped or numbered, stand in for the places).
-    if (shownRoute && !pinning && pinsGone) return [];
+    // Editing it, they come back to be picked.
+    if (shownRoute && !editRoute && !pinning && pinsGone) return [];
     return (pinning ? pins : shownPins).map((pin) => {
       const style = categoryStyle(categories, pin.categoryId);
       return {
@@ -231,7 +249,7 @@ export default function App() {
         selected: pin.id === activePinId,
       };
     });
-  }, [sharedPins, sharedCourse, onPinHome, pinning, pins, shownPins, categories, activePinId, shownRoute, pinsGone]);
+  }, [sharedPins, sharedCourse, onPinHome, pinning, pins, shownPins, categories, activePinId, shownRoute, editRoute, pinsGone]);
 
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
 
@@ -242,6 +260,14 @@ export default function App() {
     const desktop = window.matchMedia(DESKTOP_QUERY).matches;
     const barHeight = barEl.current?.offsetHeight ?? 0;
     const cap = (px: number) => Math.min(px, window.innerHeight * 0.5);
+    // Editing a route: its sheet covers the lower part, and the route is
+    // fitted with more room around it (the map steps back a little).
+    const editTray = document.querySelector<HTMLElement>('.route-edit');
+    if (editTray) {
+      const title = document.querySelector<HTMLElement>('.route-title:not(.route-title--out)');
+      const top = title ? title.getBoundingClientRect().bottom + 60 : 120;
+      return { top, right: 90, bottom: editTray.offsetHeight + 60 + extraBottom, left: 90 };
+    }
     // The 경로 폴더 sheet stands in for the tab buttons while it is up.
     const folderTray = document.querySelector<HTMLElement>('.route-folders:not(.is-leaving)');
     if (folderTray) {
@@ -308,7 +334,7 @@ export default function App() {
   useEffect(() => {
     // While a route is being made from pins the map stays put: re-fitting on
     // every added stop would move the next pin out from under the finger.
-    if (!mapRef.current || shownStops.length === 0 || buildPins) return;
+    if (!mapRef.current || shownStops.length === 0 || buildPins || editRoute) return;
     const route = shownRouteKey;
     let live = true;
     const id = requestAnimationFrame(() => {
@@ -321,7 +347,16 @@ export default function App() {
       cancelAnimationFrame(id);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stopsKey, shownRouteKey, mapProvider]);
+  }, [stopsKey, shownRouteKey, mapProvider, refit]);
+
+  // Into editing: once its sheet is up, the map steps back a little around the route.
+  const editKey = editRoute?.id ?? null;
+  useEffect(() => {
+    if (!editKey) return;
+    const id = requestAnimationFrame(() => void mapRef.current?.fitCourse(mapPadding()));
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editKey]);
 
   useEffect(() => {
     mapRef.current?.setPins(pinMarkers);
@@ -399,6 +434,7 @@ export default function App() {
     // Making a route: a chosen pin is covered by its numbered stop, so a tap
     // there takes it back out.
     if (building && routeMode) return setBuilding((b) => (b ? b.filter((_, i) => i !== index) : b));
+    if (editRoute) return setEditing((e) => (e ? { ...e, stops: e.stops.filter((_, i) => i !== index) } : e));
     const place = shownStops[index];
     if (!place) return;
     mapRef.current?.focus(place.center, mapPadding());
@@ -414,6 +450,11 @@ export default function App() {
     if (pinning) return;
     // Making a route: a tap adds the pin as the next stop (or takes it back out).
     if (building && routeMode) return setBuilding((b) => (b ? toggleBuildStop(b, id) : b));
+    if (editRoute) {
+      const pin = pins.find((p) => p.id === id);
+      if (pin) setEditing((e) => (e ? { ...e, stops: toggleEditStop(e.stops, pin.place) } : e));
+      return;
+    }
     openPin(id);
   };
 
@@ -476,6 +517,7 @@ export default function App() {
     if (next !== 'route') {
       setShownRouteId(null);
       setBuilding(null);
+      setEditing(null);
     }
     setRailMode(next);
   };
@@ -488,6 +530,8 @@ export default function App() {
   // after the build layer mounts (that layer only takes strokes it began).
   const buildingRef = useRef(building);
   buildingRef.current = building;
+  const editingRef = useRef(editing);
+  editingRef.current = editing;
   const shownRouteRef = useRef(shownRouteId);
   shownRouteRef.current = shownRouteId;
   // That stroke's finger, for the build layer's dashed preview line.
@@ -498,7 +542,8 @@ export default function App() {
     let stroke: { x: number; y: number; at: number; pin: string | null; drawing: boolean; moved: boolean } | null = null;
     const down = (e: PointerEvent) => {
       stroke = null;
-      if (!e.isPrimary || buildingRef.current || !el.contains(e.target as Node)) return;
+      // Making or editing a route: the build layer takes the strokes.
+      if (!e.isPrimary || buildingRef.current || editingRef.current || !el.contains(e.target as Node)) return;
       stroke = { x: e.clientX, y: e.clientY, at: performance.now(), pin: pinAt(e.clientX, e.clientY), drawing: false, moved: false };
       if (stroke.pin) mapRef.current?.setPanEnabled(false);
     };
@@ -561,6 +606,24 @@ export default function App() {
     setShownRouteId(null);
     setActivePinId(null);
     setBuilding([]);
+  };
+
+  const startEditing = () => {
+    if (!shownRoute) return;
+    setActivePinId(null);
+    setEditing({ id: shownRoute.id, stops: shownRoute.stops, note: shownRoute.note ?? '' });
+  };
+
+  // ✓ on the edit sheet: keep the stops (and their looks, matched by place) and the description.
+  const saveEdit = async () => {
+    if (!editRoute || !shownRoute || editRoute.stops.length < COURSE_LIMITS.minStops) return;
+    const look = remapRouteLook(shownRoute.stops, shownRoute, editRoute.stops);
+    await course.save({ ...shownRoute, stops: editRoute.stops, note: editRoute.note.trim() || undefined, ...look });
+    setEditing(null);
+    // Back to showing it: the map glides over, the pins fade off, the stops drop in again.
+    setLandedRoute(null);
+    setPinsAway('no');
+    setRefit((n) => n + 1);
   };
 
   const saveBuilt = async (title: string, note: string, icon: string | undefined) => {
@@ -727,7 +790,7 @@ export default function App() {
   const barAway = (decorating && calendarZoom && onPage) || routeMode;
 
   return (
-    <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''}`}>
+    <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''}`}>
       <div ref={mapEl} className="map" aria-label="지도" />
 
       <SearchBar
@@ -787,12 +850,12 @@ export default function App() {
       {shownStops.length > 1 && (
         <StopLines
           count={shownStops.length}
-          edgeStyles={buildPins ? undefined : shownRoute?.edgeStyles}
-          stopShapes={buildPins ? undefined : shownRoute?.stopShapes}
+          edgeStyles={buildPins || editRoute ? undefined : shownRoute?.edgeStyles}
+          stopShapes={buildPins || editRoute ? undefined : shownRoute?.stopShapes}
           // A route put on show plays in once the map has glided over to it and the pins have gone
           // (until then app--route-arriving keeps its stops out of sight).
           play={
-            shownRoute && !buildPins
+            shownRoute && !buildPins && !editRoute
               ? routeLanded
                 ? // Straight after another route the pins are already gone: no fade to wait for.
                   { key: shownRoute.id, delayMs: pinsGone ? 0 : PINS_FADE_MS }
@@ -810,6 +873,8 @@ export default function App() {
           title={shownRoute.title}
           onRename={(title) => course.save({ ...shownRoute, title })}
           slideFrom={routeStep?.id === shownRoute.id ? routeStep.from : 0}
+          onEdit={startEditing}
+          editMode={!!editRoute}
           // Each arrow puts the neighbour on show the usual way, so the map
           // glides over and its stops drop in afresh.
           onStep={
@@ -826,7 +891,7 @@ export default function App() {
       )}
 
       {/* A saved route on the map: long-press its stops or lines to restyle it (kept with the route). */}
-      {shownRoute && !buildPins && (
+      {shownRoute && !buildPins && !editRoute && (
         <RouteStyleLayer
           mapEl={mapEl.current}
           stopCount={shownRoute.stops.length}
@@ -850,6 +915,32 @@ export default function App() {
           defaultTitle={nextRouteName(course.courses.map((c) => c.title))}
           onCreate={saveBuilt}
         />
+      )}
+
+      {/* Editing the route on show: stops picked on the map as when making one; the sheet has the rest. */}
+      {editRoute && (
+        <>
+          <RouteBuildLayer
+            editing
+            mapEl={mapEl.current}
+            chosen={editRoute.stops.map((s) => s.place.id)}
+            onAdd={(id) => {
+              const pin = pins.find((p) => p.id === id);
+              if (pin) setEditing((e) => (e ? { ...e, stops: addEditStop(e.stops, pin.place) } : e));
+            }}
+            onCancel={() => {}}
+            onPanEnabled={(on) => mapRef.current?.setPanEnabled(on)}
+            defaultTitle=""
+            onCreate={() => {}}
+          />
+          <RouteEditTray
+            stops={editRoute.stops}
+            note={editRoute.note}
+            onNote={(note) => setEditing((e) => (e ? { ...e, note } : e))}
+            onMove={(from, to) => setEditing((e) => (e ? { ...e, stops: moveStop(e.stops, from, to) } : e))}
+            onDone={saveEdit}
+          />
+        </>
       )}
 
       {pinning && (

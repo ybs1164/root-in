@@ -2917,6 +2917,176 @@ input.timeline__time:focus {
   opacity: 0.7;
 }
 
+/* Editing a saved route: its sheet comes up in the folder sheet's place.
+   ✓ at the top left, the description, a rule, then the stops in order. */
+.route-edit {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 13;
+  display: flex;
+  flex-direction: column;
+  height: 44dvh;
+  border-radius: 20px 20px 0 0;
+  background: var(--surface);
+  box-shadow: var(--shadow-up);
+  color: var(--text);
+  animation: tray-up 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.route-edit__head {
+  flex: none;
+  display: flex;
+  padding: 12px 12px 0;
+}
+
+.route-edit__done {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.route-edit__done:disabled {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.route-edit__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 16px calc(var(--safe-bottom) + 16px);
+}
+
+.route-edit__note {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 10px;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* no iOS zoom on focus */
+  line-height: 1.4;
+}
+
+.route-edit__note::placeholder {
+  color: var(--muted);
+}
+
+.route-edit__note:focus {
+  background: var(--surface-2);
+}
+
+.route-edit__rule {
+  margin: 8px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.route-edit__stops {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.route-edit__stop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding-left: 4px;
+  border-radius: 12px;
+  background: var(--surface);
+  transition: transform 0.18s ease;
+}
+
+/* The row under the finger follows it straight away, lifted over the others. */
+.route-edit__stop.is-dragged {
+  position: relative;
+  z-index: 1;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm);
+  transition: none;
+}
+
+.route-edit__num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--route);
+  color: var(--on-accent);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.route-edit__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-edit__grip {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: grab;
+  touch-action: none;
+}
+
+.route-edit__stops.is-sorting .route-edit__grip {
+  cursor: grabbing;
+}
+
+.route-edit__hint {
+  margin: 12px 4px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Editing: the pins that stepped aside for the route drop back in to be picked. */
+.app--route-editing .map-marker--pin {
+  animation: stop-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app--route-editing .map-marker--pin {
+    animation: none;
+  }
+}
+
+/* Editing: the name is tapped to rename it. */
+.route-title__name.is-renamable {
+  cursor: text;
+}
+
 .route-build__done {
   position: fixed;
   right: 16px;

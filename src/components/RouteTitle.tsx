@@ -10,6 +10,10 @@ interface RouteTitleProps {
   slideFrom?: -1 | 0 | 1;
   /** < > to the route above / below in the open tab's list; left out, no arrows. */
   onStep?: (step: -1 | 1) => void;
+  /** The pen: into editing the route (its stops, order and description). */
+  onEdit?: () => void;
+  /** Editing the route: no pen or arrows, and a tap on the name renames it. */
+  editMode?: boolean;
 }
 
 /** Matches the calendar's day paging (CalendarZoom SLIDE_MS) and .route-title--in / --out. */
@@ -17,11 +21,12 @@ const SLIDE_MS = 260;
 
 /**
  * The name of the route on show, big at the top of the map like a calendar
- * day's "TODAY", with a small pen at its bottom right: tap it to rename in
- * place (the pen again, Enter or a tap elsewhere sets it; Escape keeps the old one).
- * The field looks just like the name, so only the text changes while editing.
+ * day's "TODAY", with a small pen at its bottom right that opens editing the
+ * route. While editing, a tap on the name renames it in place (Enter or a tap
+ * elsewhere sets it; Escape keeps the old one). The field looks just like the
+ * name, so only the text changes.
  */
-export default function RouteTitle({ routeId, title, onRename, slideFrom = 0, onStep }: RouteTitleProps) {
+export default function RouteTitle({ routeId, title, onRename, slideFrom = 0, onStep, onEdit, editMode = false }: RouteTitleProps) {
   const [editing, setEditing] = useState(false);
   // What's typed so far, mirrored into a hidden copy that sizes the field to its text.
   const [draft, setDraft] = useState(title);
@@ -90,25 +95,40 @@ export default function RouteTitle({ routeId, title, onRename, slideFrom = 0, on
             />
           </span>
         ) : (
-          <h2 className="route-title__name">{title}</h2>
+          <h2
+            className={`route-title__name ${editMode ? 'is-renamable' : ''}`}
+            onClick={
+              editMode
+                ? () => {
+                    setDraft(title);
+                    setEditing(true);
+                  }
+                : undefined
+            }
+          >
+            {title}
+          </h2>
         )}
+        {(!editMode || editing) && (
         <button
           className="route-title__pen"
-          aria-label={editing ? '이름 확정' : '루트 이름 바꾸기'}
+          aria-label={editing ? '이름 확정' : '루트 수정'}
           aria-pressed={editing}
           // While editing, keep the field focused: a blur first would save and close
           // it, and this tap would then open it again.
           onPointerDown={(e) => editing && e.preventDefault()}
           onClick={() => {
             if (editing) return commit();
+            if (onEdit) return onEdit();
             setDraft(title);
             setEditing(true);
           }}
         >
           <Pencil size={13} aria-hidden />
         </button>
+        )}
       </div>
-      {onStep && (
+      {onStep && !editMode && (
         <>
           <button className="route-step route-step--prev" aria-label="이전 루트" onClick={() => onStep(-1)}>
             <ChevronLeft size={30} strokeWidth={2.2} aria-hidden />

@@ -21,6 +21,12 @@ interface RouteBuildLayerProps {
    */
   handoff?: { current: { x: number; y: number } | null };
   onCreate: (title: string, note: string, icon: string | undefined) => void;
+  /**
+   * Editing a saved route instead of making one: stops are picked the same
+   * way, but the edit sheet has the ✓ (no button or name dialog here) and a
+   * tap on bare map changes nothing.
+   */
+  editing?: boolean;
 }
 
 /** Movement before a press counts as a drag (drawing, or panning the map). */
@@ -53,7 +59,7 @@ export function pinAt(x: number, y: number): string | null {
  * basemap has loaded. A tap on bare map cancels; ✓ asks for a name and a
  * description, and 루트 생성 saves it.
  */
-export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanEnabled, defaultTitle, handoff, onCreate }: RouteBuildLayerProps) {
+export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanEnabled, defaultTitle, handoff, onCreate, editing = false }: RouteBuildLayerProps) {
   const handoffRef = useRef(handoff);
   handoffRef.current = handoff;
   const trailEl = useRef<SVGLineElement | null>(null);
@@ -166,6 +172,7 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
         <line ref={trailEl} className="route-build__trail" />
       </svg>
 
+      {!editing && (
       <button
         className="route-build__done"
         aria-label={`경로 완성 (${chosen.length}곳)`}
@@ -174,6 +181,7 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
       >
         <Check size={26} aria-hidden />
       </button>
+      )}
 
       {asking && (
         <dialog ref={dialogEl} className="confirm-dialog route-build__dialog" aria-label="루트 만들기" onClose={() => setAsking(false)}>
