@@ -58,8 +58,8 @@ const DESKTOP_QUERY = '(min-width: 900px)';
 const ROUTE_TRAY_OUT_MS = 170;
 /** How much of the folder sheet stays up while a route is on show (matches .route-folders.is-lowered). */
 const FOLDER_LOWERED_PX = 190;
-/** The map's glide over to a route put on show (MapLibre's fit), before its stops play in. */
-const ROUTE_GLIDE_MS = 900;
+/** Once the map has glided over to a route, the pins fade off (matches .app--pins-away), and only then do its stops drop in. */
+const PINS_FADE_MS = 250;
 
 export default function App() {
   const mapEl = useRef<HTMLDivElement | null>(null);
@@ -159,6 +159,27 @@ export default function App() {
     return () => window.clearTimeout(t);
   }, [routeOpen]);
   const shownRoute = routeOpen ? (course.courses.find((c) => c.id === shownRouteId) ?? null) : null;
+  // A route put on show takes the map in turns: it glides over with the pins
+  // still there, and the moment the glide ends the pins fade away and the
+  // route's own stops drop in. Switching straight to another route keeps the
+  // pins gone.
+  const [pinsAway, setPinsAway] = useState<'no' | 'fading' | 'gone'>('no');
+  // Only 'gone' changes the markers: re-making them mid-fade would cut the fade short.
+  const pinsGone = pinsAway === 'gone';
+  const shownRouteKey = shownRoute?.id ?? null;
+  // The route the map has finished gliding to (set by the fit below).
+  const [landedRoute, setLandedRoute] = useState<string | null>(null);
+  const routeLanded = !!shownRouteKey && landedRoute === shownRouteKey;
+  useEffect(() => {
+    if (!shownRouteKey) {
+      setLandedRoute(null);
+      return setPinsAway('no');
+    }
+    if (!routeLanded) return;
+    setPinsAway((p) => (p === 'gone' ? p : 'fading'));
+    const fade = window.setTimeout(() => setPinsAway('gone'), PINS_FADE_MS);
+    return () => window.clearTimeout(fade);
+  }, [shownRouteKey, routeLanded]);
   const shownPins = useMemo(() => filterPinsByCategories(pins, categories, picked), [pins, categories, picked]);
 
   // Numbered course markers + solid route line.
@@ -195,7 +216,7 @@ export default function App() {
     if (sharedCourse || !(onPinHome || pinning)) return [];
     // A saved route on show has the map to itself: every pin steps aside
     // (its stops, shaped or numbered, stand in for the places).
-    if (shownRoute && !pinning) return [];
+    if (shownRoute && !pinning && pinsGone) return [];
     return (pinning ? pins : shownPins).map((pin) => {
       const style = categoryStyle(categories, pin.categoryId);
       return {
@@ -208,7 +229,7 @@ export default function App() {
         selected: pin.id === activePinId,
       };
     });
-  }, [sharedPins, sharedCourse, onPinHome, pinning, pins, shownPins, categories, activePinId, shownRoute]);
+  }, [sharedPins, sharedCourse, onPinHome, pinning, pins, shownPins, categories, activePinId, shownRoute, pinsGone]);
 
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
 
@@ -284,10 +305,19 @@ export default function App() {
     // While a route is being made from pins the map stays put: re-fitting on
     // every added stop would move the next pin out from under the finger.
     if (!mapRef.current || shownStops.length === 0 || buildPins) return;
-    const id = requestAnimationFrame(() => mapRef.current?.fitCourse(mapPadding()));
-    return () => cancelAnimationFrame(id);
+    const route = shownRouteKey;
+    let live = true;
+    const id = requestAnimationFrame(() => {
+      void mapRef.current?.fitCourse(mapPadding()).then(() => {
+        if (live && route) setLandedRoute(route);
+      });
+    });
+    return () => {
+      live = false;
+      cancelAnimationFrame(id);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stopsKey, mapProvider]);
+  }, [stopsKey, shownRouteKey, mapProvider]);
 
   useEffect(() => {
     mapRef.current?.setPins(pinMarkers);
@@ -693,7 +723,7 @@ export default function App() {
   const barAway = (decorating && calendarZoom && onPage) || routeMode;
 
   return (
-    <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''}`}>
+    <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''}`}>
       <div ref={mapEl} className="map" aria-label="지도" />
 
       <SearchBar
@@ -752,8 +782,17 @@ export default function App() {
           count={shownStops.length}
           edgeStyles={buildPins ? undefined : shownRoute?.edgeStyles}
           stopShapes={buildPins ? undefined : shownRoute?.stopShapes}
-          // A route put on show plays in once the map has glided over to it.
-          play={shownRoute && !buildPins ? { key: shownRoute.id, delayMs: ROUTE_GLIDE_MS } : undefined}
+          // A route put on show plays in once the map has glided over to it and the pins have gone
+          // (until then app--route-arriving keeps its stops out of sight).
+          play={
+            shownRoute && !buildPins
+              ? routeLanded
+                ? // Straight after another route the pins are already gone: no fade to wait for.
+                  { key: shownRoute.id, delayMs: pinsGone ? 0 : PINS_FADE_MS }
+                : // Held back, every stop hidden, until the glide ends.
+                  { key: `${shownRoute.id}:gliding`, delayMs: Infinity }
+              : undefined
+          }
         />
       )}
 

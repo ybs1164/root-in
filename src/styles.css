@@ -2527,6 +2527,37 @@ input.timeline__time:focus {
   opacity: 0 !important;
 }
 
+/* MapLibre fades its markers' opacity (0.2s): a stop hidden for its turn,
+   or swapped for a shape, would linger as a fading number. */
+.map-marker[data-stop] {
+  transition: none;
+}
+
+/* …and its stops stay out of sight until then, from the very first frame
+   (before StopLines gets to flag them). */
+.app--route-arriving .map-marker[data-stop],
+.app--route-arriving .stop-shape {
+  opacity: 0 !important;
+}
+
+/* A route on show: once the map has glided over, the pins drift up a touch
+   as they fade away, before its stops drop in (App's PINS_FADE_MS).
+   `translate`, not transform: the map positions markers with transform. */
+.app--pins-away .map-marker--pin {
+  opacity: 0 !important;
+  translate: 0 -6px;
+  pointer-events: none;
+  transition:
+    opacity 0.25s ease-out,
+    translate 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app--pins-away .map-marker--pin {
+    translate: none;
+  }
+}
+
 .map-marker[data-drop],
 .stop-shape[data-drop] svg {
   animation: stop-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
@@ -2629,20 +2660,36 @@ input.timeline__time:focus {
     0 0 2px var(--surface);
 }
 
+.route-title__field {
+  /* A hidden copy of the text sizes the field and the input lies over it,
+     so the field is exactly as wide as the name: editing changes only the text. */
+  position: relative;
+  display: inline-block;
+  max-width: min(calc(100vw - 80px), 320px);
+}
+
+.route-title__sizer {
+  display: block;
+  min-width: 1ch;
+  overflow: hidden;
+  visibility: hidden;
+  white-space: pre;
+}
+
 .route-title__input {
-  /* Leaves room for the pen inside the title's width. */
-  width: min(calc(100vw - 80px), 320px);
-  height: 44px;
-  padding: 0 10px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
-  color: var(--text);
+  position: absolute;
+  inset: 0;
+  width: 100%;
   font: inherit;
-  font-size: 22px;
-  font-weight: 800;
+  letter-spacing: inherit;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  caret-color: var(--accent);
   text-align: center;
+  text-shadow: inherit;
 }
 
 .route-title__pen {

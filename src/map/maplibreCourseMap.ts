@@ -13,6 +13,15 @@ import {
 } from './courseMap';
 
 // Keyless fallback basemap for development / when the Kakao SDK is unavailable.
+/** A route's glide into view (App waits for its end before playing the route in). */
+const GLIDE_MS = 1000;
+const FOCUS_MS = 500;
+
+/** Slow at both ends, with no sudden push in the middle. */
+function easeInOutSine(t: number): number {
+  return -(Math.cos(Math.PI * t) - 1) / 2;
+}
+
 const STYLE_URL = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
 const LINE_SOURCE = 'course-line';
 const GUIDE_SOURCE = 'guide-line';
@@ -35,6 +44,8 @@ export class MapLibreCourseMap implements CourseMap {
   private guide: [number, number][] = [];
   private district: DistrictMap | null = null;
   private readonly detachLongPress: () => void;
+  /** Set once the style has loaded: the map renders from then on. */
+  private ready = false;
 
   constructor(container: HTMLElement, private readonly options: CourseMapOptions) {
     this.map = new maplibregl.Map({
@@ -56,6 +67,9 @@ export class MapLibreCourseMap implements CourseMap {
       });
     };
     this.map.on('load', emitViewport);
+    this.map.on('load', () => {
+      this.ready = true;
+    });
     this.map.on('moveend', emitViewport);
     this.map.on('load', () => {
       const token = (name: string, fallback: string) =>
@@ -152,13 +166,38 @@ export class MapLibreCourseMap implements CourseMap {
     source?.setData(this.guideData());
   }
 
-  fitPoints(points: [number, number][], padding: MapPadding): void {
-    if (points.length === 0) return;
-    if (points.length === 1) return this.focus(points[0], padding);
+  fitPoints(points: [number, number][], padding: MapPadding): Promise<void> {
+    if (points.length === 0) return Promise.resolve();
+    if (points.length === 1) {
+      this.focus(points[0], padding);
+      return this.moveSettled(this.duration(FOCUS_MS));
+    }
     const bounds = new maplibregl.LngLatBounds();
     points.forEach((p) => bounds.extend(p));
-    // Slow enough to read as a glide, eased in and out (App's ROUTE_GLIDE_MS waits for it).
-    this.map.fitBounds(bounds, { padding, maxZoom: 16, duration: this.duration(850) });
+    // Slow enough to read as a glide, gently eased in and out. A plain ease, not the default fly's
+    // zoom-out-and-back arc, which on a short hop reads as a lurch.
+    this.map.fitBounds(bounds, { padding, maxZoom: 16, linear: true, easing: easeInOutSine, duration: this.duration(GLIDE_MS) });
+    return this.moveSettled(this.duration(GLIDE_MS));
+  }
+
+  /**
+   * The end of the move just started (`ms` long; 0 = a jump, already over).
+   * Listened for after starting it: starting a move ends the one before,
+   * whose moveend must not count. The eased tail of a glide is too slow to
+   * see, so it counts as over a little early; a move that never starts
+   * (already there) or never runs (no render) still resolves.
+   */
+  private moveSettled(ms: number): Promise<void> {
+    if (ms === 0) return Promise.resolve();
+    return new Promise((resolve) => {
+      const done = () => {
+        window.clearTimeout(timer);
+        this.map.off('moveend', done);
+        resolve();
+      };
+      const timer = window.setTimeout(done, ms * 0.9);
+        this.map.on('moveend', done);
+    });
   }
 
   setCourse(stops: PlaceRef[]): void {
@@ -182,8 +221,8 @@ export class MapLibreCourseMap implements CourseMap {
       : null;
   }
 
-  fitCourse(padding: MapPadding): void {
-    this.fitPoints(
+  fitCourse(padding: MapPadding): Promise<void> {
+    return this.fitPoints(
       this.stops.map((s) => s.center),
       padding,
     );
@@ -195,16 +234,18 @@ export class MapLibreCourseMap implements CourseMap {
     const offset: [number, number] = padding
       ? [(padding.left - padding.right) / 2, (padding.top - padding.bottom) / 2]
       : [0, 0];
-    this.map.easeTo({ center, zoom: Math.max(this.map.getZoom(), FOCUS_ZOOM), offset, duration: this.duration(500) });
+    this.map.easeTo({ center, zoom: Math.max(this.map.getZoom(), FOCUS_ZOOM), offset, duration: this.duration(FOCUS_MS) });
   }
 
   /**
    * Animated moves only run while the map renders, and it doesn't until its
    * style has loaded (a slow or blocked basemap): an ease then never gets
-   * anywhere. Until then, moves jump straight there.
+   * anywhere. Until then, moves jump straight there. (Not isStyleLoaded():
+   * that is also false for a moment after any source's setData, as when a
+   * route's stops are put on the map just before gliding to them.)
    */
   private duration(ms: number): number {
-    return this.map.isStyleLoaded() ? ms : 0;
+    return this.ready ? ms : 0;
   }
 
   setPanEnabled(enabled: boolean): void {
