@@ -300,9 +300,11 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
             return;
           }
           setFiling(null);
-          // A plain tap on a folder tab also brings out its ✕ (not only a long press).
-          setDeleting(custom ? id : null);
-          if (on && custom) return setPicking(picking === id ? null : id);
+          // The second tap on an open folder brings out its icon picker and,
+          // with it, the ✕ (as a long press does); the first tap only selects.
+          const opening = on && custom && picking !== id;
+          setDeleting(opening ? id : null);
+          if (on && custom) return setPicking(opening ? id : null);
           setTab(id);
           setPicking(null);
         }}
