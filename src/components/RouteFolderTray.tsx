@@ -405,9 +405,12 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
           <Plus size={20} aria-hidden />
         </button>
         {routes.length === 0 ? (
-          <p className="route-folders__empty">
-            {courses.length === 0 ? '저장한 경로가 없어요. 오른쪽 위 + 로 핀을 이어 만들어 보세요.' : current === 'all' || current === 'none' ? '여기에 있는 경로가 없어요.' : '이 폴더는 비어 있어요. 경로의 폴더 버튼으로 넣어 보세요. 탭을 한 번 더 누르면 아이콘을 바꿀 수 있어요.'}
-          </p>
+          // An empty folder of the user's own just stays blank.
+          (current === 'all' || current === 'none') && (
+            <p className="route-folders__empty">
+              {courses.length === 0 ? '저장한 경로가 없어요. 오른쪽 위 + 로 핀을 이어 만들어 보세요.' : '여기에 있는 경로가 없어요.'}
+            </p>
+          )
         ) : (
           <ul className="route-folders__list">
             {routes.map((c) => {
