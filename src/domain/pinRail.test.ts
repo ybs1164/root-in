@@ -13,8 +13,7 @@ describe('pin rail', () => {
     expect(pinRailNext('folded', 'pins')).toBe('folded');
   });
 
-  it('back or the fold button returns from an opened entry to 핀 · 경로', () => {
-    expect(pinRailNext('pins', 'back')).toBe('menu');
+  it('the fold button returns from an opened entry to 핀 · 경로', () => {
     expect(pinRailNext('pins', 'fold')).toBe('menu');
     expect(pinRailNext('route', 'fold')).toBe('menu');
   });

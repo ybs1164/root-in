@@ -2272,6 +2272,49 @@ input.timeline__time:focus {
   height: 22px;
 }
 
+/* Folded, the chevron turns to point down (펼치기). */
+.pin-rail__fold svg {
+  transition: transform 0.22s ease;
+}
+
+.pin-rail__fold.is-folded svg {
+  transform: rotate(180deg);
+}
+
+/* Buttons pop out of the fold button one after another… */
+.pin-rail__item {
+  animation: pin-rail-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+  animation-delay: calc(var(--i, 0) * 30ms);
+}
+
+/* …and tuck back up into it together (PinRail's OUT_MS waits for this). */
+.pin-rail__item.is-leaving {
+  animation: pin-rail-out 0.16s ease-in both;
+  pointer-events: none;
+}
+
+@keyframes pin-rail-in {
+  from {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.4);
+  }
+}
+
+@keyframes pin-rail-out {
+  to {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-rail__item,
+  .pin-rail__item.is-leaving {
+    animation-duration: 0.01s;
+    animation-delay: 0s;
+  }
+}
+
 .pin-rail__list {
   display: flex;
   flex-direction: column;
