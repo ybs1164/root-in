@@ -157,7 +157,8 @@ export class MapLibreCourseMap implements CourseMap {
     if (points.length === 1) return this.focus(points[0], padding);
     const bounds = new maplibregl.LngLatBounds();
     points.forEach((p) => bounds.extend(p));
-    this.map.fitBounds(bounds, { padding, maxZoom: 16, duration: this.duration(600) });
+    // Slow enough to read as a glide, eased in and out (App's ROUTE_GLIDE_MS waits for it).
+    this.map.fitBounds(bounds, { padding, maxZoom: 16, duration: this.duration(850) });
   }
 
   setCourse(stops: PlaceRef[]): void {

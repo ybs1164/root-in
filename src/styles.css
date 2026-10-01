@@ -455,7 +455,8 @@ button:disabled {
   width: 32px;
   height: 32px;
   padding: 0;
-  border: 3px solid var(--surface);
+  /* No white ring: a flat dot of colour (the shadow keeps it off the map). */
+  border: 0;
   border-radius: 50%;
   background: var(--accent);
   color: var(--on-accent);
@@ -2518,6 +2519,37 @@ input.timeline__time:focus {
 
 /* A stop given a shape: drawn here, its numbered marker hidden but still
    there to be tapped or long-pressed. */
+/* A route playing in: stops wait hidden, then drop onto the map in turn.
+   Only translate/opacity animate: the map positions markers with transform.
+   (!important for the wait: MapLibre writes an inline opacity.) */
+.map-marker[data-hidden],
+.stop-shape[data-hidden] {
+  opacity: 0 !important;
+}
+
+.map-marker[data-drop],
+.stop-shape[data-drop] svg {
+  animation: stop-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+@keyframes stop-drop {
+  from {
+    opacity: 0;
+    translate: 0 -36px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-marker[data-drop],
+  .stop-shape[data-drop] svg {
+    animation: none;
+  }
+}
+
 .map-marker[data-shape] {
   /* !important: MapLibre writes an inline opacity on its markers. */
   opacity: 0 !important;
@@ -3273,7 +3305,6 @@ input.timeline__time:focus {
   z-index: 1;
   width: 34px;
   height: 34px;
-  border-width: 2px;
   background: var(--pin);
   font-size: 17px;
   line-height: 1;

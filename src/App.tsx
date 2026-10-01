@@ -62,6 +62,8 @@ const DESKTOP_QUERY = '(min-width: 900px)';
 const ROUTE_TRAY_OUT_MS = 170;
 /** How much of the folder sheet stays up while a route is on show (matches .route-folders.is-lowered). */
 const FOLDER_LOWERED_PX = 190;
+/** The map's glide over to a route put on show (MapLibre's fit), before its stops play in. */
+const ROUTE_GLIDE_MS = 900;
 
 export default function App() {
   const mapEl = useRef<HTMLDivElement | null>(null);
@@ -195,18 +197,10 @@ export default function App() {
       });
     }
     if (sharedCourse || !(onPinHome || pinning)) return [];
-    // A saved route on show: a stop given a shape stands in for the pin at
-    // that place, so that pin leaves the map instead of covering the shape.
-    const replaced = new Set<string>();
-    shownRoute?.stops.forEach((stop, i) => {
-      if (!shownRoute.stopShapes?.[i]) return;
-      replaced.add(stop.place.id);
-      replaced.add(stop.place.center.join(','));
-    });
-    const visible = (pinning ? pins : shownPins).filter(
-      (pin) => pinning || !(replaced.has(pin.place.id) || replaced.has(pin.place.center.join(','))),
-    );
-    return visible.map((pin) => {
+    // A saved route on show has the map to itself: every pin steps aside
+    // (its stops, shaped or numbered, stand in for the places).
+    if (shownRoute && !pinning) return [];
+    return (pinning ? pins : shownPins).map((pin) => {
       const style = categoryStyle(categories, pin.categoryId);
       return {
         id: pin.id,
@@ -775,6 +769,8 @@ export default function App() {
           count={shownStops.length}
           edgeStyles={buildPins ? undefined : shownRoute?.edgeStyles}
           stopShapes={buildPins ? undefined : shownRoute?.stopShapes}
+          // A route put on show plays in once the map has glided over to it.
+          play={shownRoute && !buildPins ? { key: shownRoute.id, delayMs: ROUTE_GLIDE_MS } : undefined}
         />
       )}
 
