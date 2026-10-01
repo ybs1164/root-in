@@ -12,6 +12,7 @@ import PinDropTray from './components/PinDropTray';
 import PinRail from './components/PinRail';
 import RouteBuildLayer from './components/RouteBuildLayer';
 import RouteFolderTray from './components/RouteFolderTray';
+import StopLines from './components/StopLines';
 import SearchBar from './components/SearchBar';
 import SettingsSheet from './components/SettingsSheet';
 import SharedCourseView from './components/SharedCourseView';
@@ -435,10 +436,10 @@ export default function App() {
     setBuilding([]);
   };
 
-  const saveBuilt = async (title: string, note: string) => {
+  const saveBuilt = async (title: string, note: string, icon: string | undefined) => {
     if (!buildPins || buildPins.length < COURSE_LIMITS.minStops) return;
     const stops = buildPins.map((p) => ({ place: p.place }));
-    const saved = await course.save({ title, note: note || undefined, theme: 'etc', travelMode: 'walk', stops });
+    const saved = await course.save({ title, note: note || undefined, icon, theme: 'etc', travelMode: 'walk', stops });
     // Made from inside a folder: it goes in that folder.
     if (routeTab !== 'all' && routeTab !== 'none') routeFolders.setFolders((f) => moveRoute(f, saved.id, routeTab));
     setBuilding(null);
@@ -656,8 +657,16 @@ export default function App() {
           tab={routeTab}
           onTab={setRouteTab}
           onNewRoute={startBuilding}
+          onDeleteRoute={async (c) => {
+            setShownRouteId(null);
+            routeFolders.setFolders((f) => moveRoute(f, c.id, null));
+            await course.removeCourse(c);
+          }}
         />
       )}
+
+      {/* Lines between the numbered stops of whatever route is on the map. */}
+      {shownStops.length > 1 && <StopLines count={shownStops.length} />}
 
       {buildPins && building && (
         <RouteBuildLayer

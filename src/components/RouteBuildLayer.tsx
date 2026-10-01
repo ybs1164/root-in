@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { COURSE_LIMITS } from '../domain/course';
+import { COURSE_LIMITS, ROUTE_ICONS } from '../domain/course';
+import { stopCentre } from './StopLines';
 
 interface RouteBuildLayerProps {
   /** The map's container: drawing and the cancel-tap only count inside it. */
@@ -13,7 +14,7 @@ interface RouteBuildLayerProps {
   onCancel: () => void;
   onPanEnabled: (enabled: boolean) => void;
   defaultTitle: string;
-  onCreate: (title: string, note: string) => void;
+  onCreate: (title: string, note: string, icon: string | undefined) => void;
 }
 
 /** Movement before a press counts as a drag (drawing, or panning the map). */
@@ -38,12 +39,6 @@ function pinAt(x: number, y: number): string | null {
   return null;
 }
 
-function markerCentre(pinId: string): { x: number; y: number } | null {
-  const el = document.querySelector<HTMLElement>(`.map-marker--pin[data-pin-id="${CSS.escape(pinId)}"]`);
-  if (!el) return null;
-  const r = el.getBoundingClientRect();
-  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-}
 
 /**
  * Making a route over the map. Pins tapped (or swept through in one stroke,
@@ -53,7 +48,6 @@ function markerCentre(pinId: string): { x: number; y: number } | null {
  * description, and 루트 생성 saves it.
  */
 export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanEnabled, defaultTitle, onCreate }: RouteBuildLayerProps) {
-  const lineEl = useRef<SVGPolylineElement | null>(null);
   const trailEl = useRef<SVGLineElement | null>(null);
   const stroke = useRef<Stroke | null>(null);
   const chosenRef = useRef(chosen);
@@ -61,14 +55,13 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
   const handlers = useRef({ onAdd, onCancel, onPanEnabled });
   handlers.current = { onAdd, onCancel, onPanEnabled };
 
-  // The lines follow the markers as the map moves: redrawn every frame while open.
+  // The stops' lines are StopLines (the app draws them for any route); this
+  // adds the dashed one from the last stop to a finger mid-stroke.
   useEffect(() => {
     let frame = 0;
     const draw = () => {
-      const points = chosenRef.current.map(markerCentre).filter((p): p is { x: number; y: number } => !!p);
-      lineEl.current?.setAttribute('points', points.map((p) => `${p.x},${p.y}`).join(' '));
       const s = stroke.current;
-      const last = points[points.length - 1];
+      const last = stopCentre(chosenRef.current.length);
       const trail = trailEl.current;
       if (trail) {
         const on = !!(s?.drawing && last);
@@ -148,6 +141,9 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
   // ✓ → name and description, in a native modal <dialog>.
   const dialogEl = useRef<HTMLDialogElement | null>(null);
   const [asking, setAsking] = useState(false);
+  // The route's decorative icon, and whether its picker is open.
+  const [icon, setIcon] = useState<string | undefined>(undefined);
+  const [pickingIcon, setPickingIcon] = useState(false);
   useEffect(() => {
     const d = dialogEl.current;
     if (asking && d && !d.open) d.showModal();
@@ -155,8 +151,7 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
 
   return (
     <>
-      <svg className="route-build__lines" aria-hidden>
-        <polyline ref={lineEl} />
+      <svg className="stop-lines" aria-hidden>
         <line ref={trailEl} className="route-build__trail" />
       </svg>
 
@@ -176,12 +171,42 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
               e.preventDefault();
               const data = new FormData(e.currentTarget);
               const title = String(data.get('title') ?? '').trim() || defaultTitle;
-              onCreate(title.slice(0, COURSE_LIMITS.title), String(data.get('note') ?? '').trim().slice(0, COURSE_LIMITS.note));
+              onCreate(title.slice(0, COURSE_LIMITS.title), String(data.get('note') ?? '').trim().slice(0, COURSE_LIMITS.note), icon);
               dialogEl.current?.close();
             }}
           >
-            <input name="title" className="route-build__field" aria-label="경로 이름" placeholder="경로 이름" defaultValue={defaultTitle} maxLength={COURSE_LIMITS.title} />
-            <textarea name="note" className="route-build__field route-build__note" aria-label="경로 설명" placeholder="경로 설명" maxLength={COURSE_LIMITS.note} rows={3} />
+            <div className="route-build__name">
+              <button
+                type="button"
+                className={`route-build__icon ${icon ? '' : 'is-empty'}`}
+                aria-label={icon ? `아이콘 ${icon}, 바꾸기` : '아이콘 고르기'}
+                aria-expanded={pickingIcon}
+                onClick={() => setPickingIcon((v) => !v)}
+              >
+                {icon ?? '＋'}
+              </button>
+              <input name="title" className="route-build__field" aria-label="이름" placeholder="이름" defaultValue={defaultTitle} maxLength={COURSE_LIMITS.title} />
+            </div>
+            {pickingIcon && (
+              <div className="route-build__icons" role="group" aria-label="아이콘">
+                {ROUTE_ICONS.map((i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    className={`folder-picker__opt ${icon === i ? 'is-on' : ''}`}
+                    aria-pressed={icon === i}
+                    onClick={() => {
+                      // Tapping the chosen one again clears it (icons are optional).
+                      setIcon(icon === i ? undefined : i);
+                      setPickingIcon(false);
+                    }}
+                  >
+                    {i}
+                  </button>
+                ))}
+              </div>
+            )}
+            <textarea name="note" className="route-build__field route-build__note" aria-label="설명" placeholder="설명" maxLength={COURSE_LIMITS.note} rows={3} />
             <div className="confirm-dialog__actions">
               <button type="button" className="btn btn--ghost" onClick={() => dialogEl.current?.close()}>
                 취소

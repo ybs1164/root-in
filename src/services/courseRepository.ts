@@ -1,4 +1,4 @@
-import { defaultTitle } from '../domain/course';
+import { defaultTitle, isRouteIcon } from '../domain/course';
 import type { Course, CourseDraft } from '../types/course';
 import type { TravelRoute } from '../types/travelRoute';
 
@@ -92,6 +92,7 @@ export class LocalCourseRepository implements CourseRepository {
       stops: draft.stops,
       note: draft.note?.trim() || undefined,
       sharedBy: draft.sharedBy?.trim() || undefined,
+      icon: isRouteIcon(draft.icon) ? draft.icon : undefined,
       createdAt: existing?.createdAt ?? now,
       updatedAt: existing ? now : undefined,
     };

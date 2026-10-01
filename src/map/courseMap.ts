@@ -70,6 +70,8 @@ export function createMarkerElement(label: string, variant: 'stop' | 'preview', 
   el.className = `map-marker map-marker--${variant}`;
   el.textContent = label;
   el.setAttribute('aria-label', variant === 'stop' ? `${label}번 장소` : '선택한 장소');
+  // Its place in the route, for the lines the app draws between stops.
+  if (variant === 'stop') el.dataset.stop = label;
   if (onClick) {
     el.addEventListener('click', (event) => {
       event.stopPropagation();

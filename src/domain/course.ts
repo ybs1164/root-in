@@ -9,6 +9,13 @@ export const COURSE_LIMITS = {
 } as const;
 
 export const COURSE_THEMES: CourseTheme[] = ['date', 'trip', 'food', 'etc'];
+
+/** Icons a route can wear next to its name, just for decoration. */
+export const ROUTE_ICONS = [
+  '📍', '❤️', '⭐', '✨', '🌸', '🍀', '☕', '🍽️', '🍷', '🏖️', '✈️', '🚗', '🚲', '🌳', '⛰️', '🎉', '📷', '🌙',
+] as const;
+
+export const isRouteIcon = (v: unknown): v is string => typeof v === 'string' && (ROUTE_ICONS as readonly string[]).includes(v);
 export const TRAVEL_MODES: TravelMode[] = ['walk', 'transit', 'drive'];
 
 export const emptyDraft = (): CourseDraft => ({ title: '', theme: 'date', travelMode: 'walk', stops: [] });

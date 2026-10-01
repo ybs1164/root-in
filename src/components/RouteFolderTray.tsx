@@ -1,4 +1,4 @@
-import { FolderInput, Inbox, Layers, Plus, X } from 'lucide-react';
+import { FolderInput, Inbox, Layers, Plus, Trash2, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   addFolder,
@@ -29,6 +29,8 @@ interface RouteFolderTrayProps {
   onTab: (tab: RouteTab) => void;
   /** The + inside the folder: put the sheet down and make a route from pins. */
   onNewRoute: () => void;
+  /** Deletes a saved route (from the open route's tools). */
+  onDeleteRoute: (course: Course) => void;
 }
 
 /** The fixed tabs wear line icons, set apart from the folders' own emoji. */
@@ -71,7 +73,7 @@ const newId = () =>
  * lifts it so it can be dragged among the folders; let go without moving and
  * an ✕ appears on it, which deletes the folder after a confirm.
  */
-export default function RouteFolderTray({ open, courses, folders, onFolders, shownId, onShow, tab, onTab: setTab, onNewRoute }: RouteFolderTrayProps) {
+export default function RouteFolderTray({ open, courses, folders, onFolders, shownId, onShow, tab, onTab: setTab, onNewRoute, onDeleteRoute }: RouteFolderTrayProps) {
   // The folder whose icon picker is out.
   const [picking, setPicking] = useState<string | null>(null);
   // The route whose 폴더 chooser is out.
@@ -415,27 +417,34 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
           <ul className="route-folders__list">
             {routes.map((c) => {
               const filed = folderOf(folders, c.id);
-              const filedIn = folders.folders.find((f) => f.id === filed);
+              const shown = shownId === c.id;
               return (
-                <li key={c.id} className={`route-row ${shownId === c.id ? 'is-shown' : ''}`}>
-                  <button className="route-row__main" aria-pressed={shownId === c.id} onClick={() => onShow(shownId === c.id ? null : c)}>
-                    <strong>{c.title || '이름 없는 경로'}</strong>
-                    <span>
-                      {c.stops.length}곳 ·{' '}
-                      <span className="route-row__in" aria-label={filedIn?.name ?? '미분류'}>
-                        {filedIn ? filedIn.icon : <Inbox size={14} aria-hidden />}
+                <li key={c.id} className={`route-row ${shown ? 'is-shown' : ''}`}>
+                  <button className="route-row__main" aria-pressed={shown} onClick={() => onShow(shown ? null : c)}>
+                    {c.icon && (
+                      <span className="route-row__icon" aria-hidden>
+                        {c.icon}
                       </span>
-                    </span>
+                    )}
+                    <strong>{c.title || '이름 없는 경로'}</strong>
                   </button>
-                  <button
-                    className="route-row__file icon-btn"
-                    aria-label={`${c.title || '경로'} 폴더 옮기기`}
-                    aria-expanded={filing === c.id}
-                    onClick={() => setFiling(filing === c.id ? null : c.id)}
-                  >
-                    <FolderInput size={20} aria-hidden />
-                  </button>
-                  {filing === c.id && (
+                  {/* The open route's tools: small, at its bottom right. */}
+                  {shown && (
+                    <div className="route-row__tools">
+                      <button
+                        className="route-row__tool"
+                        aria-label={`${c.title || '경로'} 폴더 옮기기`}
+                        aria-expanded={filing === c.id}
+                        onClick={() => setFiling(filing === c.id ? null : c.id)}
+                      >
+                        <FolderInput size={18} aria-hidden />
+                      </button>
+                      <button className="route-row__tool route-row__tool--danger" aria-label={`${c.title || '경로'} 삭제`} onClick={() => onDeleteRoute(c)}>
+                        <Trash2 size={18} aria-hidden />
+                      </button>
+                    </div>
+                  )}
+                  {shown && filing === c.id && (
                     <div className="route-row__chooser" role="group" aria-label="옮길 폴더">
                       {[{ id: null, name: '미분류', icon: NONE_ICON }, ...folders.folders].map((f) => (
                         <button

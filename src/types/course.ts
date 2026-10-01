@@ -33,6 +33,8 @@ export interface Course {
   note?: string;
   /** Set when this course was saved from someone else's share link. */
   sharedBy?: string;
+  /** A decorative icon shown by its name (one of ROUTE_ICONS); not a category. */
+  icon?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -46,6 +48,7 @@ export interface CourseDraft {
   stops: CourseStop[];
   note?: string;
   sharedBy?: string;
+  icon?: string;
 }
 
 /** Self-contained snapshot carried by a share link. */
