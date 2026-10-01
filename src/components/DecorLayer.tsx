@@ -257,6 +257,12 @@ export default function DecorLayer({
   };
 
   const onStickerMove = (e: PointerEvent) => {
+    const p = pendingPinch.current;
+    if (p?.pointerId === e.pointerId) {
+      p.x = e.clientX;
+      p.y = e.clientY;
+      return;
+    }
     const g = gesture.current;
     if (!g || !fingers.current.has(e.pointerId)) return;
     fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -270,6 +276,10 @@ export default function DecorLayer({
   };
 
   const onStickerUp = (e: PointerEvent) => {
+    if (pendingPinch.current?.pointerId === e.pointerId) {
+      pendingPinch.current = null;
+      return onTextFocus(null); // no second finger came: a tap off the picked box
+    }
     const g = gesture.current;
     if (!g || !fingers.current.delete(e.pointerId)) return;
     if (fingers.current.size) return restart(g.kind, g.id);
@@ -324,6 +334,8 @@ export default function DecorLayer({
     }
     if (!old) changeRef.current({ ...now, texts: [...texts, d] });
     else if (old.text !== d.text) changeRef.current({ ...now, texts: texts.map((t) => (t.id === d.id ? { ...t, text: d.text } : t)) });
+    // Written: the box stays picked, so its toolbar comes straight up.
+    focusRef.current({ id: d.id, editing: false });
   };
 
   // Putting the text tool away (or leaving the day) ends the typing.
@@ -334,14 +346,35 @@ export default function DecorLayer({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => () => finishTyping(), []);
 
+  // A picked box is small to get two fingers on: with one picked, a finger
+  // on bare drawing waits to see if a second follows (anywhere in the box,
+  // the picked box included) and then pinches and turns the picked box.
+  // Lifted alone, it was a tap that lets go of the box.
+  const pendingPinch = useRef<{ pointerId: number; id: string; x: number; y: number } | null>(null);
+  const startPinch = (e: PointerEvent) => {
+    const p = pendingPinch.current!;
+    pendingPinch.current = null;
+    layer.current!.setPointerCapture(e.pointerId);
+    fingers.current.clear();
+    fingers.current.set(p.pointerId, { x: p.x, y: p.y });
+    fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    gesture.current = { kind: 'text', id: p.id, base: poseOf('text', p.id), from: [...fingers.current.values()], moved: true };
+  };
+
   const onTextBoxDown = (e: PointerEvent) => {
     if (e.target !== e.currentTarget) return; // a box handles its own press
     if (gesture.current && fingers.current.size === 1) return grab(gesture.current.kind, gesture.current.id, e);
+    if (pendingPinch.current && e.pointerId !== pendingPinch.current.pointerId) return startPinch(e);
     if (!e.isPrimary) return;
     // No mouse events after this: they would move focus off the new box's field.
     e.preventDefault();
     // A tap away from the box being typed in or picked lets go of it first.
     if (draftRef.current) return finishTyping();
+    if (textFocus && !textFocus.editing) {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      pendingPinch.current = { pointerId: e.pointerId, id: textFocus.id, x: e.clientX, y: e.clientY };
+      return;
+    }
     if (textFocus) return onTextFocus(null);
     const [x, y] = at(e);
     const box: PlacedText = { id: newId(), text: '', x: clamp01(x), y: clamp01(y), size: TEXT_SIZE, ...cleanTextStyle(textStyle) };
@@ -354,6 +387,7 @@ export default function DecorLayer({
     e.stopPropagation();
     if (draftRef.current?.id === id) return; // typing in it: the finger moves the caret
     e.preventDefault();
+    if (pendingPinch.current) return startPinch(e); // the second finger of a pinch on the picked box
     if (draftRef.current) finishTyping();
     if (gesture.current && gesture.current.id !== id) {
       if (fingers.current.size === 1) grab(gesture.current.kind, gesture.current.id, e);
@@ -417,6 +451,8 @@ export default function DecorLayer({
             {isSelected && (
               <button
                 className="decor__remove"
+                // Upright however the sticker is turned: an ✕, never a +.
+                style={{ rotate: `${-(pos.rotate ?? 0)}deg` }}
                 aria-label="스티커 떼기"
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={() => {
@@ -472,6 +508,7 @@ export default function DecorLayer({
             {picked && !typing && (
               <button
                 className="decor__remove"
+                style={{ rotate: `${-(pos.rotate ?? 0)}deg` }}
                 aria-label="텍스트 지우기"
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={() => {
