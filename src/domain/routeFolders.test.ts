@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Course } from '../types/course';
-import { addFolder, EMPTY_ROUTE_FOLDERS, folderOf, moveRoute, nextFolderName, renameFolder, ROUTE_FOLDER_LIMITS, routesInTab, setFolderIcon } from './routeFolders';
+import { addFolder, deleteFolder, EMPTY_ROUTE_FOLDERS, moveFolder, folderOf, moveRoute, nextFolderName, renameFolder, ROUTE_FOLDER_LIMITS, routesInTab, setFolderIcon } from './routeFolders';
 
 const course = (id: string, createdAt: string): Course => ({
   id, userId: 'u', title: id, theme: 'date', travelMode: 'walk', stops: [], createdAt,
@@ -41,5 +41,23 @@ describe('route folders', () => {
     expect(routesInTab(courses, state, 'trip').map((c) => c.id)).toEqual(['b']);
     expect(folderOf(moveRoute(state, 'b', null), 'b')).toBeNull();
     expect(folderOf(moveRoute(state, 'a', 'gone'), 'a')).toBeNull();
+  });
+
+  it('moves a folder among the folders, clamped to the ends', () => {
+    let state = EMPTY_ROUTE_FOLDERS;
+    for (const id of ['a', 'b', 'c']) state = addFolder(state, id)!;
+    expect(moveFolder(state, 'a', 2).folders.map((f) => f.id)).toEqual(['b', 'c', 'a']);
+    expect(moveFolder(state, 'c', -5).folders.map((f) => f.id)).toEqual(['c', 'a', 'b']);
+    expect(moveFolder(state, 'b', 1)).toBe(state);
+    expect(moveFolder(state, 'gone', 0)).toBe(state);
+  });
+
+  it('deleting a folder sends its routes back to 미분류', () => {
+    let state = addFolder(addFolder(EMPTY_ROUTE_FOLDERS, 'a')!, 'b')!;
+    state = moveRoute(moveRoute(state, 'r1', 'a'), 'r2', 'b');
+    const after = deleteFolder(state, 'a');
+    expect(after.folders.map((f) => f.id)).toEqual(['b']);
+    expect(after.assign).toEqual({ r2: 'b' });
+    expect(folderOf(after, 'r1')).toBeNull();
   });
 });

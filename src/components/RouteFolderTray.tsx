@@ -1,9 +1,11 @@
-import { FolderInput, Inbox, Layers, Plus } from 'lucide-react';
+import { FolderInput, Inbox, Layers, Plus, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   addFolder,
+  deleteFolder,
   FOLDER_ICONS,
   folderOf,
+  moveFolder,
   moveRoute,
   ROUTE_FOLDER_LIMITS,
   routesInTab,
@@ -28,6 +30,21 @@ interface RouteFolderTrayProps {
 const ALL_ICON = <Layers size={20} aria-hidden />;
 const NONE_ICON = <Inbox size={20} aria-hidden />;
 
+/** Hold this long on a folder tab to lift it. */
+const LONG_PRESS_MS = 450;
+/** Moving this far before then is a scroll of the tab row, not a press. */
+const PRESS_SLOP_PX = 8;
+
+interface Press {
+  id: string;
+  x: number;
+  y: number;
+  timer: number;
+  /** Lifted: the long press has fired. */
+  active: boolean;
+  moved: boolean;
+}
+
 const newId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
@@ -39,7 +56,9 @@ const newId = () =>
  * 미분류 the ones not filed anywhere, then the user's own folders, and + adds
  * one. Every tab is an icon only (no names, no counts). Tapping the open
  * folder's tab again (or making a new one) pops a small icon picker up above
- * that tab, like a ping's shape picker on TODAY.
+ * that tab, like a ping's shape picker on TODAY. Long-pressing a folder tab
+ * lifts it so it can be dragged among the folders; let go without moving and
+ * an ✕ appears on it, which deletes the folder after a confirm.
  */
 export default function RouteFolderTray({ open, courses, folders, onFolders, shownId, onShow }: RouteFolderTrayProps) {
   const [tab, setTab] = useState<RouteTab>('all');
@@ -48,6 +67,21 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
   // The route whose 폴더 chooser is out.
   const [filing, setFiling] = useState<string | null>(null);
   const tabsEl = useRef<HTMLDivElement | null>(null);
+  // Long press: the tab being held / dragged, the one showing its ✕, and the
+  // one waiting on the delete confirm.
+  const press = useRef<Press | null>(null);
+  const swallowClick = useRef(false);
+  const [lifted, setLifted] = useState<string | null>(null);
+  // Folder order while one is dragged. Shown with CSS `order` and saved on
+  // release: re-ordering the DOM mid-drag would drop the pointer capture.
+  const [dragOrder, setDragOrder] = useState<string[] | null>(null);
+  const dragOrderRef = useRef<string[] | null>(null);
+  dragOrderRef.current = dragOrder;
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const confirmEl = useRef<HTMLDialogElement | null>(null);
+  const foldersRef = useRef(folders);
+  foldersRef.current = folders;
 
   // A deleted-elsewhere folder can't stay selected.
   const tabOk = tab === 'all' || tab === 'none' || folders.folders.some((f) => f.id === tab);
@@ -90,20 +124,119 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
     return () => document.removeEventListener('pointerdown', away);
   }, [picking]);
 
+  // While a tab is lifted, a finger sliding along the row drags it instead of
+  // scrolling the row (React's touch listeners are passive, so this one isn't).
+  useEffect(() => {
+    const row = tabsEl.current;
+    if (!row) return;
+    const hold = (e: TouchEvent) => {
+      if (press.current?.active) e.preventDefault();
+    };
+    row.addEventListener('touchmove', hold, { passive: false });
+    return () => row.removeEventListener('touchmove', hold);
+  }, []);
+
+  // The ✕ goes away on a touch anywhere else.
+  useEffect(() => {
+    if (!deleting) return;
+    const away = (e: PointerEvent) => {
+      if ((e.target as Element | null)?.closest('.route-folders__x')) return;
+      setDeleting(null);
+    };
+    document.addEventListener('pointerdown', away);
+    return () => document.removeEventListener('pointerdown', away);
+  }, [deleting]);
+
+  // The confirm is a native modal <dialog>: the top layer escapes the sheet's
+  // slide-in transform, and Esc / focus handling come with it.
+  useEffect(() => {
+    const dialog = confirmEl.current;
+    if (confirming && dialog && !dialog.open) dialog.showModal();
+  }, [confirming]);
+
+  const endPress = () => {
+    const p = press.current;
+    press.current = null;
+    if (!p) return;
+    window.clearTimeout(p.timer);
+    if (!p.active) return;
+    // The click that follows a long press shouldn't also select / pick.
+    swallowClick.current = true;
+    setLifted(null);
+    const order = dragOrderRef.current;
+    setDragOrder(null);
+    if (!p.moved) return setDeleting(p.id);
+    if (order) onFolders(moveFolder(foldersRef.current, p.id, order.indexOf(p.id)));
+  };
+
+  /** Long press → lift; then drag to reorder, or let go in place for the ✕. */
+  const pressHandlers = (id: string) => ({
+    onPointerDown: (e: React.PointerEvent) => {
+      if (e.button !== 0) return;
+      // Keep getting this pointer's moves once it leaves the tab (touch does
+      // this by itself; a mouse doesn't).
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      const p: Press = { id, x: e.clientX, y: e.clientY, timer: 0, active: false, moved: false };
+      p.timer = window.setTimeout(() => {
+        p.active = true;
+        setLifted(id);
+        setDragOrder(foldersRef.current.folders.map((f) => f.id));
+        setDeleting(null);
+        setPicking(null);
+        navigator.vibrate?.(10);
+      }, LONG_PRESS_MS);
+      press.current = p;
+    },
+    onPointerMove: (e: React.PointerEvent) => {
+      const p = press.current;
+      if (!p) return;
+      const dx = e.clientX - p.x;
+      if (!p.active) {
+        if (Math.hypot(dx, e.clientY - p.y) > PRESS_SLOP_PX) {
+          window.clearTimeout(p.timer);
+          press.current = null;
+        }
+        return;
+      }
+      if (Math.abs(dx) > PRESS_SLOP_PX) p.moved = true;
+      // Its new slot: how many of the other folder tabs sit left of the finger.
+      const others = [...(tabsEl.current?.querySelectorAll<HTMLElement>('[data-folder]') ?? [])].filter((el) => el.dataset.folder !== id);
+      const to = others.filter((el) => {
+        const r = el.getBoundingClientRect();
+        return r.left + r.width / 2 < e.clientX;
+      }).length;
+      setDragOrder((order) => {
+        if (!order || order.indexOf(id) === to) return order;
+        const next = order.filter((f) => f !== id);
+        next.splice(to, 0, id);
+        return next;
+      });
+    },
+    onPointerUp: endPress,
+    onPointerCancel: endPress,
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+  });
+
   /** Every tab is just an icon: a line icon for the fixed two, the folder's own emoji otherwise. */
   const tabButton = (id: RouteTab, label: string, icon: ReactNode) => {
     const on = current === id;
     const custom = id !== 'all' && id !== 'none';
-    return (
+    const button = (
       <button
         key={id}
         data-tab={id}
         role="tab"
         aria-selected={on}
         aria-label={custom && on ? `${label}, 다시 누르면 아이콘 바꾸기` : label}
-        className={`route-folders__tab ${on ? 'is-on' : ''}`}
+        className={`route-folders__tab ${on ? 'is-on' : ''} ${lifted === id ? 'is-lifted' : ''}`}
+        {...(custom ? pressHandlers(id) : {})}
         onClick={() => {
+          if (swallowClick.current) {
+            swallowClick.current = false;
+            return;
+          }
           setFiling(null);
+          setDeleting(null);
           if (on && custom) return setPicking(picking === id ? null : id);
           setTab(id);
           setPicking(null);
@@ -113,6 +246,23 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
           {icon}
         </span>
       </button>
+    );
+    if (!custom) return button;
+    // A folder tab sits in a wrapper so its ✕ can be a sibling button.
+    return (
+      <div
+        key={id}
+        className="route-folders__tabwrap"
+        data-folder={id}
+        style={dragOrder ? { order: 2 + dragOrder.indexOf(id) } : undefined}
+      >
+        {button}
+        {deleting === id && (
+          <button className="route-folders__x" aria-label={`${label} 삭제`} onClick={() => setConfirming(id)}>
+            <X size={14} aria-hidden />
+          </button>
+        )}
+      </div>
     );
   };
 
@@ -139,6 +289,36 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
           </div>
         </>
       )}
+      <dialog
+        ref={confirmEl}
+        className="confirm-dialog"
+        aria-label="폴더 삭제"
+        onClose={() => {
+          setConfirming(null);
+          setDeleting(null);
+        }}
+      >
+        <p>
+          폴더를 삭제합니다.
+          <br />
+          이 작업은 되돌릴 수 없습니다.
+        </p>
+        <div className="confirm-dialog__actions">
+          <button className="btn btn--ghost" onClick={() => confirmEl.current?.close()}>
+            취소
+          </button>
+          <button
+            className="btn btn--danger"
+            onClick={() => {
+              if (confirming) onFolders(deleteFolder(folders, confirming));
+              confirmEl.current?.close();
+            }}
+          >
+            확인
+          </button>
+        </div>
+      </dialog>
+
       <div ref={tabsEl} className="route-folders__tabs" role="tablist" aria-label="폴더">
         {tabButton('all', '전체', ALL_ICON)}
         {tabButton('none', '미분류', NONE_ICON)}

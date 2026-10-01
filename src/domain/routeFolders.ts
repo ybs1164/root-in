@@ -63,6 +63,24 @@ export function renameFolder(state: RouteFolders, id: string, name: string): Rou
   return { ...state, folders: state.folders.map((f) => (f.id === id ? { ...f, name: trimmed } : f)) };
 }
 
+/** Moves a folder to `to` among the folders (the fixed tabs don't count). */
+export function moveFolder(state: RouteFolders, id: string, to: number): RouteFolders {
+  const from = state.folders.findIndex((f) => f.id === id);
+  if (from < 0) return state;
+  const target = Math.max(0, Math.min(state.folders.length - 1, to));
+  if (target === from) return state;
+  const folders = [...state.folders];
+  const [moved] = folders.splice(from, 1);
+  folders.splice(target, 0, moved);
+  return { ...state, folders };
+}
+
+/** Removes a folder; its routes go back to 미분류 (the routes themselves stay). */
+export function deleteFolder(state: RouteFolders, id: string): RouteFolders {
+  const assign = Object.fromEntries(Object.entries(state.assign).filter(([, folder]) => folder !== id));
+  return { folders: state.folders.filter((f) => f.id !== id), assign };
+}
+
 /** Files a route into a folder, or back to 미분류 with `null`. */
 export function moveRoute(state: RouteFolders, courseId: string, folderId: string | null): RouteFolders {
   const assign = { ...state.assign };
