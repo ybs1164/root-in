@@ -59,7 +59,7 @@ const ROUTE_TRAY_OUT_MS = 170;
 /** How much of the folder sheet stays up while a route is on show (matches .route-folders.is-lowered). */
 const FOLDER_LOWERED_PX = 190;
 /** The map's glide over to a route put on show (MapLibre's fit), before its stops play in. */
-const ROUTE_GLIDE_MS = 900;
+const ROUTE_GLIDE_MS = 1050;
 /** Then the pins fade off the map (matches .app--pins-away), and only then do the route's stops drop in. */
 const PINS_FADE_MS = 250;
 

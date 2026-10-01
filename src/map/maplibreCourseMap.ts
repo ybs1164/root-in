@@ -13,6 +13,14 @@ import {
 } from './courseMap';
 
 // Keyless fallback basemap for development / when the Kakao SDK is unavailable.
+/** A route's glide into view (App's ROUTE_GLIDE_MS is a little longer). */
+const GLIDE_MS = 1000;
+
+/** Slow at both ends, with no sudden push in the middle. */
+function easeInOutSine(t: number): number {
+  return -(Math.cos(Math.PI * t) - 1) / 2;
+}
+
 const STYLE_URL = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
 const LINE_SOURCE = 'course-line';
 const GUIDE_SOURCE = 'guide-line';
@@ -35,6 +43,8 @@ export class MapLibreCourseMap implements CourseMap {
   private guide: [number, number][] = [];
   private district: DistrictMap | null = null;
   private readonly detachLongPress: () => void;
+  /** Set once the style has loaded: the map renders from then on. */
+  private ready = false;
 
   constructor(container: HTMLElement, private readonly options: CourseMapOptions) {
     this.map = new maplibregl.Map({
@@ -56,6 +66,9 @@ export class MapLibreCourseMap implements CourseMap {
       });
     };
     this.map.on('load', emitViewport);
+    this.map.on('load', () => {
+      this.ready = true;
+    });
     this.map.on('moveend', emitViewport);
     this.map.on('load', () => {
       const token = (name: string, fallback: string) =>
@@ -157,8 +170,10 @@ export class MapLibreCourseMap implements CourseMap {
     if (points.length === 1) return this.focus(points[0], padding);
     const bounds = new maplibregl.LngLatBounds();
     points.forEach((p) => bounds.extend(p));
-    // Slow enough to read as a glide, eased in and out (App's ROUTE_GLIDE_MS waits for it).
-    this.map.fitBounds(bounds, { padding, maxZoom: 16, duration: this.duration(850) });
+    // Slow enough to read as a glide, gently eased in and out (App's
+    // ROUTE_GLIDE_MS waits for it). A plain ease, not the default fly's
+    // zoom-out-and-back arc, which on a short hop reads as a lurch.
+    this.map.fitBounds(bounds, { padding, maxZoom: 16, linear: true, easing: easeInOutSine, duration: this.duration(GLIDE_MS) });
   }
 
   setCourse(stops: PlaceRef[]): void {
@@ -201,10 +216,12 @@ export class MapLibreCourseMap implements CourseMap {
   /**
    * Animated moves only run while the map renders, and it doesn't until its
    * style has loaded (a slow or blocked basemap): an ease then never gets
-   * anywhere. Until then, moves jump straight there.
+   * anywhere. Until then, moves jump straight there. (Not isStyleLoaded():
+   * that is also false for a moment after any source's setData, as when a
+   * route's stops are put on the map just before gliding to them.)
    */
   private duration(ms: number): number {
-    return this.map.isStyleLoaded() ? ms : 0;
+    return this.ready ? ms : 0;
   }
 
   setPanEnabled(enabled: boolean): void {
