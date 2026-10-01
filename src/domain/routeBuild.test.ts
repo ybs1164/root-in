@@ -17,10 +17,10 @@ describe('building a route from pins', () => {
     expect(toggleBuildStop(full, 'p0')).toHaveLength(COURSE_LIMITS.maxStops - 1);
   });
 
-  it("names new routes '나만의 루트', then 2, 3, … when taken", () => {
-    expect(nextRouteName([])).toBe('나만의 루트');
-    expect(nextRouteName(['나만의 루트'])).toBe('나만의 루트2');
-    expect(nextRouteName(['나만의 루트', '나만의 루트2', '산책'])).toBe('나만의 루트3');
-    expect(nextRouteName(['나만의 루트2'])).toBe('나만의 루트');
+  it("names new routes 'IN MY ROOT', then 2, 3, … when taken", () => {
+    expect(nextRouteName([])).toBe('IN MY ROOT');
+    expect(nextRouteName(['IN MY ROOT'])).toBe('IN MY ROOT2');
+    expect(nextRouteName(['IN MY ROOT', 'IN MY ROOT2', '산책'])).toBe('IN MY ROOT3');
+    expect(nextRouteName(['IN MY ROOT2'])).toBe('IN MY ROOT');
   });
 });

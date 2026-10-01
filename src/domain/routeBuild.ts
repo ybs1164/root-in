@@ -10,9 +10,9 @@ export function toggleBuildStop(chosen: readonly string[], pinId: string): strin
   return [...chosen, pinId];
 }
 
-export const DEFAULT_ROUTE_NAME = '나만의 루트';
+export const DEFAULT_ROUTE_NAME = 'IN MY ROOT';
 
-/** A new route's name: '나만의 루트', or '나만의 루트2', '나만의 루트3', … when taken. */
+/** A new route's name: 'IN MY ROOT', or 'IN MY ROOT2', 'IN MY ROOT3', … when taken. */
 export function nextRouteName(taken: Iterable<string>): string {
   const names = new Set([...taken].map((t) => t.trim()));
   if (!names.has(DEFAULT_ROUTE_NAME)) return DEFAULT_ROUTE_NAME;

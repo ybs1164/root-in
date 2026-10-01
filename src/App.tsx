@@ -13,6 +13,7 @@ import PinRail from './components/PinRail';
 import RouteBuildLayer, { pinAt } from './components/RouteBuildLayer';
 import RouteFolderTray from './components/RouteFolderTray';
 import RouteStyleLayer from './components/RouteStyleLayer';
+import RouteTitle from './components/RouteTitle';
 import StopLines from './components/StopLines';
 import SearchBar from './components/SearchBar';
 import SettingsSheet from './components/SettingsSheet';
@@ -770,6 +771,14 @@ export default function App() {
           count={shownStops.length}
           edgeStyles={buildPins ? undefined : shownRoute?.edgeStyles}
           stopShapes={buildPins ? undefined : shownRoute?.stopShapes}
+        />
+      )}
+
+      {/* The route on show, named at the top of the map like a calendar day's TODAY. */}
+      {shownRoute && !buildPins && (
+        <RouteTitle
+          title={shownRoute.title}
+          onRename={(title) => course.save({ ...shownRoute, title })}
         />
       )}
 
