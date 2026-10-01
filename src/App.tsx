@@ -687,6 +687,7 @@ export default function App() {
           onTab={changeTab}
           onPin={startPinning}
           onCalendarAgain={() => sendCalendar(calendarAgain(calendarMode))}
+          calendarIcon={tab === 'calendar' && calendarZoom && calendarMode === 'day' ? 'month' : 'today'}
         />
       </div>
 

@@ -1,4 +1,4 @@
-import { MapPin, Sparkles } from 'lucide-react';
+import { CalendarDays, MapPin, Sparkles } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { bottomBarAction, type AppTab } from '../domain/appTabs';
 import { CalendarToday } from './icons';
@@ -10,6 +10,11 @@ interface BottomBarProps {
   onPin: () => void;
   /** Calendar button tapped while the calendar is showing. */
   onCalendarAgain: () => void;
+  /**
+   * The calendar button shows where its next tap goes: a month grid on a
+   * day screen, today's date everywhere else (the month goes back to TODAY).
+   */
+  calendarIcon: 'today' | 'month';
 }
 
 const BUTTONS: { tab: AppTab; label: string; icon: ReactNode }[] = [
@@ -24,7 +29,7 @@ const BUTTONS: { tab: AppTab; label: string; icon: ReactNode }[] = [
  * the labels live in aria-label instead of on screen. Tapped again, the
  * calendar button flips a day screen to the month and the month to TODAY.
  */
-export default function BottomBar({ tab, pinning, onTab, onPin, onCalendarAgain }: BottomBarProps) {
+export default function BottomBar({ tab, pinning, onTab, onPin, onCalendarAgain, calendarIcon }: BottomBarProps) {
   const press = (target: AppTab) => () => {
     const action = bottomBarAction(target, tab);
     if (action === 'switch') onTab(target);
@@ -46,7 +51,7 @@ export default function BottomBar({ tab, pinning, onTab, onPin, onCalendarAgain 
               aria-pressed={isPin && on ? pinning : undefined}
               onClick={press(target)}
             >
-              {icon}
+              {target === 'calendar' && calendarIcon === 'month' ? <CalendarDays aria-hidden /> : icon}
             </button>
           </div>
         );
