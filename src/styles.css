@@ -2322,7 +2322,7 @@ input.timeline__time:focus {
   display: flex;
   flex-direction: column;
   /* Up to about the middle of the screen, the rail and search bar stay clear above. */
-  height: 52dvh;
+  height: 44dvh;
   color: var(--text);
   animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
