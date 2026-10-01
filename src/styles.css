@@ -2564,16 +2564,16 @@ input.timeline__time:focus {
    with a small pen at its bottom right. Clear of the ⚙ rail on the right. */
 .route-title {
   position: fixed;
-  top: calc(var(--safe-top) + 80px);
+  /* Below the ⚙ rail's two buttons, so it can use the full width. */
+  top: calc(var(--safe-top) + 196px);
   left: 50%;
   z-index: 14;
   display: flex;
   align-items: flex-end;
-  gap: 2px;
-  max-width: calc(100% - 150px);
+  gap: 8px;
+  max-width: calc(100% - 40px);
   translate: -50% 0;
   pointer-events: none;
-  animation: picker-in 0.2s ease both;
 }
 
 .route-title > * {
@@ -2585,10 +2585,10 @@ input.timeline__time:focus {
   margin: 0;
   overflow: hidden;
   color: var(--text);
-  font-size: 26px;
+  font-size: 38px;
   font-weight: 800;
   letter-spacing: 0.03em;
-  line-height: 1.15;
+  line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
   /* Readable over the map's colours. */
@@ -2598,8 +2598,8 @@ input.timeline__time:focus {
 }
 
 .route-title__input {
-  /* Leaves room for the pen inside the title's width (clear of the ⚙ rail). */
-  width: min(calc(100vw - 190px), 300px);
+  /* Leaves room for the pen inside the title's width. */
+  width: min(calc(100vw - 80px), 320px);
   height: 44px;
   padding: 0 10px;
   border: 1px solid var(--border);
@@ -2618,14 +2618,12 @@ input.timeline__time:focus {
   flex: none;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  margin-bottom: -4px;
+  width: 16px;
+  height: 16px;
+  margin-bottom: 2px;
   padding: 0;
   border: 0;
-  border-radius: 50%;
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  background: none;
   color: var(--muted);
 }
 
@@ -2633,7 +2631,7 @@ input.timeline__time:focus {
 .route-title__pen::after {
   content: '';
   position: absolute;
-  inset: -9px;
+  inset: -14px;
 }
 
 .route-title__pen[aria-pressed='true'] {

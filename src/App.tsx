@@ -233,8 +233,12 @@ export default function App() {
     const folderTray = document.querySelector<HTMLElement>('.route-folders:not(.is-leaving)');
     if (folderTray) {
       // Lowered (a route on show) only its top strip covers the map.
-      const covered = folderTray.classList.contains('is-lowered') ? FOLDER_LOWERED_PX : folderTray.offsetHeight;
-      return { top: 90, right: 80, bottom: covered + 30 + extraBottom, left: 40 };
+      const lowered = folderTray.classList.contains('is-lowered');
+      const covered = lowered ? FOLDER_LOWERED_PX : folderTray.offsetHeight;
+      // A route on show has its name under the rail; the route sits below it.
+      const title = document.querySelector<HTMLElement>('.route-title');
+      const top = lowered && title ? title.getBoundingClientRect().bottom + 30 : 90;
+      return { top, right: 40, bottom: covered + 30 + extraBottom, left: 40 };
     }
     if (!desktop && sheetBox?.classList.contains('sheet--top')) {
       // The pin screen's sheet hangs from the top instead (it includes the search bar area).

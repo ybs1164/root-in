@@ -19,8 +19,8 @@ describe('building a route from pins', () => {
 
   it("names new routes 'IN MY ROOT', then 2, 3, … when taken", () => {
     expect(nextRouteName([])).toBe('IN MY ROOT');
-    expect(nextRouteName(['IN MY ROOT'])).toBe('IN MY ROOT2');
-    expect(nextRouteName(['IN MY ROOT', 'IN MY ROOT2', '산책'])).toBe('IN MY ROOT3');
-    expect(nextRouteName(['IN MY ROOT2'])).toBe('IN MY ROOT');
+    expect(nextRouteName(['IN MY ROOT'])).toBe('IN MY ROOT 2');
+    expect(nextRouteName(['IN MY ROOT', 'IN MY ROOT 2', '산책'])).toBe('IN MY ROOT 3');
+    expect(nextRouteName(['IN MY ROOT 2'])).toBe('IN MY ROOT');
   });
 });

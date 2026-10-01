@@ -54,7 +54,7 @@ export default function RouteTitle({ title, onRename }: RouteTitleProps) {
         onPointerDown={(e) => editing && e.preventDefault()}
         onClick={() => (editing ? commit() : setEditing(true))}
       >
-        <Pencil size={14} aria-hidden />
+        <Pencil size={13} aria-hidden />
       </button>
     </div>
   );
