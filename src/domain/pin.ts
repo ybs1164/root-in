@@ -182,6 +182,17 @@ export function filterPins(pins: Pin[], categories: PinCategory[], filter: strin
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+/**
+ * The map rail's filter: any number of categories picked at once, each
+ * bringing its sub-categories. Nothing picked shows every pin.
+ */
+export function filterPinsByCategories(pins: Pin[], categories: PinCategory[], picked: ReadonlySet<string>): Pin[] {
+  if (picked.size === 0) return filterPins(pins, categories, null);
+  const shown = new Set<string>();
+  picked.forEach((id) => categoryFamily(categories, id).forEach((c) => shown.add(c)));
+  return filterPins(pins, categories, null).filter((p) => shown.has(p.categoryId));
+}
+
 // ----- Pin sets (sharing) -----
 
 export const PIN_SET_LIMITS = { maxPins: 30, title: 40 } as const;

@@ -9,18 +9,18 @@ import CategoryChips from './components/CategoryChips';
 import InfluencerPanel from './components/InfluencerPanel';
 import PinCard from './components/PinCard';
 import PinDropTray from './components/PinDropTray';
-import PinsSheet, { type PinsSub } from './components/PinsSheet';
+import PinRail from './components/PinRail';
 import SearchBar from './components/SearchBar';
 import SettingsSheet from './components/SettingsSheet';
 import SharedCourseView from './components/SharedCourseView';
 import SharedPinsView from './components/SharedPinsView';
 import ShareSheet from './components/ShareSheet';
 import { calendarAgain, homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
-import { addStop, COURSE_LIMITS, emptyDraft } from './domain/course';
+import { addStop, COURSE_LIMITS } from './domain/course';
 import { DIARY_LIMITS, diaryKind } from './domain/diary';
 import type { MapViewport } from './domain/districtMap';
-import { buildPinSet, categoryStyle, filterPins } from './domain/pin';
-import { orderByNearest } from './domain/routeOrder';
+import { categoryFamily, categoryStyle, filterPinsByCategories } from './domain/pin';
+import { pinRailNext, togglePicked, type PinRailAction, type PinRailMode } from './domain/pinRail';
 import { useCourseDraft } from './hooks/useCourseDraft';
 import { useDiaryDay } from './hooks/useDiaryDay';
 import { useDistrictMap } from './hooks/useDistrictMap';
@@ -32,7 +32,6 @@ import { usePins } from './hooks/usePins';
 import { usePlaceSearch } from './hooks/usePlaceSearch';
 import { useSettings } from './hooks/useSettings';
 import { kakaoPlaceUrl } from './lib/directionsLink';
-import { getDisplayName } from './lib/currentUser';
 import { SEOUL_CENTER, type CourseMap, type MapPadding, type PinMarker } from './map/courseMap';
 import { createMapStack } from './map/createCourseMap';
 import { encodeSharedCourse } from './services/courseShareService';
@@ -42,7 +41,7 @@ import { pointPlace, type PlaceSearchService } from './services/placeSearch/plac
 import { withRecentCategory } from './services/settingsRepository';
 import type { ShareTarget } from './services/shareTargets';
 import type { PlaceRef } from './types/course';
-import { PIN_ICONS, type Pin } from './types/pin';
+import { PIN_ICONS } from './types/pin';
 
 type SheetSize = 'peek' | 'full';
 type Toast = { text: string; undo?: () => void };
@@ -91,7 +90,8 @@ export default function App() {
   const { incoming: incomingPins, dismiss: dismissPins } = useIncomingPins();
 
   const [tab, setTab] = useState<AppTab>('pins');
-  const [sub, setSub] = useState<PinsSub>('pins');
+  // Only a course being built from a place card shows on the pin map now.
+  const [sub, setSub] = useState<'pins' | 'edit'>('pins');
   const [sheet, setSheet] = useState<SheetSize>('peek');
   const [shareTarget, setShareTarget] = useState<ShareTarget | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -117,10 +117,9 @@ export default function App() {
   };
   const [dropBusy, setDropBusy] = useState(false);
   const [activePinId, setActivePinId] = useState<string | null>(null);
-  const [pinFilter, setPinFilter] = useState<string | null>(null);
-  const [guide, setGuide] = useState(false);
-  const [selecting, setSelecting] = useState(false);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  // The round buttons under ⚙, and the categories picked in its 핀 list.
+  const [railMode, setRailMode] = useState<PinRailMode>('menu');
+  const [picked, setPicked] = useState<Set<string>>(new Set());
 
   const sharedCourse = incomingCourse.status === 'ready' ? incomingCourse.course : null;
   const sharedDiary = incomingDiary.status === 'ready' ? incomingDiary.diary : null;
@@ -129,7 +128,7 @@ export default function App() {
   const onPinHome = tab === 'pins' && !sharedCourse && !sharedPins;
   // On phones the pin screen's sheet drops down from the top, leaving the map's lower half clear.
   const sheetTop = tab === 'pins';
-  const shownPins = useMemo(() => filterPins(pins, categories, pinFilter), [pins, categories, pinFilter]);
+  const shownPins = useMemo(() => filterPinsByCategories(pins, categories, picked), [pins, categories, picked]);
 
   // Numbered course markers + solid route line.
   const shownStops = useMemo(() => {
@@ -169,16 +168,10 @@ export default function App() {
         name: pin.place.name,
         emoji: style.emoji,
         color: style.color,
-        selected: pin.id === activePinId || (selecting && selected.has(pin.id)),
+        selected: pin.id === activePinId,
       };
     });
-  }, [sharedPins, sharedCourse, onPinHome, pinning, pins, shownPins, categories, activePinId, selecting, selected]);
-
-  const guidePoints = useMemo(() => {
-    if (!onPinHome || sub !== 'pins' || !guide || !pinFilter || shownPins.length < 2) return null;
-    const points = shownPins.map((p) => p.place.center);
-    return orderByNearest(points).map((i) => points[i]);
-  }, [onPinHome, sub, guide, pinFilter, shownPins]);
+  }, [sharedPins, sharedCourse, onPinHome, pinning, pins, shownPins, categories, activePinId]);
 
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
 
@@ -249,11 +242,6 @@ export default function App() {
   useEffect(() => {
     mapRef.current?.setPins(pinMarkers);
   }, [pinMarkers, mapProvider]);
-
-  useEffect(() => {
-    mapRef.current?.setGuideLine(guidePoints);
-    if (guidePoints) mapRef.current?.fitPoints(guidePoints, mapPadding());
-  }, [guidePoints, mapProvider, mapPadding]);
 
   const sharedPinsKey = sharedPins?.sharedAt ?? '';
   useEffect(() => {
@@ -337,7 +325,6 @@ export default function App() {
       return;
     }
     if (pinning) return;
-    if (selecting) return toggleSelect(id);
     openPin(id);
   };
 
@@ -360,7 +347,6 @@ export default function App() {
     setPinning(false);
     setPreview(null);
     setActivePinId(null);
-    setSelecting(false);
     if (next !== 'calendar' && sharedDiary) dismissDiary();
   };
 
@@ -389,13 +375,12 @@ export default function App() {
     focusPoint(pin.place.center, 150);
   };
 
-  const toggleSelect = (id: string) =>
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const railAction = (action: PinRailAction) => {
+    const next = pinRailNext(railMode, action);
+    // Leaving the 핀 list lets every pin back onto the map.
+    if (next !== 'pins') setPicked(new Set());
+    setRailMode(next);
+  };
 
   // ----- Adding places -----
 
@@ -456,21 +441,6 @@ export default function App() {
     setPinning(true);
   };
 
-  const connectPins = (chosen: Pin[]) => {
-    const order = orderByNearest(chosen.map((p) => p.place.center));
-    const next = { ...emptyDraft(), stops: order.map((i) => ({ place: chosen[i].place })) };
-    if (!course.replaceDraft(next, { question: '만들던 코스가 있어요. 선택한 핀으로 새 코스를 만들까요?' })) return;
-    setSelecting(false);
-    setSelected(new Set());
-    setSub('edit');
-    notify(`${chosen.length}곳을 가까운 순서로 이었어요. 순서를 바꿔도 돼요.`);
-  };
-
-  const sharePins = (chosen: Pin[], title: string) => {
-    const { set, dropped } = buildPinSet(title || `핀 ${chosen.length}곳`, chosen, categories, getDisplayName());
-    setShareTarget({ kind: 'pins', set, dropped });
-  };
-
   const openCuratorItem = (item: CuratorItem) => {
     // Reuse the link flow: the same views, validation and "save" buttons as a received link.
     window.location.hash =
@@ -486,6 +456,16 @@ export default function App() {
     pins.forEach((p) => counts.set(p.categoryId, (counts.get(p.categoryId) ?? 0) + 1));
     return counts;
   }, [pins]);
+  // For the rail: sub-categories' pins included, which is what picking one shows.
+  const railCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const c of categories) {
+      let n = 0;
+      categoryFamily(categories, c.id).forEach((id) => (n += pinCounts.get(id) ?? 0));
+      counts.set(c.id, n);
+    }
+    return counts;
+  }, [categories, pinCounts]);
 
   const renderSheet = () => {
     if (sharedCourse) {
@@ -554,51 +534,7 @@ export default function App() {
         </div>
       );
     }
-    return (
-      <PinsSheet
-        sub={sub}
-        onSub={(next) => {
-          setSub(next);
-          setActivePinId(null);
-          if (next === 'list') setSheet('full');
-        }}
-        pinCount={pins.length}
-        course={course}
-        panel={{
-          pins,
-          categories,
-          filter: pinFilter,
-          onFilter: (id) => {
-            setPinFilter(id);
-            setGuide(false);
-          },
-          guide,
-          onGuide: setGuide,
-          selecting,
-          onSelecting: (on) => {
-            setSelecting(on);
-            setSelected(new Set());
-            setActivePinId(null);
-          },
-          selected,
-          onToggleSelect: toggleSelect,
-          onOpenPin: (pin) => openPin(pin.id),
-          onConnect: connectPins,
-          onShare: sharePins,
-        }}
-        onSaveCourse={async () => {
-          await course.saveDraft();
-          notify('코스를 저장했어요.');
-        }}
-        onShareCourse={() => setShareTarget({ kind: 'course', draft: course.draft })}
-        onRemoveCourse={async (c) => {
-          await course.removeCourse(c);
-          notify('코스를 삭제했어요.');
-        }}
-        onFocusStop={(i) => mapEvents.current.stop(i)}
-        onStartSearch={startSearch}
-      />
-    );
+    return null;
   };
 
   const cardTargetFull = inCalendar ? dayFull : courseFull;
@@ -630,6 +566,17 @@ export default function App() {
       <button className="corner-btn" aria-label="설정" onClick={() => setSettingsOpen(true)}>
         <SettingsIcon size={22} aria-hidden />
       </button>
+
+      {onPinHome && !searchOpen && !pinning && (
+        <PinRail
+          mode={railMode}
+          onAction={railAction}
+          categories={categories}
+          counts={railCounts}
+          picked={picked}
+          onToggle={(id) => setPicked((prev) => togglePicked(prev, id))}
+        />
+      )}
 
       {pinning && (
         <PinDropTray
@@ -725,7 +672,7 @@ export default function App() {
             renderSheet()
           )}
         </section>
-      ) : (
+      ) : onPinHome ? null : (
         <section ref={sheetEl} className={`sheet sheet--${sheet} ${sheetTop ? 'sheet--top' : ''}`} aria-label="패널">
           <button
             className="sheet__grip"

@@ -2239,6 +2239,67 @@ input.timeline__time:focus {
   transform: translateX(calc(100% + 24px));
 }
 
+/* Pin screen: round buttons stacked under ⚙ (fold, then 핀 · 경로 or the category list). */
+.pin-rail {
+  position: absolute;
+  top: calc(12px + var(--safe-top) + 52px + 12px);
+  right: 14px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  /* Long category lists scroll above the bottom buttons. */
+  max-height: calc(100dvh - var(--safe-top) - 76px - var(--bar-h) - var(--safe-bottom) - 24px);
+}
+
+.pin-rail__btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+}
+
+.pin-rail__btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.pin-rail__list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-height: 0;
+  /* Room for the buttons' shadows inside the scroll box, without moving them. */
+  margin: -4px -12px 0;
+  padding: 4px 12px 12px;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.pin-rail__pin {
+  font-size: 21px;
+  /* A tighter shadow than the other buttons: the scroll box would clip a wide one. */
+  box-shadow:
+    inset 0 0 0 3px var(--pin, var(--surface-2)),
+    var(--shadow-sm);
+}
+
+/* Picked: filled with the category colour. */
+.pin-rail__pin.is-on {
+  background: var(--pin, var(--surface-2));
+}
+
 .bottom-bar-wrap {
   position: absolute;
   left: 0;
@@ -3611,6 +3672,10 @@ input.timeline__time:focus {
 
   .app--searching .corner-btn {
     transform: none;
+  }
+
+  .pin-rail {
+    top: calc(24px + 52px + 12px);
   }
 
   .drop-tray {
