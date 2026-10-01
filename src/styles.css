@@ -2355,9 +2355,9 @@ input.timeline__time:focus {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-width: 56px;
+  min-width: 52px;
   height: 44px;
-  padding: 0 14px;
+  padding: 0 12px;
   border: 0;
   border-radius: 14px 14px 0 0;
   background: var(--tray-tab);
@@ -2372,11 +2372,9 @@ input.timeline__time:focus {
   color: var(--tray-fg);
 }
 
-.route-folders__tab--icon {
-  padding: 0 12px;
-}
-
 .route-folders__icon {
+  display: grid;
+  place-items: center;
   font-size: 20px;
   line-height: 1;
 }
@@ -2384,12 +2382,6 @@ input.timeline__time:focus {
 .route-folders__tab--add {
   min-width: 48px;
   padding: 0;
-}
-
-.route-folders__count {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--tray-dim);
 }
 
 .route-folders__body {
@@ -2495,21 +2487,22 @@ input.timeline__time:focus {
 }
 
 .route-row__to {
+  display: grid;
+  place-items: center;
   min-width: 44px;
   height: 44px;
-  padding: 0 14px;
+  padding: 0 10px;
   border: 1px solid var(--tray-line);
   border-radius: 22px;
   background: none;
   color: var(--tray-fg);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.route-row__to--icon {
-  padding: 0 10px;
   font-size: 20px;
   line-height: 1;
+}
+
+.route-row__in {
+  display: inline-flex;
+  vertical-align: -2px;
 }
 
 .route-row__to.is-on {

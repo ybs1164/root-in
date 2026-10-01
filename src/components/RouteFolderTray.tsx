@@ -1,5 +1,5 @@
-import { FolderInput, Plus } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { FolderInput, Inbox, Layers, Plus } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   addFolder,
   FOLDER_ICONS,
@@ -24,6 +24,10 @@ interface RouteFolderTrayProps {
   onShow: (course: Course | null) => void;
 }
 
+/** The fixed tabs wear line icons, set apart from the folders' own emoji. */
+const ALL_ICON = <Layers size={20} aria-hidden />;
+const NONE_ICON = <Inbox size={20} aria-hidden />;
+
 const newId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
@@ -32,8 +36,8 @@ const newId = () =>
 /**
  * 경로 폴더: a see-through sheet rising in the tab buttons' place, with index
  * tabs along its top edge like a file folder's. 전체 lists every saved route,
- * 미분류 the ones not filed anywhere, then the user's own folders, each shown
- * by its icon, and + adds one. Tapping the open folder's tab again (or making
+ * 미분류 the ones not filed anywhere, then the user's own folders, and + adds
+ * one. Every tab is an icon only (no names, no counts). Tapping the open folder's tab again (or making
  * a new one) brings up its icon picker.
  */
 export default function RouteFolderTray({ open, courses, folders, onFolders, shownId, onShow }: RouteFolderTrayProps) {
@@ -48,7 +52,6 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
   const tabOk = tab === 'all' || tab === 'none' || folders.folders.some((f) => f.id === tab);
   const current = tabOk ? tab : 'all';
   const routes = routesInTab(courses, folders, current);
-  const count = (t: RouteTab) => routesInTab(courses, folders, t).length;
 
   const add = () => {
     const id = newId();
@@ -65,18 +68,18 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
     tabsEl.current?.querySelector<HTMLElement>(`[data-tab="${picking}"]`)?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   }, [picking]);
 
-  /** A fixed tab shows its word; a folder shows only its icon. */
-  const tabButton = (id: RouteTab, label: string, icon?: string) => {
+  /** Every tab is just an icon: a line icon for the fixed two, the folder's own emoji otherwise. */
+  const tabButton = (id: RouteTab, label: string, icon: ReactNode) => {
     const on = current === id;
-    const custom = icon !== undefined;
+    const custom = id !== 'all' && id !== 'none';
     return (
       <button
         key={id}
         data-tab={id}
         role="tab"
         aria-selected={on}
-        aria-label={custom ? `${label} ${count(id)}개${on ? ', 다시 누르면 아이콘 바꾸기' : ''}` : undefined}
-        className={`route-folders__tab ${custom ? 'route-folders__tab--icon' : ''} ${on ? 'is-on' : ''}`}
+        aria-label={custom && on ? `${label}, 다시 누르면 아이콘 바꾸기` : label}
+        className={`route-folders__tab ${on ? 'is-on' : ''}`}
         onClick={() => {
           setFiling(null);
           if (on && custom) return setPicking(picking === id ? null : id);
@@ -84,15 +87,8 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
           setPicking(null);
         }}
       >
-        {custom ? (
-          <span className="route-folders__icon" aria-hidden>
-            {icon}
-          </span>
-        ) : (
-          label
-        )}
-        <span className="route-folders__count" aria-hidden={custom}>
-          {count(id)}
+        <span className="route-folders__icon" aria-hidden>
+          {icon}
         </span>
       </button>
     );
@@ -103,8 +99,8 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
   return (
     <section className={`route-folders ${open ? '' : 'is-leaving'}`} aria-label="경로 폴더" inert={!open}>
       <div ref={tabsEl} className="route-folders__tabs" role="tablist" aria-label="폴더">
-        {tabButton('all', '전체')}
-        {tabButton('none', '미분류')}
+        {tabButton('all', '전체', ALL_ICON)}
+        {tabButton('none', '미분류', NONE_ICON)}
         {folders.folders.map((f) => tabButton(f.id, f.name, f.icon))}
         <button
           className="route-folders__tab route-folders__tab--add"
@@ -147,7 +143,10 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
                   <button className="route-row__main" aria-pressed={shownId === c.id} onClick={() => onShow(shownId === c.id ? null : c)}>
                     <strong>{c.title || '이름 없는 경로'}</strong>
                     <span>
-                      {c.stops.length}곳 · {filedIn ? <span aria-label={filedIn.name}>{filedIn.icon}</span> : '미분류'}
+                      {c.stops.length}곳 ·{' '}
+                      <span className="route-row__in" aria-label={filedIn?.name ?? '미분류'}>
+                        {filedIn ? filedIn.icon : <Inbox size={14} aria-hidden />}
+                      </span>
                     </span>
                   </button>
                   <button
@@ -160,18 +159,18 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
                   </button>
                   {filing === c.id && (
                     <div className="route-row__chooser" role="group" aria-label="옮길 폴더">
-                      {[{ id: null, name: '미분류', icon: '' }, ...folders.folders].map((f) => (
+                      {[{ id: null, name: '미분류', icon: NONE_ICON }, ...folders.folders].map((f) => (
                         <button
                           key={f.id ?? 'none'}
-                          className={`route-row__to ${f.icon ? 'route-row__to--icon' : ''} ${filed === f.id ? 'is-on' : ''}`}
-                          aria-label={f.icon ? f.name : undefined}
+                          className={`route-row__to ${filed === f.id ? 'is-on' : ''}`}
+                          aria-label={f.name}
                           aria-pressed={filed === f.id}
                           onClick={() => {
                             onFolders(moveRoute(folders, c.id, f.id));
                             setFiling(null);
                           }}
                         >
-                          {f.icon || f.name}
+                          {f.icon}
                         </button>
                       ))}
                     </div>
