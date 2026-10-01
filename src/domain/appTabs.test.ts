@@ -44,10 +44,8 @@ describe('bottom-bar tabs', () => {
     expect(swipeCommits(1, 20, 375, 2)).toBe(false); // too short even if fast
   });
 
-  it('calendar button again: a day screen opens the 공유/월 달력 menu, the month goes back to TODAY', () => {
-    expect(calendarAgain('day', false)).toBe('open-menu');
-    expect(calendarAgain('day', true)).toBe('close-menu');
-    expect(calendarAgain('month', false)).toBe('today');
-    expect(calendarAgain('month', true)).toBe('close-menu');
+  it('calendar button again: a day screen goes straight to the month, the month back to TODAY', () => {
+    expect(calendarAgain('day')).toBe('month');
+    expect(calendarAgain('month')).toBe('today');
   });
 });

@@ -14,13 +14,12 @@ export function bottomBarAction(target: AppTab, current: AppTab): 'switch' | 'pi
 }
 
 /**
- * The calendar button tapped again on the calendar. From the month it goes
- * back to TODAY; on a day screen it opens (or closes) the little menu above
- * the button: 공유 and 월 달력.
+ * The calendar button tapped again on the calendar: a day screen zooms out
+ * to the month, and the month goes back to TODAY. (공유 lives on the day's
+ * 꾸미기 rail.)
  */
-export function calendarAgain(mode: 'day' | 'month', menuOpen: boolean): 'today' | 'open-menu' | 'close-menu' {
-  if (menuOpen) return 'close-menu';
-  return mode === 'month' ? 'today' : 'open-menu';
+export function calendarAgain(mode: 'day' | 'month'): 'today' | 'month' {
+  return mode === 'month' ? 'today' : 'month';
 }
 
 /** Titles of the tabs that are their own full screens (not a sheet over the map). */

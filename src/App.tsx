@@ -104,15 +104,13 @@ export default function App() {
   const [previewPinning, setPreviewPinning] = useState(false);
 
   const [pinning, setPinning] = useState(false);
-  // The calendar page: its zoom level (reported by CalendarZoom), the menu
-  // above the calendar button, and commands sent down from that menu.
+  // The calendar page: its zoom level (reported by CalendarZoom), and the
+  // calendar button's commands sent down to it.
   const [calendarMode, setCalendarMode] = useState<'day' | 'month'>('day');
-  const [calendarMenu, setCalendarMenu] = useState(false);
   // A 꾸미기 tool is out on the calendar: the tab buttons step aside for its tray.
   const [decorating, setDecorating] = useState(false);
   const [calendarCommand, setCalendarCommand] = useState<CalendarCommand | null>(null);
   const sendCalendar = (type: CalendarCommand['type']) => {
-    setCalendarMenu(false);
     setCalendarCommand((prev) => ({ type, seq: (prev?.seq ?? 0) + 1 }));
   };
   const [dropBusy, setDropBusy] = useState(false);
@@ -343,7 +341,6 @@ export default function App() {
 
   const changeTab = (next: AppTab) => {
     setTab(next);
-    setCalendarMenu(false);
     setPinning(false);
     setPreview(null);
     setActivePinId(null);
@@ -663,10 +660,7 @@ export default function App() {
               onDecorating={setDecorating}
               onDayTheme={setDayTheme}
               onDayPattern={setDayPattern}
-              onMode={(mode) => {
-                setCalendarMode(mode);
-                setCalendarMenu(false);
-              }}
+              onMode={setCalendarMode}
             />
           ) : (
             renderSheet()
@@ -692,15 +686,7 @@ export default function App() {
           pinning={pinning}
           onTab={changeTab}
           onPin={startPinning}
-          onCalendarAgain={() => {
-            const next = calendarAgain(calendarMode, calendarMenu);
-            if (next === 'today') sendCalendar('today');
-            else setCalendarMenu(next === 'open-menu');
-          }}
-          calendarMenu={calendarMenu && tab === 'calendar' && calendarZoom}
-          onCloseCalendarMenu={() => setCalendarMenu(false)}
-          onShareDay={() => sendCalendar('share')}
-          onShowMonth={() => sendCalendar('month')}
+          onCalendarAgain={() => sendCalendar(calendarAgain(calendarMode))}
         />
       </div>
 
