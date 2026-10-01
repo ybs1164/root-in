@@ -90,7 +90,6 @@ const STATES = {
   'pin-drop': async (page) => { await click(page, '지도에 핀 꽂기'); },
   'calendar': async (page) => { await click(page, '달력'); },
   'calendar-month': async (page) => { await click(page, '달력'); await page.locator('.cal-zoom__title').click(); },
-  'recommend': async (page) => { await click(page, '추천'); },
   'settings': async (page) => { await click(page, '설정'); },
   'shared-course': async (page, vp, reload) => { await reload(await shareHash(page, 'share')); },
   'shared-diary': async (page, vp, reload) => { await reload(await shareHash(page, 'diary')); },

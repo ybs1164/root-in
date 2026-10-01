@@ -12,7 +12,6 @@ import { describe, it } from 'vitest';
 //   P3 services/pinShareService.test.ts, domain/pin.test.ts (build/import)
 //   P4 domain/calendar.test.ts, domain/diary.test.ts (plans, route-in)
 //   P5 services/shareTargets.test.ts, services/diaryShareService.test.ts (legacy links)
-//   P6 services/curatorFeedService.test.ts
 
 describe('M2 prototype — manual scenarios (browser preview, 375px)', () => {
   it.todo('P/L/C/S scenarios re-checked on a real phone with the Kakao key');
