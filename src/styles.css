@@ -2635,7 +2635,7 @@ input.timeline__time:focus {
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  max-width: calc(100% - 100px); /* clear of the < > at the edges */
+  max-width: calc(100% - 40px);
   translate: -50% 0;
   pointer-events: none;
 }
@@ -2719,10 +2719,10 @@ input.timeline__time:focus {
 }
 
 /* < > stepping to the route above / below in the open tab: bare light-grey
-   chevrons at the screen's edges, level with the name. */
+   chevrons at the screen's edges, a little above the middle of the screen. */
 .route-step {
   position: fixed;
-  top: calc(var(--safe-top) + 196px);
+  top: calc(42% - 22px);
   z-index: 14;
   display: grid;
   place-items: center;
