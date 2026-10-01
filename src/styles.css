@@ -2527,6 +2527,27 @@ input.timeline__time:focus {
   opacity: 0 !important;
 }
 
+/* MapLibre fades its markers' opacity (0.2s): a stop hidden for its turn,
+   or swapped for a shape, would linger as a fading number. */
+.map-marker[data-stop] {
+  transition: none;
+}
+
+/* …and its stops stay out of sight until then, from the very first frame
+   (before StopLines gets to flag them). */
+.app--route-arriving .map-marker[data-stop],
+.app--route-arriving .stop-shape {
+  opacity: 0 !important;
+}
+
+/* A route on show: once the map has glided over, the pins fade away before
+   its stops drop in (App's PINS_FADE_MS). */
+.app--pins-away .map-marker--pin {
+  opacity: 0 !important;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
 .map-marker[data-drop],
 .stop-shape[data-drop] svg {
   animation: stop-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;

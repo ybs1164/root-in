@@ -60,6 +60,8 @@ const ROUTE_TRAY_OUT_MS = 170;
 const FOLDER_LOWERED_PX = 190;
 /** The map's glide over to a route put on show (MapLibre's fit), before its stops play in. */
 const ROUTE_GLIDE_MS = 900;
+/** Then the pins fade off the map (matches .app--pins-away), and only then do the route's stops drop in. */
+const PINS_FADE_MS = 250;
 
 export default function App() {
   const mapEl = useRef<HTMLDivElement | null>(null);
@@ -159,6 +161,23 @@ export default function App() {
     return () => window.clearTimeout(t);
   }, [routeOpen]);
   const shownRoute = routeOpen ? (course.courses.find((c) => c.id === shownRouteId) ?? null) : null;
+  // A route put on show takes the map in turns: it glides over with the pins
+  // still there, the pins fade away, then the route's own stops drop in.
+  // Switching straight to another route keeps the pins gone.
+  const [pinsAway, setPinsAway] = useState<'no' | 'fading' | 'gone'>('no');
+  const shownRouteKey = shownRoute?.id ?? null;
+  useEffect(() => {
+    if (!shownRouteKey) return setPinsAway('no');
+    let fade = 0;
+    const glide = window.setTimeout(() => {
+      setPinsAway((p) => (p === 'gone' ? p : 'fading'));
+      fade = window.setTimeout(() => setPinsAway('gone'), PINS_FADE_MS);
+    }, ROUTE_GLIDE_MS);
+    return () => {
+      window.clearTimeout(glide);
+      window.clearTimeout(fade);
+    };
+  }, [shownRouteKey]);
   const shownPins = useMemo(() => filterPinsByCategories(pins, categories, picked), [pins, categories, picked]);
 
   // Numbered course markers + solid route line.
@@ -195,7 +214,7 @@ export default function App() {
     if (sharedCourse || !(onPinHome || pinning)) return [];
     // A saved route on show has the map to itself: every pin steps aside
     // (its stops, shaped or numbered, stand in for the places).
-    if (shownRoute && !pinning) return [];
+    if (shownRoute && !pinning && pinsAway === 'gone') return [];
     return (pinning ? pins : shownPins).map((pin) => {
       const style = categoryStyle(categories, pin.categoryId);
       return {
@@ -208,7 +227,7 @@ export default function App() {
         selected: pin.id === activePinId,
       };
     });
-  }, [sharedPins, sharedCourse, onPinHome, pinning, pins, shownPins, categories, activePinId, shownRoute]);
+  }, [sharedPins, sharedCourse, onPinHome, pinning, pins, shownPins, categories, activePinId, shownRoute, pinsAway]);
 
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
 
@@ -693,7 +712,7 @@ export default function App() {
   const barAway = (decorating && calendarZoom && onPage) || routeMode;
 
   return (
-    <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''}`}>
+    <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && pinsAway !== 'gone' ? 'app--route-arriving' : ''}`}>
       <div ref={mapEl} className="map" aria-label="지도" />
 
       <SearchBar
@@ -752,8 +771,8 @@ export default function App() {
           count={shownStops.length}
           edgeStyles={buildPins ? undefined : shownRoute?.edgeStyles}
           stopShapes={buildPins ? undefined : shownRoute?.stopShapes}
-          // A route put on show plays in once the map has glided over to it.
-          play={shownRoute && !buildPins ? { key: shownRoute.id, delayMs: ROUTE_GLIDE_MS } : undefined}
+          // A route put on show plays in once the map has glided over to it and the pins have gone.
+          play={shownRoute && !buildPins ? { key: shownRoute.id, delayMs: ROUTE_GLIDE_MS + PINS_FADE_MS } : undefined}
         />
       )}
 
