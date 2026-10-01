@@ -2463,8 +2463,8 @@ input.timeline__time:focus {
   place-items: center;
   width: 44px;
   height: 44px;
-  /* On its own line, the routes start below it. */
-  margin: 0 0 4px auto;
+  /* On its own line, the routes start just below it (tucked up a little). */
+  margin: -4px 0 -10px auto;
   padding: 0;
   border: 0;
   border-radius: 12px;
