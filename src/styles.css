@@ -30,9 +30,6 @@
   --ink-black: #151515;
   --ink-white: #ffffff;
   --tray-bg: rgba(14, 14, 14, 0.74);
-  /* 경로 폴더: frosted white, the open folder more solid than the ones behind. */
-  --folder-bg: rgba(255, 255, 255, 0.86);
-  --folder-tab: rgba(236, 226, 215, 0.82);
   --tray-fg: #ffffff;
   --tray-dim: rgba(255, 255, 255, 0.55);
   --tray-line: rgba(255, 255, 255, 0.16);
@@ -103,8 +100,6 @@
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
     --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.45);
-    --folder-bg: rgba(37, 32, 29, 0.86);
-    --folder-tab: rgba(60, 52, 48, 0.78);
     --backdrop: rgba(0, 0, 0, 0.6);
     --map-road: #2a2521;
     --map-block: #3d5253;
@@ -245,8 +240,6 @@
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.45);
-  --folder-bg: rgba(37, 32, 29, 0.86);
-  --folder-tab: rgba(60, 52, 48, 0.78);
   --backdrop: rgba(0, 0, 0, 0.6);
 }
 
@@ -2316,9 +2309,10 @@ input.timeline__time:focus {
   height: 22px;
 }
 
-/* 경로 폴더: a frosted white sheet rising in the tab buttons' place, with
-   index tabs on its top edge like a file folder's. The open tab matches the
-   sheet so it reads as the front folder; the others are fainter. */
+/* 경로 폴더: a white sheet rising in the tab buttons' place, with index tabs
+   on its top edge like a file folder's. The open tab matches the sheet so it
+   reads as the front folder; the others are beige. Solid on purpose: a
+   see-through sheet let the map's pins show through it and between tabs. */
 .route-folders {
   position: fixed;
   left: 0;
@@ -2348,12 +2342,6 @@ input.timeline__time:focus {
   scrollbar-width: none;
 }
 
-.route-folders__tab,
-.route-folders__body {
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
-  backdrop-filter: blur(18px) saturate(1.4);
-}
-
 .route-folders__tab {
   flex: none;
   display: inline-flex;
@@ -2365,7 +2353,7 @@ input.timeline__time:focus {
   padding: 0 12px;
   border: 0;
   border-radius: 14px 14px 0 0;
-  background: var(--folder-tab);
+  background: var(--surface-2);
   box-shadow: var(--shadow-up);
   color: var(--muted);
   font-size: 15px;
@@ -2374,7 +2362,7 @@ input.timeline__time:focus {
 }
 
 .route-folders__tab.is-on {
-  background: var(--folder-bg);
+  background: var(--surface);
   color: var(--text);
 }
 
@@ -2396,7 +2384,7 @@ input.timeline__time:focus {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 10px 16px calc(var(--safe-bottom) + 14px);
-  background: var(--folder-bg);
+  background: var(--surface);
   box-shadow: var(--shadow-up);
 }
 
@@ -2406,27 +2394,39 @@ input.timeline__time:focus {
   text-align: center;
 }
 
-/* The open folder's icon picker, in place of its list. */
-.route-folders__icons {
+/* The open folder's icon picker: a bubble popping up above its tab (like a
+   ping's shape picker), kept on screen. Tapping anywhere else closes it. */
+.folder-picker {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: clamp(12px, calc(var(--x) - 149px), calc(100% - 310px));
+  z-index: 2;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  grid-template-columns: repeat(6, 44px);
   gap: 4px;
+  width: max-content;
+  padding: 8px;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  animation: picker-in 0.18s ease both;
 }
 
-.route-folders__icon-btn {
+.folder-picker__opt {
   display: grid;
   place-items: center;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 0;
-  border-radius: 14px;
-  background: none;
-  font-size: 26px;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 24px;
   line-height: 1;
 }
 
-.route-folders__icon-btn.is-on {
-  background: var(--surface-2);
+.folder-picker__opt.is-on {
+  background: var(--accent-soft);
 }
 
 .route-folders__list {

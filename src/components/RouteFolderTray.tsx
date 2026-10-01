@@ -1,5 +1,5 @@
 import { FolderInput, Inbox, Layers, Plus } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   addFolder,
   FOLDER_ICONS,
@@ -34,11 +34,12 @@ const newId = () =>
     : `folder-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 /**
- * 경로 폴더: a see-through sheet rising in the tab buttons' place, with index
+ * 경로 폴더: a white sheet rising in the tab buttons' place, with index
  * tabs along its top edge like a file folder's. 전체 lists every saved route,
  * 미분류 the ones not filed anywhere, then the user's own folders, and + adds
- * one. Every tab is an icon only (no names, no counts). Tapping the open folder's tab again (or making
- * a new one) brings up its icon picker.
+ * one. Every tab is an icon only (no names, no counts). Tapping the open
+ * folder's tab again (or making a new one) pops a small icon picker up above
+ * that tab, like a ping's shape picker on TODAY.
  */
 export default function RouteFolderTray({ open, courses, folders, onFolders, shownId, onShow }: RouteFolderTrayProps) {
   const [tab, setTab] = useState<RouteTab>('all');
@@ -62,10 +63,31 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
     setPicking(id);
   };
 
-  // The new tab sits at the end, next to +: bring it into view.
+  // Where the picker points: the picked tab's centre, across the sheet. A new
+  // tab sits at the end next to +, so it is scrolled into view first.
+  const sheetEl = useRef<HTMLElement | null>(null);
+  const [pickerX, setPickerX] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    if (!picking) return setPickerX(null);
+    const tabEl = tabsEl.current?.querySelector<HTMLElement>(`[data-tab="${picking}"]`);
+    tabEl?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+    const tab = tabEl?.getBoundingClientRect();
+    const sheet = sheetEl.current?.getBoundingClientRect();
+    setPickerX(tab && sheet ? tab.left + tab.width / 2 - sheet.left : null);
+  }, [picking]);
+
+  // A touch anywhere but the picker closes it. Listened for on the document:
+  // the sheet's slide-in keeps a fixed backdrop from covering the screen.
+  // The folder's own tab is left to its click, which toggles the picker.
   useEffect(() => {
     if (!picking) return;
-    tabsEl.current?.querySelector<HTMLElement>(`[data-tab="${picking}"]`)?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+    const away = (e: PointerEvent) => {
+      const t = e.target as Element | null;
+      if (t?.closest('.folder-picker') || t?.closest(`[data-tab="${picking}"]`)) return;
+      setPicking(null);
+    };
+    document.addEventListener('pointerdown', away);
+    return () => document.removeEventListener('pointerdown', away);
   }, [picking]);
 
   /** Every tab is just an icon: a line icon for the fixed two, the folder's own emoji otherwise. */
@@ -97,7 +119,26 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
   const pickingFolder = folders.folders.find((f) => f.id === picking) ?? null;
 
   return (
-    <section className={`route-folders ${open ? '' : 'is-leaving'}`} aria-label="경로 폴더" inert={!open}>
+    <section ref={sheetEl} className={`route-folders ${open ? '' : 'is-leaving'}`} aria-label="경로 폴더" inert={!open}>
+      {pickingFolder && pickerX !== null && (
+        <>
+          <div className="folder-picker" role="dialog" aria-label="폴더 아이콘" style={{ '--x': `${pickerX}px` } as CSSProperties}>
+            {FOLDER_ICONS.map((icon) => (
+              <button
+                key={icon}
+                className={`folder-picker__opt ${pickingFolder.icon === icon ? 'is-on' : ''}`}
+                aria-pressed={pickingFolder.icon === icon}
+                onClick={() => {
+                  onFolders(setFolderIcon(folders, pickingFolder.id, icon));
+                  setPicking(null);
+                }}
+              >
+                {icon}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
       <div ref={tabsEl} className="route-folders__tabs" role="tablist" aria-label="폴더">
         {tabButton('all', '전체', ALL_ICON)}
         {tabButton('none', '미분류', NONE_ICON)}
@@ -113,23 +154,7 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
       </div>
 
       <div className="route-folders__body" role="tabpanel">
-        {pickingFolder ? (
-          <div className="route-folders__icons" role="group" aria-label="폴더 아이콘">
-            {FOLDER_ICONS.map((icon) => (
-              <button
-                key={icon}
-                className={`route-folders__icon-btn ${pickingFolder.icon === icon ? 'is-on' : ''}`}
-                aria-pressed={pickingFolder.icon === icon}
-                onClick={() => {
-                  onFolders(setFolderIcon(folders, pickingFolder.id, icon));
-                  setPicking(null);
-                }}
-              >
-                {icon}
-              </button>
-            ))}
-          </div>
-        ) : routes.length === 0 ? (
+        {routes.length === 0 ? (
           <p className="route-folders__empty">
             {courses.length === 0 ? '저장한 경로가 없어요.' : current === 'all' || current === 'none' ? '여기에 있는 경로가 없어요.' : '이 폴더는 비어 있어요. 경로의 폴더 버튼으로 넣어 보세요. 탭을 한 번 더 누르면 아이콘을 바꿀 수 있어요.'}
           </p>
