@@ -165,6 +165,8 @@ export default function App() {
   // still there, the pins fade away, then the route's own stops drop in.
   // Switching straight to another route keeps the pins gone.
   const [pinsAway, setPinsAway] = useState<'no' | 'fading' | 'gone'>('no');
+  // Only 'gone' changes the markers: re-making them mid-fade would cut the fade short.
+  const pinsGone = pinsAway === 'gone';
   const shownRouteKey = shownRoute?.id ?? null;
   useEffect(() => {
     if (!shownRouteKey) return setPinsAway('no');
@@ -214,7 +216,7 @@ export default function App() {
     if (sharedCourse || !(onPinHome || pinning)) return [];
     // A saved route on show has the map to itself: every pin steps aside
     // (its stops, shaped or numbered, stand in for the places).
-    if (shownRoute && !pinning && pinsAway === 'gone') return [];
+    if (shownRoute && !pinning && pinsGone) return [];
     return (pinning ? pins : shownPins).map((pin) => {
       const style = categoryStyle(categories, pin.categoryId);
       return {
@@ -227,7 +229,7 @@ export default function App() {
         selected: pin.id === activePinId,
       };
     });
-  }, [sharedPins, sharedCourse, onPinHome, pinning, pins, shownPins, categories, activePinId, shownRoute, pinsAway]);
+  }, [sharedPins, sharedCourse, onPinHome, pinning, pins, shownPins, categories, activePinId, shownRoute, pinsGone]);
 
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
 
