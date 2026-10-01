@@ -300,7 +300,8 @@ export default function RouteFolderTray({ open, courses, folders, onFolders, sho
             return;
           }
           setFiling(null);
-          setDeleting(null);
+          // A plain tap on a folder tab also brings out its ✕ (not only a long press).
+          setDeleting(custom ? id : null);
           if (on && custom) return setPicking(picking === id ? null : id);
           setTab(id);
           setPicking(null);

@@ -2338,7 +2338,7 @@ input.timeline__time:focus {
   align-items: flex-end;
   gap: 4px;
   /* Headroom for a tab's ✕ and its lift (the row scrolls, so it clips). */
-  padding: 14px 12px 0;
+  padding: 18px 12px 0;
   touch-action: pan-x;
   overflow-x: auto;
   scrollbar-width: none;
@@ -2389,8 +2389,8 @@ input.timeline__time:focus {
 /* Shown after a long press that didn't move the tab. */
 .route-folders__x {
   position: absolute;
-  top: -10px;
-  right: -6px;
+  top: -14px;
+  right: -10px;
   z-index: 2;
   display: grid;
   place-items: center;
@@ -2404,11 +2404,12 @@ input.timeline__time:focus {
   animation: picker-in 0.16s ease both;
 }
 
-/* A bigger touch target than the badge looks. */
+/* A bigger touch target than the badge looks, but kept off the tab's
+   middle: a plain tap shows the ✕ and a second one there opens the icons. */
 .route-folders__x::after {
   content: '';
   position: absolute;
-  inset: -10px;
+  inset: -6px;
 }
 
 .route-folders__tab.is-on {
