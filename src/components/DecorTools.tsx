@@ -248,7 +248,7 @@ export function DecorTray(p: DecorTrayProps) {
       {isText && (
         <div className="decor-tray__pen decor-tray__text">
           <div className="decor-tray__row">
-            {TEXT_FONTS.map(({ font, label: name }) => (
+            {TEXT_FONTS.map(({ font, label: name, sample }) => (
               <button
                 key={font}
                 className={`decor-tray__font ${p.textStyle.font === font ? 'is-on' : ''}`}
@@ -257,7 +257,7 @@ export function DecorTray(p: DecorTrayProps) {
                 aria-pressed={p.textStyle.font === font}
                 onClick={() => p.onTextStyle({ font })}
               >
-                {name}
+                {sample}
               </button>
             ))}
           </div>

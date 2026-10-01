@@ -74,12 +74,13 @@ export interface PlacedText extends TextStyle {
 }
 
 /** The fonts (Google Fonts, linked in index.html), each with a fallback if it can't load. */
-export const TEXT_FONTS: { font: TextFont; label: string; family: string }[] = [
-  { font: 'sans', label: '기본', family: "system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" },
-  { font: 'serif', label: '명조', family: "'Nanum Myeongjo', serif" },
-  { font: 'pen', label: '손글씨', family: "'Nanum Pen Script', cursive" },
-  { font: 'round', label: '동글', family: "'Jua', sans-serif" },
-  { font: 'heavy', label: '두껍게', family: "'Black Han Sans', sans-serif" },
+/** `label` is read out (aria); `sample` is what the toolbar shows, written in the font itself. */
+export const TEXT_FONTS: { font: TextFont; label: string; sample: string; family: string }[] = [
+  { font: 'sans', label: '기본', sample: 'Basic', family: "system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" },
+  { font: 'serif', label: '명조', sample: 'Serif', family: "'Nanum Myeongjo', serif" },
+  { font: 'pen', label: '손글씨', sample: 'Hand', family: "'Nanum Pen Script', cursive" },
+  { font: 'round', label: '동글', sample: 'Round', family: "'Jua', sans-serif" },
+  { font: 'heavy', label: '두껍게', sample: 'Heavy', family: "'Black Han Sans', sans-serif" },
 ];
 
 export const textFamily = (font: TextFont): string => (TEXT_FONTS.find((f) => f.font === font) ?? TEXT_FONTS[0]).family;
