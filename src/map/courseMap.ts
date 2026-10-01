@@ -32,6 +32,10 @@ export interface CourseMap {
   /** Fits arbitrary points (pins, a guide line). */
   fitPoints(points: [number, number][], padding: MapPadding): void;
   focus(center: [number, number], padding?: MapPadding): void;
+  /** Pans so `center` sits in the middle of the map, leaving the zoom as it is. */
+  centerOn(center: [number, number]): void;
+  /** Turns one-finger / mouse dragging of the map on or off (off while a route is drawn over pins). */
+  setPanEnabled(enabled: boolean): void;
   getCenter(): [number, number];
   /** Call after the container changes size (e.g. sheet resize, rotation). */
   resize(): void;
@@ -51,7 +55,7 @@ export interface CourseMapOptions {
   center: [number, number];
   onStopClick?: (index: number) => void;
   onPinClick?: (id: string) => void;
-  /** Long-press (touch) or right-click (mouse) on the map itself. */
+  /** Long-press (touch) on the map itself. */
   onLongPress?: (center: [number, number]) => void;
   /** The visible area, once the map settles after a pan/zoom (and at start). */
   onViewportChange?: (viewport: MapViewport) => void;
@@ -66,6 +70,8 @@ export function createMarkerElement(label: string, variant: 'stop' | 'preview', 
   el.className = `map-marker map-marker--${variant}`;
   el.textContent = label;
   el.setAttribute('aria-label', variant === 'stop' ? `${label}번 장소` : '선택한 장소');
+  // Its place in the route, for the lines the app draws between stops.
+  if (variant === 'stop') el.dataset.stop = label;
   if (onClick) {
     el.addEventListener('click', (event) => {
       event.stopPropagation();
@@ -84,6 +90,8 @@ export function createPinElement(pin: PinMarker, onClick?: (id: string) => void)
   el.style.setProperty('--pin', `var(--pin-${pin.color})`);
   el.textContent = pin.emoji;
   el.setAttribute('aria-label', pin.name);
+  // Lets a finger drawing a route over the map find the pin under it.
+  el.dataset.pinId = pin.id;
   el.addEventListener('click', (event) => {
     event.stopPropagation();
     onClick?.(pin.id);
@@ -95,14 +103,14 @@ const LONG_PRESS_MS = 550;
 const LONG_PRESS_SLOP_PX = 10;
 
 /**
- * Long-press on touch and right-click on mouse, reported as a container
- * point. Neither map SDK has a touch long-press event, so both providers
- * share this. Returns a detach function.
+ * Long-press on touch, reported as a container point. Neither map SDK has a
+ * touch long-press event, so both providers share this. A right-click
+ * (a trackpad's two-finger click) is not a press: it only keeps the
+ * browser's own menu off the map. Returns a detach function.
  */
 export function attachLongPress(container: HTMLElement, onPress: (x: number, y: number) => void): () => void {
   let timer: ReturnType<typeof setTimeout> | null = null;
   let start: { x: number; y: number } | null = null;
-  let lastTouch = 0;
   const cancel = () => {
     if (timer) clearTimeout(timer);
     timer = null;
@@ -117,7 +125,6 @@ export function attachLongPress(container: HTMLElement, onPress: (x: number, y: 
     // A second finger means pinch-zoom, not a press.
     if (event.touches.length !== 1) return;
     const touch = event.touches[0];
-    lastTouch = Date.now();
     start = { x: touch.clientX, y: touch.clientY };
     timer = setTimeout(() => {
       if (!start) return;
@@ -131,13 +138,7 @@ export function attachLongPress(container: HTMLElement, onPress: (x: number, y: 
     if (!start || !touch) return;
     if (Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > LONG_PRESS_SLOP_PX) cancel();
   };
-  const onContextMenu = (event: MouseEvent) => {
-    event.preventDefault();
-    // Touch browsers also fire contextmenu on a long-press; the timer handles those.
-    if (Date.now() - lastTouch < 1500) return;
-    const p = point(event.clientX, event.clientY);
-    onPress(p.x, p.y);
-  };
+  const onContextMenu = (event: MouseEvent) => event.preventDefault();
   container.addEventListener('touchstart', onTouchStart, { passive: true });
   container.addEventListener('touchmove', onTouchMove, { passive: true });
   container.addEventListener('touchend', cancel);

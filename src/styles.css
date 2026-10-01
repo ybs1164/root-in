@@ -455,7 +455,8 @@ button:disabled {
   width: 32px;
   height: 32px;
   padding: 0;
-  border: 3px solid var(--surface);
+  /* No white ring: a flat dot of colour (the shadow keeps it off the map). */
+  border: 0;
   border-radius: 50%;
   background: var(--accent);
   color: var(--on-accent);
@@ -1212,6 +1213,13 @@ button:disabled {
 
 .decor-rail__btn.is-on {
   color: var(--accent);
+}
+
+/* 공유 isn't a tool: set a little apart, filled with the accent colour. */
+.decor-rail__share {
+  margin-top: 8px;
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 /* The drawing box measures stickers (cqw) so they scale with it. */
@@ -2239,6 +2247,958 @@ input.timeline__time:focus {
   transform: translateX(calc(100% + 24px));
 }
 
+/* Pin screen: round buttons stacked under ⚙ (핀 · 경로, then 핀's category list). */
+.pin-rail {
+  position: absolute;
+  top: calc(12px + var(--safe-top) + 52px + 12px);
+  right: 14px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Long category lists scroll above the bottom buttons. */
+  max-height: calc(100dvh - var(--safe-top) - 76px - var(--bar-h) - var(--safe-bottom) - 24px);
+}
+
+.pin-rail__btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+}
+
+/* The open entry wears the accent colour. */
+.pin-rail__btn.is-on:not(.pin-rail__pin) {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Each entry's slot carries the gap below it, so collapsing one closes the space too. */
+.pin-rail__slot {
+  flex: none;
+  height: 58px;
+  transition:
+    height 0.22s ease,
+    opacity 0.16s ease;
+}
+
+.pin-rail__slot .pin-rail__btn {
+  transition:
+    transform 0.22s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.pin-rail__slot.is-hidden {
+  height: 0;
+  opacity: 0;
+}
+
+.pin-rail__slot.is-hidden .pin-rail__btn {
+  transform: scale(0.4);
+}
+
+.pin-rail__btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* 경로 폴더: a white sheet rising in the tab buttons' place, with index tabs
+   on its top edge like a file folder's. The open tab matches the sheet so it
+   reads as the front folder; the others are beige. Solid on purpose: a
+   see-through sheet let the map's pins show through it and between tabs. */
+.route-folders {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 13;
+  display: flex;
+  flex-direction: column;
+  /* Up to about the middle of the screen, the rail and search bar stay clear above. */
+  height: 44dvh;
+  color: var(--text);
+  animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.route-folders {
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+/* A route on show: the sheet sinks so only its tabs and the route's row stay
+   up (App's FOLDER_LOWERED_PX), leaving the map to the route. */
+.route-folders.is-lowered {
+  transform: translateY(calc(100% - 190px));
+}
+
+/* Room to scroll any route, even the last, up to the top of the strip. */
+.route-folders.is-lowered .route-folders__body {
+  padding-bottom: 60dvh;
+}
+
+.route-folders.is-leaving {
+  animation: tray-down 0.17s ease-in forwards;
+  pointer-events: none;
+}
+
+.route-folders__tabs {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  /* Headroom for a tab's ✕ and its lift (the row scrolls, so it clips). */
+  padding: 18px 12px 0;
+  touch-action: pan-x;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.route-folders__tab {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 52px;
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 14px 14px 0 0;
+  background: var(--surface-2);
+  /* A hairline inside the tab (nothing spills out behind the row). */
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.route-folders__tab {
+  /* A long press lifts the tab; no text selection or callout on the way. */
+  -webkit-touch-callout: none;
+  user-select: none;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.route-folders__tab.is-lifted {
+  position: relative;
+  z-index: 1;
+  transform: translateY(-4px) scale(1.1);
+  box-shadow: var(--shadow-sm);
+}
+
+.route-folders__tabwrap {
+  position: relative;
+  flex: none;
+  display: flex;
+}
+
+/* Shown after a long press that didn't move the tab. */
+.route-folders__x {
+  position: absolute;
+  top: -14px;
+  right: -10px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--danger);
+  color: var(--on-accent);
+  animation: picker-in 0.16s ease both;
+}
+
+/* A bigger touch target than the badge looks, but kept off the tab's
+   middle: a plain tap shows the ✕ and a second one there opens the icons. */
+.route-folders__x::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+
+.route-folders__tab.is-on {
+  box-shadow: none;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.route-folders__icon {
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.route-folders__tab--add {
+  /* Always last, also while a dragged folder's tabs are re-ordered with `order`. */
+  order: 1000;
+  min-width: 48px;
+  padding: 0;
+}
+
+.route-folders__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 10px 16px calc(var(--safe-bottom) + 14px);
+  background: var(--surface);
+}
+
+/* + : make a new route from pins. Top-right inside the folder, on its own
+   line above the routes (it scrolls with them). */
+.route-folders__new {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  /* On its own line, the routes start just below it (tucked up a little). */
+  margin: -4px 0 -10px auto;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  /* Just a grey +, no circle. */
+  background: none;
+  color: var(--muted);
+}
+
+.route-folders__new:active {
+  background: var(--surface-2);
+}
+
+/* Making a route from pins: the folder sheet is down. Lines join the chosen
+   pins (drawn over the map from the markers' positions; the dashed one
+   follows a finger mid-stroke), and ✓ sits at the bottom right. */
+.stop-lines {
+  position: fixed;
+  inset: 0;
+  /* Over the map but under its markers (pins z 1, numbered stops z 2), so
+     the numbers stay readable on top of the lines. */
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.stop-lines polyline,
+.stop-lines line,
+.stop-lines__seg {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* A saved route's line styles (long-press a line), in screen px. */
+.stop-lines__seg--dashed {
+  stroke-dasharray: 12 8;
+  stroke-linecap: butt;
+}
+
+.stop-lines__seg--dotted {
+  stroke-width: 5;
+  stroke-dasharray: 0.01 11;
+}
+
+.stop-lines__seg--bold {
+  stroke-width: 8;
+}
+
+/* A stop given a shape: drawn here, its numbered marker hidden but still
+   there to be tapped or long-pressed. */
+/* A route playing in: stops wait hidden, then drop onto the map in turn.
+   Only translate/opacity animate: the map positions markers with transform.
+   (!important for the wait: MapLibre writes an inline opacity.) */
+.map-marker[data-hidden],
+.stop-shape[data-hidden] {
+  opacity: 0 !important;
+}
+
+.map-marker[data-drop],
+.stop-shape[data-drop] svg {
+  animation: stop-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+@keyframes stop-drop {
+  from {
+    opacity: 0;
+    translate: 0 -36px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-marker[data-drop],
+  .stop-shape[data-drop] svg {
+    animation: none;
+  }
+}
+
+.map-marker[data-shape] {
+  /* !important: MapLibre writes an inline opacity on its markers. */
+  opacity: 0 !important;
+}
+
+.stop-shape {
+  position: fixed;
+  left: 0;
+  top: 0;
+  /* Above the map's pins (z 1, painted earlier), so nearby pins don't cover it. */
+  z-index: 1;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.stop-shape svg {
+  position: absolute;
+  left: -15px;
+  top: -15px;
+  width: 30px;
+  height: 30px;
+  fill: var(--accent);
+  filter: drop-shadow(0 1px 2px var(--backdrop));
+}
+
+/* A pin stands on its point, like the calendar's. */
+.stop-shape--pin svg {
+  top: -30px;
+}
+
+.stop-shape .ping__hole {
+  fill: var(--surface);
+}
+
+.stop-shape--dot svg {
+  left: -9px;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+}
+
+/* The route on show, named big at the top of the map like a day's "TODAY",
+   with a small pen at its bottom right. Clear of the ⚙ rail on the right. */
+.route-title {
+  position: fixed;
+  /* Below the ⚙ rail's two buttons, so it can use the full width. */
+  top: calc(var(--safe-top) + 196px);
+  left: 50%;
+  z-index: 14;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: calc(100% - 40px);
+  translate: -50% 0;
+  pointer-events: none;
+}
+
+.route-title > * {
+  pointer-events: auto;
+}
+
+.route-title__name {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Readable over the map's colours. */
+  text-shadow:
+    0 0 6px var(--surface),
+    0 0 2px var(--surface);
+}
+
+.route-title__input {
+  /* Leaves room for the pen inside the title's width. */
+  width: min(calc(100vw - 80px), 320px);
+  height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  font: inherit;
+  font-size: 22px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.route-title__pen {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-bottom: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+}
+
+/* Small to look at, a fair size to hit. */
+.route-title__pen::after {
+  content: '';
+  position: absolute;
+  inset: -14px;
+}
+
+.route-title__pen[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+/* Long-press picker for a route on the map: above the finger, on screen. */
+.ping-picker.route-style-picker {
+  position: fixed;
+  z-index: 25;
+  left: clamp(130px, var(--x), calc(100% - 130px));
+  top: var(--y);
+  transform: translate(-50%, calc(-100% - 28px));
+}
+
+.route-style-picker__num {
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.route-build__trail {
+  stroke-dasharray: 2 8;
+  opacity: 0.7;
+}
+
+.route-build__done {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--safe-bottom) + 18px);
+  z-index: 13;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--shadow);
+  animation: picker-in 0.2s ease both;
+}
+
+.route-build__done:disabled {
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.route-build__dialog form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.route-build__field {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* no iOS zoom-in */
+  text-align: left;
+}
+
+.route-build__name {
+  display: flex;
+  gap: 8px;
+}
+
+.route-build__name .route-build__field {
+  font-weight: 700;
+}
+
+/* The route's decorative icon, next to its name; ＋ when none is chosen. */
+.route-build__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.route-build__icon.is-empty {
+  color: var(--muted);
+  font-size: 18px;
+}
+
+.route-build__icons {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 2px;
+}
+
+.route-build__note {
+  resize: none;
+}
+
+.route-build__dialog .confirm-dialog__actions {
+  margin-top: 4px;
+}
+
+.route-folders__empty {
+  margin: 18px 0;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* Delete confirm (a native modal <dialog>, so it sits in the top layer). */
+.confirm-dialog {
+  width: min(300px, calc(100vw - 48px));
+  padding: 22px 18px 16px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  text-align: center;
+}
+
+.confirm-dialog::backdrop {
+  background: var(--backdrop);
+}
+
+.confirm-dialog p {
+  margin: 0 0 18px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.confirm-dialog__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.btn--danger {
+  background: var(--danger);
+  color: var(--on-accent);
+}
+
+/* The open folder's icon picker: a bubble popping up above its tab (like a
+   ping's shape picker), kept on screen. Tapping anywhere else closes it. */
+.folder-picker {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: clamp(12px, calc(var(--x) - 149px), calc(100% - 310px));
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(6, 44px);
+  gap: 4px;
+  width: max-content;
+  padding: 8px;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  animation: picker-in 0.18s ease both;
+}
+
+.folder-picker__opt {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.folder-picker__opt.is-on {
+  background: var(--accent-soft);
+}
+
+.route-folders__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.route-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.route-row:last-child {
+  border-bottom: 0;
+}
+
+.route-row__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 56px;
+  padding: 8px 4px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  text-align: left;
+}
+
+.route-row__main {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.route-row__icon {
+  flex: none;
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* The open route's tools, small, under its name at the right. */
+.route-row__tools {
+  flex-basis: 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  margin-top: -8px;
+  padding-bottom: 4px;
+}
+
+.route-row__tool {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+}
+
+.route-row__tool:active {
+  background: var(--surface-2);
+}
+
+.route-row__tool--danger {
+  color: var(--danger);
+}
+
+.route-row__main strong {
+  overflow: hidden;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-row__main span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* The route drawn on the map. */
+.route-row.is-shown .route-row__main strong {
+  color: var(--accent-strong);
+}
+
+.route-row__file {
+  color: var(--muted);
+}
+
+.route-row__file:not(:disabled):active {
+  background: var(--surface-2);
+}
+
+.route-row__chooser {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 0 10px;
+}
+
+.route-row__to {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: none;
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.route-row__in {
+  display: inline-flex;
+  vertical-align: -2px;
+}
+
+.route-row__to.is-on {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+/* A pin's card stands just above the pin, which tapping it pans to the middle
+   of the map (the map fills the screen, so that is the screen's middle). The
+   tail points down at the pin. Placed after the generic bottom positions so
+   it wins on every width. */
+.app .place-card.place-card--pin {
+  /* Half the selected pin's height plus a gap. */
+  bottom: calc(50% + 32px);
+  left: 50%;
+  right: auto;
+  width: min(270px, calc(100vw - 24px));
+  translate: -50% 0;
+  /* Above the ⚙ rail: opened up (details, icons) it can grow into it. */
+  z-index: 21;
+  animation: pin-card-in 0.18s ease both;
+}
+
+.app .place-card.place-card--pin::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  width: 16px;
+  height: 16px;
+  background: var(--surface);
+  translate: -50% 0;
+  rotate: 45deg;
+}
+
+/* Pin card: (icon) name (pen) / (⋯) … (bin). */
+.pin-card__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pin-card__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--pin, var(--surface-2));
+  font-size: 22px;
+  line-height: 1;
+}
+
+.pin-card__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pin-card__name-input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* no iOS zoom-in */
+  font-weight: 700;
+}
+
+.pin-card__tool {
+  color: var(--muted);
+}
+
+.pin-card .chip-row {
+  margin-top: 10px;
+}
+
+.pin-card__details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  align-items: center;
+  margin: 10px 0 0;
+  font-size: 14px;
+}
+
+.pin-card__details dt {
+  color: var(--muted);
+}
+
+.pin-card__details dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--text);
+}
+
+.pin-card__details .place-card__memo {
+  margin: 0;
+}
+
+.pin-card__link {
+  grid-column: 1 / -1;
+}
+
+.pin-card__link a {
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
+/* The icon picker pops up above the card (the folder tabs' bubble, pinned to
+   the card's left edge instead of a tab). Each icon wears its colour. */
+.pin-card__icons {
+  left: 0;
+  bottom: calc(100% + 10px);
+}
+
+.pin-card__icon-opt {
+  border-radius: 50%;
+  background: var(--pin, var(--surface-2));
+  font-size: 22px;
+}
+
+/* The current one keeps its colour (the folder bubble would tint it) and gets a ring. */
+.pin-card__icons .pin-card__icon-opt.is-on {
+  background: var(--pin, var(--surface-2));
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--accent);
+}
+
+/* ⋯ on the left, the bin at the bottom right. */
+.pin-card__bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+@keyframes pin-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-folders,
+  .route-folders.is-leaving {
+    animation-duration: 0.01s;
+  }
+}
+
+/* Category buttons drop out of 핀 one after another… */
+.pin-rail__item {
+  animation: pin-rail-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+  animation-delay: calc(var(--i, 0) * 30ms);
+}
+
+/* …and tuck back up into it together (PinRail's OUT_MS waits for this). */
+.pin-rail__item.is-leaving {
+  animation: pin-rail-out 0.16s ease-in both;
+  pointer-events: none;
+}
+
+@keyframes pin-rail-in {
+  from {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.4);
+  }
+}
+
+@keyframes pin-rail-out {
+  to {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-rail__item,
+  .pin-rail__item.is-leaving {
+    animation-duration: 0.01s;
+    animation-delay: 0s;
+  }
+
+  .pin-rail__slot,
+  .pin-rail__slot .pin-rail__btn {
+    transition: none;
+  }
+}
+
+.pin-rail__list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-height: 0;
+  /* Room for the buttons' shadows inside the scroll box, without moving them. */
+  margin: -4px -12px 0;
+  padding: 4px 12px 12px;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.pin-rail__pin {
+  font-size: 21px;
+  /* A tighter shadow than the other buttons: the scroll box would clip a wide one. */
+  box-shadow:
+    inset 0 0 0 3px var(--pin, var(--surface-2)),
+    var(--shadow-sm);
+}
+
+/* Picked: filled with the category colour. */
+.pin-rail__pin.is-on {
+  background: var(--pin, var(--surface-2));
+}
+
 .bottom-bar-wrap {
   position: absolute;
   left: 0;
@@ -2312,7 +3272,6 @@ input.timeline__time:focus {
   transform: scale(0.94);
 }
 
-/* Each button sits in a slot so the calendar's menu can stack above it. */
 .bottom-bar__slot {
   position: relative;
   display: grid;
@@ -2321,81 +3280,6 @@ input.timeline__time:focus {
 
 .calendar-today text {
   font-family: inherit;
-}
-
-/* The calendar button's menu: two round buttons on an arc above it
-   (월 달력 up-left, 공유 up-right). Each grows out of the button's centre to
-   its spot (--dx/--dy, set inline) and shrinks back into it on close. */
-.bottom-bar__dial {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 0;
-  height: 0;
-}
-
-.bottom-bar__dial-btn {
-  position: absolute;
-  left: -24px;
-  top: -24px;
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--muted);
-  box-shadow: var(--shadow);
-  pointer-events: auto; /* the bar's wrapper lets touches through; its buttons opt back in */
-  translate: var(--dx) var(--dy);
-  animation: dial-in 0.26s cubic-bezier(0.3, 1.3, 0.5, 1) both;
-}
-
-.bottom-bar__dial-btn + .bottom-bar__dial-btn {
-  animation-delay: 40ms;
-}
-
-.bottom-bar__dial-btn svg {
-  width: 22px;
-  height: 22px;
-}
-
-.bottom-bar__dial-btn:active {
-  background: var(--surface-2);
-}
-
-.bottom-bar__dial.is-closing {
-  pointer-events: none;
-}
-
-.bottom-bar__dial.is-closing .bottom-bar__dial-btn {
-  animation: dial-out 0.17s ease-in both;
-  animation-delay: 0s; /* both at once, within the time the menu stays mounted */
-}
-
-@keyframes dial-in {
-  from {
-    opacity: 0;
-    translate: 0 0;
-    scale: 0.2;
-  }
-}
-
-@keyframes dial-out {
-  to {
-    opacity: 0;
-    translate: 0 0;
-    scale: 0.2;
-  }
-}
-
-/* Tapping anywhere else closes the menu. */
-.bottom-bar__scrim {
-  position: fixed;
-  inset: 0;
-  pointer-events: auto;
 }
 
 /* Pin-drop mode: same colours, the pin tilts as before. */
@@ -2407,11 +3291,6 @@ input.timeline__time:focus {
   .bottom-bar__btn,
   .bottom-bar__btn svg {
     transition: none;
-  }
-
-  .bottom-bar__dial-btn,
-  .bottom-bar__dial.is-closing .bottom-bar__dial-btn {
-    animation: none;
   }
 }
 
@@ -2426,7 +3305,6 @@ input.timeline__time:focus {
   z-index: 1;
   width: 34px;
   height: 34px;
-  border-width: 2px;
   background: var(--pin);
   font-size: 17px;
   line-height: 1;
@@ -3611,6 +4489,10 @@ input.timeline__time:focus {
 
   .app--searching .corner-btn {
     transform: none;
+  }
+
+  .pin-rail {
+    top: calc(24px + 52px + 12px);
   }
 
   .drop-tray {

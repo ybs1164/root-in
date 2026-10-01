@@ -86,6 +86,7 @@ export interface KakaoMapInstance {
   panTo(latlng: KakaoLatLng): void;
   setBounds(bounds: unknown, paddingTop?: number, paddingRight?: number, paddingBottom?: number, paddingLeft?: number): void;
   relayout(): void;
+  setDraggable(draggable: boolean): void;
   getProjection(): { coordsFromContainerPoint(point: unknown): KakaoLatLng };
 }
 

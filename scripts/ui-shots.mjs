@@ -74,24 +74,18 @@ async function shareHash(page, key) {
 
 const settle = (page, ms = 1500) => page.waitForTimeout(ms);
 const click = (page, name) => page.getByRole('button', { name }).first().click({ timeout: 3000 });
-const tab = (page, name) => page.getByRole('tab', { name }).first().click({ timeout: 3000 });
-const expandSheet = async (page, vp) => { if (vp === 'mobile') await click(page, '패널 펼치기').catch(() => {}); };
 
 // Each state starts from a fresh page with seeded storage.
 const STATES = {
   'home': async () => {},
-  'sheet-full': async (page, vp) => { await expandSheet(page, vp); },
   'search': async (page) => {
     await page.getByRole('searchbox').or(page.locator('input[type=search], input')).first().fill('성수 카페');
     await settle(page, 3000);
   },
-  'pins': async (page, vp) => { await expandSheet(page, vp); await tab(page, '내 핀'); },
-  'course-list': async (page, vp) => { await expandSheet(page, vp); await tab(page, '내 코스'); },
-  'course-edit': async (page, vp) => {
-    await expandSheet(page, vp); await tab(page, '내 코스');
-    await page.getByText('성수 데이트 코스').first().click({ timeout: 3000 });
-    await settle(page);
-    await expandSheet(page, vp);
+  'rail-route': async (page) => { await click(page, '경로'); },
+  'rail-pins': async (page) => {
+    await page.getByRole('button', { name: '핀', exact: true }).click({ timeout: 3000 });
+    await page.getByRole('button', { name: /^카페 / }).first().click({ timeout: 3000 });
   },
   'pin-drop': async (page) => { await click(page, '지도에 핀 꽂기'); },
   'calendar': async (page) => { await click(page, '달력'); },

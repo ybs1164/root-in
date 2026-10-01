@@ -83,7 +83,7 @@ const monthOf = (key: string) => ({ year: Number(key.slice(0, 4)), month: Number
  */
 /** Sent down from the calendar button's menu; `seq` makes a repeat count. */
 export interface CalendarCommand {
-  type: 'month' | 'today' | 'share';
+  type: 'month' | 'today';
   seq: number;
 }
 
@@ -223,7 +223,6 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
     if (gesture.current) return;
     if (command.type === 'month' && modeRef.current === 'day') toMonth();
     else if (command.type === 'today') toDay(today);
-    else if (command.type === 'share' && modeRef.current === 'day') setSharing(true);
   });
 
   useEffect(() => onMode(mode), [mode]);
@@ -560,6 +559,10 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
           onTool={(next) => {
             setTool(next);
             setArmed(null);
+          }}
+          onShare={() => {
+            setTool(null);
+            setSharing(true);
           }}
         />
         <div ref={curEl} className="cal-day">

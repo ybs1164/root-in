@@ -157,7 +157,8 @@ export class MapLibreCourseMap implements CourseMap {
     if (points.length === 1) return this.focus(points[0], padding);
     const bounds = new maplibregl.LngLatBounds();
     points.forEach((p) => bounds.extend(p));
-    this.map.fitBounds(bounds, { padding, maxZoom: 16, duration: 600 });
+    // Slow enough to read as a glide, eased in and out (App's ROUTE_GLIDE_MS waits for it).
+    this.map.fitBounds(bounds, { padding, maxZoom: 16, duration: this.duration(850) });
   }
 
   setCourse(stops: PlaceRef[]): void {
@@ -194,7 +195,25 @@ export class MapLibreCourseMap implements CourseMap {
     const offset: [number, number] = padding
       ? [(padding.left - padding.right) / 2, (padding.top - padding.bottom) / 2]
       : [0, 0];
-    this.map.easeTo({ center, zoom: Math.max(this.map.getZoom(), FOCUS_ZOOM), offset, duration: 500 });
+    this.map.easeTo({ center, zoom: Math.max(this.map.getZoom(), FOCUS_ZOOM), offset, duration: this.duration(500) });
+  }
+
+  /**
+   * Animated moves only run while the map renders, and it doesn't until its
+   * style has loaded (a slow or blocked basemap): an ease then never gets
+   * anywhere. Until then, moves jump straight there.
+   */
+  private duration(ms: number): number {
+    return this.map.isStyleLoaded() ? ms : 0;
+  }
+
+  setPanEnabled(enabled: boolean): void {
+    if (enabled) this.map.dragPan.enable();
+    else this.map.dragPan.disable();
+  }
+
+  centerOn(center: [number, number]): void {
+    this.map.easeTo({ center, duration: this.duration(400) });
   }
 
   getCenter(): [number, number] {

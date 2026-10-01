@@ -1,4 +1,4 @@
-import { Eraser, Highlighter, Palette, PenLine, Pencil, Sparkles, Sticker, Undo2, Redo2, BrushCleaning, Wallpaper } from 'lucide-react';
+import { Eraser, Highlighter, Palette, PenLine, Pencil, Share, Sparkles, Sticker, Undo2, Redo2, BrushCleaning, Wallpaper } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import {
   BASE_COLORS,
@@ -29,8 +29,16 @@ const RAIL: { tool: DecorTool; label: string; Icon: typeof Sticker }[] = [
   { tool: 'pattern', label: '꾸미기', Icon: Wallpaper },
 ];
 
-/** 스티커 · 펜 · 테마, stacked under the settings button. */
-export function DecorRail({ tool, onTool }: { tool: DecorTool | null; onTool: (tool: DecorTool | null) => void }) {
+/** 스티커 · 펜 · 테마 · 꾸미기, stacked under the settings button, then 공유 a little apart in the accent colour. */
+export function DecorRail({
+  tool,
+  onTool,
+  onShare,
+}: {
+  tool: DecorTool | null;
+  onTool: (tool: DecorTool | null) => void;
+  onShare: () => void;
+}) {
   return (
     <div className="decor-rail" role="toolbar" aria-label="꾸미기" aria-orientation="vertical">
       {RAIL.map(({ tool: t, label, Icon }) => (
@@ -44,6 +52,9 @@ export function DecorRail({ tool, onTool }: { tool: DecorTool | null; onTool: (t
           <Icon size={20} aria-hidden />
         </button>
       ))}
+      <button className="decor-rail__btn decor-rail__share" aria-label="공유" onClick={onShare}>
+        <Share size={20} aria-hidden />
+      </button>
     </div>
   );
 }
