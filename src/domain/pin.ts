@@ -16,6 +16,8 @@ export const PIN_LIMITS = {
   maxCategories: 30,
   categoryName: 12,
   memo: 120,
+  /** A pin's place name, as renamed from its card. */
+  name: 40,
 } as const;
 
 /** Pins whose category was deleted land here; it is never stored. */

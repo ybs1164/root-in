@@ -2675,6 +2675,8 @@ input.timeline__time:focus {
   right: auto;
   width: min(360px, calc(100vw - 24px));
   translate: -50% 0;
+  /* Above the ⚙ rail: opened up (details, icons) it can grow into it. */
+  z-index: 21;
   animation: pin-card-in 0.18s ease both;
 }
 
@@ -2688,6 +2690,98 @@ input.timeline__time:focus {
   background: var(--surface);
   translate: -50% 0;
   rotate: 45deg;
+}
+
+/* Pin card: (icon) name (pen) / (⋯) … (bin). */
+.pin-card__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pin-card__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--pin, var(--surface-2));
+  font-size: 22px;
+  line-height: 1;
+}
+
+.pin-card__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pin-card__name-input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* no iOS zoom-in */
+  font-weight: 700;
+}
+
+.pin-card__tool {
+  color: var(--muted);
+}
+
+.pin-card .chip-row {
+  margin-top: 10px;
+}
+
+.pin-card__details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  align-items: center;
+  margin: 10px 0 0;
+  font-size: 14px;
+}
+
+.pin-card__details dt {
+  color: var(--muted);
+}
+
+.pin-card__details dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--text);
+}
+
+.pin-card__details .place-card__memo {
+  margin: 0;
+}
+
+.pin-card__link {
+  grid-column: 1 / -1;
+}
+
+.pin-card__link a {
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
+/* ⋯ on the left, the bin at the bottom right. */
+.pin-card__bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
 }
 
 @keyframes pin-card-in {

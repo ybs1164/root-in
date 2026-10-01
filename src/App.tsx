@@ -401,6 +401,9 @@ export default function App() {
     focusPoint(place.center, 150);
   };
 
+  // Stable, so the card's outside-touch listener isn't re-attached every render.
+  const closePinCard = useCallback(() => setActivePinId(null), []);
+
   const openPin = (id: string) => {
     const pin = pins.find((p) => p.id === id);
     if (!pin) return;
@@ -723,20 +726,18 @@ export default function App() {
         <PinCard
           pin={activePin}
           categories={categories}
-          addLabel={courseFull ? `최대 ${COURSE_LIMITS.maxStops}곳` : '코스에 추가'}
-          addDisabled={courseFull}
-          onAdd={() => addPlace(activePin.place)}
           onRecategorize={(id) => {
             pinStore.updatePin(activePin.id, { categoryId: id });
             updateSettings((s) => withRecentCategory(s, id));
           }}
+          onRename={(name) => pinStore.updatePin(activePin.id, { place: { ...activePin.place, name } })}
           onMemo={(memo) => pinStore.updatePin(activePin.id, { memo: memo || undefined })}
           onDelete={() => {
             const undo = pinStore.removePin(activePin.id);
             setActivePinId(null);
             notify(`${activePin.place.name} 핀을 지웠어요.`, undo);
           }}
-          onClose={() => setActivePinId(null)}
+          onClose={closePinCard}
         />
       )}
 
