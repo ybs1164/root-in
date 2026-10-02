@@ -884,6 +884,7 @@ export default function App() {
         <RouteTitle
           routeId={shownRoute.id}
           title={shownRoute.title}
+          icon={editRoute ? editRoute.icon : shownRoute.icon}
           onRename={(title) => course.save({ ...shownRoute, title })}
           slideFrom={routeStep?.id === shownRoute.id ? routeStep.from : 0}
           onEdit={startEditing}

@@ -1,6 +1,7 @@
 import { Check, GripVertical } from 'lucide-react';
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
-import { COURSE_LIMITS, ROUTE_ICONS } from '../domain/course';
+import { COURSE_LIMITS } from '../domain/course';
+import { RouteIconFace, RouteIconOptions } from './RouteIconOptions';
 import type { CourseStop } from '../types/course';
 
 interface RouteEditTrayProps {
@@ -11,9 +12,9 @@ interface RouteEditTrayProps {
   onMove: (from: number, to: number) => void;
   /** ✓: keep the changes and leave editing (needs at least two stops). */
   onDone: () => void;
-  /** The route's icon (the one by its name in the list); none shows the default. */
+  /** The route's icon (by its name in the list and above it on the map); none by default. */
   icon?: string;
-  onIcon: (icon: string) => void;
+  onIcon: (icon: string | undefined) => void;
 }
 
 /**
@@ -34,7 +35,6 @@ export default function RouteEditTray({ stops, note, onNote, onMove, onDone, ico
     document.addEventListener('pointerdown', away);
     return () => document.removeEventListener('pointerdown', away);
   }, [pickingIcon]);
-  const shownIcon = icon ?? ROUTE_ICONS[0];
   const listEl = useRef<HTMLOListElement | null>(null);
   // The row being dragged, how far, and where it would land.
   const [drag, setDrag] = useState<{ from: number; dy: number; to: number; rowH: number; startY: number } | null>(null);
@@ -76,28 +76,22 @@ export default function RouteEditTray({ stops, note, onNote, onMove, onDone, ico
       <div className="route-edit__head">
         <div ref={iconBox} className="route-edit__icon-box">
           <button
-            className="route-edit__icon"
-            aria-label={`대표 아이콘 ${shownIcon}, 바꾸기`}
+            className={`route-edit__icon ${icon ? '' : 'is-empty'}`}
+            aria-label={`대표 아이콘 ${icon ?? '없음'}, 바꾸기`}
             aria-expanded={pickingIcon}
             onClick={() => setPickingIcon((v) => !v)}
           >
-            {shownIcon}
+            <RouteIconFace icon={icon} />
           </button>
           {pickingIcon && (
             <div className="route-edit__icons folder-picker" role="group" aria-label="대표 아이콘">
-              {ROUTE_ICONS.map((i) => (
-                <button
-                  key={i}
-                  className={`folder-picker__opt ${shownIcon === i ? 'is-on' : ''}`}
-                  aria-pressed={shownIcon === i}
-                  onClick={() => {
-                    onIcon(i);
-                    setPickingIcon(false);
-                  }}
-                >
-                  {i}
-                </button>
-              ))}
+              <RouteIconOptions
+                value={icon}
+                onPick={(i) => {
+                  onIcon(i);
+                  setPickingIcon(false);
+                }}
+              />
             </div>
           )}
         </div>

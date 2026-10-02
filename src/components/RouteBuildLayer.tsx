@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { COURSE_LIMITS, ROUTE_ICONS } from '../domain/course';
+import { COURSE_LIMITS } from '../domain/course';
+import { RouteIconFace, RouteIconOptions } from './RouteIconOptions';
 import { stopCentre } from './StopLines';
 
 interface RouteBuildLayerProps {
@@ -157,9 +158,8 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
   // ✓ → name and description, in a native modal <dialog>.
   const dialogEl = useRef<HTMLDialogElement | null>(null);
   const [asking, setAsking] = useState(false);
-  // The route's decorative icon, and whether its picker is open.
-  // Starts on the first icon, so every new route has one.
-  const [icon, setIcon] = useState<string>(ROUTE_ICONS[0]);
+  // The route's decorative icon (none to start with), and whether its picker is open.
+  const [icon, setIcon] = useState<string | undefined>(undefined);
   const [pickingIcon, setPickingIcon] = useState(false);
   useEffect(() => {
     const d = dialogEl.current;
@@ -197,31 +197,24 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
             <div className="route-build__name">
               <button
                 type="button"
-                className="route-build__icon"
-                aria-label={`아이콘 ${icon}, 바꾸기`}
+                className={`route-build__icon ${icon ? '' : 'is-empty'}`}
+                aria-label={`아이콘 ${icon ?? '없음'}, 바꾸기`}
                 aria-expanded={pickingIcon}
                 onClick={() => setPickingIcon((v) => !v)}
               >
-                {icon}
+                <RouteIconFace icon={icon} />
               </button>
               <input name="title" className="route-build__field" aria-label="이름" placeholder="이름" defaultValue={defaultTitle} maxLength={COURSE_LIMITS.title} />
             </div>
             {pickingIcon && (
               <div className="route-build__icons" role="group" aria-label="아이콘">
-                {ROUTE_ICONS.map((i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    className={`folder-picker__opt ${icon === i ? 'is-on' : ''}`}
-                    aria-pressed={icon === i}
-                    onClick={() => {
-                      setIcon(i);
-                      setPickingIcon(false);
-                    }}
-                  >
-                    {i}
-                  </button>
-                ))}
+                <RouteIconOptions
+                  value={icon}
+                  onPick={(i) => {
+                    setIcon(i);
+                    setPickingIcon(false);
+                  }}
+                />
               </div>
             )}
             <textarea name="note" className="route-build__field route-build__note" aria-label="설명" placeholder="설명" maxLength={COURSE_LIMITS.note} rows={3} />

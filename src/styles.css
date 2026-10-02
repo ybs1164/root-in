@@ -2774,6 +2774,23 @@ input.timeline__time:focus {
   pointer-events: auto;
 }
 
+/* The route's icon, centred over the name (the pen beside the name, 16px
+   plus the 8px gap, would pull a plain 50% off centre). */
+.route-title__icon {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: calc(50% - 12px);
+  font-size: 34px;
+  line-height: 1;
+  translate: -50% 0;
+  pointer-events: none;
+}
+
+/* No pen beside the name (editing the route): the name alone is the centre. */
+.route-title--no-pen .route-title__icon {
+  left: 50%;
+}
+
 .route-title__name {
   min-width: 0;
   margin: 0;
@@ -3267,6 +3284,11 @@ input.timeline__time:focus {
   background: transparent;
   font-size: 24px;
   line-height: 1;
+}
+
+/* 없음: a quiet mark among the emoji. */
+.folder-picker__opt--none {
+  color: var(--muted);
 }
 
 .folder-picker__opt.is-on {

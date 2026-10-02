@@ -5,6 +5,8 @@ import { COURSE_LIMITS } from '../domain/course';
 interface RouteTitleProps {
   routeId: string;
   title: string;
+  /** The route's icon, shown centred above its name (none, nothing there). */
+  icon?: string;
   onRename: (title: string) => void;
   /** The side this route's name slides in from (an arrow stepped to it), 0 when it just appears. */
   slideFrom?: -1 | 0 | 1;
@@ -26,7 +28,7 @@ const SLIDE_MS = 260;
  * elsewhere sets it; Escape keeps the old one). The field looks just like the
  * name, so only the text changes.
  */
-export default function RouteTitle({ routeId, title, onRename, slideFrom = 0, onStep, onEdit, editMode = false }: RouteTitleProps) {
+export default function RouteTitle({ routeId, title, icon, onRename, slideFrom = 0, onStep, onEdit, editMode = false }: RouteTitleProps) {
   const [editing, setEditing] = useState(false);
   // What's typed so far, mirrored into a hidden copy that sizes the field to its text.
   const [draft, setDraft] = useState(title);
@@ -37,14 +39,14 @@ export default function RouteTitle({ routeId, title, onRename, slideFrom = 0, on
 
   // Stepping to a neighbour pages the names like days on the calendar: the
   // old name slides off the other way while the new one comes in.
-  const last = useRef({ routeId, title });
-  const [leaving, setLeaving] = useState<{ title: string; to: -1 | 1; key: string } | null>(null);
+  const [leaving, setLeaving] = useState<{ title: string; icon?: string; to: -1 | 1; key: string } | null>(null);
+  const prev = useRef({ routeId, title, icon });
   useLayoutEffect(() => {
-    const before = last.current;
-    last.current = { routeId, title };
+    const before = prev.current;
+    prev.current = { routeId, title, icon };
     if (before.routeId === routeId) return;
     if (!slideFrom) return setLeaving(null);
-    setLeaving({ title: before.title, to: slideFrom === 1 ? -1 : 1, key: before.routeId });
+    setLeaving({ title: before.title, icon: before.icon, to: slideFrom === 1 ? -1 : 1, key: before.routeId });
     const t = window.setTimeout(() => setLeaving(null), SLIDE_MS);
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -65,15 +67,21 @@ export default function RouteTitle({ routeId, title, onRename, slideFrom = 0, on
           style={{ '--slide': leaving.to } as CSSProperties}
           aria-hidden
         >
+          {leaving.icon && <span className="route-title__icon">{leaving.icon}</span>}
           <h2 className="route-title__name">{leaving.title}</h2>
           <span className="route-title__pen" />
         </div>
       )}
       <div
         key={routeId}
-        className={`route-title ${slideFrom ? 'route-title--in' : ''}`}
+        className={`route-title ${slideFrom ? 'route-title--in' : ''} ${editMode && !editing ? 'route-title--no-pen' : ''}`}
         style={slideFrom ? ({ '--slide': slideFrom } as CSSProperties) : undefined}
       >
+        {icon && (
+          <span className="route-title__icon" aria-hidden>
+            {icon}
+          </span>
+        )}
         {editing ? (
           <span className="route-title__name route-title__field">
             <span className="route-title__sizer" aria-hidden>
