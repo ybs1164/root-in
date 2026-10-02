@@ -38,6 +38,8 @@ interface Stroke {
   x: number;
   y: number;
   startPin: string | null;
+  /** Started on the route's last numbered stop: the stroke carries the route on from there. */
+  fromLast: boolean;
   drawing: boolean;
   moved: boolean;
   fingerX: number;
@@ -104,9 +106,13 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
     const down = (e: PointerEvent) => {
       if (!e.isPrimary || !mapEl.contains(e.target as Node)) return;
       const startPin = pinAt(e.clientX, e.clientY);
-      stroke.current = { x: e.clientX, y: e.clientY, startPin, drawing: false, moved: false, fingerX: e.clientX, fingerY: e.clientY };
-      // Starting on a pin may become a drawing stroke: keep the map still under it.
-      if (startPin) handlers.current.onPanEnabled(false);
+      // The last stop's own pin may be hidden under it (editing a route hides
+      // its pins), so the numbered marker counts as somewhere to start too.
+      const stop = (e.target as Element | null)?.closest?.<HTMLElement>('.map-marker[data-stop]');
+      const fromLast = !startPin && !!stop && Number(stop.dataset.stop) === chosenRef.current.length;
+      stroke.current = { x: e.clientX, y: e.clientY, startPin, fromLast, drawing: false, moved: false, fingerX: e.clientX, fingerY: e.clientY };
+      // Starting on a pin (or the last stop) may become a drawing stroke: keep the map still under it.
+      if (startPin || fromLast) handlers.current.onPanEnabled(false);
     };
     const move = (e: PointerEvent) => {
       const s = stroke.current;
@@ -118,6 +124,8 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
         if (s.startPin) {
           s.drawing = true;
           handlers.current.onAdd(s.startPin);
+        } else if (s.fromLast) {
+          s.drawing = true; // already the last stop: nothing to add for the start
         }
       }
       if (!s.drawing) return;
@@ -129,7 +137,7 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
       const s = stroke.current;
       if (!s || !e.isPrimary) return;
       stroke.current = null;
-      if (s.startPin) handlers.current.onPanEnabled(true);
+      if (s.startPin || s.fromLast) handlers.current.onPanEnabled(true);
       if (s.drawing) {
         // The stroke may end on a pin, whose click would take it back out.
         const swallow = (c: MouseEvent) => {
@@ -141,7 +149,7 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
         return;
       }
       // A plain tap on bare map (not a pan) drops the route being made.
-      if (!s.moved && !s.startPin && mapEl.contains(e.target as Node)) handlers.current.onCancel();
+      if (!s.moved && !s.startPin && !s.fromLast && mapEl.contains(e.target as Node)) handlers.current.onCancel();
     };
     document.addEventListener('pointerdown', down, true);
     document.addEventListener('pointermove', move, { capture: true, passive: false });
