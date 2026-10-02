@@ -28,4 +28,13 @@ describe('routeFolderRepository', () => {
     window.localStorage.setItem('goodroot:route-folders:v1', '{');
     expect(loadRouteFolders()).toEqual({ folders: [], assign: {} });
   });
+
+  it('keeps the dragged route order (ids only, no repeats); none stored, none loaded', () => {
+    saveRouteFolders({ folders: [], assign: {}, order: ['b', 'a'] });
+    expect(loadRouteFolders().order).toEqual(['b', 'a']);
+    localStorage.setItem('goodroot:route-folders:v1', JSON.stringify({ folders: [], assign: {}, order: ['a', 3, 'a', 'x'.repeat(99), 'c'] }));
+    expect(loadRouteFolders().order).toEqual(['a', 'c']);
+    saveRouteFolders({ folders: [], assign: {} });
+    expect(loadRouteFolders()).toEqual({ folders: [], assign: {} });
+  });
 });

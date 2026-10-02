@@ -4,7 +4,7 @@
  * drawing box (0..1), so they survive any screen size and the share image.
  */
 
-export type DecorTool = 'sticker' | 'pen' | 'theme' | 'pattern';
+export type DecorTool = 'sticker' | 'pen' | 'text' | 'theme' | 'pattern';
 
 export interface PlacedSticker {
   id: string;
@@ -46,9 +46,89 @@ export interface PenSettings {
   width: PenWidth;
 }
 
+// ----- Text boxes -----
+
+export type TextFont = 'sans' | 'serif' | 'pen' | 'round' | 'heavy';
+export type TextAlign = 'left' | 'center' | 'right';
+
+/** How a text box looks: what the text toolbar sets. Flags are only stored when on. */
+export interface TextStyle {
+  font: TextFont;
+  color: InkColor;
+  align: TextAlign;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strike?: boolean;
+}
+
+/** A text box on the drawing, centred on (x, y); lines break only where Enter was pressed. */
+export interface PlacedText extends TextStyle {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  /** Font size as a fraction of the box width. */
+  size: number;
+  rotate?: number;
+}
+
+/** The fonts (Google Fonts, linked in index.html), each with a fallback if it can't load. */
+/** `label` is read out (aria); `sample` is what the toolbar shows, written in the font itself. */
+export const TEXT_FONTS: { font: TextFont; label: string; sample: string; family: string }[] = [
+  { font: 'sans', label: '기본', sample: 'Basic', family: "system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" },
+  { font: 'serif', label: '명조', sample: 'Serif', family: "'Nanum Myeongjo', serif" },
+  { font: 'pen', label: '손글씨', sample: 'Hand', family: "'Nanum Pen Script', cursive" },
+  { font: 'round', label: '동글', sample: 'Round', family: "'Jua', sans-serif" },
+  // Gothic A1 comes in real heavy weights: Black Han Sans had only one, and
+  // bold on it was faked by the browser and smeared.
+  { font: 'heavy', label: '두껍게', sample: 'Heavy', family: "'Gothic A1', sans-serif" },
+];
+
+/** A text box's font weight: Heavy is thick to begin with (900 when bold), the others 400 / 700. */
+export const textWeight = (t: { font: TextFont; bold?: boolean }): number =>
+  t.font === 'heavy' ? (t.bold ? 900 : 800) : t.bold ? 700 : 400;
+
+export const textFamily = (font: TextFont): string => (TEXT_FONTS.find((f) => f.font === font) ?? TEXT_FONTS[0]).family;
+
+export const TEXT_EFFECTS: { effect: 'bold' | 'italic' | 'underline' | 'strike'; label: string }[] = [
+  { effect: 'bold', label: '굵게' },
+  { effect: 'italic', label: '기울임' },
+  { effect: 'underline', label: '밑줄' },
+  { effect: 'strike', label: '취소선' },
+];
+
+export const TEXT_ALIGNS: { align: TextAlign; label: string }[] = [
+  { align: 'left', label: '왼쪽 정렬' },
+  { align: 'center', label: '가운데 정렬' },
+  { align: 'right', label: '오른쪽 정렬' },
+];
+
+export const DEFAULT_TEXT_STYLE: TextStyle = { font: 'sans', color: 'ink-black', align: 'center' };
+
+export const TEXT_SIZE = 0.07;
+/** Pinch limits; the smallest keeps the field at 16px+ on a phone, so iOS doesn't zoom in to type. */
+export const TEXT_MIN = 0.05;
+export const TEXT_MAX = 0.3;
+export const TEXT_MAX_LENGTH = 200;
+/** Line height of a text box, in font sizes (the screen and the share image agree on it). */
+export const TEXT_LINE_HEIGHT = 1.25;
+
+/** Nothing worth keeping: empty, or only spaces, tabs, line breaks (and invisible zero-width marks). */
+export const isBlankText = (text: string): boolean => text.replace(/[\u200b-\u200d\u2060\ufeff]/g, '').trim() === '';
+
+/** A style with the flags that are off left out, so stored boxes stay small. */
+export function cleanTextStyle(style: TextStyle): TextStyle {
+  const out: TextStyle = { font: style.font, color: style.color, align: style.align };
+  for (const { effect } of TEXT_EFFECTS) if (style[effect]) out[effect] = true;
+  return out;
+}
+
 export interface DayDecor {
   stickers: PlacedSticker[];
   strokes: Stroke[];
+  /** Text boxes (absent on days saved before there were any). */
+  texts?: PlacedText[];
   /** The day's own colour theme (absent = default); only that day shows it. */
   theme?: ThemeId;
   /** A background pattern behind the day (absent = none); one at a time. */
@@ -106,9 +186,18 @@ type Pt = { x: number; y: number };
  * and turn it by their angle. Finger positions are in pixels, `boxPx` is the
  * box's width in pixels (positions are box fractions).
  */
-export function stickerGesture(base: StickerPose, from: Pt[], to: Pt[], boxPx: number): StickerPose {
+export function stickerGesture(
+  base: StickerPose,
+  from: Pt[],
+  to: Pt[],
+  boxPx: number,
+  limits: { min: number; max: number; free?: boolean } = { min: STICKER_MIN, max: STICKER_MAX },
+): StickerPose {
+  // Free: the piece may be dragged off the box (a drop there puts it back,
+  // see dropOutcome); still kept within a box's width of it.
+  const pos = limits.free ? (v: number) => Math.min(2, Math.max(-1, v)) : clamp01;
   if (from.length === 1 || to.length === 1) {
-    return { ...base, x: clamp01(base.x + (to[0].x - from[0].x) / boxPx), y: clamp01(base.y + (to[0].y - from[0].y) / boxPx) };
+    return { ...base, x: pos(base.x + (to[0].x - from[0].x) / boxPx), y: pos(base.y + (to[0].y - from[0].y) / boxPx) };
   }
   const mid = (a: Pt[]) => ({ x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 });
   const spread = (a: Pt[]) => Math.hypot(a[1].x - a[0].x, a[1].y - a[0].y);
@@ -119,11 +208,25 @@ export function stickerGesture(base: StickerPose, from: Pt[], to: Pt[], boxPx: n
   let turn = base.rotate + angle(to) - angle(from);
   turn = ((turn % 360) + 540) % 360 - 180; // keep it in -180..180
   return {
-    x: clamp01(base.x + (m1.x - m0.x) / boxPx),
-    y: clamp01(base.y + (m1.y - m0.y) / boxPx),
-    size: Math.min(STICKER_MAX, Math.max(STICKER_MIN, base.size * scale)),
+    x: pos(base.x + (m1.x - m0.x) / boxPx),
+    y: pos(base.y + (m1.y - m0.y) / boxPx),
+    size: Math.min(limits.max, Math.max(limits.min, base.size * scale)),
     rotate: turn,
   };
+}
+
+type Rect = { left: number; top: number; right: number; bottom: number };
+
+/**
+ * Where a dragged sticker or text box lands, by where the finger lets go:
+ * on the trash (deleted), outside the drawing box or inside it (either way
+ * it's kept, its centre brought onto the box). The trash is checked first.
+ * `slop` widens the trash a little: fingers cover what they aim at.
+ */
+export function dropOutcome(at: Pt, box: Rect, trash: Rect | null, slop = 12): 'trash' | 'outside' | 'inside' {
+  const within = (r: Rect, pad: number) => at.x >= r.left - pad && at.x <= r.right + pad && at.y >= r.top - pad && at.y <= r.bottom + pad;
+  if (trash && within(trash, slop)) return 'trash';
+  return within(box, 0) ? 'inside' : 'outside';
 }
 
 /** The eraser is wider than the pen at the same setting (fingers are blunt). */
@@ -212,7 +315,7 @@ export function hexToHsv(hex: string): { h: number; s: number; v: number } {
 // ----- Undo / redo -----
 
 /** What undo and redo step through: the drawing, not the theme. */
-export type DecorSnapshot = Pick<DayDecor, 'stickers' | 'strokes'>;
+export type DecorSnapshot = Pick<DayDecor, 'stickers' | 'strokes' | 'texts'>;
 
 export interface DecorHistory {
   past: DecorSnapshot[];
@@ -223,9 +326,10 @@ export const EMPTY_HISTORY: DecorHistory = { past: [], future: [] };
 
 const HISTORY_LIMIT = 60;
 
-const snap = (d: DayDecor): DecorSnapshot => ({ stickers: d.stickers, strokes: d.strokes });
+// texts always as a key (even undefined), so restoring a snapshot from before any text clears them.
+const snap = (d: DayDecor): DecorSnapshot => ({ stickers: d.stickers, strokes: d.strokes, texts: d.texts });
 
-/** A new change (a stroke, a sticker, clearing all): remember before, and forget anything undone. */
+/** A new change (a stroke, a sticker, a text box, clearing all): remember before, and forget anything undone. */
 export const recordChange = (h: DecorHistory, before: DayDecor): DecorHistory => ({
   past: [...h.past, snap(before)].slice(-HISTORY_LIMIT),
   future: [],

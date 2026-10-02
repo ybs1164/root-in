@@ -23,7 +23,11 @@ export function loadRouteFolders(): RouteFolders {
         if (typeof folder === 'string' && ids.has(folder)) assign[course] = folder;
       }
     }
-    return { folders, assign };
+    // The dragged route order: ids only, at most as many as could be useful.
+    const order = Array.isArray(parsed.order)
+      ? [...new Set(parsed.order.filter((id): id is string => typeof id === 'string' && id.length <= 64))].slice(0, 1000)
+      : undefined;
+    return order?.length ? { folders, assign, order } : { folders, assign };
   } catch {
     return EMPTY_ROUTE_FOLDERS;
   }

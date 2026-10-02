@@ -55,4 +55,34 @@ describe('calendar days', () => {
     localStorage.setItem('goodroot:days:v1', '{oops');
     expect(loadDays().decor).toEqual({});
   });
+
+  it('keeps text boxes with their style, drops blank or malformed ones', () => {
+    localStorage.setItem(
+      'goodroot:days:v1',
+      JSON.stringify({
+        decor: {
+          '2026-10-01': {
+            stickers: [],
+            strokes: [],
+            texts: [
+              { id: 't1', text: '성수 산책\n좋았다', x: 0.4, y: 2, size: 9, font: 'pen', color: 'accent', align: 'left', bold: true, italic: 'yes', rotate: 10 },
+              { id: 't2', text: ' \n\t ', x: 0.5, y: 0.5, size: 0.07, font: 'sans', color: 'ink-black', align: 'center' },
+              { id: 't3', text: 'x'.repeat(500), x: 0.5, y: 0.5, size: 0.07, font: 'comic', color: 'red', align: 'justify' },
+              { id: 't4', text: 'no position' },
+            ],
+          },
+          '2026-10-02': { stickers: [], strokes: [], texts: [{ id: 'b', text: '   ', x: 0, y: 0, size: 0.1 }] },
+        },
+      }),
+    );
+    const d = loadDays().decor;
+    expect(d['2026-10-01'].texts).toEqual([
+      { id: 't1', text: '성수 산책\n좋았다', x: 0.4, y: 1, size: 0.3, rotate: 10, font: 'pen', color: 'accent', align: 'left', bold: true },
+      { id: 't3', text: 'x'.repeat(200), x: 0.5, y: 0.5, size: 0.07, font: 'sans', color: 'ink-black', align: 'center' },
+    ]);
+    // Only a blank box: the day has nothing worth keeping.
+    expect(d['2026-10-02'].texts).toBeUndefined();
+    saveDays({ decor: d, shapes: {}, edges: {} });
+    expect(Object.keys(loadDays().decor)).toEqual(['2026-10-01']);
+  });
 });

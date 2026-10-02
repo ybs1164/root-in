@@ -1,4 +1,25 @@
-import { Eraser, Highlighter, Palette, PenLine, Pencil, Share, Sparkles, Sticker, Undo2, Redo2, BrushCleaning, Wallpaper } from 'lucide-react';
+import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  Bold,
+  BrushCleaning,
+  Eraser,
+  Highlighter,
+  Italic,
+  Palette,
+  PenLine,
+  Pencil,
+  Redo2,
+  Share,
+  Sparkles,
+  Sticker,
+  Strikethrough,
+  Type,
+  Underline,
+  Undo2,
+  Wallpaper,
+} from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import {
   BASE_COLORS,
@@ -11,8 +32,15 @@ import {
   PEN_WIDTHS,
   STICKERS,
   PATTERNS,
+  TEXT_ALIGNS,
+  TEXT_EFFECTS,
+  TEXT_FONTS,
+  textFamily,
+  textWeight,
   THEMES,
   type DecorTool,
+  type TextAlign,
+  type TextStyle,
   type PenSettings,
   type PenTool,
   type PatternId,
@@ -25,11 +53,12 @@ import DayPattern from './DayPattern';
 const RAIL: { tool: DecorTool; label: string; Icon: typeof Sticker }[] = [
   { tool: 'sticker', label: '스티커', Icon: Sticker },
   { tool: 'pen', label: '펜', Icon: PenLine },
+  { tool: 'text', label: '텍스트', Icon: Type },
   { tool: 'theme', label: '테마', Icon: Palette },
   { tool: 'pattern', label: '꾸미기', Icon: Wallpaper },
 ];
 
-/** 스티커 · 펜 · 테마 · 꾸미기, stacked under the settings button, then 공유 a little apart in the accent colour. */
+/** 스티커 · 펜 · 텍스트 · 테마 · 꾸미기, stacked under the settings button, then 공유 a little apart in the accent colour. */
 export function DecorRail({
   tool,
   onTool,
@@ -63,6 +92,8 @@ interface DecorTrayProps {
   tool: DecorTool;
   /** Going down before the next tool's sheet comes up. */
   leaving?: boolean;
+  /** Out of the way below the screen for now (a piece is being dragged). */
+  away?: boolean;
   armed: string | null;
   onArm: (emoji: string | null) => void;
   pen: PenSettings;
@@ -81,7 +112,13 @@ interface DecorTrayProps {
   /** The day's background pattern: one at a time, like the theme. */
   pattern: PatternId;
   onPattern: (pattern: PatternId) => void;
+  /** The picked text box's looks; changes apply to it (and to the next new box). */
+  textStyle: TextStyle;
+  onTextStyle: (patch: Partial<TextStyle>) => void;
 }
+
+const EFFECT_ICONS = { bold: Bold, italic: Italic, underline: Underline, strike: Strikethrough };
+const ALIGN_ICONS: Record<TextAlign, typeof Bold> = { left: AlignLeft, center: AlignCenter, right: AlignRight };
 
 const PEN_ICONS: Record<PenTool, typeof PenLine> = {
   pen: Pencil,
@@ -105,13 +142,47 @@ const WIDTH_LABELS: Record<PenWidth, string> = { thin: '가늘게', medium: '보
  */
 export function DecorTray(p: DecorTrayProps) {
   const [picking, setPicking] = useState(false);
-  const custom = isCustomColor(p.pen.color) ? p.pen.color : null;
   const label = RAIL.find((r) => r.tool === p.tool)?.label;
   // Picking a colour means drawing with it: the eraser hands over to the pen.
-  const setColor = (color: string) => p.onPen({ ...p.pen, color, tool: p.pen.tool === 'eraser' ? 'pen' : p.pen.tool });
+  // With the text tool the colours are the picked box's.
+  const isText = p.tool === 'text';
+  const inkColor = isText ? p.textStyle.color : p.pen.color;
+  const custom = isCustomColor(inkColor) ? inkColor : null;
+  const setColor = (color: string) =>
+    isText ? p.onTextStyle({ color }) : p.onPen({ ...p.pen, color, tool: p.pen.tool === 'eraser' ? 'pen' : p.pen.tool });
+  const colorButtons = (
+    <>
+      {BASE_COLORS.map(({ color, label: name }) => (
+        <button
+          key={color}
+          className={`decor-tray__color ${inkColor === color ? 'is-on' : ''}`}
+          style={{ color: inkCss(color) }}
+          aria-label={name}
+          aria-pressed={inkColor === color}
+          onClick={() => setColor(color)}
+        >
+          <span aria-hidden />
+        </button>
+      ))}
+      {custom && (
+        <button className="decor-tray__color is-on" style={{ color: custom }} aria-label="팔레트에서 고른 색" aria-pressed>
+          <span aria-hidden />
+        </button>
+      )}
+      <button
+        className={`decor-tray__palette ${picking ? 'is-on' : ''}`}
+        aria-label="팔레트에서 색 고르기"
+        aria-expanded={picking}
+        onClick={() => setPicking(!picking)}
+      >
+        <span aria-hidden />
+      </button>
+    </>
+  );
+  const picker = picking && <ColorPicker color={custom ?? '#ff4d6d'} onPick={setColor} onClose={() => setPicking(false)} />;
 
   return (
-    <div className={`decor-tray decor-tray--${p.tool} ${p.leaving ? 'is-leaving' : ''}`} role="toolbar" aria-label={label}>
+    <div className={`decor-tray decor-tray--${p.tool} ${p.leaving ? 'is-leaving' : ''} ${p.away ? 'is-away' : ''}`} role="toolbar" aria-label={label}>
       <div className="decor-tray__grip" aria-hidden />
 
       {p.tool === 'sticker' && (
@@ -161,31 +232,7 @@ export function DecorTray(p: DecorTrayProps) {
             ))}
           </div>
           <div className="decor-tray__row">
-            {BASE_COLORS.map(({ color, label: name }) => (
-              <button
-                key={color}
-                className={`decor-tray__color ${p.pen.color === color ? 'is-on' : ''}`}
-                style={{ color: inkCss(color) }}
-                aria-label={name}
-                aria-pressed={p.pen.color === color}
-                onClick={() => setColor(color)}
-              >
-                <span aria-hidden />
-              </button>
-            ))}
-            {custom && (
-              <button className="decor-tray__color is-on" style={{ color: custom }} aria-label="팔레트에서 고른 색" aria-pressed>
-                <span aria-hidden />
-              </button>
-            )}
-            <button
-              className={`decor-tray__palette ${picking ? 'is-on' : ''}`}
-              aria-label="팔레트에서 색 고르기"
-              aria-expanded={picking}
-              onClick={() => setPicking(!picking)}
-            >
-              <span aria-hidden />
-            </button>
+            {colorButtons}
             <button className="decor-tray__undo" aria-label="되돌리기" disabled={!p.canUndo} onClick={p.onUndo}>
               <Undo2 size={22} aria-hidden />
             </button>
@@ -196,7 +243,61 @@ export function DecorTray(p: DecorTrayProps) {
               <BrushCleaning size={22} aria-hidden />
             </button>
           </div>
-          {picking && <ColorPicker color={custom ?? '#ff4d6d'} onPick={setColor} onClose={() => setPicking(false)} />}
+          {picker}
+        </div>
+      )}
+
+      {/* Text: fonts; effects and alignment; colours — one row each, centred. */}
+      {isText && (
+        <div className="decor-tray__pen decor-tray__text">
+          <div className="decor-tray__row">
+            {TEXT_FONTS.map(({ font, label: name, sample }) => (
+              <button
+                key={font}
+                className={`decor-tray__font ${p.textStyle.font === font ? 'is-on' : ''}`}
+                style={{ fontFamily: textFamily(font), fontWeight: textWeight({ font }) }}
+                aria-label={`글꼴 ${name}`}
+                aria-pressed={p.textStyle.font === font}
+                onClick={() => p.onTextStyle({ font })}
+              >
+                {sample}
+              </button>
+            ))}
+          </div>
+          <div className="decor-tray__row">
+            {TEXT_EFFECTS.map(({ effect, label: name }) => {
+              const Icon = EFFECT_ICONS[effect];
+              const on = !!p.textStyle[effect];
+              return (
+                <button
+                  key={effect}
+                  className={`decor-tray__tool ${on ? 'is-on' : ''}`}
+                  aria-label={name}
+                  aria-pressed={on}
+                  onClick={() => p.onTextStyle({ [effect]: !on })}
+                >
+                  <Icon size={20} aria-hidden />
+                </button>
+              );
+            })}
+            <span className="decor-tray__sep" aria-hidden />
+            {TEXT_ALIGNS.map(({ align, label: name }) => {
+              const Icon = ALIGN_ICONS[align];
+              return (
+                <button
+                  key={align}
+                  className={`decor-tray__tool ${p.textStyle.align === align ? 'is-on' : ''}`}
+                  aria-label={name}
+                  aria-pressed={p.textStyle.align === align}
+                  onClick={() => p.onTextStyle({ align })}
+                >
+                  <Icon size={20} aria-hidden />
+                </button>
+              );
+            })}
+          </div>
+          <div className="decor-tray__row">{colorButtons}</div>
+          {picker}
         </div>
       )}
 

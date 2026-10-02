@@ -51,6 +51,7 @@
   --hue-shade: #000000;
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
   --backdrop: rgba(0, 0, 0, 0.4);
+  --step-arrow: #c9c1ba; /* the < > beside a route's name: light grey, no button behind */
 }
 
 /* Layout tokens and the pin palette (same in light and dark: a pin keeps
@@ -1251,7 +1252,8 @@ button:disabled {
 }
 
 .decor--pen,
-.decor--sticker {
+.decor--sticker,
+.decor--text {
   pointer-events: auto;
   touch-action: none;
   /* Where drawing and stickers go; touching outside it puts the tool away. */
@@ -1301,27 +1303,120 @@ button:disabled {
   outline-offset: 4px;
 }
 
-.decor__remove {
+.decor__trash {
+  /* Just under the drawing, outside it; the tool sheet goes down while a
+     piece is dragged so it's in view. */
   position: absolute;
-  top: -16px;
-  right: -16px;
+  left: 50%;
+  top: calc(100% + 18px);
+  z-index: 3; /* over the pieces, even the one being dragged onto it */
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: 0;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  background: var(--text);
-  color: var(--surface);
+  background: var(--surface-2);
+  color: var(--muted);
+  translate: -50% 0;
+  pointer-events: none;
+  animation: trash-in 0.18s ease-out both;
+  transition:
+    scale 0.15s,
+    background-color 0.15s,
+    color 0.15s;
 }
 
-/* 44px to touch, 26px to see; the extra reaches away from the sticker so
-   pressing the sticker itself (to move or pinch it) doesn't hit it. */
-.decor__remove::after {
-  content: '';
+@keyframes trash-in {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+
+.decor__trash.is-over {
+  background: var(--danger);
+  color: var(--on-accent);
+  scale: 1.25;
+}
+
+/* A piece being dragged goes over the others; over the trash it fades, about to go. */
+.decor__sticker.is-lifted,
+.decor__text.is-lifted {
+  z-index: 2;
+}
+
+.decor__sticker.is-doomed,
+.decor__text.is-doomed {
+  opacity: 0.45;
+}
+
+/* Text boxes: centred on their spot, lines only where Enter was pressed. */
+.decor__text {
   position: absolute;
-  inset: -18px -18px 0 0;
+  translate: -50% -50%;
+  white-space: pre;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.decor--text {
+  cursor: text;
+}
+
+.decor--text .decor__text {
+  pointer-events: auto;
+  touch-action: none;
+  cursor: grab;
+}
+
+.decor__text.is-selected,
+.decor__text.is-typing {
+  border-radius: 6px;
+  outline: 2px dashed var(--accent);
+  outline-offset: 4px;
+}
+
+.decor__text.is-typing {
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* While typing: a hidden copy of the text sizes the box and the field lies
+   over it, so the box grows with the text and looks just like it. */
+.decor__text-field {
+  position: relative;
+  display: inline-block;
+  vertical-align: top;
+}
+
+.decor__text-sizer {
+  display: block;
+  min-width: 1ch;
+  visibility: hidden;
+  white-space: pre;
+}
+
+.decor__text-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  overflow: hidden;
+  resize: none;
+  background: transparent;
+  color: inherit;
+  caret-color: var(--accent);
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  text-align: inherit;
+  text-decoration: inherit;
+  white-space: pre;
 }
 
 .decor-tray {
@@ -1346,6 +1441,17 @@ button:disabled {
   from {
     translate: 0 100%;
   }
+}
+
+/* A piece being dragged: the sheet steps down out of the way of the trash
+   under the drawing (transform, so it doesn't fight the translate animations). */
+.decor-tray {
+  transition: transform 0.2s ease;
+}
+
+.decor-tray.is-away {
+  transform: translateY(100%);
+  pointer-events: none;
 }
 
 /* Switching tools: this sheet goes down, then the next one comes up. */
@@ -1668,6 +1774,31 @@ button:disabled {
 }
 
 /* Themes: rectangle cards that scroll sideways. */
+/* Text: three rows (fonts; effects and alignment; colours), a little closer together. */
+.decor-tray--text {
+  max-height: 30dvh;
+}
+
+.decor-tray__text {
+  gap: 4px;
+}
+
+.decor-tray__font {
+  flex: 0 1 auto;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 8px;
+  border-radius: 12px;
+  color: var(--tray-dim);
+  font-size: 17px;
+  white-space: nowrap;
+}
+
+.decor-tray__font.is-on {
+  background: var(--tray-hi);
+  color: var(--tray-fg);
+}
+
 .decor-tray--theme {
   /* Themes get a taller sheet than the other tools: the cards are the point. */
   max-height: 30dvh;
@@ -2296,15 +2427,6 @@ input.timeline__time:focus {
     color 0.15s ease;
 }
 
-.pin-rail__slot.is-hidden {
-  height: 0;
-  opacity: 0;
-}
-
-.pin-rail__slot.is-hidden .pin-rail__btn {
-  transform: scale(0.4);
-}
-
 .pin-rail__btn svg {
   width: 22px;
   height: 22px;
@@ -2336,6 +2458,11 @@ input.timeline__time:focus {
    up (App's FOLDER_LOWERED_PX), leaving the map to the route. */
 .route-folders.is-lowered {
   transform: translateY(calc(100% - 190px));
+}
+
+/* The route on show has a description under its name: its two lines too (App's FOLDER_NOTE_PX). */
+.route-folders.is-lowered.has-note {
+  transform: translateY(calc(100% - 232px));
 }
 
 /* Room to scroll any route, even the last, up to the top of the strip. */
@@ -2394,6 +2521,15 @@ input.timeline__time:focus {
   z-index: 1;
   transform: translateY(-4px) scale(1.1);
   box-shadow: var(--shadow-sm);
+}
+
+/* A route held over a folder tab: that tab rises to take it. */
+.route-folders__tab.is-drop {
+  position: relative;
+  z-index: 1;
+  background: var(--accent-soft);
+  transform: translateY(-4px) scale(1.12);
+  transition: transform 0.12s ease;
 }
 
 .route-folders__tabwrap {
@@ -2459,13 +2595,20 @@ input.timeline__time:focus {
 
 /* + : make a new route from pins. Top-right inside the folder, on its own
    line above the routes (it scrolls with them). */
+/* ✓ (다중 선택) and + on their own line at the top right; the routes start
+   just below (tucked up a little). */
+.route-folders__head {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  margin: -4px 0 -10px;
+}
+
 .route-folders__new {
   display: grid;
   place-items: center;
   width: 44px;
   height: 44px;
-  /* On its own line, the routes start just below it (tucked up a little). */
-  margin: -4px 0 -10px auto;
   padding: 0;
   border: 0;
   border-radius: 12px;
@@ -2476,6 +2619,83 @@ input.timeline__time:focus {
 
 .route-folders__new:active {
   background: var(--surface-2);
+}
+
+/* 다중 선택 on: the ✓ in the accent colour. */
+.route-folders__select.is-on {
+  color: var(--accent);
+}
+
+/* 다중 선택: each row's checkbox, left of its name. (Doubled class: the
+   rows' grey small-text rule for spans would otherwise win.) */
+.route-row__check.route-row__check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--border);
+  color: var(--on-accent);
+}
+
+.route-row__check.route-row__check.is-on {
+  background: var(--accent);
+  box-shadow: none;
+}
+
+/* 다중 선택: room under the list so the last route can scroll clear of the trash. */
+.route-folders__body.is-selecting {
+  padding-bottom: 84px;
+}
+
+/* 다중 선택: the trash at the sheet's bottom right (tap, or drop routes on it). */
+.route-folders__trash {
+  position: absolute;
+  right: 16px;
+  bottom: calc(var(--safe-bottom) + 16px);
+  z-index: 6; /* over the carried routes' copy, so it shows they're about to go */
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--danger);
+  animation: picker-in 0.18s ease both;
+  transition:
+    scale 0.12s ease,
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.route-folders__trash:disabled {
+  color: var(--muted);
+}
+
+.route-folders__trash.is-over {
+  background: var(--danger);
+  color: var(--on-accent);
+  scale: 1.2;
+}
+
+/* Several routes carried at once: their count on the floating copy. */
+.route-row--ghost__count.route-row--ghost__count {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  margin-left: auto;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 /* Making a route from pins: the folder sheet is down. Lines join the chosen
@@ -2629,18 +2849,38 @@ input.timeline__time:focus {
   position: fixed;
   /* Below the ⚙ rail's two buttons, so it can use the full width. */
   top: calc(var(--safe-top) + 196px);
-  left: 50%;
+  /* Edge to edge (20px in), the name and pen centred in it: a box set from
+     the middle (left 50%) only gets half the screen to size itself in, and a
+     long name wrapped far too early. */
+  left: 20px;
+  right: 20px;
   z-index: 14;
   display: flex;
   align-items: flex-end;
+  justify-content: center;
   gap: 8px;
-  max-width: calc(100% - 40px);
-  translate: -50% 0;
   pointer-events: none;
 }
 
 .route-title > * {
   pointer-events: auto;
+}
+
+/* The route's icon, centred over the name (the pen beside the name, 16px
+   plus the 8px gap, would pull a plain 50% off centre). */
+.route-title__icon {
+  position: absolute;
+  bottom: calc(100% + 16px);
+  left: calc(50% - 12px);
+  font-size: 34px;
+  line-height: 1;
+  translate: -50% 0;
+  pointer-events: none;
+}
+
+/* No pen beside the name (editing the route): the name alone is the centre. */
+.route-title--no-pen .route-title__icon {
+  left: 50%;
 }
 
 .route-title__name {
@@ -2652,8 +2892,11 @@ input.timeline__time:focus {
   font-weight: 800;
   letter-spacing: 0.03em;
   line-height: 1.1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: center;
+  /* Wider than the screen: on to the next line, between words where it
+     can, mid-word only for a word that won't fit on a line by itself. */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
   /* Readable over the map's colours. */
   text-shadow:
     0 0 6px var(--surface),
@@ -2665,7 +2908,6 @@ input.timeline__time:focus {
      so the field is exactly as wide as the name: editing changes only the text. */
   position: relative;
   display: inline-block;
-  max-width: min(calc(100vw - 80px), 320px);
 }
 
 .route-title__sizer {
@@ -2673,15 +2915,21 @@ input.timeline__time:focus {
   min-width: 1ch;
   overflow: hidden;
   visibility: hidden;
-  white-space: pre;
+  white-space: pre-wrap; /* wraps where the shown name would */
 }
 
 .route-title__input {
   position: absolute;
   inset: 0;
   width: 100%;
+  height: 100%;
+  overflow: hidden;
+  resize: none;
   font: inherit;
   letter-spacing: inherit;
+  line-height: inherit;
+  word-break: inherit;
+  overflow-wrap: inherit;
   padding: 0;
   border: 0;
   outline: none;
@@ -2717,6 +2965,62 @@ input.timeline__time:focus {
   color: var(--accent);
 }
 
+/* < > stepping to the route above / below in the open tab: bare light-grey
+   chevrons at the screen's edges, level with the middle of the screen. The
+   button is bigger than the chevron so it's easy to hit from the edge. */
+.route-step {
+  position: fixed;
+  top: 50%;
+  z-index: 14;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 104px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--step-arrow);
+  translate: 0 -50%;
+}
+
+.route-step--prev {
+  left: 0;
+}
+
+.route-step--next {
+  right: 0;
+}
+
+/* The same < > beside a calendar day, paging days: level with the pings'
+   drawing rather than the screen's middle, below the 꾸미기 rail on the right. */
+.route-step.day-step {
+  top: calc(50% + 60px);
+}
+
+/* Paging names like the calendar pages days: the new one comes in from the
+   arrow's side (--slide 1 = right) while the old one leaves the other way. */
+.route-title--in {
+  animation: route-title-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.route-title--out,
+.route-title--out > * {
+  pointer-events: none;
+  animation: route-title-out 260ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes route-title-in {
+  from {
+    transform: translateX(calc(var(--slide) * 100vw));
+  }
+}
+
+@keyframes route-title-out {
+  to {
+    transform: translateX(calc(var(--slide) * 100vw));
+  }
+}
+
 /* Long-press picker for a route on the map: above the finger, on screen. */
 .ping-picker.route-style-picker {
   position: fixed;
@@ -2736,59 +3040,289 @@ input.timeline__time:focus {
   opacity: 0.7;
 }
 
-.route-build__done {
+/* Editing a saved route: its sheet comes up in the folder sheet's place.
+   ✓ at the top left, the description, a rule, then the stops in order. */
+.route-edit {
   position: fixed;
-  right: 16px;
-  bottom: calc(var(--safe-bottom) + 18px);
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 13;
+  display: flex;
+  flex-direction: column;
+  height: 44dvh;
+  border-radius: 20px 20px 0 0;
+  background: var(--surface);
+  box-shadow: var(--shadow-up);
+  color: var(--text);
+  animation: tray-up 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.route-edit__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* the icon at the left, ✓ at the right */
+  padding: 12px 12px 0;
+}
+
+.route-edit__icon-box {
+  position: relative;
+}
+
+.route-edit__icon {
   display: grid;
   place-items: center;
-  width: 60px;
-  height: 60px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.route-edit__icon[aria-expanded='true'] {
+  background: var(--accent-soft);
+}
+
+/* The icon grid pops up above the button, over the map, like a folder tab's. */
+.route-edit__icons.folder-picker {
+  left: 0;
+}
+
+.route-edit__done {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 0;
   border-radius: 50%;
   background: var(--accent);
   color: var(--on-accent);
-  box-shadow: var(--shadow);
-  animation: picker-in 0.2s ease both;
 }
 
-.route-build__done:disabled {
-  background: var(--surface);
+.route-edit__done:disabled {
+  background: var(--surface-2);
   color: var(--muted);
 }
 
-.route-build__dialog form {
+.route-edit__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 16px calc(var(--safe-bottom) + 16px);
+}
+
+.route-edit__note {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 10px;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* no iOS zoom on focus */
+  line-height: 1.4;
+}
+
+.route-edit__note::placeholder {
+  color: var(--muted);
+}
+
+.route-edit__note:focus {
+  background: var(--surface-2);
+}
+
+.route-edit__rule {
+  margin: 8px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.route-edit__stops {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.route-edit__stop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding-left: 4px;
+  border-radius: 12px;
+  background: var(--surface);
+  transition: transform 0.18s ease;
+}
+
+/* The row under the finger follows it straight away, lifted over the others. */
+.route-edit__stop.is-dragged {
+  position: relative;
+  z-index: 1;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm);
+  transition: none;
+}
+
+.route-edit__num {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--route);
+  color: var(--on-accent);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* Tapping the number takes the stop out: 28px to see, 44px to hit. */
+.route-edit__num::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.route-edit__num:disabled {
+  opacity: 1; /* mid-drag it's only not tappable; it looks the same */
+}
+
+.route-edit__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-edit__grip {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: grab;
+  touch-action: none;
+}
+
+.route-edit__stops.is-sorting .route-edit__grip {
+  cursor: grabbing;
+}
+
+.route-edit__hint {
+  margin: 12px 4px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Editing: the pins that stepped aside for the route drop back in to be picked. */
+.app--route-editing .map-marker--pin {
+  animation: stop-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+/* Making or editing a route: pins already stops of it are hidden, their
+   numbers stand in for them. !important beats the drop animation's opacity
+   (and MapLibre's inline one); hidden, they aren't found under a finger either. */
+.map-marker--pin[data-in-route] {
+  visibility: hidden;
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app--route-editing .map-marker--pin {
+    animation: none;
+  }
+}
+
+/* Editing: the name is tapped to rename it. */
+.route-title__name.is-renamable {
+  cursor: text;
+}
+
+/* Making a route: what to do, in a dark see-through bar at the top
+   (under the search bar, clear of the ⚙ rail). */
+.route-build__hint {
+  position: fixed;
+  top: calc(var(--safe-top) + 80px);
+  left: 50%;
+  z-index: 14;
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  white-space: nowrap; /* one line; at 13px it stays clear of the rail on a 375px phone */
+  background: var(--tray-bg);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: var(--tray-fg);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  translate: -50% 0;
+  pointer-events: none;
+  animation: picker-in 0.2s ease both;
+}
+
+/* Making a route, two stops in: its sheet rises from the bottom.
+     [folder] [name ✎]
+     [icon] [description]      [생성] */
+.route-create {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 13;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  /* A clear margin under the fields, so they sit a little higher up. */
+  padding: 16px 16px calc(var(--safe-bottom) + 76px);
+  border-radius: 20px 20px 0 0;
+  background: var(--surface);
+  box-shadow: var(--shadow-up);
+  animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 
-.route-build__field {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface-2);
-  color: var(--text);
-  font: inherit;
-  font-size: 16px; /* no iOS zoom-in */
-  text-align: left;
+/* Down to one stop: it goes back down (the build layer keeps it mounted for this). */
+.route-create.is-leaving {
+  animation: tray-down 0.2s ease-in forwards;
+  pointer-events: none;
 }
 
-.route-build__name {
+.route-create__row {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
 }
 
-.route-build__name .route-build__field {
-  font-weight: 700;
-}
-
-/* The route's decorative icon, next to its name; ＋ when none is chosen. */
-.route-build__icon {
+.route-create__pick {
+  position: relative;
   flex: none;
+}
+
+/* Folder and icon: blank to start with (미분류, no icon). */
+.route-create__btn {
   display: grid;
   place-items: center;
   width: 44px;
@@ -2801,23 +3335,95 @@ input.timeline__time:focus {
   line-height: 1;
 }
 
-.route-build__icon.is-empty {
+.route-create__btn[aria-expanded='true'] {
+  background: var(--accent-soft);
+}
+
+/* Their grids pop up above the button, over the map. */
+.route-create__grid.folder-picker {
+  left: 0;
+}
+
+.route-create__name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.route-create__name input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+/* A faint grey pen: the name is there to be changed. */
+.route-create__pen {
+  flex: none;
   color: var(--muted);
-  font-size: 18px;
+  opacity: 0.5;
 }
 
-.route-build__icons {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 2px;
+/* The description: a box five lines tall, its icon button in the top-left corner. */
+.route-create__row--note {
+  align-items: flex-end;
 }
 
-.route-build__note {
+.route-create__note-box {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.route-create__btn--icon {
+  background: var(--surface);
+}
+
+.route-create__note {
+  flex: 1;
+  min-width: 0;
+  /* Five lines and its padding. */
+  min-height: calc(5 * 1.4em + 16px);
+  padding: 8px 6px;
+  border: 0;
+  outline: none;
   resize: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* no iOS zoom-in */
+  line-height: 1.4;
 }
 
-.route-build__dialog .confirm-dialog__actions {
-  margin-top: 4px;
+.route-create__note::placeholder,
+.route-create__name input::placeholder {
+  color: var(--muted);
+}
+
+.route-create__go {
+  flex: none;
+  height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .route-folders__empty {
@@ -2911,6 +3517,39 @@ input.timeline__time:focus {
   border-bottom: 0;
 }
 
+/* Rows slide out of the way of a route being dragged among them. */
+.route-folders__body.is-sorting .route-row {
+  transition: transform 0.18s ease;
+}
+
+/* Its own place is left empty while it's carried (the others slide over it). */
+.route-row.is-lifted {
+  visibility: hidden;
+}
+
+/* The carried route: a copy over the sheet that follows the finger. */
+.route-row--ghost {
+  position: absolute;
+  z-index: 5;
+  padding: 0 12px;
+  border-radius: 14px;
+  border-bottom: 0;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+}
+
+.route-row--ghost .route-row__main {
+  height: 100%;
+}
+
+/* Over a folder tab: small, about to be filed. */
+.route-row--ghost.is-over-tab {
+  opacity: 0.85;
+  scale: 0.8;
+  transition: scale 0.12s ease;
+}
+
 .route-row__main {
   flex: 1;
   min-width: 0;
@@ -2931,6 +3570,17 @@ input.timeline__time:focus {
   gap: 8px;
 }
 
+.route-row__folder {
+  flex: none;
+  display: grid;
+  place-items: center;
+  margin-left: auto; /* right end of the title line */
+  padding-left: 8px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+}
+
 .route-row__icon {
   flex: none;
   font-size: 20px;
@@ -2945,6 +3595,29 @@ input.timeline__time:focus {
   gap: 2px;
   margin-top: -8px;
   padding-bottom: 4px;
+}
+
+/* Under the open route's name; two lines at most, so the lowered sheet's
+   strip still shows the route's tools. */
+.route-row__note {
+  flex-basis: 100%;
+  display: -webkit-box;
+  /* Room below as margin: padding would show a sliver of a clamped third line. */
+  margin: -10px 4px 10px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* In line with the name, past the icon (20px + the 8px gap). */
+.route-row__note.has-icon {
+  margin-left: 32px;
 }
 
 .route-row__tool {
@@ -3239,6 +3912,20 @@ input.timeline__time:focus {
   box-shadow:
     inset 0 0 0 3px var(--pin, var(--surface-2)),
     var(--shadow-sm);
+}
+
+/* ALL: every pin. Text in a white button; on, the accent colour like 핀 · 경로. */
+.pin-rail__all {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  /* The tighter shadow of the category buttons (inside the scroll box). */
+  box-shadow: var(--shadow-sm);
+}
+
+.pin-rail__all.is-on {
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 /* Picked: filled with the category colour. */

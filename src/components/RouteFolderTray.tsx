@@ -1,4 +1,4 @@
-import { FolderInput, Inbox, Layers, Plus, Trash2, X } from 'lucide-react';
+import { Check, FolderInput, Inbox, Layers, ListChecks, Plus, Trash2, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   addFolder,
@@ -8,6 +8,9 @@ import {
   moveFolder,
   moveRoute,
   ROUTE_FOLDER_LIMITS,
+  openRouteTab,
+  gatherPlace,
+  placeRoutes,
   routesInTab,
   setFolderIcon,
   type RouteFolders,
@@ -31,8 +34,8 @@ interface RouteFolderTrayProps {
   onTab: (tab: RouteTab) => void;
   /** The + inside the folder: put the sheet down and make a route from pins. */
   onNewRoute: () => void;
-  /** Deletes a saved route (from the open route's tools). */
-  onDeleteRoute: (course: Course) => void;
+  /** Deletes saved routes (the open route's tools, or 다중 선택's trash). */
+  onDeleteRoutes: (courses: Course[]) => void;
 }
 
 /** The fixed tabs wear line icons, set apart from the folders' own emoji. */
@@ -75,7 +78,7 @@ const newId = () =>
  * lifts it so it can be dragged among the folders; let go without moving and
  * an ✕ appears on it, which deletes the folder after a confirm.
  */
-export default function RouteFolderTray({ open, lowered, courses, folders, onFolders, shownId, onShow, tab, onTab: setTab, onNewRoute, onDeleteRoute }: RouteFolderTrayProps) {
+export default function RouteFolderTray({ open, lowered, courses, folders, onFolders, shownId, onShow, tab, onTab: setTab, onNewRoute, onDeleteRoutes }: RouteFolderTrayProps) {
   // The folder whose icon picker is out.
   const [picking, setPicking] = useState<string | null>(null);
   // The route whose 폴더 chooser is out.
@@ -98,8 +101,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
   foldersRef.current = folders;
 
   // A deleted-elsewhere folder can't stay selected.
-  const tabOk = tab === 'all' || tab === 'none' || folders.folders.some((f) => f.id === tab);
-  const current = tabOk ? tab : 'all';
+  const current = openRouteTab(folders, tab);
   const routes = routesInTab(courses, folders, current);
 
   const add = () => {
@@ -306,7 +308,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
         role="tab"
         aria-selected={on}
         aria-label={custom && on ? `${label}, 다시 누르면 아이콘 바꾸기` : label}
-        className={`route-folders__tab ${on ? 'is-on' : ''} ${lifted === id ? 'is-lifted' : ''}`}
+        className={`route-folders__tab ${on ? 'is-on' : ''} ${lifted === id ? 'is-lifted' : ''} ${rowDrag?.overTab === id ? 'is-drop' : ''}`}
         {...(custom ? pressHandlers(id) : {})}
         onClick={() => {
           if (swallowClick.current) {
@@ -349,10 +351,222 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     );
   };
 
+  // ----- Dragging a route (long press on its row) -----
+  // The lifted row is drawn as a copy floating over the sheet (the list
+  // scrolls inside a clipping box, and the row must reach the tabs); its own
+  // place stays open while the others slide out of the way. Let go over a
+  // folder tab to file it there, or among the rows to put it in that place.
+  const bodyEl = useRef<HTMLDivElement | null>(null);
+  const rowPress = useRef<{ id: string; x: number; y: number; timer: number } | null>(null);
+  const [rowDrag, setRowDrag] = useState<{
+    /** The routes carried, in list order: the one held, or every picked one (다중 선택). */
+    ids: string[];
+    /** The row held. */
+    held: string;
+    heldIndex: number;
+    /** Where the block would land among the other routes (0 = top). */
+    to: number;
+    dx: number;
+    dy: number;
+    /** Resting rows (top and height), measured when it was lifted. */
+    rows: { top: number; height: number }[];
+    /** Where the held row sat, relative to the sheet. */
+    box: { left: number; top: number; width: number; height: number };
+    /** The tab under the finger it would be filed into, if any. */
+    overTab: RouteTab | null;
+    /** Over the 다중 선택 trash: letting go deletes. */
+    overTrash: boolean;
+    /** Off the sheet altogether (over the map): letting go there changes nothing. */
+    away: boolean;
+  } | null>(null);
+  const rowDragRef = useRef(rowDrag);
+  rowDragRef.current = rowDrag;
+
+  // ----- 다중 선택 -----
+  // The ✓ beside + (or a long press on a route) turns rows into checkboxes: taps pick and unpick, the
+  // trash at the sheet's bottom right deletes what's picked, and a long press
+  // carries every picked route at once (onto a folder tab, the trash, or a
+  // place in the list — let go in place and they gather round the one held).
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const pickedRoutes = routes.filter((c) => selected.has(c.id));
+  useEffect(() => setSelected(new Set()), [current]);
+  const toggleSelecting = () => {
+    setSelecting((on) => !on);
+    setSelected(new Set());
+    setFiling(null);
+    if (shownId) onShow(null);
+  };
+
+  // While a row is lifted, finger moves drag it instead of scrolling the list.
+  useEffect(() => {
+    const body = bodyEl.current;
+    if (!body) return;
+    const hold = (e: TouchEvent) => {
+      if (rowDragRef.current) e.preventDefault();
+    };
+    body.addEventListener('touchmove', hold, { passive: false });
+    return () => body.removeEventListener('touchmove', hold);
+  }, []);
+
+  /** A tab a lifted route can be filed into at a screen point: 미분류 or a folder, not the one open. */
+  const dropTabAt = (x: number, y: number): RouteTab | null => {
+    const tabEl = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-tab]');
+    const id = tabEl?.dataset.tab;
+    return id && id !== 'all' && id !== current ? id : null;
+  };
+  const overTrashAt = (x: number, y: number) => !!document.elementFromPoint(x, y)?.closest('.route-folders__trash');
+
+  /** Where the block lands: how many of the other rows' middles lie above the held row's middle. */
+  const landingAt = (d: NonNullable<typeof rowDrag>, dy: number) => {
+    const carried = new Set(d.ids);
+    const mid = d.rows[d.heldIndex].top + dy + d.rows[d.heldIndex].height / 2;
+    return routes.filter((c, i) => !carried.has(c.id) && d.rows[i] && d.rows[i].top + d.rows[i].height / 2 < mid).length;
+  };
+
+  const rowHandlers = (c: Course, index: number) => ({
+    onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
+      if (e.button !== 0 || !e.isPrimary) return;
+      const el = e.currentTarget;
+      const pointerId = e.pointerId;
+      const p = { id: c.id, x: e.clientX, y: e.clientY, timer: 0 };
+      p.timer = window.setTimeout(() => {
+        const sheet = sheetEl.current?.getBoundingClientRect();
+        const rowEls = [...(bodyEl.current?.querySelectorAll<HTMLElement>('.route-row') ?? [])];
+        const row = rowEls[index]?.getBoundingClientRect();
+        if (!sheet || !row) return;
+        el.setPointerCapture?.(pointerId);
+        setFiling(null);
+        // A long press picks the route held, switching 다중 선택 on if it's
+        // off; everything picked goes along.
+        const next = new Set(selecting ? selected : []).add(c.id);
+        setSelecting(true);
+        setSelected(next);
+        const ids = routes.filter((r) => next.has(r.id)).map((r) => r.id);
+        setRowDrag({
+          ids,
+          held: c.id,
+          heldIndex: index,
+          // Let go without moving: the others gather round the one held.
+          to: gatherPlace(courses, folders, current, ids, c.id),
+          dx: 0,
+          dy: 0,
+          rows: rowEls.map((r) => {
+            const b = r.getBoundingClientRect();
+            return { top: b.top, height: b.height };
+          }),
+          box: { left: row.left - sheet.left, top: row.top - sheet.top, width: row.width, height: row.height },
+          overTab: null,
+          overTrash: false,
+          away: false,
+        });
+        navigator.vibrate?.(10);
+      }, LONG_PRESS_MS);
+      rowPress.current = p;
+    },
+    onPointerMove: (e: React.PointerEvent<HTMLElement>) => {
+      const p = rowPress.current;
+      if (!p) return;
+      const d = rowDragRef.current;
+      if (!d) {
+        // Moving first is scrolling the list, not a press.
+        if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > PRESS_SLOP_PX) {
+          window.clearTimeout(p.timer);
+          rowPress.current = null;
+        }
+        return;
+      }
+      const dx = e.clientX - p.x;
+      const dy = e.clientY - p.y;
+      const overTab = dropTabAt(e.clientX, e.clientY);
+      const overTrash = selecting && overTrashAt(e.clientX, e.clientY);
+      const sheet = sheetEl.current?.getBoundingClientRect();
+      const away = !!sheet && !overTab && (e.clientY < sheet.top || e.clientY > sheet.bottom || e.clientX < sheet.left || e.clientX > sheet.right);
+      // Off over a tab, the trash or the map, the rows keep the place they had.
+      const to = overTab || overTrash || away ? d.to : landingAt(d, dy);
+      setRowDrag({ ...d, dx, dy, to, overTab, overTrash, away });
+    },
+    onPointerUp: () => endRowPress(true),
+    onPointerCancel: () => endRowPress(false),
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+  });
+
+  const endRowPress = (drop: boolean) => {
+    const p = rowPress.current;
+    if (p) window.clearTimeout(p.timer);
+    rowPress.current = null;
+    const d = rowDragRef.current;
+    if (!d) return;
+    // Heard by both the row and the document: only the first one counts.
+    rowDragRef.current = null;
+    setRowDrag(null);
+    // The click that ends a long press shouldn't also show / hide (or pick) the route.
+    // Only the click straight after the release; a tap after that is a tap.
+    swallowRowClick.current = true;
+    window.setTimeout(() => (swallowRowClick.current = false), 250);
+    if (!drop || d.away) return;
+    if (d.overTrash) {
+      onDeleteRoutes(courses.filter((c) => d.ids.includes(c.id)));
+      setSelected(new Set());
+    } else if (d.overTab) {
+      const to = d.overTab === 'none' ? null : d.overTab;
+      onFolders(d.ids.reduce((f, id) => moveRoute(f, id, to), folders));
+      setSelected(new Set());
+    } else onFolders(placeRoutes(courses, folders, current, d.ids, d.to));
+  };
+  const swallowRowClick = useRef(false);
+  const endRowPressRef = useRef(endRowPress);
+  endRowPressRef.current = endRowPress;
+
+  // Letting go always ends a lift, wherever the finger is: the row's own
+  // handlers only hear the release if its pointer capture took, and a lift
+  // left hanging would keep the row floating. Also before the lift fires
+  // (a press let go early just stops waiting).
+  const lifting = !!rowDrag;
+  useEffect(() => {
+    if (!lifting) return;
+    const drop = () => endRowPressRef.current(true);
+    const cancel = () => endRowPressRef.current(false);
+    document.addEventListener('pointerup', drop, true);
+    document.addEventListener('touchend', drop, true);
+    document.addEventListener('pointercancel', cancel, true);
+    document.addEventListener('touchcancel', cancel, true);
+    return () => {
+      document.removeEventListener('pointerup', drop, true);
+      document.removeEventListener('touchend', drop, true);
+      document.removeEventListener('pointercancel', cancel, true);
+      document.removeEventListener('touchcancel', cancel, true);
+    };
+  }, [lifting]);
+
+  /**
+   * Where a resting row sits while routes are carried: the rows slide to
+   * where they'd be with the block in its landing place (the carried rows
+   * themselves are hidden; the copy over the sheet stands in for them).
+   */
+  const rowShift = (i: number) => {
+    const d = rowDrag;
+    if (!d || !d.rows[i]) return 0;
+    const carried = new Set(d.ids);
+    if (carried.has(routes[i]?.id)) return 0;
+    const all = routes.map((c, j) => ({ id: c.id, j }));
+    const rest = all.filter((r) => !carried.has(r.id));
+    const order = [...rest.slice(0, d.to), ...all.filter((r) => carried.has(r.id)), ...rest.slice(d.to)];
+    let top = d.rows[0].top;
+    for (const r of order) {
+      if (r.j === i) return top - d.rows[i].top;
+      top += d.rows[r.j]?.height ?? 0;
+    }
+    return 0;
+  };
+  const draggedRoute = rowDrag ? courses.find((c) => c.id === rowDrag.held) : null;
+
   const pickingFolder = folders.folders.find((f) => f.id === picking) ?? null;
 
   return (
-    <section ref={sheetEl} className={`route-folders ${open ? '' : 'is-leaving'} ${lowered ? 'is-lowered' : ''}`} aria-label="경로 폴더" inert={!open}>
+    <section
+      ref={sheetEl}
+      className={`route-folders ${open ? '' : 'is-leaving'} ${lowered ? 'is-lowered' : ''} ${lowered && courses.find((c) => c.id === shownId)?.note ? 'has-note' : ''}`} aria-label="경로 폴더" inert={!open}>
       {pickingFolder && pickerX !== null && (
         <>
           <div className="folder-picker" role="dialog" aria-label="폴더 아이콘" style={{ '--x': `${pickerX}px` } as CSSProperties}>
@@ -416,17 +630,66 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
         </button>
       </div>
 
+      {selecting && (
+        // 다중 선택: delete what's picked, by tapping or by dropping them here.
+        <button
+          className={`route-folders__trash ${rowDrag?.overTrash ? 'is-over' : ''}`}
+          aria-label={`선택한 경로 ${pickedRoutes.length}개 삭제`}
+          disabled={pickedRoutes.length === 0 && !rowDrag}
+          onClick={() => {
+            if (!pickedRoutes.length) return;
+            onDeleteRoutes(pickedRoutes);
+            setSelected(new Set());
+          }}
+        >
+          <Trash2 size={22} aria-hidden />
+        </button>
+      )}
+
+      {rowDrag && draggedRoute && (
+        // The lifted route, following the finger over the list and the tabs.
+        <div
+          className={`route-row route-row--ghost ${rowDrag.overTab ? 'is-over-tab' : ''}`}
+          style={{
+            left: rowDrag.box.left,
+            top: rowDrag.box.top,
+            width: rowDrag.box.width,
+            height: rowDrag.box.height,
+            transform: `translate(${rowDrag.dx}px, ${rowDrag.dy}px)`,
+          }}
+          aria-hidden
+        >
+          <div className="route-row__main">
+            {draggedRoute.icon && <span className="route-row__icon">{draggedRoute.icon}</span>}
+            <strong>{draggedRoute.title || '이름 없는 경로'}</strong>
+            {/* Several carried at once: how many. */}
+            {rowDrag.ids.length > 1 && <span className="route-row--ghost__count">{rowDrag.ids.length}</span>}
+          </div>
+        </div>
+      )}
+
       <div
-        className="route-folders__body"
+        ref={bodyEl}
+        className={`route-folders__body ${rowDrag ? 'is-sorting' : ''} ${selecting ? 'is-selecting' : ''}`}
         role="tabpanel"
         onClick={(e) => {
           // A tap on the sheet's empty space (not a row or a button) lets go of a route on show.
           if (shownId && !(e.target as Element).closest('button, a, input')) onShow(null);
         }}
       >
-        <button className="route-folders__new" aria-label="새 경로 만들기" onClick={onNewRoute}>
-          <Plus size={20} aria-hidden />
-        </button>
+        <div className="route-folders__head">
+          <button
+            className={`route-folders__new route-folders__select ${selecting ? 'is-on' : ''}`}
+            aria-label="여러 개 선택"
+            aria-pressed={selecting}
+            onClick={toggleSelecting}
+          >
+            <ListChecks size={20} aria-hidden />
+          </button>
+          <button className="route-folders__new" aria-label="새 경로 만들기" onClick={onNewRoute}>
+            <Plus size={20} aria-hidden />
+          </button>
+        </div>
         {routes.length === 0 ? (
           // An empty folder of the user's own just stays blank.
           (current === 'all' || current === 'none') && (
@@ -436,19 +699,56 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
           )
         ) : (
           <ul className="route-folders__list">
-            {routes.map((c) => {
+            {routes.map((c, index) => {
               const filed = folderOf(folders, c.id);
               const shown = shownId === c.id;
               return (
-                <li key={c.id} className={`route-row ${shown ? 'is-shown' : ''}`}>
-                  <button className="route-row__main" aria-pressed={shown} onClick={() => onShow(shown ? null : c)}>
+                <li
+                  key={c.id}
+                  className={`route-row ${shown ? 'is-shown' : ''} ${rowDrag?.ids.includes(c.id) ? 'is-lifted' : ''} ${selected.has(c.id) ? 'is-picked' : ''}`}
+                  style={rowShift(index) ? { transform: `translateY(${rowShift(index)}px)` } : undefined}
+                >
+                  <button
+                    className="route-row__main"
+                    aria-pressed={selecting ? selected.has(c.id) : shown}
+                    {...rowHandlers(c, index)}
+                    onClick={() => {
+                      if (swallowRowClick.current) {
+                        swallowRowClick.current = false;
+                        return;
+                      }
+                      // Picking routes: a tap picks or unpicks it instead of showing it.
+                      if (selecting) {
+                        return setSelected((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(c.id)) next.delete(c.id);
+                          else next.add(c.id);
+                          return next;
+                        });
+                      }
+                      onShow(shown ? null : c);
+                    }}
+                  >
+                    {selecting && (
+                      <span className={`route-row__check ${selected.has(c.id) ? 'is-on' : ''}`} aria-hidden>
+                        {selected.has(c.id) && <Check size={14} strokeWidth={3} />}
+                      </span>
+                    )}
                     {c.icon && (
                       <span className="route-row__icon" aria-hidden>
                         {c.icon}
                       </span>
                     )}
                     <strong>{c.title || '이름 없는 경로'}</strong>
+                    {/* Its folder, at the right end of its line; a route in none shows nothing. */}
+                    {filed && (
+                      <span className="route-row__folder" aria-label={`${folders.folders.find((f) => f.id === filed)?.name ?? '폴더'}에 있음`}>
+                        {folders.folders.find((f) => f.id === filed)?.icon ?? '📁'}
+                      </span>
+                    )}
                   </button>
+                  {/* The open route's description, small and grey under its name. */}
+                  {shown && c.note && <p className={`route-row__note ${c.icon ? 'has-icon' : ''}`}>{c.note}</p>}
                   {/* The open route's tools: small, at its bottom right. */}
                   {shown && (
                     <div className="route-row__tools">
@@ -460,7 +760,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
                       >
                         <FolderInput size={18} aria-hidden />
                       </button>
-                      <button className="route-row__tool route-row__tool--danger" aria-label={`${c.title || '경로'} 삭제`} onClick={() => onDeleteRoute(c)}>
+                      <button className="route-row__tool route-row__tool--danger" aria-label={`${c.title || '경로'} 삭제`} onClick={() => onDeleteRoutes([c])}>
                         <Trash2 size={18} aria-hidden />
                       </button>
                     </div>
