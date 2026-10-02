@@ -2781,7 +2781,7 @@ input.timeline__time:focus {
    plus the 8px gap, would pull a plain 50% off centre). */
 .route-title__icon {
   position: absolute;
-  bottom: calc(100% + 6px);
+  bottom: calc(100% + 16px);
   left: calc(50% - 12px);
   font-size: 34px;
   line-height: 1;
