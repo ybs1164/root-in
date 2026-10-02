@@ -3385,6 +3385,17 @@ input.timeline__time:focus {
   gap: 8px;
 }
 
+.route-row__folder {
+  flex: none;
+  display: grid;
+  place-items: center;
+  margin-left: auto; /* right end of the title line */
+  padding-left: 8px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+}
+
 .route-row__icon {
   flex: none;
   font-size: 20px;

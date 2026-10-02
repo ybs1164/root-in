@@ -641,6 +641,12 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
                       </span>
                     )}
                     <strong>{c.title || '이름 없는 경로'}</strong>
+                    {/* Its folder, at the right end of its line; a route in none shows nothing. */}
+                    {filed && (
+                      <span className="route-row__folder" aria-label={`${folders.folders.find((f) => f.id === filed)?.name ?? '폴더'}에 있음`}>
+                        {folders.folders.find((f) => f.id === filed)?.icon ?? '📁'}
+                      </span>
+                    )}
                   </button>
                   {/* The open route's description, small and grey under its name. */}
                   {shown && c.note && <p className={`route-row__note ${c.icon ? 'has-icon' : ''}`}>{c.note}</p>}
