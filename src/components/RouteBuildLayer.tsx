@@ -1,7 +1,7 @@
 import { Check } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { COURSE_LIMITS } from '../domain/course';
-import { ROUTE_TITLE_MAX } from '../domain/routeBuild';
+import { ROUTE_NOTE_MAX, ROUTE_TITLE_MAX } from '../domain/routeBuild';
 import { RouteIconFace, RouteIconOptions } from './RouteIconOptions';
 import { stopCentre } from './StopLines';
 
@@ -199,7 +199,7 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
               e.preventDefault();
               const data = new FormData(e.currentTarget);
               const title = String(data.get('title') ?? '').trim() || defaultTitle;
-              onCreate(title.slice(0, ROUTE_TITLE_MAX), String(data.get('note') ?? '').trim().slice(0, COURSE_LIMITS.note), icon);
+              onCreate(title.slice(0, ROUTE_TITLE_MAX), String(data.get('note') ?? '').trim().slice(0, ROUTE_NOTE_MAX), icon);
               dialogEl.current?.close();
             }}
           >
@@ -226,7 +226,7 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
                 />
               </div>
             )}
-            <textarea name="note" className="route-build__field route-build__note" aria-label="설명" placeholder="설명" maxLength={COURSE_LIMITS.note} rows={3} />
+            <textarea name="note" className="route-build__field route-build__note" aria-label="설명" placeholder="설명" maxLength={ROUTE_NOTE_MAX} rows={3} />
             <div className="confirm-dialog__actions">
               <button type="button" className="btn btn--ghost" onClick={() => dialogEl.current?.close()}>
                 취소

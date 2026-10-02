@@ -1,6 +1,7 @@
 import { Check, GripVertical } from 'lucide-react';
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { COURSE_LIMITS } from '../domain/course';
+import { ROUTE_NOTE_MAX } from '../domain/routeBuild';
 import { RouteIconFace, RouteIconOptions } from './RouteIconOptions';
 import type { CourseStop } from '../types/course';
 
@@ -110,7 +111,7 @@ export default function RouteEditTray({ stops, note, onNote, onMove, onDone, ico
           aria-label="설명"
           placeholder="설명을 적어 보세요"
           value={note}
-          maxLength={COURSE_LIMITS.note}
+          maxLength={ROUTE_NOTE_MAX}
           rows={2}
           onChange={(e) => onNote(e.target.value)}
         />

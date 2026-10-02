@@ -2469,6 +2469,11 @@ input.timeline__time:focus {
   transform: translateY(calc(100% - 190px));
 }
 
+/* The route on show has a description under its name: its two lines too (App's FOLDER_NOTE_PX). */
+.route-folders.is-lowered.has-note {
+  transform: translateY(calc(100% - 232px));
+}
+
 /* Room to scroll any route, even the last, up to the top of the strip. */
 .route-folders.is-lowered .route-folders__body {
   padding-bottom: 60dvh;
@@ -3361,6 +3366,29 @@ input.timeline__time:focus {
   gap: 2px;
   margin-top: -8px;
   padding-bottom: 4px;
+}
+
+/* Under the open route's name; two lines at most, so the lowered sheet's
+   strip still shows the route's tools. */
+.route-row__note {
+  flex-basis: 100%;
+  display: -webkit-box;
+  /* Room below as margin: padding would show a sliver of a clamped third line. */
+  margin: -10px 4px 10px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* In line with the name, past the icon (20px + the 8px gap). */
+.route-row__note.has-icon {
+  margin-left: 32px;
 }
 
 .route-row__tool {

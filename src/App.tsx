@@ -27,7 +27,7 @@ import type { MapViewport } from './domain/districtMap';
 import { categoryFamily, categoryStyle, filterPinsByCategories } from './domain/pin';
 import { pinRailNext, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
 import { PRESS } from './domain/dayPings';
-import { nextRouteName, toggleBuildStop } from './domain/routeBuild';
+import { nextRouteName, ROUTE_NOTE_MAX, toggleBuildStop } from './domain/routeBuild';
 import { addEditStop, moveStop, toggleEditStop, withEditStops, type RouteEdit } from './domain/routeEdit';
 import { cleanRouteLook, withEdgeStyle, withStopShape } from './domain/routeStyle';
 import { moveRoute, neighborRoute, type RouteTab } from './domain/routeFolders';
@@ -60,6 +60,8 @@ const DESKTOP_QUERY = '(min-width: 900px)';
 const ROUTE_TRAY_OUT_MS = 170;
 /** How much of the folder sheet stays up while a route is on show (matches .route-folders.is-lowered). */
 const FOLDER_LOWERED_PX = 190;
+/** …and taller by its description's two lines when the route on show has one (.has-note). */
+const FOLDER_NOTE_PX = 42;
 /** Once the map has glided over to a route, the pins fade off (matches .app--pins-away), and only then do its stops drop in. */
 const PINS_FADE_MS = 250;
 
@@ -278,7 +280,8 @@ export default function App() {
     if (folderTray) {
       // Lowered (a route on show) only its top strip covers the map.
       const lowered = folderTray.classList.contains('is-lowered');
-      const covered = lowered ? FOLDER_LOWERED_PX : folderTray.offsetHeight;
+      const noted = folderTray.classList.contains('has-note') ? FOLDER_NOTE_PX : 0;
+      const covered = lowered ? FOLDER_LOWERED_PX + noted : folderTray.offsetHeight;
       // A route on show has its name under the rail; the route sits below it.
       const title = document.querySelector<HTMLElement>('.route-title:not(.route-title--out)');
       const top = lowered && title ? title.getBoundingClientRect().bottom + 30 : 90;
@@ -645,7 +648,7 @@ export default function App() {
     await course.save({
       ...shownRoute,
       stops: editRoute.stops,
-      note: editRoute.note.trim() || undefined,
+      note: editRoute.note.trim().slice(0, ROUTE_NOTE_MAX) || undefined,
       icon: editRoute.icon,
       ...cleanRouteLook(editRoute.look, editRoute.stops.length),
     });
