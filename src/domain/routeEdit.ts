@@ -2,6 +2,21 @@ import { COURSE_LIMITS } from './course';
 import { cleanRouteLook, type RouteLook } from './routeStyle';
 import type { CourseStop, PlaceRef } from '../types/course';
 
+/** A route being edited, as it stands: what ✓ saves. */
+export interface RouteEdit {
+  id: string;
+  stops: CourseStop[];
+  note: string;
+  icon?: string;
+  /** Stop shapes and line styles, kept lined up with `stops` as they change. */
+  look: RouteLook;
+}
+
+/** New stops for the route being edited, its look following them (shapes by place, lines by the places they join). */
+export function withEditStops(edit: RouteEdit, stops: CourseStop[]): RouteEdit {
+  return { ...edit, stops, look: remapRouteLook(edit.stops, edit.look, stops) };
+}
+
 /**
  * Editing a saved route (the pen by its name): its stops change the way a
  * new route's are picked — a tapped pin joins at the end or, if it's

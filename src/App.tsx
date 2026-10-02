@@ -28,8 +28,8 @@ import { categoryFamily, categoryStyle, filterPinsByCategories } from './domain/
 import { pinRailNext, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
 import { PRESS } from './domain/dayPings';
 import { nextRouteName, toggleBuildStop } from './domain/routeBuild';
-import { addEditStop, moveStop, remapRouteLook, toggleEditStop } from './domain/routeEdit';
-import { withEdgeStyle, withStopShape } from './domain/routeStyle';
+import { addEditStop, moveStop, toggleEditStop, withEditStops, type RouteEdit } from './domain/routeEdit';
+import { cleanRouteLook, withEdgeStyle, withStopShape } from './domain/routeStyle';
 import { moveRoute, neighborRoute, type RouteTab } from './domain/routeFolders';
 import { useCourseDraft } from './hooks/useCourseDraft';
 import { useDiaryDay } from './hooks/useDiaryDay';
@@ -141,8 +141,10 @@ export default function App() {
   const [routeStep, setRouteStep] = useState<{ id: string; from: -1 | 1 } | null>(null);
   // Making a new route from pins (the folder's +): the pins tapped so far, in order.
   const [building, setBuilding] = useState<string[] | null>(null);
-  // Editing the route on show (the pen by its name): its stops and description as they stand.
-  const [editing, setEditing] = useState<{ id: string; stops: CourseStop[]; note: string } | null>(null);
+  // Editing the route on show (the pen by its name): its stops, look, icon and description as they stand.
+  const [editing, setEditing] = useState<RouteEdit | null>(null);
+  const editStops = (change: (stops: CourseStop[]) => CourseStop[]) =>
+    setEditing((e) => (e ? withEditStops(e, change(e.stops)) : e));
   // Bumped to send the map back over to the route on show (after editing it).
   const [refit, setRefit] = useState(0);
   const [picked, setPicked] = useState<Set<string>>(new Set());
@@ -434,7 +436,7 @@ export default function App() {
     // Making a route: a chosen pin is covered by its numbered stop, so a tap
     // there takes it back out.
     if (building && routeMode) return setBuilding((b) => (b ? b.filter((_, i) => i !== index) : b));
-    if (editRoute) return setEditing((e) => (e ? { ...e, stops: e.stops.filter((_, i) => i !== index) } : e));
+    if (editRoute) return editStops((stops) => stops.filter((_, i) => i !== index));
     const place = shownStops[index];
     if (!place) return;
     mapRef.current?.focus(place.center, mapPadding());
@@ -452,7 +454,7 @@ export default function App() {
     if (building && routeMode) return setBuilding((b) => (b ? toggleBuildStop(b, id) : b));
     if (editRoute) {
       const pin = pins.find((p) => p.id === id);
-      if (pin) setEditing((e) => (e ? { ...e, stops: toggleEditStop(e.stops, pin.place) } : e));
+      if (pin) editStops((stops) => toggleEditStop(stops, pin.place));
       return;
     }
     openPin(id);
@@ -611,14 +613,25 @@ export default function App() {
   const startEditing = () => {
     if (!shownRoute) return;
     setActivePinId(null);
-    setEditing({ id: shownRoute.id, stops: shownRoute.stops, note: shownRoute.note ?? '' });
+    setEditing({
+      id: shownRoute.id,
+      stops: shownRoute.stops,
+      note: shownRoute.note ?? '',
+      icon: shownRoute.icon,
+      look: { stopShapes: shownRoute.stopShapes, edgeStyles: shownRoute.edgeStyles },
+    });
   };
 
-  // ✓ on the edit sheet: keep the stops (and their looks, matched by place) and the description.
+  // ✓ on the edit sheet: keep the stops with their look, the icon and the description.
   const saveEdit = async () => {
     if (!editRoute || !shownRoute || editRoute.stops.length < COURSE_LIMITS.minStops) return;
-    const look = remapRouteLook(shownRoute.stops, shownRoute, editRoute.stops);
-    await course.save({ ...shownRoute, stops: editRoute.stops, note: editRoute.note.trim() || undefined, ...look });
+    await course.save({
+      ...shownRoute,
+      stops: editRoute.stops,
+      note: editRoute.note.trim() || undefined,
+      icon: editRoute.icon,
+      ...cleanRouteLook(editRoute.look, editRoute.stops.length),
+    });
     setEditing(null);
     // Back to showing it: the map glides over, the pins fade off, the stops drop in again.
     setLandedRoute(null);
@@ -850,8 +863,8 @@ export default function App() {
       {shownStops.length > 1 && (
         <StopLines
           count={shownStops.length}
-          edgeStyles={buildPins || editRoute ? undefined : shownRoute?.edgeStyles}
-          stopShapes={buildPins || editRoute ? undefined : shownRoute?.stopShapes}
+          edgeStyles={buildPins ? undefined : editRoute ? editRoute.look.edgeStyles : shownRoute?.edgeStyles}
+          stopShapes={buildPins ? undefined : editRoute ? editRoute.look.stopShapes : shownRoute?.stopShapes}
           // A route put on show plays in once the map has glided over to it and the pins have gone
           // (until then app--route-arriving keeps its stops out of sight).
           play={
@@ -926,18 +939,29 @@ export default function App() {
             chosen={editRoute.stops.map((s) => s.place.id)}
             onAdd={(id) => {
               const pin = pins.find((p) => p.id === id);
-              if (pin) setEditing((e) => (e ? { ...e, stops: addEditStop(e.stops, pin.place) } : e));
+              if (pin) editStops((stops) => addEditStop(stops, pin.place));
             }}
             onCancel={() => {}}
             onPanEnabled={(on) => mapRef.current?.setPanEnabled(on)}
             defaultTitle=""
             onCreate={() => {}}
           />
+          {/* Long-press a stop or a line to restyle it, as when it's on show. */}
+          <RouteStyleLayer
+            mapEl={mapEl.current}
+            stopCount={editRoute.stops.length}
+            stopShapes={editRoute.look.stopShapes}
+            edgeStyles={editRoute.look.edgeStyles}
+            onStopShape={(i, shape) => setEditing((e) => (e ? { ...e, look: withStopShape(e.look, e.stops.length, i, shape) } : e))}
+            onEdgeStyle={(i, style) => setEditing((e) => (e ? { ...e, look: withEdgeStyle(e.look, e.stops.length, i, style) } : e))}
+          />
           <RouteEditTray
             stops={editRoute.stops}
             note={editRoute.note}
             onNote={(note) => setEditing((e) => (e ? { ...e, note } : e))}
-            onMove={(from, to) => setEditing((e) => (e ? { ...e, stops: moveStop(e.stops, from, to) } : e))}
+            onMove={(from, to) => editStops((stops) => moveStop(stops, from, to))}
+            icon={editRoute.icon}
+            onIcon={(icon) => setEditing((e) => (e ? { ...e, icon } : e))}
             onDone={saveEdit}
           />
         </>

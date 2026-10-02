@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { COURSE_LIMITS } from './course';
-import { addEditStop, moveStop, remapRouteLook, toggleEditStop } from './routeEdit';
+import { addEditStop, moveStop, remapRouteLook, toggleEditStop, withEditStops, type RouteEdit } from './routeEdit';
 import type { CourseStop, PlaceRef } from '../types/course';
 
 const place = (id: string): PlaceRef => ({ id, name: id, center: [127, 37.5] });
@@ -37,5 +37,14 @@ describe('editing a saved route', () => {
     });
     // a, c: a line that wasn't there before starts plain; nothing left to store.
     expect(remapRouteLook(before, { edgeStyles: ['dashed', 'dotted'] }, stops('a', 'c'))).toEqual({ stopShapes: undefined, edgeStyles: undefined });
+  });
+
+  it('the look of the route being edited follows its stops through every change', () => {
+    let edit: RouteEdit = { id: 'r', stops: stops('a', 'b', 'c'), note: '', look: { stopShapes: ['heart', null, null], edgeStyles: [null, 'dotted'] } };
+    // Moved, then one taken out: a keeps its heart; b–c (dotted) still joins b and c.
+    edit = withEditStops(edit, moveStop(edit.stops, 0, 2)); // b, c, a
+    expect(edit.look).toEqual({ stopShapes: [null, null, 'heart'], edgeStyles: ['dotted', null] });
+    edit = withEditStops(edit, edit.stops.filter((s) => s.place.id !== 'c')); // b, a
+    expect(edit.look).toEqual({ stopShapes: [null, 'heart'], edgeStyles: undefined });
   });
 });
