@@ -3306,11 +3306,6 @@ input.timeline__time:focus {
   line-height: 1;
 }
 
-/* 없음: a quiet mark among the emoji. */
-.folder-picker__opt--none {
-  color: var(--muted);
-}
-
 .folder-picker__opt.is-on {
   background: var(--accent-soft);
 }
