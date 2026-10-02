@@ -383,7 +383,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
   rowDragRef.current = rowDrag;
 
   // ----- 다중 선택 -----
-  // The ✓ beside + turns rows into checkboxes: taps pick and unpick, the
+  // The ✓ beside + (or a long press on a route) turns rows into checkboxes: taps pick and unpick, the
   // trash at the sheet's bottom right deletes what's picked, and a long press
   // carries every picked route at once (onto a folder tab, the trash, or a
   // place in the list — let go in place and they gather round the one held).
@@ -437,13 +437,12 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
         if (!sheet || !row) return;
         el.setPointerCapture?.(pointerId);
         setFiling(null);
-        // Picking routes: the one held joins the picked ones, and they all go together.
-        let ids = [c.id];
-        if (selecting) {
-          const next = new Set(selected).add(c.id);
-          setSelected(next);
-          ids = routes.filter((r) => next.has(r.id)).map((r) => r.id);
-        }
+        // A long press picks the route held, switching 다중 선택 on if it's
+        // off; everything picked goes along.
+        const next = new Set(selecting ? selected : []).add(c.id);
+        setSelecting(true);
+        setSelected(next);
+        const ids = routes.filter((r) => next.has(r.id)).map((r) => r.id);
         setRowDrag({
           ids,
           held: c.id,
