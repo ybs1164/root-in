@@ -26,6 +26,11 @@ export interface RouteFolders {
   folders: RouteFolder[];
   /** Course id → folder id. Missing (or pointing at a gone folder) = 미분류. */
   assign: Record<string, string>;
+  /**
+   * Routes in the order the user dragged them into (course ids). Absent
+   * until the first drag; routes not in it (new ones) come first, newest first.
+   */
+  order?: string[];
 }
 
 /** The fixed tabs before the user's folders. */
@@ -78,7 +83,7 @@ export function moveFolder(state: RouteFolders, id: string, to: number): RouteFo
 /** Removes a folder; its routes go back to 미분류 (the routes themselves stay). */
 export function deleteFolder(state: RouteFolders, id: string): RouteFolders {
   const assign = Object.fromEntries(Object.entries(state.assign).filter(([, folder]) => folder !== id));
-  return { folders: state.folders.filter((f) => f.id !== id), assign };
+  return { ...state, folders: state.folders.filter((f) => f.id !== id), assign };
 }
 
 /** Files a route into a folder, or back to 미분류 with `null`. */
@@ -100,12 +105,43 @@ export function openRouteTab(state: RouteFolders, tab: RouteTab): RouteTab {
   return tab === 'all' || tab === 'none' || state.folders.some((f) => f.id === tab) ? tab : 'all';
 }
 
-/** The routes a tab shows, newest first. */
-export function routesInTab(courses: Course[], state: RouteFolders, tab: RouteTab): Course[] {
+/**
+ * Every route in list order: ones not yet placed by a drag first, newest
+ * first (a route just made shows at the top), then the dragged order.
+ */
+export function orderedRoutes(courses: Course[], state: RouteFolders): Course[] {
+  const at = new Map((state.order ?? []).map((id, i) => [id, i]));
   const newest = [...courses].sort((a, b) => (b.updatedAt ?? b.createdAt).localeCompare(a.updatedAt ?? a.createdAt));
-  if (tab === 'all') return newest;
-  if (tab === 'none') return newest.filter((c) => folderOf(state, c.id) === null);
-  return newest.filter((c) => folderOf(state, c.id) === tab);
+  return [...newest.filter((c) => !at.has(c.id)), ...newest.filter((c) => at.has(c.id)).sort((a, b) => at.get(a.id)! - at.get(b.id)!)];
+}
+
+/** The routes a tab shows, in list order. */
+export function routesInTab(courses: Course[], state: RouteFolders, tab: RouteTab): Course[] {
+  const routes = orderedRoutes(courses, state);
+  if (tab === 'all') return routes;
+  if (tab === 'none') return routes.filter((c) => folderOf(state, c.id) === null);
+  return routes.filter((c) => folderOf(state, c.id) === tab);
+}
+
+/**
+ * A route dragged to place `to` in the tab's list. The tab may show only
+ * some routes, so it goes just before the route it now sits above (or just
+ * after the one above it, at the bottom), wherever that is in the whole order.
+ */
+export function placeRoute(courses: Course[], state: RouteFolders, tab: RouteTab, id: string, to: number): RouteFolders {
+  const list = routesInTab(courses, state, tab).map((c) => c.id);
+  const from = list.indexOf(id);
+  if (from < 0 || from === to) return state;
+  list.splice(from, 1);
+  const at = Math.max(0, Math.min(to, list.length));
+  const below = list[at];
+  const above = list[at - 1];
+  const order = orderedRoutes(courses, state)
+    .map((c) => c.id)
+    .filter((c) => c !== id);
+  const i = below ? order.indexOf(below) : order.indexOf(above) + 1;
+  order.splice(i, 0, id);
+  return { ...state, order };
 }
 
 /**

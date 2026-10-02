@@ -9,6 +9,7 @@ import {
   moveRoute,
   ROUTE_FOLDER_LIMITS,
   openRouteTab,
+  placeRoute,
   routesInTab,
   setFolderIcon,
   type RouteFolders,
@@ -306,7 +307,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
         role="tab"
         aria-selected={on}
         aria-label={custom && on ? `${label}, 다시 누르면 아이콘 바꾸기` : label}
-        className={`route-folders__tab ${on ? 'is-on' : ''} ${lifted === id ? 'is-lifted' : ''}`}
+        className={`route-folders__tab ${on ? 'is-on' : ''} ${lifted === id ? 'is-lifted' : ''} ${rowDrag?.overTab === id ? 'is-drop' : ''}`}
         {...(custom ? pressHandlers(id) : {})}
         onClick={() => {
           if (swallowClick.current) {
@@ -348,6 +349,129 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
       </div>
     );
   };
+
+  // ----- Dragging a route (long press on its row) -----
+  // The lifted row is drawn as a copy floating over the sheet (the list
+  // scrolls inside a clipping box, and the row must reach the tabs); its own
+  // place stays open while the others slide out of the way. Let go over a
+  // folder tab to file it there, or among the rows to put it in that place.
+  const bodyEl = useRef<HTMLDivElement | null>(null);
+  const rowPress = useRef<{ id: string; x: number; y: number; timer: number } | null>(null);
+  const [rowDrag, setRowDrag] = useState<{
+    id: string;
+    from: number;
+    to: number;
+    dx: number;
+    dy: number;
+    /** Resting rows (top and height), measured when it was lifted. */
+    rows: { top: number; height: number }[];
+    /** Where the lifted row sat, relative to the sheet. */
+    box: { left: number; top: number; width: number; height: number };
+    /** The tab under the finger it would be filed into, if any. */
+    overTab: RouteTab | null;
+  } | null>(null);
+  const rowDragRef = useRef(rowDrag);
+  rowDragRef.current = rowDrag;
+
+  // While a row is lifted, finger moves drag it instead of scrolling the list.
+  useEffect(() => {
+    const body = bodyEl.current;
+    if (!body) return;
+    const hold = (e: TouchEvent) => {
+      if (rowDragRef.current) e.preventDefault();
+    };
+    body.addEventListener('touchmove', hold, { passive: false });
+    return () => body.removeEventListener('touchmove', hold);
+  }, []);
+
+  /** A tab a lifted route can be filed into at a screen point: 미분류 or a folder, not the one open. */
+  const dropTabAt = (x: number, y: number): RouteTab | null => {
+    const tabEl = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-tab]');
+    const id = tabEl?.dataset.tab;
+    return id && id !== 'all' && id !== current ? id : null;
+  };
+
+  const rowHandlers = (c: Course, index: number) => ({
+    onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
+      if (e.button !== 0 || !e.isPrimary) return;
+      const el = e.currentTarget;
+      const pointerId = e.pointerId;
+      const p = { id: c.id, x: e.clientX, y: e.clientY, timer: 0 };
+      p.timer = window.setTimeout(() => {
+        const sheet = sheetEl.current?.getBoundingClientRect();
+        const rowEls = [...(bodyEl.current?.querySelectorAll<HTMLElement>('.route-row') ?? [])];
+        const row = rowEls[index]?.getBoundingClientRect();
+        if (!sheet || !row) return;
+        el.setPointerCapture?.(pointerId);
+        setFiling(null);
+        setRowDrag({
+          id: c.id,
+          from: index,
+          to: index,
+          dx: 0,
+          dy: 0,
+          rows: rowEls.map((r) => {
+            const b = r.getBoundingClientRect();
+            return { top: b.top, height: b.height };
+          }),
+          box: { left: row.left - sheet.left, top: row.top - sheet.top, width: row.width, height: row.height },
+          overTab: null,
+        });
+        navigator.vibrate?.(10);
+      }, LONG_PRESS_MS);
+      rowPress.current = p;
+    },
+    onPointerMove: (e: React.PointerEvent<HTMLElement>) => {
+      const p = rowPress.current;
+      if (!p) return;
+      const d = rowDragRef.current;
+      if (!d) {
+        // Moving first is scrolling the list, not a press.
+        if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > PRESS_SLOP_PX) {
+          window.clearTimeout(p.timer);
+          rowPress.current = null;
+        }
+        return;
+      }
+      const dx = e.clientX - p.x;
+      const dy = e.clientY - p.y;
+      const overTab = dropTabAt(e.clientX, e.clientY);
+      // Its new place: how many of the other rows' middles lie above its middle.
+      const mid = d.rows[d.from].top + dy + d.rows[d.from].height / 2;
+      const to = overTab ? d.from : d.rows.filter((r, i) => i !== d.from && r.top + r.height / 2 < mid).length;
+      setRowDrag({ ...d, dx, dy, to, overTab });
+    },
+    onPointerUp: () => endRowPress(true),
+    onPointerCancel: () => endRowPress(false),
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+  });
+
+  const endRowPress = (drop: boolean) => {
+    const p = rowPress.current;
+    if (p) window.clearTimeout(p.timer);
+    rowPress.current = null;
+    const d = rowDragRef.current;
+    if (!d) return;
+    setRowDrag(null);
+    // The click that ends a long press shouldn't also show / hide the route.
+    swallowRowClick.current = true;
+    window.setTimeout(() => (swallowRowClick.current = false), 400);
+    if (!drop) return;
+    if (d.overTab) onFolders(moveRoute(folders, d.id, d.overTab === 'none' ? null : d.overTab));
+    else if (d.to !== d.from) onFolders(placeRoute(courses, folders, current, d.id, d.to));
+  };
+  const swallowRowClick = useRef(false);
+
+  /** Where a resting row sits while another is dragged: shifted a row's height to make room. */
+  const rowShift = (i: number) => {
+    const d = rowDrag;
+    if (!d || i === d.from) return 0;
+    const h = d.rows[d.from].height;
+    if (d.from < i && i <= d.to) return -h;
+    if (d.to <= i && i < d.from) return h;
+    return 0;
+  };
+  const draggedRoute = rowDrag ? courses.find((c) => c.id === rowDrag.id) : null;
 
   const pickingFolder = folders.folders.find((f) => f.id === picking) ?? null;
 
@@ -418,8 +542,29 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
         </button>
       </div>
 
+      {rowDrag && draggedRoute && (
+        // The lifted route, following the finger over the list and the tabs.
+        <div
+          className={`route-row route-row--ghost ${rowDrag.overTab ? 'is-over-tab' : ''}`}
+          style={{
+            left: rowDrag.box.left,
+            top: rowDrag.box.top,
+            width: rowDrag.box.width,
+            height: rowDrag.box.height,
+            transform: `translate(${rowDrag.dx}px, ${rowDrag.dy}px)`,
+          }}
+          aria-hidden
+        >
+          <div className="route-row__main">
+            {draggedRoute.icon && <span className="route-row__icon">{draggedRoute.icon}</span>}
+            <strong>{draggedRoute.title || '이름 없는 경로'}</strong>
+          </div>
+        </div>
+      )}
+
       <div
-        className="route-folders__body"
+        ref={bodyEl}
+        className={`route-folders__body ${rowDrag ? 'is-sorting' : ''}`}
         role="tabpanel"
         onClick={(e) => {
           // A tap on the sheet's empty space (not a row or a button) lets go of a route on show.
@@ -438,12 +583,24 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
           )
         ) : (
           <ul className="route-folders__list">
-            {routes.map((c) => {
+            {routes.map((c, index) => {
               const filed = folderOf(folders, c.id);
               const shown = shownId === c.id;
               return (
-                <li key={c.id} className={`route-row ${shown ? 'is-shown' : ''}`}>
-                  <button className="route-row__main" aria-pressed={shown} onClick={() => onShow(shown ? null : c)}>
+                <li
+                  key={c.id}
+                  className={`route-row ${shown ? 'is-shown' : ''} ${rowDrag?.id === c.id ? 'is-lifted' : ''}`}
+                  style={rowShift(index) ? { transform: `translateY(${rowShift(index)}px)` } : undefined}
+                >
+                  <button
+                    className="route-row__main"
+                    aria-pressed={shown}
+                    {...rowHandlers(c, index)}
+                    onClick={() => {
+                      if (swallowRowClick.current) return;
+                      onShow(shown ? null : c);
+                    }}
+                  >
                     {c.icon && (
                       <span className="route-row__icon" aria-hidden>
                         {c.icon}

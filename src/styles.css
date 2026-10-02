@@ -2532,6 +2532,15 @@ input.timeline__time:focus {
   box-shadow: var(--shadow-sm);
 }
 
+/* A route held over a folder tab: that tab rises to take it. */
+.route-folders__tab.is-drop {
+  position: relative;
+  z-index: 1;
+  background: var(--accent-soft);
+  transform: translateY(-4px) scale(1.12);
+  transition: transform 0.12s ease;
+}
+
 .route-folders__tabwrap {
   position: relative;
   flex: none;
@@ -3330,6 +3339,39 @@ input.timeline__time:focus {
 
 .route-row:last-child {
   border-bottom: 0;
+}
+
+/* Rows slide out of the way of a route being dragged among them. */
+.route-folders__body.is-sorting .route-row {
+  transition: transform 0.18s ease;
+}
+
+/* Its own place is left empty while it's carried (the others slide over it). */
+.route-row.is-lifted {
+  visibility: hidden;
+}
+
+/* The carried route: a copy over the sheet that follows the finger. */
+.route-row--ghost {
+  position: absolute;
+  z-index: 5;
+  padding: 0 12px;
+  border-radius: 14px;
+  border-bottom: 0;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+}
+
+.route-row--ghost .route-row__main {
+  height: 100%;
+}
+
+/* Over a folder tab: small, about to be filed. */
+.route-row--ghost.is-over-tab {
+  opacity: 0.85;
+  scale: 0.8;
+  transition: scale 0.12s ease;
 }
 
 .route-row__main {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Course } from '../types/course';
-import { addFolder, deleteFolder, EMPTY_ROUTE_FOLDERS, moveFolder, folderOf, moveRoute, neighborRoute, nextFolderName, renameFolder, ROUTE_FOLDER_LIMITS, routesInTab, setFolderIcon } from './routeFolders';
+import { addFolder, deleteFolder, EMPTY_ROUTE_FOLDERS, moveFolder, folderOf, moveRoute, neighborRoute, nextFolderName, renameFolder, ROUTE_FOLDER_LIMITS, routesInTab, placeRoute, setFolderIcon } from './routeFolders';
 
 const course = (id: string, createdAt: string): Course => ({
   id, userId: 'u', title: id, theme: 'date', travelMode: 'walk', stops: [], createdAt,
@@ -76,5 +76,24 @@ describe('route folders', () => {
     expect(neighborRoute(courses, state, 'none', 'r1', 1)).toBeNull();
     // A folder gone missing falls back to 전체, as the sheet does.
     expect(neighborRoute(courses, state, 'gone', 'r4', 1)!.id).toBe('r1');
+  });
+
+  it('routes keep the order they are dragged into; new ones come first; a folder view places among the whole list', () => {
+    let state = addFolder(EMPTY_ROUTE_FOLDERS, 'heart')!;
+    for (const id of ['b', 'd']) state = moveRoute(state, id, 'heart');
+    const courses = ['a', 'b', 'c', 'd'].map((id, i) => course(id, `2026-09-0${i + 1}`)); // newest: d c b a
+    const ids = (tab: string, s = state) => routesInTab(courses, s, tab).map((c) => c.id);
+    expect(ids('all')).toEqual(['d', 'c', 'b', 'a']);
+    // 전체: d to the bottom.
+    state = placeRoute(courses, state, 'all', 'd', 3);
+    expect(ids('all')).toEqual(['c', 'b', 'a', 'd']);
+    // In the heart folder (b, d), d to the top: just above b in the whole list.
+    state = placeRoute(courses, state, 'heart', 'd', 0);
+    expect(ids('heart')).toEqual(['d', 'b']);
+    expect(ids('all')).toEqual(['c', 'd', 'b', 'a']);
+    // A route made later shows first; deleting a folder keeps the order.
+    const later = [...courses, course('e', '2026-09-09')];
+    expect(routesInTab(later, state, 'all').map((c) => c.id)).toEqual(['e', 'c', 'd', 'b', 'a']);
+    expect(ids('all', deleteFolder(state, 'heart'))).toEqual(['c', 'd', 'b', 'a']);
   });
 });
