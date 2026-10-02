@@ -12,7 +12,7 @@ interface RouteBuildLayerProps {
   chosen: string[];
   /** Adds a pin as the next stop (ignored if it's already in or the route is full). */
   onAdd: (pinId: string) => void;
-  /** A tap on the bare map: drop the route being made. */
+  /** A tap on the bare map: drop the route being made (editing: finish the edit). */
   onCancel: () => void;
   onPanEnabled: (enabled: boolean) => void;
   defaultTitle: string;
@@ -25,8 +25,7 @@ interface RouteBuildLayerProps {
   onCreate: (title: string, note: string, icon: string | undefined) => void;
   /**
    * Editing a saved route instead of making one: stops are picked the same
-   * way, but the edit sheet has the ✓ (no button or name dialog here) and a
-   * tap on bare map changes nothing.
+   * way, but the edit sheet has the ✓ (no button or name dialog here).
    */
   editing?: boolean;
 }
@@ -148,8 +147,21 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
         window.setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 300);
         return;
       }
-      // A plain tap on bare map (not a pan) drops the route being made.
-      if (!s.moved && !s.startPin && !s.fromLast && mapEl.contains(e.target as Node)) handlers.current.onCancel();
+      // A plain tap on bare map (not a pan, not a marker) drops the route
+      // being made — or, editing, finishes the edit. A marker's tap is its
+      // own (a stop's number takes it out).
+      const onMarker = (e.target as Element | null)?.closest?.('.map-marker');
+      if (!s.moved && !s.startPin && !s.fromLast && !onMarker && mapEl.contains(e.target as Node)) {
+        // That tap's click comes after the layer has gone: it mustn't land on
+        // whatever shows up under the finger (a route's < > arrows, say).
+        const swallow = (c: MouseEvent) => {
+          c.stopPropagation();
+          c.preventDefault();
+        };
+        document.addEventListener('click', swallow, { capture: true, once: true });
+        window.setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 300);
+        handlers.current.onCancel();
+      }
     };
     document.addEventListener('pointerdown', down, true);
     document.addEventListener('pointermove', move, { capture: true, passive: false });

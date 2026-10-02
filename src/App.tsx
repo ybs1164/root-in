@@ -991,7 +991,8 @@ export default function App() {
               const pin = pins.find((p) => p.id === id);
               if (pin) editStops((stops) => addEditStop(stops, pin.place));
             }}
-            onCancel={() => {}}
+            // A tap on bare map finishes the edit, as ✓ does (not while it's too short to keep).
+            onCancel={() => void saveEdit()}
             onPanEnabled={(on) => mapRef.current?.setPanEnabled(on)}
             defaultTitle=""
             onCreate={() => {}}
