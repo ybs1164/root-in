@@ -219,6 +219,9 @@ export default function App() {
     return [];
   }, [sharedCourse, sharedPins, buildPins, editRoute, shownRoute, sharedDiary, tab, sub, day.screen, day.draft.stops, course.draft.stops]);
 
+  // Only whether a route is being edited changes the markers, not each edit
+  // (re-making them would drop every pin in again).
+  const isEditing = !!editRoute;
   // Pin markers: a received set as its sender styled it, or my pins on the home tab.
   const pinMarkers = useMemo<PinMarker[]>(() => {
     if (sharedPins) {
@@ -238,7 +241,7 @@ export default function App() {
     // A saved route on show has the map to itself: every pin steps aside
     // (its stops, shaped or numbered, stand in for the places).
     // Editing it, they come back to be picked.
-    if (shownRoute && !editRoute && !pinning && pinsGone) return [];
+    if (shownRoute && !isEditing && !pinning && pinsGone) return [];
     return (pinning ? pins : shownPins).map((pin) => {
       const style = categoryStyle(categories, pin.categoryId);
       return {
@@ -251,7 +254,7 @@ export default function App() {
         selected: pin.id === activePinId,
       };
     });
-  }, [sharedPins, sharedCourse, onPinHome, pinning, pins, shownPins, categories, activePinId, shownRoute, editRoute, pinsGone]);
+  }, [sharedPins, sharedCourse, onPinHome, pinning, pins, shownPins, categories, activePinId, shownRoute, isEditing, pinsGone]);
 
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
 
@@ -363,6 +366,20 @@ export default function App() {
   useEffect(() => {
     mapRef.current?.setPins(pinMarkers);
   }, [pinMarkers, mapProvider]);
+
+  // Editing a route: a pin already in it steps aside (its numbered stop
+  // stands in), and so does one the moment it's added; taken out, it's back.
+  // Marked on the markers rather than left out of them: re-making the
+  // markers would drop every pin in again.
+  const editPlaces = editRoute ? editRoute.stops.map((st) => st.place.id).join('\n') : '';
+  useEffect(() => {
+    const inRoute = new Set(editPlaces ? editPlaces.split('\n') : []);
+    const placeOf = new Map(pins.map((p) => [p.id, p.place.id]));
+    document.querySelectorAll<HTMLElement>('.map-marker--pin[data-pin-id]').forEach((el) => {
+      if (inRoute.has(placeOf.get(el.dataset.pinId ?? '') ?? '')) el.dataset.inRoute = '';
+      else delete el.dataset.inRoute;
+    });
+  }, [editPlaces, pinMarkers, pins, mapProvider]);
 
   const sharedPinsKey = sharedPins?.sharedAt ?? '';
   useEffect(() => {

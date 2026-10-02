@@ -3121,6 +3121,15 @@ input.timeline__time:focus {
   animation: stop-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
 }
 
+/* …except those already stops of it: their numbers stand in for them.
+   !important beats the drop animation's opacity (and MapLibre's inline one);
+   hidden, they aren't found under a finger either. */
+.app--route-editing .map-marker--pin[data-in-route] {
+  visibility: hidden;
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .app--route-editing .map-marker--pin {
     animation: none;
