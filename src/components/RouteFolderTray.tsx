@@ -369,6 +369,8 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     box: { left: number; top: number; width: number; height: number };
     /** The tab under the finger it would be filed into, if any. */
     overTab: RouteTab | null;
+    /** Off the sheet altogether (over the map): letting go there changes nothing. */
+    away: boolean;
   } | null>(null);
   const rowDragRef = useRef(rowDrag);
   rowDragRef.current = rowDrag;
@@ -416,6 +418,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
           }),
           box: { left: row.left - sheet.left, top: row.top - sheet.top, width: row.width, height: row.height },
           overTab: null,
+          away: false,
         });
         navigator.vibrate?.(10);
       }, LONG_PRESS_MS);
@@ -439,7 +442,9 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
       // Its new place: how many of the other rows' middles lie above its middle.
       const mid = d.rows[d.from].top + dy + d.rows[d.from].height / 2;
       const to = overTab ? d.from : d.rows.filter((r, i) => i !== d.from && r.top + r.height / 2 < mid).length;
-      setRowDrag({ ...d, dx, dy, to, overTab });
+      const sheet = sheetEl.current?.getBoundingClientRect();
+      const away = !!sheet && !overTab && (e.clientY < sheet.top || e.clientY > sheet.bottom || e.clientX < sheet.left || e.clientX > sheet.right);
+      setRowDrag({ ...d, dx, dy, to: away ? d.from : to, overTab, away });
     },
     onPointerUp: () => endRowPress(true),
     onPointerCancel: () => endRowPress(false),
@@ -452,15 +457,41 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     rowPress.current = null;
     const d = rowDragRef.current;
     if (!d) return;
+    // Heard by both the row and the document: only the first one counts.
+    rowDragRef.current = null;
     setRowDrag(null);
     // The click that ends a long press shouldn't also show / hide the route.
+    // Only the click straight after the release; a tap after that is a tap.
     swallowRowClick.current = true;
-    window.setTimeout(() => (swallowRowClick.current = false), 400);
-    if (!drop) return;
+    window.setTimeout(() => (swallowRowClick.current = false), 250);
+    if (!drop || d.away) return;
     if (d.overTab) onFolders(moveRoute(folders, d.id, d.overTab === 'none' ? null : d.overTab));
     else if (d.to !== d.from) onFolders(placeRoute(courses, folders, current, d.id, d.to));
   };
   const swallowRowClick = useRef(false);
+  const endRowPressRef = useRef(endRowPress);
+  endRowPressRef.current = endRowPress;
+
+  // Letting go always ends a lift, wherever the finger is: the row's own
+  // handlers only hear the release if its pointer capture took, and a lift
+  // left hanging would keep the row floating. Also before the lift fires
+  // (a press let go early just stops waiting).
+  const lifting = !!rowDrag;
+  useEffect(() => {
+    if (!lifting) return;
+    const drop = () => endRowPressRef.current(true);
+    const cancel = () => endRowPressRef.current(false);
+    document.addEventListener('pointerup', drop, true);
+    document.addEventListener('touchend', drop, true);
+    document.addEventListener('pointercancel', cancel, true);
+    document.addEventListener('touchcancel', cancel, true);
+    return () => {
+      document.removeEventListener('pointerup', drop, true);
+      document.removeEventListener('touchend', drop, true);
+      document.removeEventListener('pointercancel', cancel, true);
+      document.removeEventListener('touchcancel', cancel, true);
+    };
+  }, [lifting]);
 
   /** Where a resting row sits while another is dragged: shifted a row's height to make room. */
   const rowShift = (i: number) => {
@@ -597,7 +628,10 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
                     aria-pressed={shown}
                     {...rowHandlers(c, index)}
                     onClick={() => {
-                      if (swallowRowClick.current) return;
+                      if (swallowRowClick.current) {
+                        swallowRowClick.current = false;
+                        return;
+                      }
                       onShow(shown ? null : c);
                     }}
                   >
