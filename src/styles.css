@@ -3087,16 +3087,30 @@ input.timeline__time:focus {
 }
 
 .route-edit__num {
+  position: relative;
   flex: none;
   display: grid;
   place-items: center;
   width: 28px;
   height: 28px;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
   background: var(--route);
   color: var(--on-accent);
   font-size: 14px;
   font-weight: 800;
+}
+
+/* Tapping the number takes the stop out: 28px to see, 44px to hit. */
+.route-edit__num::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.route-edit__num:disabled {
+  opacity: 1; /* mid-drag it's only not tappable; it looks the same */
 }
 
 .route-edit__name {

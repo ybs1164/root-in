@@ -1010,6 +1010,7 @@ export default function App() {
             note={editRoute.note}
             onNote={(note) => setEditing((e) => (e ? { ...e, note } : e))}
             onMove={(from, to) => editStops((stops) => moveStop(stops, from, to))}
+            onRemove={(index) => editStops((stops) => stops.filter((_, i) => i !== index))}
             icon={editRoute.icon}
             onIcon={(icon) => setEditing((e) => (e ? { ...e, icon } : e))}
             onDone={saveEdit}

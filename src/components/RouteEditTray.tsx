@@ -11,6 +11,8 @@ interface RouteEditTrayProps {
   onNote: (note: string) => void;
   /** A stop dragged in the list from one place to another. */
   onMove: (from: number, to: number) => void;
+  /** A stop's number tapped: it leaves the route (as tapping its number on the map does). */
+  onRemove: (index: number) => void;
   /** ✓: keep the changes and leave editing (needs at least two stops). */
   onDone: () => void;
   /** The route's icon (by its name in the list and above it on the map); none by default. */
@@ -24,7 +26,7 @@ interface RouteEditTrayProps {
  * in order — drag one by its handle to put it somewhere else in the route.
  * Stops are added and taken out on the map, as when making a route.
  */
-export default function RouteEditTray({ stops, note, onNote, onMove, onDone, icon, onIcon }: RouteEditTrayProps) {
+export default function RouteEditTray({ stops, note, onNote, onMove, onRemove, onDone, icon, onIcon }: RouteEditTrayProps) {
   // The icon grid, open under the icon button; a tap anywhere else closes it.
   const [pickingIcon, setPickingIcon] = useState(false);
   const iconBox = useRef<HTMLDivElement | null>(null);
@@ -123,10 +125,15 @@ export default function RouteEditTray({ stops, note, onNote, onMove, onDone, ico
               className={`route-edit__stop ${drag?.from === i ? 'is-dragged' : ''}`}
               style={{ transform: shift(i) ? `translateY(${shift(i)}px)` : undefined }}
             >
-              <span className="route-edit__num" aria-hidden>
+              <button
+                className="route-edit__num"
+                aria-label={`${i + 1}번 ${s.place.name} 루트에서 빼기`}
+                disabled={!!drag}
+                onClick={() => onRemove(i)}
+              >
                 {/* The number it will have: rows the dragged one passed move up or down one. */}
                 {drag?.from === i ? drag.to + 1 : i + 1 + Math.sign(shift(i))}
-              </span>
+              </button>
               <span className="route-edit__name">{s.place.name}</span>
               <button
                 className="route-edit__grip"
