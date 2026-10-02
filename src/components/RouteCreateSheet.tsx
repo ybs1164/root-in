@@ -28,7 +28,7 @@ interface RouteCreateSheetProps {
  * Making a route: the sheet that rises once it has two stops.
  *
  *   [folder] [name ✎]
- *   [icon] [description]          [생성]
+ *   [[icon] description (3 lines)] [생성]
  *
  * Folder and icon start blank (미분류, no icon) and each opens a small grid
  * above its button; a tap anywhere else closes it.
@@ -98,36 +98,40 @@ export default function RouteCreateSheet({ draft, onDraft, defaultTitle, folders
           <Pencil className="route-create__pen" size={16} aria-hidden />
         </label>
       </div>
-      <div className="route-create__row">
-        <div className="route-create__pick">
-          <button
-            className="route-create__btn"
-            aria-label={`아이콘 ${draft.icon ?? '없음'}, 바꾸기`}
-            aria-expanded={picking === 'icon'}
-            onClick={() => setPicking(picking === 'icon' ? null : 'icon')}
-          >
-            <RouteIconFace icon={draft.icon} />
-          </button>
-          {picking === 'icon' && (
-            <div className="folder-picker route-create__grid" role="group" aria-label="아이콘">
-              <RouteIconOptions
-                value={draft.icon}
-                onPick={(icon) => {
-                  onDraft({ ...draft, icon });
-                  setPicking(null);
-                }}
-              />
-            </div>
-          )}
+      <div className="route-create__row route-create__row--note">
+        {/* The description box, three lines tall, with the icon in its corner. */}
+        <div className="route-create__note-box">
+          <div className="route-create__pick">
+            <button
+              className="route-create__btn route-create__btn--icon"
+              aria-label={`아이콘 ${draft.icon ?? '없음'}, 바꾸기`}
+              aria-expanded={picking === 'icon'}
+              onClick={() => setPicking(picking === 'icon' ? null : 'icon')}
+            >
+              <RouteIconFace icon={draft.icon} />
+            </button>
+            {picking === 'icon' && (
+              <div className="folder-picker route-create__grid" role="group" aria-label="아이콘">
+                <RouteIconOptions
+                  value={draft.icon}
+                  onPick={(icon) => {
+                    onDraft({ ...draft, icon });
+                    setPicking(null);
+                  }}
+                />
+              </div>
+            )}
+          </div>
+          <textarea
+            className="route-create__note"
+            aria-label="설명"
+            placeholder="설명"
+            rows={3}
+            value={draft.note}
+            maxLength={ROUTE_NOTE_MAX}
+            onChange={(e) => onDraft({ ...draft, note: e.target.value })}
+          />
         </div>
-        <input
-          className="route-create__note"
-          aria-label="설명"
-          placeholder="설명"
-          value={draft.note}
-          maxLength={ROUTE_NOTE_MAX}
-          onChange={(e) => onDraft({ ...draft, note: e.target.value })}
-        />
         <button className="route-create__go" onClick={onCreate}>
           생성
         </button>

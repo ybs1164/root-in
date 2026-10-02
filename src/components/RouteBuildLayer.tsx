@@ -214,7 +214,8 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
         <line ref={trailEl} className="route-build__trail" />
       </svg>
 
-      {!editing && (
+      {/* Until the create sheet is up: then the sheet says what's next. */}
+      {!editing && !sheetUp && (
         <p className="route-build__hint" role="status">
           드래그 또는 클릭으로 루트 추가
         </p>
