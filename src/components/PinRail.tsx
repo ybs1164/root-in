@@ -28,8 +28,9 @@ const ENTRIES: { entry: PinRailEntry; label: string; icon: ReactNode }[] = [
 /**
  * Round buttons under ⚙ on the pin screen, in place of the old sheet. 핀
  * and 경로 each open on a tap and take the accent colour; a second tap
- * closes. 핀 shrinks 경로 away for its list, while 경로 leaves 핀 in place. 핀 opens one button per category below it; picking some
- * narrows the map to them, and the map stays narrowed after 핀 closes.
+ * closes. 핀 opens one button per category below it, and 경로 moves down
+ * below that list; picking categories narrows the map to them, and the map
+ * stays narrowed after 핀 closes.
  */
 export default function PinRail({ mode, onAction, categories, counts, picked, onToggle }: PinRailProps) {
   // The category list trails the mode so it can play out before unmounting.
@@ -41,26 +42,20 @@ export default function PinRail({ mode, onAction, categories, counts, picked, on
     return () => window.clearTimeout(t);
   }, [listOpen]);
 
+  const entryButton = ({ entry, label, icon }: (typeof ENTRIES)[number]) => {
+    const on = mode === entry;
+    return (
+      <div key={entry} className="pin-rail__slot">
+        <button className={`pin-rail__btn ${on ? 'is-on' : ''}`} aria-label={label} aria-expanded={on} onClick={() => onAction(entry)}>
+          {icon}
+        </button>
+      </div>
+    );
+  };
+
   return (
     <nav className="pin-rail" aria-label="핀 메뉴">
-      {ENTRIES.map(({ entry, label, icon }) => {
-        const on = mode === entry;
-        // Only 핀's category list puts the other button away; 경로 keeps 핀 in view.
-        const hidden = mode === 'pins' && entry === 'route';
-        return (
-          // Collapsing the slot (not just hiding the button) lets the one below move up.
-          <div key={entry} className={`pin-rail__slot ${hidden ? 'is-hidden' : ''}`} inert={hidden}>
-            <button
-              className={`pin-rail__btn ${on ? 'is-on' : ''}`}
-              aria-label={label}
-              aria-expanded={on}
-              onClick={() => onAction(entry)}
-            >
-              {icon}
-            </button>
-          </div>
-        );
-      })}
+      {entryButton(ENTRIES[0])}
 
       {listShown && (
         <ul className="pin-rail__list" aria-label="내 핀">
@@ -83,6 +78,9 @@ export default function PinRail({ mode, onAction, categories, counts, picked, on
           })}
         </ul>
       )}
+
+      {/* 경로 stays: with 핀's list out it simply moves down below the list. */}
+      {entryButton(ENTRIES[1])}
     </nav>
   );
 }

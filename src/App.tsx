@@ -624,6 +624,35 @@ export default function App() {
     };
   }, [routeMode]);
 
+  // With 핀's category list out, a quick tap on bare map (not a pan, a long
+  // press or a marker) closes it back to just 핀 · 경로; the categories
+  // picked stay picked. A tap that closes a pin card or place card does only that.
+  const pinsListOpen = onPinHome && railMode === 'pins' && !searchOpen && !pinning;
+  const cardOpenRef = useRef(false);
+  cardOpenRef.current = !!activePinId || !!preview;
+  useEffect(() => {
+    const el = mapEl.current;
+    if (!pinsListOpen || !el) return;
+    let tap: { x: number; y: number; at: number; card: boolean } | null = null;
+    const down = (e: PointerEvent) => {
+      tap = e.isPrimary && el.contains(e.target as Node) ? { x: e.clientX, y: e.clientY, at: performance.now(), card: cardOpenRef.current } : null;
+    };
+    const up = (e: PointerEvent) => {
+      const t = tap;
+      tap = null;
+      if (!t || !e.isPrimary || t.card || !el.contains(e.target as Node)) return;
+      if ((e.target as Element | null)?.closest('.map-marker')) return;
+      if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > PRESS.slopPx || performance.now() - t.at >= PRESS.longMs) return;
+      setRailMode('menu');
+    };
+    document.addEventListener('pointerdown', down, true);
+    document.addEventListener('pointerup', up, true);
+    return () => {
+      document.removeEventListener('pointerdown', down, true);
+      document.removeEventListener('pointerup', up, true);
+    };
+  }, [pinsListOpen]);
+
   const startBuilding = () => {
     setShownRouteId(null);
     setActivePinId(null);

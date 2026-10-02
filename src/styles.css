@@ -2427,15 +2427,6 @@ input.timeline__time:focus {
     color 0.15s ease;
 }
 
-.pin-rail__slot.is-hidden {
-  height: 0;
-  opacity: 0;
-}
-
-.pin-rail__slot.is-hidden .pin-rail__btn {
-  transform: scale(0.4);
-}
-
 .pin-rail__btn svg {
   width: 22px;
   height: 22px;
