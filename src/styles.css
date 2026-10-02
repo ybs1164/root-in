@@ -2595,13 +2595,20 @@ input.timeline__time:focus {
 
 /* + : make a new route from pins. Top-right inside the folder, on its own
    line above the routes (it scrolls with them). */
+/* ✓ (다중 선택) and + on their own line at the top right; the routes start
+   just below (tucked up a little). */
+.route-folders__head {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  margin: -4px 0 -10px;
+}
+
 .route-folders__new {
   display: grid;
   place-items: center;
   width: 44px;
   height: 44px;
-  /* On its own line, the routes start just below it (tucked up a little). */
-  margin: -4px 0 -10px auto;
   padding: 0;
   border: 0;
   border-radius: 12px;
@@ -2612,6 +2619,83 @@ input.timeline__time:focus {
 
 .route-folders__new:active {
   background: var(--surface-2);
+}
+
+/* 다중 선택 on: the ✓ in the accent colour. */
+.route-folders__select.is-on {
+  color: var(--accent);
+}
+
+/* 다중 선택: each row's checkbox, left of its name. (Doubled class: the
+   rows' grey small-text rule for spans would otherwise win.) */
+.route-row__check.route-row__check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--border);
+  color: var(--on-accent);
+}
+
+.route-row__check.route-row__check.is-on {
+  background: var(--accent);
+  box-shadow: none;
+}
+
+/* 다중 선택: room under the list so the last route can scroll clear of the trash. */
+.route-folders__body.is-selecting {
+  padding-bottom: 84px;
+}
+
+/* 다중 선택: the trash at the sheet's bottom right (tap, or drop routes on it). */
+.route-folders__trash {
+  position: absolute;
+  right: 16px;
+  bottom: calc(var(--safe-bottom) + 16px);
+  z-index: 6; /* over the carried routes' copy, so it shows they're about to go */
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--danger);
+  animation: picker-in 0.18s ease both;
+  transition:
+    scale 0.12s ease,
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.route-folders__trash:disabled {
+  color: var(--muted);
+}
+
+.route-folders__trash.is-over {
+  background: var(--danger);
+  color: var(--on-accent);
+  scale: 1.2;
+}
+
+/* Several routes carried at once: their count on the floating copy. */
+.route-row--ghost__count.route-row--ghost__count {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  margin-left: auto;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 /* Making a route from pins: the folder sheet is down. Lines join the chosen

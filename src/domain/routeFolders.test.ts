@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Course } from '../types/course';
-import { addFolder, deleteFolder, EMPTY_ROUTE_FOLDERS, moveFolder, folderOf, moveRoute, neighborRoute, nextFolderName, renameFolder, ROUTE_FOLDER_LIMITS, routesInTab, placeRoute, setFolderIcon } from './routeFolders';
+import { addFolder, deleteFolder, EMPTY_ROUTE_FOLDERS, moveFolder, folderOf, moveRoute, neighborRoute, nextFolderName, renameFolder, ROUTE_FOLDER_LIMITS, routesInTab, placeRoute, placeRoutes, gatherPlace, setFolderIcon } from './routeFolders';
 
 const course = (id: string, createdAt: string): Course => ({
   id, userId: 'u', title: id, theme: 'date', travelMode: 'walk', stops: [], createdAt,
@@ -95,5 +95,20 @@ describe('route folders', () => {
     const later = [...courses, course('e', '2026-09-09')];
     expect(routesInTab(later, state, 'all').map((c) => c.id)).toEqual(['e', 'c', 'd', 'b', 'a']);
     expect(ids('all', deleteFolder(state, 'heart'))).toEqual(['c', 'd', 'b', 'a']);
+  });
+
+  it('picked routes move as one block: gathered round the one held, or dropped where it is dragged', () => {
+    // 1 2 3 4 top to bottom (1 newest); 2 and 4 picked.
+    const courses = ['4', '3', '2', '1'].map((id, i) => course(id, `2026-09-0${i + 1}`));
+    const state = EMPTY_ROUTE_FOLDERS;
+    const ids = (s: typeof state) => routesInTab(courses, s, 'all').map((c) => c.id);
+    expect(ids(state)).toEqual(['1', '2', '3', '4']);
+    const picked = ['2', '4'];
+    // Held 2, let go in place: 4 comes up under it.
+    expect(ids(placeRoutes(courses, state, 'all', picked, gatherPlace(courses, state, 'all', picked, '2')))).toEqual(['1', '2', '4', '3']);
+    // Held 4, let go in place: 2 comes down above it.
+    expect(ids(placeRoutes(courses, state, 'all', picked, gatherPlace(courses, state, 'all', picked, '4')))).toEqual(['1', '3', '2', '4']);
+    // Held 4, dragged above 1: the block goes to the top.
+    expect(ids(placeRoutes(courses, state, 'all', picked, 0))).toEqual(['2', '4', '1', '3']);
   });
 });

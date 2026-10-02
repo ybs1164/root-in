@@ -124,24 +124,45 @@ export function routesInTab(courses: Course[], state: RouteFolders, tab: RouteTa
 }
 
 /**
- * A route dragged to place `to` in the tab's list. The tab may show only
- * some routes, so it goes just before the route it now sits above (or just
- * after the one above it, at the bottom), wherever that is in the whole order.
+ * Several routes (picked in 다중 선택) moved as one block to place `to`
+ * among the tab's other routes, keeping their list order. The tab may show
+ * only some routes, so the block goes just before the route it now sits
+ * above (or just after the one above it, at the bottom), wherever that is
+ * in the whole order.
  */
-export function placeRoute(courses: Course[], state: RouteFolders, tab: RouteTab, id: string, to: number): RouteFolders {
+export function placeRoutes(courses: Course[], state: RouteFolders, tab: RouteTab, ids: readonly string[], to: number): RouteFolders {
+  const moving = new Set(ids);
   const list = routesInTab(courses, state, tab).map((c) => c.id);
-  const from = list.indexOf(id);
-  if (from < 0 || from === to) return state;
-  list.splice(from, 1);
-  const at = Math.max(0, Math.min(to, list.length));
-  const below = list[at];
-  const above = list[at - 1];
+  const block = list.filter((id) => moving.has(id));
+  const rest = list.filter((id) => !moving.has(id));
+  if (!block.length) return state;
+  const at = Math.max(0, Math.min(to, rest.length));
+  const next = [...rest.slice(0, at), ...block, ...rest.slice(at)];
+  if (next.every((id, i) => id === list[i])) return state;
+  const below = rest[at];
+  const above = rest[at - 1];
   const order = orderedRoutes(courses, state)
     .map((c) => c.id)
-    .filter((c) => c !== id);
-  const i = below ? order.indexOf(below) : order.indexOf(above) + 1;
-  order.splice(i, 0, id);
+    .filter((c) => !moving.has(c));
+  const i = below ? order.indexOf(below) : above ? order.indexOf(above) + 1 : 0;
+  order.splice(i, 0, ...block);
   return { ...state, order };
+}
+
+/**
+ * Where the block lands when a held route is let go without moving: the
+ * route held stays put and the others gather round it in list order — the
+ * ones above it just above, the ones below just below.
+ */
+export function gatherPlace(courses: Course[], state: RouteFolders, tab: RouteTab, ids: readonly string[], held: string): number {
+  const moving = new Set(ids);
+  const list = routesInTab(courses, state, tab).map((c) => c.id);
+  return list.slice(0, Math.max(0, list.indexOf(held))).filter((id) => !moving.has(id)).length;
+}
+
+/** One route dragged to place `to` in the tab's list (the others close up around it). */
+export function placeRoute(courses: Course[], state: RouteFolders, tab: RouteTab, id: string, to: number): RouteFolders {
+  return placeRoutes(courses, state, tab, [id], to);
 }
 
 /**

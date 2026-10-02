@@ -920,10 +920,10 @@ export default function App() {
           tab={routeTab}
           onTab={setRouteTab}
           onNewRoute={startBuilding}
-          onDeleteRoute={async (c) => {
-            setShownRouteId(null);
-            routeFolders.setFolders((f) => moveRoute(f, c.id, null));
-            await course.removeCourse(c);
+          onDeleteRoutes={async (cs) => {
+            if (cs.some((c) => c.id === shownRouteId)) setShownRouteId(null);
+            routeFolders.setFolders((f) => cs.reduce((acc, c) => moveRoute(acc, c.id, null), f));
+            for (const c of cs) await course.removeCourse(c);
           }}
         />
       )}
