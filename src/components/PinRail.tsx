@@ -1,5 +1,5 @@
 import { MapPin, Route } from 'lucide-react';
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { categoryStyle, orderedCategories } from '../domain/pin';
 import type { PinRailEntry, PinRailMode } from '../domain/pinRail';
 import type { PinCategory } from '../types/pin';
@@ -16,6 +16,9 @@ interface PinRailProps {
 
 /** Matches `pin-rail-out` in styles.css; the category list stays mounted until it has gone. */
 const OUT_MS = 160;
+
+/** How long 경로 takes to glide to its new place when the list opens or closes. */
+const GLIDE_MS = 280;
 
 /** Per-button delay index, capped so a long list doesn't keep the last ones waiting. */
 const stagger = (i: number): CSSProperties => ({ '--i': Math.min(i, 8) }) as CSSProperties;
@@ -42,10 +45,28 @@ export default function PinRail({ mode, onAction, categories, counts, picked, on
     return () => window.clearTimeout(t);
   }, [listOpen]);
 
+  // 경로 glides to its new place (below the list, or back up) rather than
+  // jumping there: it starts where it was and slides home (FLIP).
+  const routeSlot = useRef<HTMLDivElement | null>(null);
+  const lastTop = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const el = routeSlot.current;
+    if (!el) return;
+    const top = el.offsetTop;
+    const before = lastTop.current;
+    lastTop.current = top;
+    if (before === null || before === top || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    el.style.transition = 'none';
+    el.style.transform = `translateY(${before - top}px)`;
+    void el.offsetHeight;
+    el.style.transition = `transform ${GLIDE_MS}ms cubic-bezier(0.2, 0.9, 0.3, 1)`;
+    el.style.transform = '';
+  });
+
   const entryButton = ({ entry, label, icon }: (typeof ENTRIES)[number]) => {
     const on = mode === entry;
     return (
-      <div key={entry} className="pin-rail__slot">
+      <div key={entry} ref={entry === 'route' ? routeSlot : undefined} className="pin-rail__slot">
         <button className={`pin-rail__btn ${on ? 'is-on' : ''}`} aria-label={label} aria-expanded={on} onClick={() => onAction(entry)}>
           {icon}
         </button>
