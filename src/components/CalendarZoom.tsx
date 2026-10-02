@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'react';
 import { swipeCommits, SWIPE } from '../domain/appTabs';
 import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, pingsLandedMs, SAMPLE_PING_DATES, type EdgeStyle, type PingShape } from '../domain/dayPings';
@@ -352,6 +353,33 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
     }
   });
 
+  /**
+   * The < > beside a day: pages to the day before / after the way a swipe
+   * does (this day slides off, the neighbour slides in, its pins drop).
+   * Today has no day after it.
+   */
+  const stepDay = (step: -1 | 1) => {
+    if (sliding.current || daySwipe.current || toolRef.current) return;
+    const to = step < 0 ? addDays(date, -1) : date !== today ? addDays(date, 1) : null;
+    if (!to) return;
+    sliding.current = true;
+    setNeighbor({ date: to, side: step });
+    // Once the neighbour is on the page beside this day, both slide over.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        paintSlide(-step * (stageEl.current?.clientWidth ?? window.innerWidth), step, true);
+        window.setTimeout(() => {
+          sliding.current = false;
+          resetSlide.current = true;
+          setDate(to);
+          setMonth(monthOf(to));
+          setVisit((v) => v + 1);
+          setNeighbor(null);
+        }, SLIDE_MS);
+      }),
+    );
+  };
+
   const endDaySwipe = (commit: boolean) => {
     const sw = daySwipe.current;
     daySwipe.current = null;
@@ -581,6 +609,18 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
         inert={mode !== 'day'}
         aria-label={`${shownDate} 기록`}
       >
+        {!tool && (
+          <>
+            <button className="route-step route-step--prev day-step" aria-label="전날" onClick={() => stepDay(-1)}>
+              <ChevronLeft size={30} strokeWidth={2.2} aria-hidden />
+            </button>
+            {date !== today && (
+              <button className="route-step route-step--next day-step" aria-label="다음 날" onClick={() => stepDay(1)}>
+                <ChevronRight size={30} strokeWidth={2.2} aria-hidden />
+              </button>
+            )}
+          </>
+        )}
         <DecorRail
           tool={tool}
           onTool={(next) => {

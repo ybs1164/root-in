@@ -2991,6 +2991,12 @@ input.timeline__time:focus {
   right: 0;
 }
 
+/* The same < > beside a calendar day, paging days: level with the pings'
+   drawing rather than the screen's middle, below the 꾸미기 rail on the right. */
+.route-step.day-step {
+  top: calc(50% + 60px);
+}
+
 /* Paging names like the calendar pages days: the new one comes in from the
    arrow's side (--slide 1 = right) while the old one leaves the other way. */
 .route-title--in {
