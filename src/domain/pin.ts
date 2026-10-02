@@ -189,9 +189,11 @@ export function filterPins(pins: Pin[], categories: PinCategory[], filter: strin
  * bringing its sub-categories. Nothing picked shows every pin.
  */
 export function filterPinsByCategories(pins: Pin[], categories: PinCategory[], picked: ReadonlySet<string>): Pin[] {
-  if (picked.size === 0) return filterPins(pins, categories, null);
+  // Only categories that still exist count: none of those picked is ALL, every pin.
+  const live = [...picked].filter((id) => categories.some((c) => c.id === id));
+  if (live.length === 0) return filterPins(pins, categories, null);
   const shown = new Set<string>();
-  picked.forEach((id) => categoryFamily(categories, id).forEach((c) => shown.add(c)));
+  live.forEach((id) => categoryFamily(categories, id).forEach((c) => shown.add(c)));
   return filterPins(pins, categories, null).filter((p) => shown.has(p.categoryId));
 }
 

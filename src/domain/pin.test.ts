@@ -103,6 +103,8 @@ describe('pins', () => {
     expect(filterPinsByCategories(pins, categories, new Set(['cafe', 'bar']))).toHaveLength(3);
     expect(filterPinsByCategories(pins, categories, new Set(['dessert', 'bar'])).map((p) => p.place.name).sort()).toEqual(['어니언 성수', '을지로 노가리골목']);
     expect(filterPinsByCategories(pins, categories, new Set())).toHaveLength(3);
+    // Picked but since deleted: as good as none picked (ALL), not an empty map.
+    expect(filterPinsByCategories(pins, categories, new Set(['gone']))).toHaveLength(3);
   });
 
   it('a pin set carries only the used categories, parents first', () => {

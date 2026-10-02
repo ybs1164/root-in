@@ -1,7 +1,7 @@
 import { MapPin, Route } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { categoryStyle, orderedCategories } from '../domain/pin';
-import type { PinRailEntry, PinRailMode } from '../domain/pinRail';
+import { isAllPicked, type PinRailEntry, type PinRailMode } from '../domain/pinRail';
 import type { PinCategory } from '../types/pin';
 
 interface PinRailProps {
@@ -12,6 +12,8 @@ interface PinRailProps {
   counts: Map<string, number>;
   picked: ReadonlySet<string>;
   onToggle: (categoryId: string) => void;
+  /** ALL: back to every pin (drops the picked categories). */
+  onAll: () => void;
 }
 
 /** Matches `pin-rail-out` in styles.css; the category list stays mounted until it has gone. */
@@ -35,7 +37,7 @@ const ENTRIES: { entry: PinRailEntry; label: string; icon: ReactNode }[] = [
  * below that list; picking categories narrows the map to them, and the map
  * stays narrowed after 핀 closes.
  */
-export default function PinRail({ mode, onAction, categories, counts, picked, onToggle }: PinRailProps) {
+export default function PinRail({ mode, onAction, categories, counts, picked, onToggle, onAll }: PinRailProps) {
   // The category list trails the mode so it can play out before unmounting.
   const listOpen = mode === 'pins';
   const [listShown, setListShown] = useState(listOpen);
@@ -80,11 +82,22 @@ export default function PinRail({ mode, onAction, categories, counts, picked, on
 
       {listShown && (
         <ul className="pin-rail__list" aria-label="내 핀">
+          {/* ALL first: every pin (on whenever no category is picked; never together with one). */}
+          <li className={`pin-rail__item ${listOpen ? '' : 'is-leaving'}`} style={stagger(0)}>
+            <button
+              className={`pin-rail__btn pin-rail__all ${isAllPicked(picked, categories.map((c) => c.id)) ? 'is-on' : ''}`}
+              aria-label="모든 핀"
+              aria-pressed={isAllPicked(picked, categories.map((c) => c.id))}
+              onClick={onAll}
+            >
+              ALL
+            </button>
+          </li>
           {orderedCategories(categories).map(({ category }, i) => {
             const style = categoryStyle(categories, category.id);
             const on = picked.has(category.id);
             return (
-              <li key={category.id} className={`pin-rail__item ${listOpen ? '' : 'is-leaving'}`} style={stagger(i)}>
+              <li key={category.id} className={`pin-rail__item ${listOpen ? '' : 'is-leaving'}`} style={stagger(i + 1)}>
                 <button
                   className={`pin-rail__btn pin-rail__pin ${on ? 'is-on' : ''}`}
                   style={{ '--pin': `var(--pin-${style.color})` } as CSSProperties}

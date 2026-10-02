@@ -12,6 +12,15 @@ export function pinRailNext(mode: PinRailMode, tapped: PinRailEntry): PinRailMod
   return mode === tapped ? 'menu' : tapped;
 }
 
+/**
+ * ALL, the first button in 핀's list: on whenever no (existing) category is
+ * picked — every pin shows. It and the categories are never on together:
+ * picking one turns ALL off, dropping the last turns it back on.
+ */
+export function isAllPicked(picked: ReadonlySet<string>, categoryIds: readonly string[]): boolean {
+  return !categoryIds.some((id) => picked.has(id));
+}
+
 /** Taps a category in or out of the picked set. */
 export function togglePicked(picked: ReadonlySet<string>, id: string): Set<string> {
   const next = new Set(picked);

@@ -882,6 +882,7 @@ export default function App() {
           counts={railCounts}
           picked={picked}
           onToggle={(id) => setPicked((prev) => togglePicked(prev, id))}
+          onAll={() => setPicked(new Set())}
         />
       )}
 

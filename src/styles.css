@@ -3743,6 +3743,20 @@ input.timeline__time:focus {
     var(--shadow-sm);
 }
 
+/* ALL: every pin. Text in a white button; on, the accent colour like 핀 · 경로. */
+.pin-rail__all {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  /* The tighter shadow of the category buttons (inside the scroll box). */
+  box-shadow: var(--shadow-sm);
+}
+
+.pin-rail__all.is-on {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
 /* Picked: filled with the category colour. */
 .pin-rail__pin.is-on {
   background: var(--pin, var(--surface-2));

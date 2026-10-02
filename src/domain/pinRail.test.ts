@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pinRailNext, togglePicked } from './pinRail';
+import { isAllPicked, pinRailNext, togglePicked } from './pinRail';
 
 describe('pin rail', () => {
   it('opens 핀 or 경로 from the menu', () => {
@@ -22,5 +22,15 @@ describe('pin rail', () => {
     expect([...b]).toEqual(['cafe', 'food']);
     expect([...togglePicked(b, 'cafe')]).toEqual(['food']);
     expect([...a]).toEqual(['cafe']); // never mutates
+  });
+
+  it('ALL is on with nothing picked, off once a category is, and back on when the last is dropped', () => {
+    const ids = ['cafe', 'food'];
+    expect(isAllPicked(new Set(), ids)).toBe(true);
+    const one = togglePicked(new Set(), 'cafe');
+    expect(isAllPicked(one, ids)).toBe(false);
+    expect(isAllPicked(togglePicked(one, 'cafe'), ids)).toBe(true);
+    // A picked category since deleted doesn't count.
+    expect(isAllPicked(new Set(['gone']), ids)).toBe(true);
   });
 });
