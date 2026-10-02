@@ -1,8 +1,8 @@
-import { Check } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import type { RouteFolder } from '../domain/routeFolders';
+import RouteCreateSheet, { type RouteCreateDraft } from './RouteCreateSheet';
 import { COURSE_LIMITS } from '../domain/course';
 import { ROUTE_NOTE_MAX, ROUTE_TITLE_MAX } from '../domain/routeBuild';
-import { RouteIconFace, RouteIconOptions } from './RouteIconOptions';
 import { stopCentre } from './StopLines';
 
 interface RouteBuildLayerProps {
@@ -22,13 +22,19 @@ interface RouteBuildLayerProps {
    * can follow it too.
    */
   handoff?: { current: { x: number; y: number } | null };
-  onCreate: (title: string, note: string, icon: string | undefined) => void;
+  /** 생성 on the sheet: the route's name, description, icon and folder (null = 미분류). */
+  onCreate: (title: string, note: string, icon: string | undefined, folder: string | null) => void;
+  /** The user's folders, for the sheet's folder choice. */
+  folders?: RouteFolder[];
   /**
    * Editing a saved route instead of making one: stops are picked the same
    * way, but the edit sheet has the ✓ (no button or name dialog here).
    */
   editing?: boolean;
 }
+
+/** Matches `.route-create.is-leaving` in styles.css: the sheet stays mounted while it slides down. */
+const SHEET_OUT_MS = 200;
 
 /** Movement before a press counts as a drag (drawing, or panning the map). */
 const SLOP_PX = 10;
@@ -62,7 +68,7 @@ export function pinAt(x: number, y: number): string | null {
  * basemap has loaded. A tap on bare map cancels; ✓ asks for a name and a
  * description, and 루트 생성 saves it.
  */
-export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanEnabled, defaultTitle, handoff, onCreate, editing = false }: RouteBuildLayerProps) {
+export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanEnabled, defaultTitle, handoff, onCreate, folders = [], editing = false }: RouteBuildLayerProps) {
   const handoffRef = useRef(handoff);
   handoffRef.current = handoff;
   const trailEl = useRef<SVGLineElement | null>(null);
@@ -72,6 +78,9 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
   const handlers = useRef({ onAdd, onCancel, onPanEnabled });
   handlers.current = { onAdd, onCancel, onPanEnabled };
 
+  const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
+
   // The stops' lines are StopLines (the app draws them for any route); this
   // adds the dashed one from the last stop to a finger mid-stroke.
   useEffect(() => {
@@ -80,6 +89,12 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
       const own = stroke.current;
       const outer = handoffRef.current?.current ?? null;
       const s = own?.drawing ? own : outer ? { drawing: true, fingerX: outer.x, fingerY: outer.y } : null;
+      // A stroke under way (this layer's, or one handed over): the sheet waits for it to end.
+      const busy = !!s;
+      if (busy !== busyRef.current) {
+        busyRef.current = busy;
+        setBusy(busy);
+      }
       const last = stopCentre(chosenRef.current.length);
       const trail = trailEl.current;
       if (trail) {
@@ -176,16 +191,22 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
     };
   }, [mapEl]);
 
-  // ✓ → name and description, in a native modal <dialog>.
-  const dialogEl = useRef<HTMLDialogElement | null>(null);
-  const [asking, setAsking] = useState(false);
-  // The route's decorative icon (none to start with), and whether its picker is open.
-  const [icon, setIcon] = useState<string | undefined>(undefined);
-  const [pickingIcon, setPickingIcon] = useState(false);
+  // The create sheet: up once the route has two stops and no stroke is
+  // under way (a single drag through two pins brings it up when it ends),
+  // then up for as long as it has two; at one it goes back down.
+  const [sheetUp, setSheetUp] = useState(false);
   useEffect(() => {
-    const d = dialogEl.current;
-    if (asking && d && !d.open) d.showModal();
-  }, [asking]);
+    if (chosen.length < COURSE_LIMITS.minStops) setSheetUp(false);
+    else if (!busy) setSheetUp(true);
+  }, [chosen.length, busy]);
+  // Kept a moment after going down, to slide away.
+  const [sheetShown, setSheetShown] = useState(false);
+  useEffect(() => {
+    if (sheetUp) return setSheetShown(true);
+    const t = window.setTimeout(() => setSheetShown(false), SHEET_OUT_MS);
+    return () => window.clearTimeout(t);
+  }, [sheetUp]);
+  const [draft, setDraft] = useState<RouteCreateDraft>({ title: defaultTitle, note: '', folder: null });
 
   return (
     <>
@@ -194,62 +215,26 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
       </svg>
 
       {!editing && (
-      <button
-        className="route-build__done"
-        aria-label={`경로 완성 (${chosen.length}곳)`}
-        disabled={chosen.length < COURSE_LIMITS.minStops}
-        onClick={() => setAsking(true)}
-      >
-        <Check size={26} aria-hidden />
-      </button>
+        <p className="route-build__hint" role="status">
+          드래그 또는 클릭으로 루트 추가
+        </p>
       )}
 
-      {asking && (
-        <dialog ref={dialogEl} className="confirm-dialog route-build__dialog" aria-label="루트 만들기" onClose={() => setAsking(false)}>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              const data = new FormData(e.currentTarget);
-              const title = String(data.get('title') ?? '').trim() || defaultTitle;
-              onCreate(title.slice(0, ROUTE_TITLE_MAX), String(data.get('note') ?? '').trim().slice(0, ROUTE_NOTE_MAX), icon);
-              dialogEl.current?.close();
-            }}
-          >
-            <div className="route-build__name">
-              <button
-                type="button"
-                className={`route-build__icon ${icon ? '' : 'is-empty'}`}
-                aria-label={`아이콘 ${icon ?? '없음'}, 바꾸기`}
-                aria-expanded={pickingIcon}
-                onClick={() => setPickingIcon((v) => !v)}
-              >
-                <RouteIconFace icon={icon} />
-              </button>
-              <input name="title" className="route-build__field" aria-label="이름" placeholder="이름" defaultValue={defaultTitle} maxLength={ROUTE_TITLE_MAX} />
-            </div>
-            {pickingIcon && (
-              <div className="route-build__icons" role="group" aria-label="아이콘">
-                <RouteIconOptions
-                  value={icon}
-                  onPick={(i) => {
-                    setIcon(i);
-                    setPickingIcon(false);
-                  }}
-                />
-              </div>
-            )}
-            <textarea name="note" className="route-build__field route-build__note" aria-label="설명" placeholder="설명" maxLength={ROUTE_NOTE_MAX} rows={3} />
-            <div className="confirm-dialog__actions">
-              <button type="button" className="btn btn--ghost" onClick={() => dialogEl.current?.close()}>
-                취소
-              </button>
-              <button type="submit" className="btn btn--primary">
-                루트 생성
-              </button>
-            </div>
-          </form>
-        </dialog>
+      {!editing && sheetShown && (
+        <RouteCreateSheet
+          draft={draft}
+          onDraft={setDraft}
+          defaultTitle={defaultTitle}
+          folders={folders}
+          leaving={!sheetUp}
+          onCreate={() => {
+            if (chosen.length < COURSE_LIMITS.minStops) return;
+            const title = draft.title.replace(/\s+/g, ' ').trim() || defaultTitle;
+            onCreate(title.slice(0, ROUTE_TITLE_MAX), draft.note.trim().slice(0, ROUTE_NOTE_MAX), draft.icon, draft.folder);
+          }}
+        />
       )}
+
     </>
   );
 }

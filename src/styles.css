@@ -3151,10 +3151,10 @@ input.timeline__time:focus {
   animation: stop-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
 }
 
-/* …except those already stops of it: their numbers stand in for them.
-   !important beats the drop animation's opacity (and MapLibre's inline one);
-   hidden, they aren't found under a finger either. */
-.app--route-editing .map-marker--pin[data-in-route] {
+/* Making or editing a route: pins already stops of it are hidden, their
+   numbers stand in for them. !important beats the drop animation's opacity
+   (and MapLibre's inline one); hidden, they aren't found under a finger either. */
+.map-marker--pin[data-in-route] {
   visibility: hidden;
   opacity: 0 !important;
   pointer-events: none;
@@ -3171,59 +3171,67 @@ input.timeline__time:focus {
   cursor: text;
 }
 
-.route-build__done {
+/* Making a route: what to do, in a dark see-through bar at the top
+   (under the search bar, clear of the ⚙ rail). */
+.route-build__hint {
   position: fixed;
-  right: 16px;
-  bottom: calc(var(--safe-bottom) + 18px);
-  z-index: 13;
-  display: grid;
-  place-items: center;
-  width: 60px;
-  height: 60px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  box-shadow: var(--shadow);
+  top: calc(var(--safe-top) + 80px);
+  left: 50%;
+  z-index: 14;
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  white-space: nowrap; /* one line; at 13px it stays clear of the rail on a 375px phone */
+  background: var(--tray-bg);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: var(--tray-fg);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  translate: -50% 0;
+  pointer-events: none;
   animation: picker-in 0.2s ease both;
 }
 
-.route-build__done:disabled {
-  background: var(--surface);
-  color: var(--muted);
-}
-
-.route-build__dialog form {
+/* Making a route, two stops in: its sheet rises from the bottom.
+     [folder] [name ✎]
+     [icon] [description]      [생성] */
+.route-create {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 13;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding: 16px 16px calc(var(--safe-bottom) + 16px);
+  border-radius: 20px 20px 0 0;
+  background: var(--surface);
+  box-shadow: var(--shadow-up);
+  animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 
-.route-build__field {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface-2);
-  color: var(--text);
-  font: inherit;
-  font-size: 16px; /* no iOS zoom-in */
-  text-align: left;
+/* Down to one stop: it goes back down (the build layer keeps it mounted for this). */
+.route-create.is-leaving {
+  animation: tray-down 0.2s ease-in forwards;
+  pointer-events: none;
 }
 
-.route-build__name {
+.route-create__row {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
 }
 
-.route-build__name .route-build__field {
-  font-weight: 700;
-}
-
-/* The route's decorative icon, next to its name; ＋ when none is chosen. */
-.route-build__icon {
+.route-create__pick {
+  position: relative;
   flex: none;
+}
+
+/* Folder and icon: blank to start with (미분류, no icon). */
+.route-create__btn {
   display: grid;
   place-items: center;
   width: 44px;
@@ -3236,23 +3244,73 @@ input.timeline__time:focus {
   line-height: 1;
 }
 
-.route-build__icon.is-empty {
+.route-create__btn[aria-expanded='true'] {
+  background: var(--accent-soft);
+}
+
+/* Their grids pop up above the button, over the map. */
+.route-create__grid.folder-picker {
+  left: 0;
+}
+
+.route-create__name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.route-create__name input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+/* A faint grey pen: the name is there to be changed. */
+.route-create__pen {
+  flex: none;
   color: var(--muted);
-  font-size: 18px;
+  opacity: 0.5;
 }
 
-.route-build__icons {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 2px;
+.route-create__note {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  outline: none;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* no iOS zoom-in */
 }
 
-.route-build__note {
-  resize: none;
+.route-create__note::placeholder,
+.route-create__name input::placeholder {
+  color: var(--muted);
 }
 
-.route-build__dialog .confirm-dialog__actions {
-  margin-top: 4px;
+.route-create__go {
+  flex: none;
+  height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .route-folders__empty {
