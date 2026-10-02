@@ -3207,7 +3207,7 @@ input.timeline__time:focus {
   flex-direction: column;
   gap: 10px;
   /* A clear margin under the fields, so they sit a little higher up. */
-  padding: 16px 16px calc(var(--safe-bottom) + 44px);
+  padding: 16px 16px calc(var(--safe-bottom) + 76px);
   border-radius: 20px 20px 0 0;
   background: var(--surface);
   box-shadow: var(--shadow-up);
