@@ -80,8 +80,14 @@ export const TEXT_FONTS: { font: TextFont; label: string; sample: string; family
   { font: 'serif', label: '명조', sample: 'Serif', family: "'Nanum Myeongjo', serif" },
   { font: 'pen', label: '손글씨', sample: 'Hand', family: "'Nanum Pen Script', cursive" },
   { font: 'round', label: '동글', sample: 'Round', family: "'Jua', sans-serif" },
-  { font: 'heavy', label: '두껍게', sample: 'Heavy', family: "'Black Han Sans', sans-serif" },
+  // Gothic A1 comes in real heavy weights: Black Han Sans had only one, and
+  // bold on it was faked by the browser and smeared.
+  { font: 'heavy', label: '두껍게', sample: 'Heavy', family: "'Gothic A1', sans-serif" },
 ];
+
+/** A text box's font weight: Heavy is thick to begin with (900 when bold), the others 400 / 700. */
+export const textWeight = (t: { font: TextFont; bold?: boolean }): number =>
+  t.font === 'heavy' ? (t.bold ? 900 : 800) : t.bold ? 700 : 400;
 
 export const textFamily = (font: TextFont): string => (TEXT_FONTS.find((f) => f.font === font) ?? TEXT_FONTS[0]).family;
 

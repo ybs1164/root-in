@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { COURSE_LIMITS } from '../domain/course';
+import { ROUTE_TITLE_MAX } from '../domain/routeBuild';
 
 interface RouteTitleProps {
   routeId: string;
@@ -32,7 +32,7 @@ export default function RouteTitle({ routeId, title, icon, onRename, slideFrom =
   const [editing, setEditing] = useState(false);
   // What's typed so far, mirrored into a hidden copy that sizes the field to its text.
   const [draft, setDraft] = useState(title);
-  const inputEl = useRef<HTMLInputElement | null>(null);
+  const inputEl = useRef<HTMLTextAreaElement | null>(null);
 
   // Another route: back to just its name.
   useEffect(() => setEditing(false), [title]);
@@ -53,7 +53,8 @@ export default function RouteTitle({ routeId, title, icon, onRename, slideFrom =
   }, [routeId]);
 
   const commit = () => {
-    const next = (inputEl.current?.value ?? '').trim().slice(0, COURSE_LIMITS.title);
+    // One line of text, however it wraps on screen.
+    const next = (inputEl.current?.value ?? '').replace(/\s+/g, ' ').trim().slice(0, ROUTE_TITLE_MAX);
     if (next && next !== title) onRename(next);
     setEditing(false);
   };
@@ -87,17 +88,22 @@ export default function RouteTitle({ routeId, title, icon, onRename, slideFrom =
             <span className="route-title__sizer" aria-hidden>
               {draft || ' '}
             </span>
-            <input
+            {/* A textarea so a long name wraps while typing, as it does shown; Enter sets it. */}
+            <textarea
               ref={inputEl}
               className="route-title__input"
               aria-label="루트 이름"
               value={draft}
-              maxLength={COURSE_LIMITS.title}
+              maxLength={ROUTE_TITLE_MAX}
+              rows={1}
               autoFocus
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(e) => setDraft(e.target.value.replace(/\n/g, ''))}
               onBlur={commit}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') e.currentTarget.blur();
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  e.currentTarget.blur();
+                }
                 if (e.key === 'Escape') setEditing(false);
               }}
             />

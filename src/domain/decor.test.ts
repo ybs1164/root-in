@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BASE_COLORS, EMPTY_HISTORY, recordChange, redoDecor, undoDecor, type DayDecor, type Stroke, STICKER_MAX, stickerGesture, clamp01, extendStroke, hexToHsv, hsvToHex, inkCss, isBlankText, cleanTextStyle, dropOutcome, TEXT_MIN, TEXT_MAX, isThemeId, normalizeHex, PEN_TOOLS, STICKERS, THEMES } from './decor';
+import { BASE_COLORS, EMPTY_HISTORY, recordChange, redoDecor, undoDecor, type DayDecor, type Stroke, STICKER_MAX, stickerGesture, clamp01, extendStroke, hexToHsv, hsvToHex, inkCss, isBlankText, cleanTextStyle, dropOutcome, textWeight, TEXT_MIN, TEXT_MAX, isThemeId, normalizeHex, PEN_TOOLS, STICKERS, THEMES } from './decor';
 
 describe('day decorations', () => {
   it('keeps stroke points inside the box and skips tiny moves', () => {
@@ -127,5 +127,12 @@ describe('day decorations', () => {
     expect(dropOutcome({ x: -5, y: 100 }, box, trash)).toBe('outside');
     expect(dropOutcome({ x: 100, y: 100 }, box, trash)).toBe('inside');
     expect(dropOutcome({ x: 100, y: 100 }, box, null)).toBe('inside');
+  });
+
+  it('Heavy is thick to begin with and bolder still when bold, with real weights (not a faked bold)', () => {
+    expect(textWeight({ font: 'heavy' })).toBe(800);
+    expect(textWeight({ font: 'heavy', bold: true })).toBe(900);
+    expect(textWeight({ font: 'sans' })).toBe(400);
+    expect(textWeight({ font: 'serif', bold: true })).toBe(700);
   });
 });

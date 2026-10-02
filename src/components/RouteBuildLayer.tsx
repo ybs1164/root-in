@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { COURSE_LIMITS } from '../domain/course';
+import { ROUTE_TITLE_MAX } from '../domain/routeBuild';
 import { RouteIconFace, RouteIconOptions } from './RouteIconOptions';
 import { stopCentre } from './StopLines';
 
@@ -190,7 +191,7 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
               e.preventDefault();
               const data = new FormData(e.currentTarget);
               const title = String(data.get('title') ?? '').trim() || defaultTitle;
-              onCreate(title.slice(0, COURSE_LIMITS.title), String(data.get('note') ?? '').trim().slice(0, COURSE_LIMITS.note), icon);
+              onCreate(title.slice(0, ROUTE_TITLE_MAX), String(data.get('note') ?? '').trim().slice(0, COURSE_LIMITS.note), icon);
               dialogEl.current?.close();
             }}
           >
@@ -204,7 +205,7 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
               >
                 <RouteIconFace icon={icon} />
               </button>
-              <input name="title" className="route-build__field" aria-label="이름" placeholder="이름" defaultValue={defaultTitle} maxLength={COURSE_LIMITS.title} />
+              <input name="title" className="route-build__field" aria-label="이름" placeholder="이름" defaultValue={defaultTitle} maxLength={ROUTE_TITLE_MAX} />
             </div>
             {pickingIcon && (
               <div className="route-build__icons" role="group" aria-label="아이콘">

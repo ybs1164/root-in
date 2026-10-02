@@ -36,6 +36,7 @@ import {
   TEXT_EFFECTS,
   TEXT_FONTS,
   textFamily,
+  textWeight,
   THEMES,
   type DecorTool,
   type TextAlign,
@@ -254,7 +255,7 @@ export function DecorTray(p: DecorTrayProps) {
               <button
                 key={font}
                 className={`decor-tray__font ${p.textStyle.font === font ? 'is-on' : ''}`}
-                style={{ fontFamily: textFamily(font) }}
+                style={{ fontFamily: textFamily(font), fontWeight: textWeight({ font }) }}
                 aria-label={`글꼴 ${name}`}
                 aria-pressed={p.textStyle.font === font}
                 onClick={() => p.onTextStyle({ font })}

@@ -12,6 +12,9 @@ export function toggleBuildStop(chosen: readonly string[], pinId: string): strin
 
 export const DEFAULT_ROUTE_NAME = 'IN MY ROOT';
 
+/** A route's name: short enough to read big above the map (two lines at most on a phone). */
+export const ROUTE_TITLE_MAX = 15;
+
 /** A new route's name: 'IN MY ROOT', or 'IN MY ROOT 2', 'IN MY ROOT 3', … when taken. */
 export function nextRouteName(taken: Iterable<string>): string {
   const names = new Set([...taken].map((t) => t.trim()));

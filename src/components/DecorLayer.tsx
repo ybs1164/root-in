@@ -19,6 +19,7 @@ import {
   TEXT_MIN,
   TEXT_SIZE,
   textFamily,
+  textWeight,
   type DayDecor,
   type DecorTool,
   type PenSettings,
@@ -56,7 +57,7 @@ const TAP_SLOP = 6;
 /** CSS for a text box's looks (the share image draws the same in lib/dayImage.ts). */
 const textCss = (t: PlacedText) => ({
   fontFamily: textFamily(t.font),
-  fontWeight: t.bold ? 700 : 400,
+  fontWeight: textWeight(t),
   fontStyle: t.italic ? 'italic' : 'normal',
   textDecorationLine: [t.underline && 'underline', t.strike && 'line-through'].filter(Boolean).join(' ') || 'none',
   textAlign: t.align,

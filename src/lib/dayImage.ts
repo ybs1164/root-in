@@ -1,5 +1,5 @@
 import { latestPingIndex, layoutPings, type DayPing, type EdgeStyle, type PingShape } from '../domain/dayPings';
-import { ERASER_SCALE, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, type DayDecor, type PlacedText } from '../domain/decor';
+import { ERASER_SCALE, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, textWeight, type DayDecor, type PlacedText } from '../domain/decor';
 import { paintPattern } from './dayPatterns';
 import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
 
@@ -148,7 +148,7 @@ export async function renderDayImage({ title, pings, shapeOf, edgeStyleOf, decor
 
 /** A text box's canvas font at `sizePx`, like its CSS (DecorLayer). */
 const textFont = (t: PlacedText, sizePx: number) =>
-  `${t.italic ? 'italic ' : ''}${t.bold ? 700 : 400} ${sizePx}px ${textFamily(t.font)}`;
+  `${t.italic ? 'italic ' : ''}${textWeight(t)} ${sizePx}px ${textFamily(t.font)}`;
 
 /** Pen strokes, then stickers, then text boxes, over the drawing, mapped from box fractions onto BOX. */
 function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, font: string) {
