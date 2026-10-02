@@ -3282,7 +3282,7 @@ input.timeline__time:focus {
   opacity: 0.5;
 }
 
-/* The description: a box three lines tall, its icon button in the top-left corner. */
+/* The description: a box five lines tall, its icon button in the top-left corner. */
 .route-create__row--note {
   align-items: flex-end;
 }
@@ -3305,8 +3305,8 @@ input.timeline__time:focus {
 .route-create__note {
   flex: 1;
   min-width: 0;
-  /* Three lines and its padding. */
-  min-height: calc(3 * 1.4em + 16px);
+  /* Five lines and its padding. */
+  min-height: calc(5 * 1.4em + 16px);
   padding: 8px 6px;
   border: 0;
   outline: none;

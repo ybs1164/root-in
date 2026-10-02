@@ -28,7 +28,7 @@ interface RouteCreateSheetProps {
  * Making a route: the sheet that rises once it has two stops.
  *
  *   [folder] [name ✎]
- *   [[icon] description (3 lines)] [생성]
+ *   [[icon] description (5 lines)] [생성]
  *
  * Folder and icon start blank (미분류, no icon) and each opens a small grid
  * above its button; a tap anywhere else closes it.
@@ -99,7 +99,7 @@ export default function RouteCreateSheet({ draft, onDraft, defaultTitle, folders
         </label>
       </div>
       <div className="route-create__row route-create__row--note">
-        {/* The description box, three lines tall, with the icon in its corner. */}
+        {/* The description box, five lines tall, with the icon in its corner. */}
         <div className="route-create__note-box">
           <div className="route-create__pick">
             <button
@@ -126,7 +126,7 @@ export default function RouteCreateSheet({ draft, onDraft, defaultTitle, folders
             className="route-create__note"
             aria-label="설명"
             placeholder="설명"
-            rows={3}
+            rows={5}
             value={draft.note}
             maxLength={ROUTE_NOTE_MAX}
             onChange={(e) => onDraft({ ...draft, note: e.target.value })}
