@@ -4572,11 +4572,43 @@ input.timeline__time:focus {
   color: var(--danger);
 }
 
+/* 계정 정보 toggle: a quiet row; the chevron turns when open. */
+.profile__account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  margin-top: 18px;
+  padding: 0 4px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.profile__account svg {
+  transition: rotate 0.2s ease;
+}
+
+.profile__account.is-open svg {
+  rotate: 180deg;
+}
+
 .profile__actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin-top: 22px;
+  margin-top: 4px;
+  animation: profile-account-in 0.18s ease both;
+}
+
+@keyframes profile-account-in {
+  from {
+    opacity: 0;
+    translate: 0 -4px;
+  }
 }
 
 .profile__leave {

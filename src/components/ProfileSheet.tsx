@@ -1,4 +1,4 @@
-import { PenLine, UserRound } from 'lucide-react';
+import { ChevronDown, PenLine, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { handleProblem, PROFILE_LIMITS, sanitizeHandleInput } from '../domain/profile';
 import { avatarFromFile } from '../lib/avatarImage';
@@ -30,6 +30,7 @@ export default function ProfileSheet({ profile, onChange, onClose }: ProfileShee
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [nickname, setNickname] = useState(getDisplayName);
   const [note, setNote] = useState<string | null>(null);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -106,22 +107,34 @@ export default function ProfileSheet({ profile, onChange, onClose }: ProfileShee
 
         {note && <p className="profile__note">{note}</p>}
 
-        <div className="profile__actions">
-          {/* No accounts yet (everything lives on this device), so there's nothing to log out of. */}
-          <button className="btn btn--secondary" disabled>
-            로그아웃
-          </button>
-          <button
-            className="btn btn--ghost profile__leave"
-            onClick={() => {
-              if (!window.confirm('탈퇴하면 이 기기의 프로필·핀·코스·기록이 모두 지워져요. 되돌릴 수 없어요.')) return;
-              clearAppData();
-              window.location.reload();
-            }}
-          >
-            탈퇴
-          </button>
-        </div>
+        {/* 계정 정보: folded away by default so 로그아웃 · 탈퇴 aren't one stray tap from the profile. */}
+        <button
+          className={`profile__account ${accountOpen ? 'is-open' : ''}`}
+          aria-expanded={accountOpen}
+          aria-controls="profile-account"
+          onClick={() => setAccountOpen((open) => !open)}
+        >
+          계정 정보
+          <ChevronDown size={18} aria-hidden />
+        </button>
+        {accountOpen && (
+          <div id="profile-account" className="profile__actions">
+            {/* No accounts yet (everything lives on this device), so there's nothing to log out of. */}
+            <button className="btn btn--secondary" disabled>
+              로그아웃
+            </button>
+            <button
+              className="btn btn--ghost profile__leave"
+              onClick={() => {
+                if (!window.confirm('탈퇴하면 이 기기의 프로필·핀·코스·기록이 모두 지워져요. 되돌릴 수 없어요.')) return;
+                clearAppData();
+                window.location.reload();
+              }}
+            >
+              탈퇴
+            </button>
+          </div>
+        )}
       </div>
     </dialog>
   );
