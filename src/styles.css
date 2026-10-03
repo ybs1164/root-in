@@ -2323,7 +2323,10 @@ input.timeline__time:focus {
 /* Pin map, bottom-right: + opens 핀 카테고리, level with the bottom tab buttons. */
 .corner-btn--bottom {
   top: auto;
-  bottom: calc(var(--safe-bottom) + 6px + (var(--bar-h) - 52px) / 2);
+  bottom: calc(var(--safe-bottom) + 6px + (var(--bar-h) - 44px) / 2);
+  right: 16px; /* centred under the 52px profile button */
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   color: var(--muted);
 }
@@ -5302,6 +5305,6 @@ input.timeline__time:focus {
 
   .corner-btn--bottom {
     top: auto;
-    bottom: calc(12px + (var(--bar-h) - 52px) / 2);
+    bottom: calc(12px + (var(--bar-h) - 44px) / 2);
   }
 }

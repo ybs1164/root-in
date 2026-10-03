@@ -916,7 +916,7 @@ export default function App() {
       {/* Bottom-right corner of the pin map: 핀 카테고리 editing (the route sheet owns the bottom while 경로 is open). */}
       {onPinHome && !searchOpen && !pinning && !routeMode && (
         <button className="corner-btn corner-btn--bottom" aria-label="핀 카테고리 편집" onClick={() => setCategoriesOpen(true)}>
-          <Plus size={24} aria-hidden />
+          <Plus size={20} aria-hidden />
         </button>
       )}
 
