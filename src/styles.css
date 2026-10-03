@@ -2324,6 +2324,7 @@ input.timeline__time:focus {
 .corner-btn--bottom {
   top: auto;
   bottom: calc(var(--safe-bottom) + 6px + (var(--bar-h) - 52px) / 2);
+  border-radius: 50%;
   color: var(--muted);
 }
 
