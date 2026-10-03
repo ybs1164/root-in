@@ -9,7 +9,7 @@ interface DayShareSheetProps extends DayImageInput {
 
 /**
  * 📅 → 공유: the day's pings and lines as an image, in a centred popup
- * styled like a macOS window. One row of round, icon-only buttons (names
+ * (no title bar or close button: a tap on the space around it closes it). One row of round, icon-only buttons (names
  * in aria-label): 링크 복사 (which link is still to be decided), 이미지 저장,
  * and SNS 공유 (not wired yet). The two unfinished ones are disabled.
  */
@@ -34,22 +34,12 @@ export default function DayShareSheet({ date, onClose, ...image }: DayShareSheet
     <dialog
       ref={dialogRef}
       className="mac-window day-share"
-      aria-labelledby="day-share-title"
+      aria-label={`${image.title} 공유`}
       onClose={onClose}
       onClick={(event) => {
         if (event.target === dialogRef.current) onClose();
       }}
     >
-      {/* macOS-style title bar with just the red close light. */}
-      <div className="mac-window__bar">
-        <div className="mac-window__lights">
-          <button className="mac-window__light mac-window__light--close" aria-label="닫기" onClick={onClose} />
-        </div>
-        <h2 id="day-share-title" className="mac-window__title">
-          {image.title} 공유
-        </h2>
-      </div>
-
       <div className="mac-window__body">
         <div className="day-share__preview">
           {src ? <img src={src} alt={`${image.title}에 다녀온 곳을 잇는 그림`} /> : <span className="hint">이미지 만드는 중…</span>}

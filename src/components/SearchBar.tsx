@@ -1,4 +1,5 @@
-import { forwardRef } from 'react';
+import { forwardRef, useId } from 'react';
+import { Search } from 'lucide-react';
 import type { PlaceRef } from '../types/course';
 import Logo from './Logo';
 
@@ -18,6 +19,7 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function SearchBa
   inputRef,
 ) {
   const showPanel = open && query.trim().length > 0;
+  const inputId = useId();
 
   return (
     <div className={`search ${open ? 'search--open' : ''}`}>
@@ -33,18 +35,23 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function SearchBa
         )}
         <input
           ref={inputRef}
+          id={inputId}
           type="search"
           enterKeyHint="search"
           value={query}
-          placeholder="장소 검색 (예: 성수 카페)"
           aria-label="장소 검색"
           onFocus={() => onOpenChange(true)}
           onChange={(e) => onQuery(e.target.value)}
         />
-        {query && (
+        {query ? (
           <button className="icon-btn" aria-label="검색어 지우기" onClick={() => onQuery('')}>
             ✕
           </button>
+        ) : (
+          // A label, not a button: tapping it focuses the field, which opens search.
+          <label className="icon-btn search__icon" htmlFor={inputId} aria-hidden="true">
+            <Search size={22} strokeWidth={2} />
+          </label>
         )}
       </div>
 

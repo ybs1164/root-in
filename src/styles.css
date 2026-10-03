@@ -22,8 +22,6 @@
   --shadow: 0 10px 30px rgba(47, 38, 34, 0.16);
   --shadow-sm: 0 2px 10px rgba(47, 38, 34, 0.12);
   --pin-shadow: 0 2px 3px rgba(47, 38, 34, 0.25);
-  --mac-close: #ff5f57; /* macOS window close light */
-  --mac-light-edge: rgba(0, 0, 0, 0.12);
   --mask-show: #fff; /* SVG masks: white = fully shown (not a colour anyone sees) */
   --mask-hide: #000; /* …and black = hidden (the eraser's rub) */
   /* 꾸미기: fixed ink colours (not themed), the tool sheet and the palette rainbow. */
@@ -369,6 +367,11 @@ button:disabled {
   background: transparent;
   font-size: 16px; /* ≥16px stops iOS zooming into the field */
   outline: none;
+}
+
+.search__icon {
+  color: var(--muted);
+  cursor: text;
 }
 
 .search__bar input::-webkit-search-cancel-button {
@@ -1971,63 +1974,6 @@ button:disabled {
   }
 }
 
-.mac-window__bar {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  height: 40px;
-  padding: 0 14px;
-  border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface-2) 85%, transparent);
-}
-
-/* Mirrors the lights' width on the right so the title stays centred. */
-.mac-window__bar::after {
-  content: '';
-  width: 52px;
-}
-
-.mac-window__lights {
-  display: flex;
-  gap: 8px;
-  width: 52px;
-}
-
-.mac-window__light {
-  position: relative;
-  width: 12px;
-  height: 12px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 0.5px var(--mac-light-edge);
-}
-
-.mac-window__light--close {
-  background: var(--mac-close);
-}
-
-/* The dot stays 12px; the touch target around it is 44px. */
-.mac-window__light--close::after {
-  content: '';
-  position: absolute;
-  inset: -16px;
-}
-
-.mac-window__title {
-  margin: 0;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .mac-window__body {
   display: flex;
   flex-direction: column;
@@ -2372,6 +2318,17 @@ input.timeline__time:focus {
   box-shadow: var(--shadow);
   color: var(--text);
   transition: transform 0.25s ease;
+}
+
+/* Pin map, bottom-right: + opens 핀 카테고리, level with the bottom tab buttons. */
+.corner-btn--bottom {
+  top: auto;
+  bottom: calc(var(--safe-bottom) + 6px + (var(--bar-h) - 44px) / 2);
+  right: 16px; /* centred under the 52px profile button */
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--muted);
 }
 
 .app--searching .corner-btn {
@@ -4445,20 +4402,224 @@ input.timeline__time:focus {
   overflow-y: auto;
 }
 
-/* ---------- Settings ---------- */
+/* ---------- Profile (popup from the top-right button) ---------- */
 
-.settings__section {
+/* The photo fills the round profile buttons. */
+.profile-avatar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* The profile buttons are the popup's round avatar itself, just smaller. */
+.corner-btn--profile,
+.page__profile {
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.page__profile {
+  width: 40px;
+  height: 40px;
+  margin: 2px;
+}
+
+.profile-sheet {
+  width: min(320px, calc(100vw - 48px));
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+}
+
+.profile-sheet[open] {
+  animation: mac-open 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+}
+
+.profile-sheet::backdrop {
+  background: var(--backdrop);
+}
+
+.profile {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: stretch;
+  gap: 4px;
+  padding: 28px 18px 18px;
+  text-align: center;
 }
 
-.settings__section h3 {
-  margin: 8px 0 0;
-  font-size: 15px;
+.profile__photo {
+  position: relative;
+  align-self: center;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 10px;
 }
 
-.settings .share-sheet__body {
+.profile__avatar {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--muted);
+  overflow: hidden;
+}
+
+/* Overlapping the photo's lower right. */
+.profile__photo-pen {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.profile__photo-pen svg {
+  box-sizing: content-box;
+  padding: 7px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Text in the middle column, its pen low in the right one, so the text stays centred. */
+.profile__line {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+}
+
+.profile__text,
+.profile__edit {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.profile__text.is-empty {
+  color: var(--muted);
+}
+
+.profile__edit input {
+  width: 11em;
+  min-width: 0;
+  padding: 2px 4px;
+  border: 0;
+  border-bottom: 1.5px solid var(--accent);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: max(16px, 1em);
+  text-align: center;
+  outline: none;
+}
+
+.profile__pen {
+  justify-self: start;
+  display: grid;
+  place-items: end start;
+  width: 44px;
+  height: 44px;
+  margin-bottom: -10px;
+  padding: 0 0 14px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+
+.profile__nick {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.profile__handle {
+  font-size: 16px;
+  color: var(--muted);
+}
+
+.profile__handle .profile__text,
+.profile__handle .profile__edit {
+  color: var(--muted);
+}
+
+.profile__hint,
+.profile__note {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.profile__hint.is-refused {
+  color: var(--danger);
+}
+
+/* 계정 정보 toggle: a quiet row; the chevron turns when open. */
+.profile__account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  margin-top: 18px;
+  padding: 0 4px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.profile__account svg {
+  transition: rotate 0.2s ease;
+}
+
+.profile__account.is-open svg {
+  rotate: 180deg;
+}
+
+.profile__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 4px;
+  animation: profile-account-in 0.18s ease both;
+}
+
+@keyframes profile-account-in {
+  from {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+}
+
+.profile__leave {
+  color: var(--danger);
+}
+
+.category-sheet[open] {
+  animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.category-sheet .share-sheet__body {
   max-height: 88dvh;
   overflow-y: auto;
 }
@@ -4573,10 +4734,6 @@ input.timeline__time:focus {
 
 .inline-add input:focus {
   border-color: var(--accent);
-}
-
-.settings__danger {
-  color: var(--danger);
 }
 
 /* MapLibre fallback: keep attribution clear of the sheet on phones. */
@@ -5170,5 +5327,16 @@ input.timeline__time:focus {
   .share-sheet {
     margin: auto;
     border-radius: 22px;
+  }
+
+  /* Still rises from the bottom edge on wide screens. */
+  .category-sheet {
+    margin: auto auto 0;
+    border-radius: 22px 22px 0 0;
+  }
+
+  .corner-btn--bottom {
+    top: auto;
+    bottom: calc(12px + (var(--bar-h) - 44px) / 2);
   }
 }
