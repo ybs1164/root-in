@@ -37,7 +37,7 @@ export function withRecentCategory(settings: Settings, categoryId: string): Sett
   return { ...settings, recentCategoryIds: recent };
 }
 
-/** Removes every app key (settings → 데이터 초기화). */
+/** Removes every app key (프로필 → 탈퇴). */
 export function clearAppData(): void {
   try {
     const keys: string[] = [];

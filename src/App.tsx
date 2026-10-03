@@ -1,6 +1,6 @@
 import type { PatternId, ThemeId } from './domain/decor';
 import DayPattern from './components/DayPattern';
-import { Plus, Settings as SettingsIcon, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomBar from './components/BottomBar';
 import CalendarSheet from './components/CalendarSheet';
@@ -16,7 +16,7 @@ import RouteStyleLayer from './components/RouteStyleLayer';
 import RouteTitle from './components/RouteTitle';
 import StopLines from './components/StopLines';
 import SearchBar from './components/SearchBar';
-import SettingsSheet from './components/SettingsSheet';
+import ProfileSheet, { ProfileAvatar } from './components/ProfileSheet';
 import CategorySheet from './components/CategorySheet';
 import SharedCourseView from './components/SharedCourseView';
 import SharedPinsView from './components/SharedPinsView';
@@ -48,6 +48,7 @@ import { SEOUL_CENTER, type CourseMap, type MapPadding, type PinMarker } from '.
 import { createMapStack } from './map/createCourseMap';
 import { pointPlace, type PlaceSearchService } from './services/placeSearch/placeSearchService';
 import { withRecentCategory } from './services/settingsRepository';
+import { loadProfile, saveProfile, type Profile } from './services/profileRepository';
 import type { ShareTarget } from './services/shareTargets';
 import type { CourseStop, PlaceRef } from './types/course';
 import { PIN_ICONS, type Pin } from './types/pin';
@@ -113,7 +114,12 @@ export default function App() {
   const [sub, setSub] = useState<'pins' | 'edit'>('pins');
   const [sheet, setSheet] = useState<SheetSize>('peek');
   const [shareTarget, setShareTarget] = useState<ShareTarget | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profile, setProfile] = useState(loadProfile);
+  const changeProfile = (next: Profile) => {
+    setProfile(next);
+    return saveProfile(next);
+  };
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [sharedSaved, setSharedSaved] = useState(false);
   const [sharedPinsSaved, setSharedPinsSaved] = useState(false);
@@ -891,8 +897,8 @@ export default function App() {
         providerLabel={providerLabel}
       />
 
-      <button className="corner-btn" aria-label="설정" onClick={() => setSettingsOpen(true)}>
-        <SettingsIcon size={22} aria-hidden />
+      <button className="corner-btn corner-btn--profile" aria-label="프로필" onClick={() => setProfileOpen(true)}>
+        <ProfileAvatar photo={profile.photo} size={36} />
       </button>
 
       {onPinHome && !searchOpen && !pinning && (
@@ -1133,8 +1139,8 @@ export default function App() {
           <header className="page__head">
             {/* The calendar's own TODAY / DAY n heading takes the stage. */}
             <h1 className={calendarZoom ? 'sr-only' : ''}>{PAGE_TITLES[tab]}</h1>
-            <button className="icon-btn" aria-label="설정" onClick={() => setSettingsOpen(true)}>
-              <SettingsIcon size={22} aria-hidden />
+            <button className="icon-btn page__profile" aria-label="프로필" onClick={() => setProfileOpen(true)}>
+              <ProfileAvatar photo={profile.photo} size={32} />
             </button>
           </header>
           {calendarZoom ? (
@@ -1175,12 +1181,7 @@ export default function App() {
       </div>
 
       {shareTarget && <ShareSheet target={shareTarget} onClose={() => setShareTarget(null)} />}
-      {settingsOpen && (
-        <SettingsSheet
-          providerLabel={providerLabel}
-          onClose={() => setSettingsOpen(false)}
-        />
-      )}
+      {profileOpen && <ProfileSheet profile={profile} onChange={changeProfile} onClose={() => setProfileOpen(false)} />}
       {categoriesOpen && (
         <CategorySheet
           onClose={() => setCategoriesOpen(false)}
