@@ -3,13 +3,17 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { handleProblem, PROFILE_LIMITS, sanitizeHandleInput } from '../domain/profile';
 import { avatarFromFile } from '../lib/avatarImage';
 import { getDisplayName, setDisplayName } from '../lib/currentUser';
+import type { PlaceSearchService } from '../services/placeSearch/placeSearchService';
 import type { Profile } from '../services/profileRepository';
 import { clearAppData } from '../services/settingsRepository';
+import PrivacySection from './PrivacySection';
 
 interface ProfileSheetProps {
   profile: Profile;
   onChange: (profile: Profile) => boolean;
   onClose: () => void;
+  /** For the 제외 주소 suggestions. */
+  search: PlaceSearchService | null;
 }
 
 /** The profile button's photo, or a person outline before one is set. */
@@ -25,11 +29,12 @@ export function ProfileAvatar({ photo, size }: { photo: string | null; size: num
  * 프로필 팝업: centred, no close button — a tap on the empty space around it closes it.
  * Photo, nickname and @id each change in place behind their own small pen.
  */
-export default function ProfileSheet({ profile, onChange, onClose }: ProfileSheetProps) {
+export default function ProfileSheet({ profile, onChange, onClose, search }: ProfileSheetProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [nickname, setNickname] = useState(getDisplayName);
   const [note, setNote] = useState<string | null>(null);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
 
   useEffect(() => {
@@ -107,9 +112,24 @@ export default function ProfileSheet({ profile, onChange, onClose }: ProfileShee
 
         {note && <p className="profile__note">{note}</p>}
 
+        <button
+          className={`profile__toggle ${privacyOpen ? 'is-open' : ''}`}
+          aria-expanded={privacyOpen}
+          aria-controls="profile-privacy"
+          onClick={() => setPrivacyOpen((open) => !open)}
+        >
+          개인 정보
+          <ChevronDown size={18} aria-hidden />
+        </button>
+        {privacyOpen && (
+          <div id="profile-privacy" className="profile__panel">
+            <PrivacySection search={search} />
+          </div>
+        )}
+
         {/* 계정 정보: folded away by default so 로그아웃 · 탈퇴 aren't one stray tap from the profile. */}
         <button
-          className={`profile__account ${accountOpen ? 'is-open' : ''}`}
+          className={`profile__toggle profile__toggle--account ${accountOpen ? 'is-open' : ''}`}
           aria-expanded={accountOpen}
           aria-controls="profile-account"
           onClick={() => setAccountOpen((open) => !open)}

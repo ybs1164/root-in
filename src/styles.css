@@ -4430,6 +4430,8 @@ input.timeline__time:focus {
 
 .profile-sheet {
   width: min(320px, calc(100vw - 48px));
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
   padding: 0;
   border: 0;
   border-radius: var(--radius);
@@ -4572,13 +4574,12 @@ input.timeline__time:focus {
   color: var(--danger);
 }
 
-/* 계정 정보 toggle: a quiet row; the chevron turns when open. */
-.profile__account {
+/* 개인 정보 · 계정 정보 toggles: quiet rows under a divider; the chevron turns when open. */
+.profile__toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
   min-height: 44px;
-  margin-top: 18px;
   padding: 0 4px;
   border: 0;
   border-top: 1px solid var(--border);
@@ -4588,12 +4589,195 @@ input.timeline__time:focus {
   font-weight: 700;
 }
 
-.profile__account svg {
+/* The first toggle keeps its distance from the @id above. */
+.profile__field + .profile__toggle,
+.profile__note + .profile__toggle {
+  margin-top: 18px;
+}
+
+.profile__toggle svg {
   transition: rotate 0.2s ease;
 }
 
-.profile__account.is-open svg {
+.profile__toggle.is-open svg {
   rotate: 180deg;
+}
+
+.profile__panel {
+  padding: 2px 0 12px;
+  text-align: left;
+  animation: profile-account-in 0.18s ease both;
+}
+
+/* 개인 정보 → 제외 주소 */
+.privacy__title {
+  margin: 0;
+  font-size: 14px;
+}
+
+.privacy__hint {
+  margin: 2px 0 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.privacy__hint.is-required {
+  margin: 6px 0 0;
+  color: var(--danger);
+}
+
+.privacy__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.privacy__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.privacy__label,
+.privacy__label-input {
+  flex: none;
+  width: 64px;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.privacy__label {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.2;
+}
+
+.privacy__required {
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.privacy__label-input,
+.privacy__address input {
+  min-width: 0;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 16px; /* ≥16px stops iOS zooming into the field */
+  outline: none;
+}
+
+.privacy__label-input:focus,
+.privacy__address input:focus {
+  border-color: var(--accent);
+}
+
+.privacy__address {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.privacy__address input {
+  width: 100%;
+  height: 44px;
+}
+
+.privacy__address input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.privacy__suggest {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.privacy__suggest button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.privacy__suggest button:active {
+  background: var(--surface-2);
+}
+
+.privacy__suggest-name {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.privacy__suggest-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.privacy__remove {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-left: -6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+
+.privacy__add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.share-sheet__blocked {
+  color: var(--danger);
+}
+
+.day-share__preview .share-sheet__blocked {
+  padding: 0 28px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.day-share__notice {
+  margin: 0;
+  text-align: center;
 }
 
 .profile__actions {

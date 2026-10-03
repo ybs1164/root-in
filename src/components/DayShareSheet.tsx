@@ -1,6 +1,8 @@
 import { Download, Link, Share2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { HOME_REQUIRED_MESSAGE, excludedNotice, homeIsSet, withoutExcluded } from '../domain/privacy';
 import { downloadDataUrl, renderDayImage, type DayImageInput } from '../lib/dayImage';
+import { loadPrivacy } from '../services/privacyRepository';
 
 interface DayShareSheetProps extends DayImageInput {
   date: string;
@@ -16,14 +18,21 @@ interface DayShareSheetProps extends DayImageInput {
 export default function DayShareSheet({ date, onClose, ...image }: DayShareSheetProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const [src, setSrc] = useState<string | null>(null);
+  // 제외 주소: pings near them are left out of the picture (pings carry only a position).
+  const [privacy] = useState(() => {
+    const { excluded } = loadPrivacy();
+    const { kept, removed } = withoutExcluded(image.pings, (p) => ({ center: p.center }), excluded);
+    return { blocked: !homeIsSet(excluded), pings: kept, removed };
+  });
 
   useEffect(() => {
     dialogRef.current?.showModal();
   }, []);
 
   useEffect(() => {
+    if (privacy.blocked) return;
     let alive = true;
-    renderDayImage(image).then((url) => alive && setSrc(url));
+    renderDayImage({ ...image, pings: privacy.pings }).then((url) => alive && setSrc(url));
     return () => {
       alive = false;
     };
@@ -42,8 +51,18 @@ export default function DayShareSheet({ date, onClose, ...image }: DayShareSheet
     >
       <div className="mac-window__body">
         <div className="day-share__preview">
-          {src ? <img src={src} alt={`${image.title}에 다녀온 곳을 잇는 그림`} /> : <span className="hint">이미지 만드는 중…</span>}
+          {privacy.blocked ? (
+            <span className="hint share-sheet__blocked" role="alert">
+              {HOME_REQUIRED_MESSAGE}
+            </span>
+          ) : src ? (
+            <img src={src} alt={`${image.title}에 다녀온 곳을 잇는 그림`} />
+          ) : (
+            <span className="hint">이미지 만드는 중…</span>
+          )}
         </div>
+
+        {excludedNotice(privacy.removed) && <p className="hint day-share__notice">{excludedNotice(privacy.removed)}</p>}
 
         <div className="day-share__actions" role="group" aria-label="공유">
           {/* TODO: decide what 링크 복사 copies, then wire it up. */}

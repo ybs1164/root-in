@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { copyToClipboard } from '../lib/clipboard';
 import { getDisplayName, setDisplayName } from '../lib/currentUser';
 import { SHARE_LIMITS } from '../services/routeShareService';
+import { HOME_REQUIRED_MESSAGE, homeIsSet } from '../domain/privacy';
+import { loadPrivacy } from '../services/privacyRepository';
 import { planShare, type ShareTarget } from '../services/shareTargets';
 
 interface ShareSheetProps {
@@ -18,7 +20,10 @@ export default function ShareSheet({ target, onClose }: ShareSheetProps) {
   const [feedback, setFeedback] = useState<string | null>(null);
   const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
-  const plan = useMemo(() => planShare(target, sharedBy), [target, sharedBy]);
+  // Read once per opening: the profile popup can't be open at the same time.
+  const [excluded] = useState(() => loadPrivacy().excluded);
+  const blocked = !homeIsSet(excluded);
+  const plan = useMemo(() => planShare(target, sharedBy, undefined, excluded), [target, sharedBy, excluded]);
 
   // Native <dialog>: focus trap, Esc and backdrop for free. No close() in
   // cleanup — StrictMode's double mount would fire onClose immediately.
@@ -28,6 +33,7 @@ export default function ShareSheet({ target, onClose }: ShareSheetProps) {
   }, []);
 
   useEffect(() => {
+    if (blocked) return;
     let cancelled = false;
     plan.createUrl().then((url) => {
       if (!cancelled) setShareUrl(url);
@@ -35,7 +41,7 @@ export default function ShareSheet({ target, onClose }: ShareSheetProps) {
     return () => {
       cancelled = true;
     };
-  }, [plan]);
+  }, [plan, blocked]);
 
   useEffect(() => {
     if (!feedback) return;
@@ -108,6 +114,11 @@ export default function ShareSheet({ target, onClose }: ShareSheetProps) {
           </button>
         </div>
 
+        {blocked && (
+          <p className="hint share-sheet__blocked" role="alert">
+            {HOME_REQUIRED_MESSAGE}
+          </p>
+        )}
         {plan.notice && <p className="hint">{plan.notice}</p>}
         <p className="hint hint--muted">정보는 링크 안에만 담기고 서버로 전송되지 않아요. 링크가 있으면 누구나 볼 수 있어요.</p>
         <p className="toast-inline" role="status" aria-live="polite">

@@ -1181,7 +1181,7 @@ export default function App() {
       </div>
 
       {shareTarget && <ShareSheet target={shareTarget} onClose={() => setShareTarget(null)} />}
-      {profileOpen && <ProfileSheet profile={profile} onChange={changeProfile} onClose={() => setProfileOpen(false)} />}
+      {profileOpen && <ProfileSheet profile={profile} onChange={changeProfile} onClose={() => setProfileOpen(false)} search={searchService} />}
       {categoriesOpen && (
         <CategorySheet
           onClose={() => setCategoriesOpen(false)}

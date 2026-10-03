@@ -49,3 +49,29 @@ describe('unified share sheet', () => {
     expect(decoded?.stops).toEqual([{ place: { id: onionSeongsu.id, name: onionSeongsu.name, center: onionSeongsu.center } }]);
   });
 });
+
+describe('planShare with 제외 주소', () => {
+  const home = { id: 'home', label: '집', address: '서울 성동구 아차산로9길 8', center: [127.0582, 37.5447] as [number, number] };
+  const at = (name: string, center: [number, number], address?: string) => ({ place: { id: name, name, center, address } });
+
+  it('leaves excluded places out of a course link and says so', () => {
+    const plan = planShare(
+      { kind: 'course', draft: { title: '', theme: 'etc', travelMode: 'walk', stops: [at('집 앞', [127.0583, 37.5447]), at('서울숲', [127.0374, 37.5444])] } },
+      '',
+      '2026-10-03T00:00:00.000Z',
+      [home],
+    );
+    expect(plan.summary).toBe('1. 서울숲');
+    expect(plan.notice).toContain('1곳은 공유에서 빠졌어요');
+  });
+
+  it('matches by address when positions differ', () => {
+    const plan = planShare(
+      { kind: 'day', draft: { date: '2026-10-03', title: '', travelMode: 'walk', stops: [at('우리집', [0, 0], '서울특별시 성동구 아차산로9길 8'), at('카페', [127.0, 37.5])] } },
+      '',
+      '2026-10-03T00:00:00.000Z',
+      [{ ...home, center: undefined }],
+    );
+    expect(plan.summary).not.toContain('우리집');
+  });
+});
