@@ -27,6 +27,7 @@
   /* 꾸미기: fixed ink colours (not themed), the tool sheet and the palette rainbow. */
   --ink-black: #151515;
   --ink-white: #ffffff;
+  --photo-shadow: rgba(47, 38, 34, 0.28); /* the share image's polaroid shadow */
   --tray-bg: rgba(14, 14, 14, 0.74);
   --tray-fg: #ffffff;
   --tray-dim: rgba(255, 255, 255, 0.55);

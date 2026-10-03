@@ -12,10 +12,18 @@ export interface DayImageInput {
   decor?: DayDecor;
 }
 
-// 4:5 portrait, the shape most feeds show uncropped.
+// 4:5 portrait, the shape most feeds show uncropped, holding a polaroid:
+// a white card with the day as its square photo and the title written in
+// the wide bottom strip.
 const W = 1080;
 const H = 1350;
-const BOX = { x: 110, y: 300, size: 860 };
+const CARD = { x: 80, y: 110, w: 920, h: 1130, tilt: (-1.2 * Math.PI) / 180 };
+const PHOTO = { x: CARD.x + 40, y: CARD.y + 40, size: 840 };
+/** Where the pings are laid out inside the photo; room above for pins, below for names. */
+const BOX = { x: PHOTO.x + 120, y: PHOTO.y + 150, size: 600 };
+/** Pins, labels and lines were sized for an 860px box; keep their proportion to the drawing. */
+const S = BOX.size / 860;
+const CAPTION_FONT = textFamily('pen');
 
 /** Colours come from the page's own tokens, so the image matches the app (and its theme). */
 function tokens() {
@@ -27,20 +35,26 @@ function tokens() {
     muted: get('--muted'),
     accent: get('--accent'),
     route: get('--route'),
+    backdrop: get('--surface-2'),
+    border: get('--border'),
+    card: get('--ink-white'),
+    cardText: get('--ink-black'),
+    shadow: get('--photo-shadow'),
     font: getComputedStyle(document.body).fontFamily,
   };
 }
 
 const DASHES: Record<EdgeStyle, { width: number; dash: number[]; cap: CanvasLineCap }> = {
-  solid: { width: 9, dash: [], cap: 'round' },
-  dashed: { width: 9, dash: [34, 22], cap: 'butt' },
-  dotted: { width: 12, dash: [0.1, 26], cap: 'round' },
-  bold: { width: 19, dash: [], cap: 'round' },
+  solid: { width: 9 * S, dash: [], cap: 'round' },
+  dashed: { width: 9 * S, dash: [34 * S, 22 * S], cap: 'butt' },
+  dotted: { width: 12 * S, dash: [0.1, 26 * S], cap: 'round' },
+  bold: { width: 19 * S, dash: [], cap: 'round' },
 };
 
 /**
  * Draws a day's pings and lines onto a canvas, the way the day screen shows
- * them (same layout, shapes and line styles), and returns a PNG data URL.
+ * them (same layout, shapes and line styles), as the photo of a polaroid,
+ * and returns a PNG data URL.
  * Drawn from the data rather than screenshotting the DOM: sharp at any
  * size, and no capture library needed.
  */
@@ -51,22 +65,45 @@ export async function renderDayImage({ title, pings, shapeOf, edgeStyleOf, decor
   await Promise.all(
     (decor?.texts ?? []).map((t) => document.fonts?.load(textFont(t, 40), t.text).catch(() => undefined)),
   );
+  await document.fonts?.load(`120px ${CAPTION_FONT}`, title).catch(() => undefined);
   const c = tokens();
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d')!;
 
-  ctx.fillStyle = c.bg;
+  ctx.fillStyle = c.backdrop;
   ctx.fillRect(0, 0, W, H);
-  // The day's background pattern, as a still frame even if it flows on screen.
-  if (decor?.pattern) paintPattern(ctx, decor.pattern, { w: W, h: H }, W / 390, c.accent);
 
-  ctx.fillStyle = c.text;
+  // The card, tilted a touch like one set down on a table, with a soft shadow under it.
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  ctx.rotate(CARD.tilt);
+  ctx.translate(-W / 2, -H / 2);
+  ctx.save();
+  ctx.shadowColor = c.shadow;
+  ctx.shadowBlur = 40;
+  ctx.shadowOffsetY = 14;
+  ctx.fillStyle = c.card;
+  ctx.fillRect(CARD.x, CARD.y, CARD.w, CARD.h);
+  ctx.restore();
+
+  // The photo: the day's own page (theme colour and pattern), everything in it clipped to the square.
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(PHOTO.x, PHOTO.y, PHOTO.size, PHOTO.size);
+  ctx.clip();
+  ctx.fillStyle = c.bg;
+  ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.size, PHOTO.size);
+  // The day's background pattern, as a still frame even if it flows on screen.
+  if (decor?.pattern) {
+    ctx.save();
+    ctx.translate(PHOTO.x, PHOTO.y);
+    paintPattern(ctx, decor.pattern, { w: PHOTO.size, h: PHOTO.size }, PHOTO.size / 390, c.accent);
+    ctx.restore();
+  }
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  ctx.font = `800 118px ${c.font}`;
-  ctx.fillText(title, W / 2, 210);
 
   const points = layoutPings(pings.map((p) => p.center)).map((p) => ({
     x: BOX.x + p.x * BOX.size,
@@ -92,7 +129,7 @@ export async function renderDayImage({ title, pings, shapeOf, edgeStyleOf, decor
     const shape = shapeOf(ping);
     const k = i === latest ? 1.4 : 1;
     const box = shapeBox(shape);
-    const h = (shape === 'pin' ? 118 : 84) * k;
+    const h = (shape === 'pin' ? 118 : 84) * k * S;
     const scale = h / box.h;
     const w = box.w * scale;
     const { x, y } = points[i];
@@ -121,27 +158,44 @@ export async function renderDayImage({ title, pings, shapeOf, edgeStyleOf, decor
 
     const labelTop = shape === 'pin' ? y : y + h / 2;
     ctx.fillStyle = c.text;
-    ctx.font = `700 ${Math.round(36 * (k > 1 ? 1.15 : 1))}px ${c.font}`;
-    ctx.fillText(ping.name, x, labelTop + 46);
+    ctx.font = `700 ${Math.round(36 * S * (k > 1 ? 1.15 : 1))}px ${c.font}`;
+    ctx.fillText(ping.name, x, labelTop + 46 * S);
     ctx.fillStyle = c.muted;
-    ctx.font = `600 32px ${c.font}`;
-    ctx.fillText(ping.time, x, labelTop + 88);
+    ctx.font = `600 ${Math.round(32 * S)}px ${c.font}`;
+    ctx.fillText(ping.time, x, labelTop + 88 * S);
   });
 
   if (decor) drawDecor(ctx, decor, c.font);
+  // A soft inner shadow round the photo's edge, so it reads as a print set
+  // into the card even when the day's page is as white as the card.
+  ctx.shadowColor = c.shadow;
+  ctx.shadowBlur = 28;
+  ctx.strokeStyle = c.shadow;
+  ctx.lineWidth = 40;
+  ctx.strokeRect(PHOTO.x - 20, PHOTO.y - 20, PHOTO.size + 40, PHOTO.size + 40);
+  ctx.restore(); // photo clip
+  ctx.strokeStyle = c.border;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(PHOTO.x, PHOTO.y, PHOTO.size, PHOTO.size);
 
-  // A quiet signature: a bit smaller and see-through so the day stays the
-  // subject. Drawn whole on its own layer first, then faded as one piece, so
-  // the pin's hole stays the background colour instead of a pink blend.
+  // The caption strip: the day's title, handwritten.
+  const strip = { top: PHOTO.y + PHOTO.size, bottom: CARD.y + CARD.h };
+  ctx.fillStyle = c.cardText;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `120px ${CAPTION_FONT}`;
+  ctx.fillText(title, W / 2, strip.top + (strip.bottom - strip.top) * 0.44);
+
+  // A quiet signature in the strip's corner, drawn whole on its own layer
+  // and faded as one piece, so the pin's hole stays the card colour.
   const logo = document.createElement('canvas');
   logo.width = W;
   logo.height = H;
   const lctx = logo.getContext('2d')!;
-  drawLogo(lctx, c, W / 2, H - 64, 42);
-  ctx.save();
+  drawLogo(lctx, { ...c, text: c.cardText, bg: c.card }, CARD.x + CARD.w - 120, strip.bottom - 40, 30);
   ctx.globalAlpha = 0.5;
   ctx.drawImage(logo, 0, 0);
-  ctx.restore();
+  ctx.restore(); // card tilt
 
   return canvas.toDataURL('image/png');
 }
@@ -160,6 +214,7 @@ function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, font: string)
   layer.width = W;
   layer.height = H;
   const ink = layer.getContext('2d')!;
+  // The main canvas is tilted; the ink layer is drawn onto it untilted and picks the tilt up there.
   ink.lineCap = 'round';
   ink.lineJoin = 'round';
   const trace = (points: [number, number][]) => {
