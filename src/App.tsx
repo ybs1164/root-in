@@ -1,6 +1,6 @@
 import type { PatternId, ThemeId } from './domain/decor';
 import DayPattern from './components/DayPattern';
-import { Settings as SettingsIcon, X } from 'lucide-react';
+import { Plus, Settings as SettingsIcon, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomBar from './components/BottomBar';
 import CalendarSheet from './components/CalendarSheet';
@@ -17,6 +17,7 @@ import RouteTitle from './components/RouteTitle';
 import StopLines from './components/StopLines';
 import SearchBar from './components/SearchBar';
 import SettingsSheet from './components/SettingsSheet';
+import CategorySheet from './components/CategorySheet';
 import SharedCourseView from './components/SharedCourseView';
 import SharedPinsView from './components/SharedPinsView';
 import ShareSheet from './components/ShareSheet';
@@ -113,6 +114,7 @@ export default function App() {
   const [sheet, setSheet] = useState<SheetSize>('peek');
   const [shareTarget, setShareTarget] = useState<ShareTarget | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [sharedSaved, setSharedSaved] = useState(false);
   const [sharedPinsSaved, setSharedPinsSaved] = useState(false);
 
@@ -905,6 +907,13 @@ export default function App() {
         />
       )}
 
+      {/* Bottom-right corner of the pin map: 핀 카테고리 editing (the route sheet owns the bottom while 경로 is open). */}
+      {onPinHome && !searchOpen && !pinning && !routeMode && (
+        <button className="corner-btn corner-btn--bottom" aria-label="핀 카테고리 편집" onClick={() => setCategoriesOpen(true)}>
+          <Plus size={24} aria-hidden />
+        </button>
+      )}
+
       {routeTrayShown && onPinHome && (
         <RouteFolderTray
           open={routeOpen}
@@ -1170,6 +1179,11 @@ export default function App() {
         <SettingsSheet
           providerLabel={providerLabel}
           onClose={() => setSettingsOpen(false)}
+        />
+      )}
+      {categoriesOpen && (
+        <CategorySheet
+          onClose={() => setCategoriesOpen(false)}
           categories={categories}
           pinCounts={pinCounts}
           onCreate={pinStore.createCategory}

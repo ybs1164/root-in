@@ -3,16 +3,12 @@ import { useEffect, useRef, useState } from 'react';
 import { getDisplayName, setDisplayName } from '../lib/currentUser';
 import { SHARE_LIMITS } from '../services/routeShareService';
 import { clearAppData } from '../services/settingsRepository';
-import CategoryManager from './CategoryManager';
-
-type CategoryManagerProps = Parameters<typeof CategoryManager>[0];
-
-interface SettingsSheetProps extends CategoryManagerProps {
+interface SettingsSheetProps {
   providerLabel: string;
   onClose: () => void;
 }
 
-export default function SettingsSheet({ providerLabel, onClose, ...categoryProps }: SettingsSheetProps) {
+export default function SettingsSheet({ providerLabel, onClose }: SettingsSheetProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const [name, setName] = useState(getDisplayName);
 
@@ -39,11 +35,6 @@ export default function SettingsSheet({ providerLabel, onClose, ...categoryProps
             <X size={22} aria-hidden />
           </button>
         </div>
-
-        <section className="settings__section">
-          <h3>핀 카테고리</h3>
-          <CategoryManager {...categoryProps} />
-        </section>
 
         <section className="settings__section">
           <h3>공유</h3>

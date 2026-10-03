@@ -2379,6 +2379,13 @@ input.timeline__time:focus {
   transition: transform 0.25s ease;
 }
 
+/* Pin map, bottom-right: + opens 핀 카테고리, level with the bottom tab buttons. */
+.corner-btn--bottom {
+  top: auto;
+  bottom: calc(var(--safe-bottom) + 6px + (var(--bar-h) - 52px) / 2);
+  color: var(--muted);
+}
+
 .app--searching .corner-btn {
   transform: translateX(calc(100% + 24px));
 }
@@ -4463,6 +4470,11 @@ input.timeline__time:focus {
   font-size: 15px;
 }
 
+.category-sheet[open] {
+  animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.category-sheet .share-sheet__body,
 .settings .share-sheet__body {
   max-height: 88dvh;
   overflow-y: auto;
@@ -5175,5 +5187,16 @@ input.timeline__time:focus {
   .share-sheet {
     margin: auto;
     border-radius: 22px;
+  }
+
+  /* Still rises from the bottom edge on wide screens. */
+  .category-sheet {
+    margin: auto auto 0;
+    border-radius: 22px 22px 0 0;
+  }
+
+  .corner-btn--bottom {
+    top: auto;
+    bottom: calc(12px + (var(--bar-h) - 52px) / 2);
   }
 }
