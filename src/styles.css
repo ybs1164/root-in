@@ -371,6 +371,11 @@ button:disabled {
   outline: none;
 }
 
+.search__icon {
+  color: var(--muted);
+  cursor: text;
+}
+
 .search__bar input::-webkit-search-cancel-button {
   display: none;
 }
