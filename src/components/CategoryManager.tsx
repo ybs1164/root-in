@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react';
+import { GripVertical, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { categoryStyle, isUncategorized, orderedCategories, placeCategory, UNCATEGORIZED } from '../domain/pin';
 import type { Pin, PinCategory } from '../types/pin';
@@ -9,10 +9,11 @@ interface CategoryManagerProps {
   categories: PinCategory[];
   pins: Pin[];
   pinCounts: Map<string, number>;
-  /** 편집 상태 (the sheet's pen): rows get ↑ ↓ 🗑, a tap edits, a long press drags. */
+  /** 편집 상태 (the sheet's pen): rows get a drag handle on the left and ✎ 🗑 on the right. */
   editing: boolean;
-  /** A tap on a row while editing: open 핀 카테고리 편집 for it. */
+  /** A row's ✎ while editing: open 핀 카테고리 편집 for it. */
   onEditCategory: (category: PinCategory) => void;
+  /** ↑/↓ on a focused drag handle (the keyboard's way to reorder). */
   onMove: (id: string, direction: -1 | 1) => void;
   /** A row dragged to `to` among its siblings. */
   onDrop: (id: string, to: number) => void;
@@ -36,8 +37,9 @@ interface Drag {
 
 /**
  * 핀 카테고리 (CategorySheet). Out of 편집 상태 a row opens the names of
- * its pins (tap one to see it on the map); in it, a row shows ↑ ↓ 🗑 where
- * its count was, a tap edits it, and a long press lifts it to drag.
+ * its pins (tap one to see it on the map); in it, a row shows a drag handle
+ * on its left and ✎ 🗑 where its count was; ✎ edits it, and the handle (or a
+ * long press anywhere on the row) lifts it to drag.
  */
 export default function CategoryManager({
   categories,
@@ -57,8 +59,6 @@ export default function CategoryManager({
   const dragRef = useRef(drag);
   dragRef.current = drag;
   const hold = useRef<{ timer: number; id: string; x: number; y: number; el: HTMLElement; pointerId: number } | null>(null);
-  // The click that ends a drag (or a hold) isn't a tap.
-  const swallowClick = useRef(false);
   const listRef = useRef<HTMLUListElement | null>(null);
 
   useEffect(() => setOpen(null), [editing]);
@@ -111,6 +111,24 @@ export default function CategoryManager({
     hold.current = null;
   };
 
+  const lift = (el: HTMLElement, pointerId: number, id: string, y: number) => {
+    try {
+      el.setPointerCapture(pointerId);
+    } catch {
+      // The pointer may already be gone; the drag then ends on the next up.
+    }
+    setDrag({ id, startY: y, dy: 0, to: startSpot(id), rowH: el.closest('li')?.offsetHeight ?? 52 });
+  };
+
+  // The handle lifts the row at once; anywhere else on the row needs a hold
+  // (moving sooner scrolls the list).
+  const onHandleDown = (event: PointerEvent<HTMLElement>, id: string) => {
+    if (event.button !== 0) return;
+    event.stopPropagation();
+    cancelHold();
+    lift(event.currentTarget.closest<HTMLElement>('.cat-item__head') ?? event.currentTarget, event.pointerId, id, event.clientY);
+  };
+
   const onRowDown = (event: PointerEvent<HTMLElement>, id: string) => {
     if (!editing || event.button !== 0) return;
     cancelHold();
@@ -119,15 +137,7 @@ export default function CategoryManager({
     const timer = window.setTimeout(() => {
       const h = hold.current;
       hold.current = null;
-      if (!h) return;
-      const li = el.closest('li');
-      try {
-        el.setPointerCapture(pointerId);
-      } catch {
-        // The pointer may already be gone; the drag then ends on the next up.
-      }
-      swallowClick.current = true;
-      setDrag({ id, startY: h.y, dy: 0, to: startSpot(id), rowH: li?.offsetHeight ?? 52 });
+      if (h) lift(el, pointerId, id, h.y);
     }, HOLD_MS);
     hold.current = { timer, id, x: event.clientX, y: event.clientY, el, pointerId };
   };
@@ -198,6 +208,7 @@ export default function CategoryManager({
         <li className="cat-item cat-item--fixed">
           {editing ? (
             <div className="cat-item__head">
+              <span className="cat-item__grip is-blank" aria-hidden />
               {badge('0', 'pin')}
               <span className="cat-item__name">{UNCATEGORIZED.name}</span>
             </div>
@@ -228,45 +239,37 @@ export default function CategoryManager({
               {editing ? (
                 <div
                   className="cat-item__head"
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${category.name} 편집`}
                   onPointerDown={(e) => onRowDown(e, category.id)}
                   onPointerMove={onRowMove}
                   onPointerUp={onRowUp}
                   onPointerCancel={() => {
                     cancelHold();
-                    swallowClick.current = false;
                     setDrag(null);
                   }}
                   onContextMenu={(e) => e.preventDefault()}
-                  onClick={() => {
-                    if (swallowClick.current) {
-                      swallowClick.current = false;
-                      return;
-                    }
-                    onEditCategory(category);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onEditCategory(category);
-                    }
-                  }}
                 >
+                  {/* Far left: the drag handle (the row can be dragged). */}
+                  <span
+                    className="cat-item__grip"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${category.name} 순서 옮기기`}
+                    onPointerDown={(e) => onHandleDown(e, category.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        onMove(category.id, e.key === 'ArrowUp' ? -1 : 1);
+                      }
+                    }}
+                  >
+                    <GripVertical size={20} aria-hidden />
+                  </span>
                   {badge(String(style.color), style.icon)}
                   <span className="cat-item__name">{category.name}</span>
-                  {/* In the count's place: ↑ ↓ 🗑, right-aligned. Their own taps aren't the row's. */}
-                  <span
-                    className="cat-item__tools"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button className="icon-btn" aria-label={`${category.name} 위로`} onClick={() => onMove(category.id, -1)}>
-                      <ArrowUp size={20} aria-hidden />
-                    </button>
-                    <button className="icon-btn" aria-label={`${category.name} 아래로`} onClick={() => onMove(category.id, 1)}>
-                      <ArrowDown size={20} aria-hidden />
+                  {/* In the count's place: ✎ (핀 카테고리 편집) and 🗑, right-aligned. Their own presses aren't the row's. */}
+                  <span className="cat-item__tools" onPointerDown={(e) => e.stopPropagation()}>
+                    <button className="icon-btn" aria-label={`${category.name} 편집`} onClick={() => onEditCategory(category)}>
+                      <Pencil size={18} aria-hidden />
                     </button>
                     <button
                       className="icon-btn icon-btn--danger"
