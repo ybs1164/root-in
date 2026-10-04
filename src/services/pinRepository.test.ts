@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_CATEGORIES } from '../domain/pin';
 import { samplePlaces } from '../test/fixtures';
 import type { Pin } from '../types/pin';
+import { EXTRA_PIN_ICONS } from '../types/categoryIcons';
 import { LocalPinCategoryRepository, LocalPinRepository } from './pinRepository';
 
 const pin = (id: string, userId: string): Pin => ({
@@ -13,6 +14,14 @@ const pin = (id: string, userId: string): Pin => ({
 });
 
 describe('pin storage', () => {
+  it('keeps additional icon choices when saved categories are reloaded', async () => {
+    const repo = new LocalPinCategoryRepository();
+    for (const icon of Object.keys(EXTRA_PIN_ICONS) as (keyof typeof EXTRA_PIN_ICONS)[]) {
+      const categories = [{ ...DEFAULT_CATEGORIES[0], icon }];
+      await repo.saveAll(categories);
+      expect(await new LocalPinCategoryRepository().list()).toEqual(categories);
+    }
+  });
   it('pins and categories persist in goodroot:pins:v1 / goodroot:pin-categories:v2 with default categories on first run', async () => {
     const categories = new LocalPinCategoryRepository();
     expect(await categories.list()).toEqual(DEFAULT_CATEGORIES);
@@ -33,7 +42,7 @@ describe('pin storage', () => {
 
   it('drops malformed rows instead of failing the list', async () => {
     localStorage.setItem('goodroot:pins:v1', JSON.stringify([pin('ok', 'u1'), { id: 'bad', userId: 'u1' }, null]));
-    localStorage.setItem('goodroot:pin-categories:v2', JSON.stringify([DEFAULT_CATEGORIES[0], { id: 'x', name: 'x', icon: 'rocket', color: 1 }]));
+    localStorage.setItem('goodroot:pin-categories:v2', JSON.stringify([DEFAULT_CATEGORIES[0], { id: 'x', name: 'x', icon: 'unknown-icon', color: 1 }]));
     expect((await new LocalPinRepository().listByUser('u1')).map((p) => p.id)).toEqual(['ok']);
     expect((await new LocalPinCategoryRepository().list()).map((c) => c.id)).toEqual(['cafe']);
   });
