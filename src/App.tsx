@@ -60,6 +60,8 @@ const FOLDER_LOWERED_PX = 190;
 const FOLDER_NOTE_PX = 42;
 /** Once the map has glided over to a route, the pins fade off (matches .app--pins-away), and only then do its stops drop in. */
 const PINS_FADE_MS = 250;
+/** A route stepped to with < > glides over as fast as its name slides in (RouteTitle SLIDE_MS). */
+const STEP_GLIDE_MS = 260;
 
 export default function App() {
   const mapEl = useRef<HTMLDivElement | null>(null);
@@ -368,9 +370,12 @@ export default function App() {
     // every added stop would move the next pin out from under the finger.
     if (!mapRef.current || shownStops.length === 0 || buildPins || editRoute) return;
     const route = shownRouteKey;
+    // Stepped to with < >: the map keeps pace with the title sliding over
+    // (STEP_GLIDE_MS), so the stops drop in as soon as the new name is in.
+    const stepped = !!shownRoute && routeStep?.id === shownRoute.id;
     let live = true;
     const id = requestAnimationFrame(() => {
-      void mapRef.current?.fitCourse(mapPadding()).then(() => {
+      void mapRef.current?.fitCourse(mapPadding(), stepped ? STEP_GLIDE_MS : undefined).then(() => {
         if (live && route) setLandedRoute(route);
       });
     });

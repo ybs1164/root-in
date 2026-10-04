@@ -168,7 +168,8 @@ export class KakaoCourseMap implements CourseMap {
       : null;
   }
 
-  fitCourse(padding: MapPadding): Promise<void> {
+  // setBounds jumps, so there's no glide to time (`glideMs` is moot here).
+  fitCourse(padding: MapPadding, _glideMs?: number): Promise<void> {
     return this.fitPoints(
       this.stops.map((s) => s.center),
       padding,

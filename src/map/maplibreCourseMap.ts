@@ -143,7 +143,7 @@ export class MapLibreCourseMap implements CourseMap {
     source?.setData(this.guideData());
   }
 
-  fitPoints(points: [number, number][], padding: MapPadding): Promise<void> {
+  fitPoints(points: [number, number][], padding: MapPadding, glideMs = GLIDE_MS): Promise<void> {
     if (points.length === 0) return Promise.resolve();
     if (points.length === 1) {
       this.focus(points[0], padding);
@@ -153,8 +153,8 @@ export class MapLibreCourseMap implements CourseMap {
     points.forEach((p) => bounds.extend(p));
     // Slow enough to read as a glide, gently eased in and out. A plain ease, not the default fly's
     // zoom-out-and-back arc, which on a short hop reads as a lurch.
-    this.map.fitBounds(bounds, { padding, maxZoom: 16, linear: true, easing: easeInOutSine, duration: this.duration(GLIDE_MS) });
-    return this.moveSettled(this.duration(GLIDE_MS));
+    this.map.fitBounds(bounds, { padding, maxZoom: 16, linear: true, easing: easeInOutSine, duration: this.duration(glideMs) });
+    return this.moveSettled(this.duration(glideMs));
   }
 
   /**
@@ -198,10 +198,11 @@ export class MapLibreCourseMap implements CourseMap {
       : null;
   }
 
-  fitCourse(padding: MapPadding): Promise<void> {
+  fitCourse(padding: MapPadding, glideMs?: number): Promise<void> {
     return this.fitPoints(
       this.stops.map((s) => s.center),
       padding,
+      glideMs,
     );
   }
 
