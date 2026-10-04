@@ -40,7 +40,7 @@ describe('editing a saved route', () => {
   });
 
   it('the look of the route being edited follows its stops through every change', () => {
-    let edit: RouteEdit = { id: 'r', stops: stops('a', 'b', 'c'), note: '', look: { stopShapes: ['heart', null, null], edgeStyles: [null, 'dotted'] } };
+    let edit: RouteEdit = { id: 'r', stops: stops('a', 'b', 'c'), note: '', folder: null, look: { stopShapes: ['heart', null, null], edgeStyles: [null, 'dotted'] } };
     // Moved, then one taken out: a keeps its heart; b–c (dotted) still joins b and c.
     edit = withEditStops(edit, moveStop(edit.stops, 0, 2)); // b, c, a
     expect(edit.look).toEqual({ stopShapes: [null, null, 'heart'], edgeStyles: ['dotted', null] });

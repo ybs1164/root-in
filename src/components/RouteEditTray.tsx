@@ -1,7 +1,8 @@
 import { Check, GripVertical } from 'lucide-react';
-import { useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { COURSE_LIMITS } from '../domain/course';
 import { ROUTE_NOTE_MAX } from '../domain/routeBuild';
+import type { RouteFolder } from '../domain/routeFolders';
 import type { CourseStop } from '../types/course';
 
 interface RouteEditTrayProps {
@@ -14,15 +15,33 @@ interface RouteEditTrayProps {
   onRemove: (index: number) => void;
   /** ✓: keep the changes and leave editing (needs at least two stops). */
   onDone: () => void;
+  folders: RouteFolder[];
+  /** The folder the route goes in on ✓ (null = 미분류). */
+  folder: string | null;
+  onFolder: (folder: string | null) => void;
 }
 
 /**
  * The sheet for editing a saved route, up in the folder sheet's place:
- * ✓ at the top right, the route's description (tap to edit), and its stops
+ * its folder at the top left (tap for 미분류 and the folders), ✓ at the top
+ * right, the route's description (tap to edit), and its stops
  * in order — drag one by its handle to put it somewhere else in the route.
  * Stops are added and taken out on the map, as when making a route.
  */
-export default function RouteEditTray({ stops, note, onNote, onMove, onRemove, onDone }: RouteEditTrayProps) {
+export default function RouteEditTray({ stops, note, onNote, onMove, onRemove, onDone, folders, folder, onFolder }: RouteEditTrayProps) {
+  // The folder grid, open above the folder button; a tap anywhere else closes it.
+  const [pickingFolder, setPickingFolder] = useState(false);
+  const folderBox = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!pickingFolder) return;
+    const away = (e: globalThis.PointerEvent) => {
+      if (!folderBox.current?.contains(e.target as Node)) setPickingFolder(false);
+    };
+    document.addEventListener('pointerdown', away);
+    return () => document.removeEventListener('pointerdown', away);
+  }, [pickingFolder]);
+  const filed = folders.find((f) => f.id === folder) ?? null;
+
   const listEl = useRef<HTMLOListElement | null>(null);
   // The row being dragged, how far, and where it would land.
   const [drag, setDrag] = useState<{ from: number; dy: number; to: number; rowH: number; startY: number } | null>(null);
@@ -62,6 +81,44 @@ export default function RouteEditTray({ stops, note, onNote, onMove, onRemove, o
   return (
     <section className="route-edit" aria-label="루트 수정">
       <div className="route-edit__head">
+        <div ref={folderBox} className="route-edit__folder-box">
+          {/* Its folder's icon; 미분류 shows an empty slot, as on the create sheet. */}
+          <button
+            className="route-edit__folder"
+            aria-label={`폴더 ${filed?.name ?? '미분류'}, 바꾸기`}
+            aria-expanded={pickingFolder}
+            onClick={() => setPickingFolder((v) => !v)}
+          >
+            {filed?.icon}
+          </button>
+          {pickingFolder && (
+            <div className="route-edit__folders folder-picker" role="group" aria-label="폴더">
+              <button
+                className={`folder-picker__opt ${!filed ? 'is-on' : ''}`}
+                aria-label="미분류"
+                aria-pressed={!filed}
+                onClick={() => {
+                  onFolder(null);
+                  setPickingFolder(false);
+                }}
+              />
+              {folders.map((f) => (
+                <button
+                  key={f.id}
+                  className={`folder-picker__opt ${filed?.id === f.id ? 'is-on' : ''}`}
+                  aria-label={f.name}
+                  aria-pressed={filed?.id === f.id}
+                  onClick={() => {
+                    onFolder(f.id);
+                    setPickingFolder(false);
+                  }}
+                >
+                  {f.icon}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <button
           className="route-edit__done"
           aria-label="수정 완료"

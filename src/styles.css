@@ -2710,8 +2710,35 @@ button:disabled {
   flex: none;
   display: flex;
   align-items: center;
-  justify-content: flex-end; /* ✓ at the right */
+  justify-content: space-between; /* the folder at the left, ✓ at the right */
   padding: 12px 12px 0;
+}
+
+.route-edit__folder-box {
+  position: relative;
+}
+
+/* The route's folder, like the create sheet's: its icon, or an empty slot for 미분류. */
+.route-edit__folder {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.route-edit__folder[aria-expanded='true'] {
+  background: var(--accent-soft);
+}
+
+/* The folder grid pops up above the button, over the map, like a folder tab's. */
+.route-edit__folders.folder-picker {
+  left: 0;
 }
 
 .route-edit__done {

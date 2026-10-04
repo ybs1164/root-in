@@ -28,7 +28,7 @@ import { PRESS } from './domain/dayPings';
 import { buildRouteLook, EMPTY_BUILD_LOOK, nextRouteName, ROUTE_NOTE_MAX, toggleBuildStop, withBuildEdge, withBuildShape, type BuildLook } from './domain/routeBuild';
 import { addEditStop, moveStop, toggleEditStop, withEditStops, type RouteEdit } from './domain/routeEdit';
 import { cleanRouteLook, withEdgeStyle, withStopShape } from './domain/routeStyle';
-import { moveRoute, neighborRoute, type RouteTab } from './domain/routeFolders';
+import { folderOf, moveRoute, neighborRoute, type RouteTab } from './domain/routeFolders';
 import { useCourses } from './hooks/useCourses';
 import { useDistrictMap } from './hooks/useDistrictMap';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
@@ -659,11 +659,12 @@ export default function App() {
       id: shownRoute.id,
       stops: shownRoute.stops,
       note: shownRoute.note ?? '',
+      folder: folderOf(routeFolders.folders, shownRoute.id),
       look: { stopShapes: shownRoute.stopShapes, edgeStyles: shownRoute.edgeStyles },
     });
   };
 
-  // ✓ on the edit sheet: keep the stops with their look and the description.
+  // ✓ on the edit sheet: keep the stops with their look, the description and the folder.
   const saveEdit = async () => {
     if (!editRoute || !shownRoute || editRoute.stops.length < COURSE_LIMITS.minStops) return;
     await course.save({
@@ -672,6 +673,10 @@ export default function App() {
       note: editRoute.note.trim().slice(0, ROUTE_NOTE_MAX) || undefined,
       ...cleanRouteLook(editRoute.look, editRoute.stops.length),
     });
+    if (editRoute.folder !== folderOf(routeFolders.folders, shownRoute.id)) {
+      const { folder } = editRoute;
+      routeFolders.setFolders((f) => moveRoute(f, shownRoute.id, folder));
+    }
     setEditing(null);
     // Back to showing it: the map glides over, the pins fade off, the stops drop in again.
     setLandedRoute(null);
@@ -979,6 +984,9 @@ export default function App() {
             onNote={(note) => setEditing((e) => (e ? { ...e, note } : e))}
             onMove={(from, to) => editStops((stops) => moveStop(stops, from, to))}
             onRemove={(index) => editStops((stops) => stops.filter((_, i) => i !== index))}
+            folders={routeFolders.folders.folders}
+            folder={editRoute.folder}
+            onFolder={(folder) => setEditing((e) => (e ? { ...e, folder } : e))}
             onDone={saveEdit}
           />
         </>
