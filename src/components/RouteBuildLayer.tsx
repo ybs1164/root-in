@@ -22,8 +22,8 @@ interface RouteBuildLayerProps {
    * can follow it too.
    */
   handoff?: { current: { x: number; y: number } | null };
-  /** 생성 on the sheet: the route's name, description, icon and folder (null = 미분류). */
-  onCreate: (title: string, note: string, icon: string | undefined, folder: string | null) => void;
+  /** 생성 on the sheet: the route's name, description and folder (null = 미분류). */
+  onCreate: (title: string, note: string, folder: string | null) => void;
   /** The user's folders, for the sheet's folder choice. */
   folders?: RouteFolder[];
   /**
@@ -231,7 +231,7 @@ export default function RouteBuildLayer({ mapEl, chosen, onAdd, onCancel, onPanE
           onCreate={() => {
             if (chosen.length < COURSE_LIMITS.minStops) return;
             const title = draft.title.replace(/\s+/g, ' ').trim() || defaultTitle;
-            onCreate(title.slice(0, ROUTE_TITLE_MAX), draft.note.trim().slice(0, ROUTE_NOTE_MAX), draft.icon, draft.folder);
+            onCreate(title.slice(0, ROUTE_TITLE_MAX), draft.note.trim().slice(0, ROUTE_NOTE_MAX), draft.folder);
           }}
         />
       )}

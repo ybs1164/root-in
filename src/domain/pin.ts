@@ -5,6 +5,7 @@ import {
   type PinCategory,
   type PinColor,
   type PinIcon,
+  type PinTint,
   type SharedPin,
   type SharedPinCategory,
   type SharedPinSet,
@@ -42,12 +43,21 @@ export function findCategory(categories: PinCategory[], id: string): PinCategory
   return categories.find((c) => c.id === id) ?? UNCATEGORIZED;
 }
 
-/** Sub-categories wear the parent's icon (only the color is their own). */
-export function categoryStyle(categories: PinCategory[], id: string): { icon: PinIcon; color: PinColor; emoji: string } {
+/** A pin's category is 미분류: filed there, or under a category that no longer exists. */
+export function isUncategorized(categories: PinCategory[], id: string): boolean {
+  return !categories.some((c) => c.id === id);
+}
+
+/**
+ * Sub-categories wear the parent's icon (only the color is their own).
+ * 미분류 is the plain pin in the theme's accent (`--pin-0`).
+ */
+export function categoryStyle(categories: PinCategory[], id: string): { icon: PinIcon; color: PinTint } {
+  if (isUncategorized(categories, id)) return { icon: 'pin', color: 0 };
   const category = findCategory(categories, id);
   const parent = category.parentId ? categories.find((c) => c.id === category.parentId) : undefined;
   const icon = parent?.icon ?? category.icon;
-  return { icon, color: category.color, emoji: PIN_ICONS[icon] };
+  return { icon, color: category.color };
 }
 
 /** '카페 › 디저트' */
@@ -72,6 +82,11 @@ export function orderedCategories(categories: PinCategory[]): { category: PinCat
     }
   }
   return out;
+}
+
+/** 미분류 first (it can't be deleted or moved), then the categories in order: what pickers and the rail list. */
+export function categoriesWithUncategorized(categories: PinCategory[]): { category: PinCategory; depth: 0 | 1 }[] {
+  return [{ category: UNCATEGORIZED, depth: 0 }, ...orderedCategories(categories)];
 }
 
 export type CategoryProblem = 'empty-name' | 'too-many' | 'too-deep' | 'bad-parent';
@@ -135,9 +150,8 @@ export function moveCategory(categories: PinCategory[], id: string, direction: -
 }
 
 /**
- * Deletes a category without deleting pins: a sub-category's pins move to
- * its parent; a parent takes its sub-categories with it and their pins
- * become 미분류.
+ * Deletes a category without deleting pins: its pins become 미분류. A
+ * parent takes its sub-categories with it, and their pins go to 미분류 too.
  */
 export function removeCategory(
   categories: PinCategory[],
@@ -147,10 +161,9 @@ export function removeCategory(
   const target = categories.find((c) => c.id === id);
   if (!target) return { categories, pins };
   const removed = target.parentId ? new Set([id]) : categoryFamily(categories, id);
-  const fallback = target.parentId ?? UNCATEGORIZED.id;
   return {
     categories: categories.filter((c) => !removed.has(c.id)),
-    pins: pins.map((p) => (removed.has(p.categoryId) ? { ...p, categoryId: fallback } : p)),
+    pins: pins.map((p) => (removed.has(p.categoryId) ? { ...p, categoryId: UNCATEGORIZED.id } : p)),
   };
 }
 
@@ -189,12 +202,13 @@ export function filterPins(pins: Pin[], categories: PinCategory[], filter: strin
  * bringing its sub-categories. Nothing picked shows every pin.
  */
 export function filterPinsByCategories(pins: Pin[], categories: PinCategory[], picked: ReadonlySet<string>): Pin[] {
-  // Only categories that still exist count: none of those picked is ALL, every pin.
-  const live = [...picked].filter((id) => categories.some((c) => c.id === id));
+  // Only categories that still exist (and 미분류) count: none of those picked is ALL, every pin.
+  const live = [...picked].filter((id) => id === UNCATEGORIZED.id || categories.some((c) => c.id === id));
   if (live.length === 0) return filterPins(pins, categories, null);
   const shown = new Set<string>();
   live.forEach((id) => categoryFamily(categories, id).forEach((c) => shown.add(c)));
-  return filterPins(pins, categories, null).filter((p) => shown.has(p.categoryId));
+  const loose = live.includes(UNCATEGORIZED.id);
+  return filterPins(pins, categories, null).filter((p) => shown.has(p.categoryId) || (loose && isUncategorized(categories, p.categoryId)));
 }
 
 // ----- Pin sets (sharing) -----

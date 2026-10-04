@@ -52,7 +52,7 @@ export class MapLibreCourseMap implements CourseMap {
       style: {
         version: 8, sources: {},
         layers: [{ id: 'background', type: 'background', paint: {
-          'background-color': getComputedStyle(document.documentElement).getPropertyValue('--map-bg').trim() || '#f4ede2',
+          'background-color': getComputedStyle(document.documentElement).getPropertyValue('--map-bg').trim() || '#f7f9fc',
         } }],
       },
       center: options.center,
@@ -91,16 +91,16 @@ export class MapLibreCourseMap implements CourseMap {
         });
         this.map.addLayer({ id, type: 'fill', source: id, paint: { 'fill-color': color } });
       };
-      fill(AREA_COVER, token('--map-bg', '#f4ede2'));
-      fill(AREA_OTHERS, token('--map-area-other', '#d6dfdc'));
-      fill(AREA_PARTS, token('--map-area', '#a9c1c1'));
+      fill(AREA_COVER, token('--map-bg', '#f7f9fc'));
+      fill(AREA_OTHERS, token('--map-area-other', '#e1e7f1'));
+      fill(AREA_PARTS, token('--map-area', '#c9d7ee'));
       this.map.addSource(GUIDE_SOURCE, { type: 'geojson', data: this.guideData() });
       this.map.addLayer({
         id: GUIDE_SOURCE,
         type: 'line',
         source: GUIDE_SOURCE,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': token('--muted', '#8b7d74'), 'line-width': 3, 'line-opacity': 0.8, 'line-dasharray': [0.5, 2] },
+        paint: { 'line-color': token('--muted', '#8a93a8'), 'line-width': 3, 'line-opacity': 0.8, 'line-dasharray': [0.5, 2] },
       });
       this.map.addSource(LINE_SOURCE, { type: 'geojson', data: this.lineData() });
       this.map.addLayer({
@@ -109,7 +109,7 @@ export class MapLibreCourseMap implements CourseMap {
         source: LINE_SOURCE,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
-          'line-color': getComputedStyle(document.documentElement).getPropertyValue('--route').trim() || '#e0664f',
+          'line-color': getComputedStyle(document.documentElement).getPropertyValue('--route').trim() || '#2f6fe0',
           'line-width': 4,
           'line-opacity': 0.85,
           'line-dasharray': [1.5, 1.5],
@@ -216,7 +216,7 @@ export class MapLibreCourseMap implements CourseMap {
   setPreview(place: PlaceRef | null): void {
     this.previewMarker?.remove();
     this.previewMarker = place
-      ? new maplibregl.Marker({ element: createMarkerElement('＋', 'preview') }).setLngLat(place.center).addTo(this.map)
+      ? new maplibregl.Marker({ element: createMarkerElement('', 'preview') }).setLngLat(place.center).addTo(this.map)
       : null;
   }
 

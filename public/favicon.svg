@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <!-- Lucide map-pin (ISC), filled -->
-  <rect width="32" height="32" rx="8" fill="#e0664f"/>
+  <rect width="32" height="32" rx="8" fill="#2f6fe0"/>
   <g transform="translate(-2.4 1.2) scale(1.53)">
     <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" fill="#fff"/>
-    <circle cx="12" cy="10" r="3.2" fill="#e0664f"/>
+    <circle cx="12" cy="10" r="3.2" fill="#2f6fe0"/>
   </g>
 </svg>

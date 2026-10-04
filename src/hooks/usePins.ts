@@ -66,9 +66,9 @@ export function usePins(pinsRepo: PinRepository = pinRepository, categoriesRepo:
 
   /** Returns the saved pin and an undo that restores the list as it was. */
   const savePin = useCallback(
-    (place: PlaceRef, categoryId: string) => {
+    (place: PlaceRef, categoryId: string, memo?: string) => {
       const before = latest.current.pins;
-      const result = upsertPin(before, { place, categoryId }, makePin);
+      const result = upsertPin(before, { place, categoryId, memo }, makePin);
       if ('problem' in result) return null;
       commitPins(result.pins);
       return { pin: result.pin, existed: result.existed, undo: () => commitPins(before) };

@@ -17,6 +17,7 @@ import {
   type RouteTab,
 } from '../domain/routeFolders';
 import type { Course } from '../types/course';
+import ConfirmDialog from './ConfirmDialog';
 
 interface RouteFolderTrayProps {
   /** False while it slides away (it stays mounted for that). */
@@ -96,7 +97,6 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
   dragOrderRef.current = dragOrder;
   const [deleting, setDeleting] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
-  const confirmEl = useRef<HTMLDialogElement | null>(null);
   const foldersRef = useRef(folders);
   foldersRef.current = folders;
 
@@ -172,13 +172,6 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     document.addEventListener('pointerdown', away);
     return () => document.removeEventListener('pointerdown', away);
   }, [deleting]);
-
-  // The confirm is a native modal <dialog>: the top layer escapes the sheet's
-  // slide-in transform, and Esc / focus handling come with it.
-  useEffect(() => {
-    const dialog = confirmEl.current;
-    if (confirming && dialog && !dialog.open) dialog.showModal();
-  }, [confirming]);
 
   // ----- Drag animation -----
   // Positions are offsetLeft (layout, untouched by transforms), all in the
@@ -378,6 +371,8 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     overTrash: boolean;
     /** Off the sheet altogether (over the map): letting go there changes nothing. */
     away: boolean;
+    /** 다중 선택 as it was before the press: an action taken with the lift puts it back. */
+    before: { selecting: boolean; selected: Set<string> };
   } | null>(null);
   const rowDragRef = useRef(rowDrag);
   rowDragRef.current = rowDrag;
@@ -459,6 +454,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
           overTab: null,
           overTrash: false,
           away: false,
+          before: { selecting, selected },
         });
         navigator.vibrate?.(10);
       }, LONG_PRESS_MS);
@@ -505,14 +501,19 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     swallowRowClick.current = true;
     window.setTimeout(() => (swallowRowClick.current = false), 250);
     if (!drop || d.away) return;
-    if (d.overTrash) {
-      onDeleteRoutes(courses.filter((c) => d.ids.includes(c.id)));
-      setSelected(new Set());
-    } else if (d.overTab) {
+    // Held and let go in place, alone: nothing happened but the pick, so it
+    // stays picked (tap others to pick more).
+    const moved = Math.hypot(d.dx, d.dy) > PRESS_SLOP_PX;
+    if (!moved && d.ids.length === 1 && !d.overTab && !d.overTrash) return;
+    if (d.overTrash) onDeleteRoutes(courses.filter((c) => d.ids.includes(c.id)));
+    else if (d.overTab) {
       const to = d.overTab === 'none' ? null : d.overTab;
       onFolders(d.ids.reduce((f, id) => moveRoute(f, id, to), folders));
-      setSelected(new Set());
     } else onFolders(placeRoutes(courses, folders, current, d.ids, d.to));
+    // Moved, filed or deleted: the press only carried the route, so it doesn't
+    // stay picked — 다중 선택 goes back to how it was (minus anything deleted).
+    setSelecting(d.before.selecting);
+    setSelected(d.overTrash ? new Set([...d.before.selected].filter((id) => !d.ids.includes(id))) : d.before.selected);
   };
   const swallowRowClick = useRef(false);
   const endRowPressRef = useRef(endRowPress);
@@ -559,6 +560,8 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     }
     return 0;
   };
+  const folderName = (id: string) => folders.folders.find((f) => f.id === id)?.name ?? '폴더';
+  const folderIcon = (id: string) => folders.folders.find((f) => f.id === id)?.icon ?? '📁';
   const draggedRoute = rowDrag ? courses.find((c) => c.id === rowDrag.held) : null;
 
   const pickingFolder = folders.folders.find((f) => f.id === picking) ?? null;
@@ -586,35 +589,18 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
           </div>
         </>
       )}
-      <dialog
-        ref={confirmEl}
-        className="confirm-dialog"
-        aria-label="폴더 삭제"
-        onClose={() => {
-          setConfirming(null);
-          setDeleting(null);
-        }}
-      >
-        <p>
-          폴더를 삭제합니다.
-          <br />
-          이 작업은 되돌릴 수 없습니다.
-        </p>
-        <div className="confirm-dialog__actions">
-          <button className="btn btn--ghost" onClick={() => confirmEl.current?.close()}>
-            취소
-          </button>
-          <button
-            className="btn btn--danger"
-            onClick={() => {
-              if (confirming) onFolders(deleteFolder(folders, confirming));
-              confirmEl.current?.close();
-            }}
-          >
-            확인
-          </button>
-        </div>
-      </dialog>
+      {confirming && (
+        <ConfirmDialog
+          label="폴더 삭제"
+          message="폴더를 삭제합니다."
+          detail="이 작업은 되돌릴 수 없습니다."
+          onConfirm={() => onFolders(deleteFolder(folders, confirming))}
+          onClose={() => {
+            setConfirming(null);
+            setDeleting(null);
+          }}
+        />
+      )}
 
       <div ref={tabsEl} className="route-folders__tabs" role="tablist" aria-label="폴더">
         {tabButton('all', '전체', ALL_ICON)}
@@ -660,7 +646,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
           aria-hidden
         >
           <div className="route-row__main">
-            {draggedRoute.icon && <span className="route-row__icon">{draggedRoute.icon}</span>}
+            {folderOf(folders, draggedRoute.id) && <span className="route-row__folder">{folderIcon(folderOf(folders, draggedRoute.id)!)}</span>}
             <strong>{draggedRoute.title || '이름 없는 경로'}</strong>
             {/* Several carried at once: how many. */}
             {rowDrag.ids.length > 1 && <span className="route-row--ghost__count">{rowDrag.ids.length}</span>}
@@ -734,21 +720,16 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
                         {selected.has(c.id) && <Check size={14} strokeWidth={3} />}
                       </span>
                     )}
-                    {c.icon && (
-                      <span className="route-row__icon" aria-hidden>
-                        {c.icon}
+                    {/* Its folder's icon, before the name; a route in none shows nothing. */}
+                    {filed && (
+                      <span className="route-row__folder" aria-label={`${folderName(filed)}에 있음`}>
+                        {folderIcon(filed)}
                       </span>
                     )}
                     <strong>{c.title || '이름 없는 경로'}</strong>
-                    {/* Its folder, at the right end of its line; a route in none shows nothing. */}
-                    {filed && (
-                      <span className="route-row__folder" aria-label={`${folders.folders.find((f) => f.id === filed)?.name ?? '폴더'}에 있음`}>
-                        {folders.folders.find((f) => f.id === filed)?.icon ?? '📁'}
-                      </span>
-                    )}
                   </button>
                   {/* The open route's description, small and grey under its name. */}
-                  {shown && c.note && <p className={`route-row__note ${c.icon ? 'has-icon' : ''}`}>{c.note}</p>}
+                  {shown && c.note && <p className={`route-row__note ${filed ? 'has-folder' : ''}`}>{c.note}</p>}
                   {/* The open route's tools: small, at its bottom right. */}
                   {shown && (
                     <div className="route-row__tools">

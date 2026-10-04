@@ -34,8 +34,6 @@ export interface Course {
   note?: string;
   /** Set when this course was saved from someone else's share link. */
   sharedBy?: string;
-  /** A decorative icon shown by its name (one of ROUTE_ICONS); not a category. */
-  icon?: string;
   /** How it is drawn on the map (long-press a stop or a line); see domain/routeStyle. */
   stopShapes?: (PingShape | null)[];
   edgeStyles?: (EdgeStyle | null)[];
@@ -52,7 +50,6 @@ export interface CourseDraft {
   stops: CourseStop[];
   note?: string;
   sharedBy?: string;
-  icon?: string;
   stopShapes?: (PingShape | null)[];
   edgeStyles?: (EdgeStyle | null)[];
 }

@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import type { CSSProperties } from 'react';
-import { PIN_ICONS, type SharedPinSet } from '../types/pin';
+import type { SharedPinSet } from '../types/pin';
+import PinGlyph from './PinGlyph';
 
 interface SharedPinsViewProps {
   set: SharedPinSet;
@@ -22,7 +23,7 @@ export default function SharedPinsView({ set, saved, onSave, onFocus, onClose }:
   const style = (index: number) => {
     const category = set.categories[index];
     const parent = category?.parent !== undefined ? set.categories[category.parent] : undefined;
-    return { emoji: PIN_ICONS[parent?.icon ?? category?.icon ?? 'pin'], color: category?.color ?? 8 };
+    return { icon: parent?.icon ?? category?.icon ?? 'pin', color: category?.color ?? 8 };
   };
 
   return (
@@ -44,7 +45,7 @@ export default function SharedPinsView({ set, saved, onSave, onFocus, onClose }:
             <li key={`${pin.place.id}-${i}`}>
               <button className="pin-row" onClick={() => onFocus(i)}>
                 <span className="pin-badge" style={{ '--pin': `var(--pin-${s.color})` } as CSSProperties} aria-hidden>
-                  {s.emoji}
+                  <PinGlyph icon={s.icon} />
                 </span>
                 <span className="pin-row__text">
                   <strong>{pin.place.name}</strong>

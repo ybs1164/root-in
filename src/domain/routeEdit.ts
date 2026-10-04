@@ -7,7 +7,8 @@ export interface RouteEdit {
   id: string;
   stops: CourseStop[];
   note: string;
-  icon?: string;
+  /** The folder it is filed in (null = 미분류); moved there on ✓. */
+  folder: string | null;
   /** Stop shapes and line styles, kept lined up with `stops` as they change. */
   look: RouteLook;
 }

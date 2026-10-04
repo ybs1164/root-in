@@ -1,8 +1,9 @@
 import { MapPin, Route } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { categoryStyle, orderedCategories } from '../domain/pin';
+import { categoriesWithUncategorized, categoryStyle, UNCATEGORIZED } from '../domain/pin';
 import { isAllPicked, type PinRailEntry, type PinRailMode } from '../domain/pinRail';
 import type { PinCategory } from '../types/pin';
+import PinGlyph from './PinGlyph';
 
 interface PinRailProps {
   mode: PinRailMode;
@@ -38,6 +39,8 @@ const ENTRIES: { entry: PinRailEntry; label: string; icon: ReactNode }[] = [
  * stays narrowed after 핀 closes.
  */
 export default function PinRail({ mode, onAction, categories, counts, picked, onToggle, onAll }: PinRailProps) {
+  // ALL is on while nothing that exists (미분류 included) is picked.
+  const allOn = isAllPicked(picked, [UNCATEGORIZED.id, ...categories.map((c) => c.id)]);
   // The category list trails the mode so it can play out before unmounting.
   const listOpen = mode === 'pins';
   const [listShown, setListShown] = useState(listOpen);
@@ -85,15 +88,16 @@ export default function PinRail({ mode, onAction, categories, counts, picked, on
           {/* ALL first: every pin (on whenever no category is picked; never together with one). */}
           <li className={`pin-rail__item ${listOpen ? '' : 'is-leaving'}`} style={stagger(0)}>
             <button
-              className={`pin-rail__btn pin-rail__all ${isAllPicked(picked, categories.map((c) => c.id)) ? 'is-on' : ''}`}
+              className={`pin-rail__btn pin-rail__all ${allOn ? 'is-on' : ''}`}
               aria-label="모든 핀"
-              aria-pressed={isAllPicked(picked, categories.map((c) => c.id))}
+              aria-pressed={allOn}
               onClick={onAll}
             >
               ALL
             </button>
           </li>
-          {orderedCategories(categories).map(({ category }, i) => {
+          {/* Then 미분류 (always there, right under ALL), then the categories. */}
+          {categoriesWithUncategorized(categories).map(({ category }, i) => {
             const style = categoryStyle(categories, category.id);
             const on = picked.has(category.id);
             return (
@@ -105,7 +109,7 @@ export default function PinRail({ mode, onAction, categories, counts, picked, on
                   aria-pressed={on}
                   onClick={() => onToggle(category.id)}
                 >
-                  <span aria-hidden>{style.emoji}</span>
+                  <PinGlyph icon={style.icon} />
                 </button>
               </li>
             );

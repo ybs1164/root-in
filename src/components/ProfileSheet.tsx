@@ -47,14 +47,14 @@ export default function ProfileSheet({ profile, onChange, onClose }: ProfileShee
   return (
     <dialog
       ref={dialogRef}
-      className="profile-sheet"
+      className="profile-sheet ticket-dialog"
       aria-label="프로필"
       onClose={onClose}
       onClick={(event) => {
         if (event.target === dialogRef.current) onClose();
       }}
     >
-      <div className="profile">
+      <div className="profile ticket-dialog__main">
         <div className="profile__photo">
           <button className="profile__avatar" aria-label="프로필 사진 바꾸기" onClick={() => fileRef.current?.click()}>
             <ProfileAvatar photo={profile.photo} size={96} />
@@ -106,7 +106,10 @@ export default function ProfileSheet({ profile, onChange, onClose }: ProfileShee
         />
 
         {note && <p className="profile__note">{note}</p>}
+      </div>
 
+      {/* Past the tear line: 계정 정보. */}
+      <div className="ticket-dialog__stub profile__stub">
         {/* 계정 정보: folded away by default so 로그아웃 · 탈퇴 aren't one stray tap from the profile. */}
         <button
           className={`profile__account ${accountOpen ? 'is-open' : ''}`}

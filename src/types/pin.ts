@@ -1,20 +1,21 @@
 import type { PlaceRef } from './course';
 
-// Emoji keep the icon identical in React UI and in the plain-DOM map markers
-// (both map providers render markers outside React).
+// Category icons, by name (the label is for screen readers). The shapes are
+// solid vector glyphs in lib/pinGlyphs.ts, shared by React UI and the
+// plain-DOM map markers.
 export const PIN_ICONS = {
-  cafe: '☕',
-  food: '🍽️',
-  bar: '🍷',
-  photo: '📷',
-  shop: '🛍️',
-  stay: '🛏️',
-  nature: '🌳',
-  culture: '🏛️',
-  star: '⭐',
-  heart: '❤️',
-  flag: '🚩',
-  pin: '📍',
+  cafe: '카페',
+  food: '식당',
+  bar: '술',
+  photo: '사진',
+  shop: '쇼핑',
+  stay: '숙소',
+  nature: '자연',
+  culture: '문화',
+  star: '별',
+  heart: '하트',
+  flag: '깃발',
+  pin: '핀',
 } as const;
 
 export type PinIcon = keyof typeof PIN_ICONS;
@@ -22,6 +23,8 @@ export type PinIcon = keyof typeof PIN_ICONS;
 /** Index into the fixed `--pin-1 … --pin-8` palette (independent of the design theme). */
 export type PinColor = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 export const PIN_COLORS: PinColor[] = [1, 2, 3, 4, 5, 6, 7, 8];
+/** What a pin is drawn in: a palette colour, or 0 for 미분류 (`--pin-0`, the theme's accent). */
+export type PinTint = PinColor | 0;
 
 export interface PinCategory {
   id: string;

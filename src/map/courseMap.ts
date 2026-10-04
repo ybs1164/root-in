@@ -1,7 +1,8 @@
 import type { AreaShapes } from '../domain/adminAreas';
 import type { MapViewport } from '../domain/districtMap';
 import type { PlaceRef } from '../types/course';
-import type { PinColor } from '../types/pin';
+import { pinGlyphSvg } from '../lib/pinGlyphs';
+import type { PinIcon, PinTint } from '../types/pin';
 
 export interface MapPadding {
   top: number;
@@ -53,8 +54,8 @@ export interface CourseMap {
 export interface PinMarker {
   id: string;
   center: [number, number];
-  emoji: string;
-  color: PinColor;
+  icon: PinIcon;
+  color: PinTint;
   name: string;
   selected?: boolean;
 }
@@ -79,7 +80,9 @@ export function createMarkerElement(label: string, variant: 'stop' | 'preview', 
   const el = document.createElement('button');
   el.type = 'button';
   el.className = `map-marker map-marker--${variant}`;
-  el.textContent = label;
+  // The place about to be pinned wears 미분류's plain pin (what it starts as).
+  if (variant === 'preview') el.innerHTML = pinGlyphSvg('pin');
+  else el.textContent = label;
   el.setAttribute('aria-label', variant === 'stop' ? `${label}번 장소` : '선택한 장소');
   // Its place in the route, for the lines the app draws between stops.
   if (variant === 'stop') el.dataset.stop = label;
@@ -99,7 +102,8 @@ export function createPinElement(pin: PinMarker, onClick?: (id: string) => void)
   el.type = 'button';
   el.className = `map-marker map-marker--pin${pin.selected ? ' is-selected' : ''}`;
   el.style.setProperty('--pin', `var(--pin-${pin.color})`);
-  el.textContent = pin.emoji;
+  // The category's solid glyph in the pin colour, no disc behind it.
+  el.innerHTML = pinGlyphSvg(pin.icon);
   el.setAttribute('aria-label', pin.name);
   // Lets a finger drawing a route over the map find the pin under it.
   el.dataset.pinId = pin.id;

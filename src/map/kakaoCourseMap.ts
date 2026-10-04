@@ -77,9 +77,9 @@ export class KakaoCourseMap implements CourseMap {
       });
     // Kakao tiles can't be restyled, so a Korea-sized polygon hides them;
     // the areas sit on top of it and the gaps between them show through.
-    const cover = polygon([[[120, 30], [135, 30], [135, 45], [120, 45]]], this.routeColor('--map-bg', '#f4ede2'), 0);
-    const otherColor = this.routeColor('--map-area-other', '#d6dfdc');
-    const partColor = this.routeColor('--map-area', '#a9c1c1');
+    const cover = polygon([[[120, 30], [135, 30], [135, 45], [120, 45]]], this.routeColor('--map-bg', '#f7f9fc'), 0);
+    const otherColor = this.routeColor('--map-area-other', '#e1e7f1');
+    const partColor = this.routeColor('--map-area', '#c9d7ee');
     this.areaOverlays = [
       cover,
       ...shapes.others.map((rings) => polygon(rings, otherColor, 1)),
@@ -113,7 +113,7 @@ export class KakaoCourseMap implements CourseMap {
         ? new this.maps.Polyline({
             path: points.map((p) => this.latLng(p)),
             strokeWeight: 3,
-            strokeColor: this.routeColor('--muted', '#8b7d74'),
+            strokeColor: this.routeColor('--muted', '#8a93a8'),
             strokeOpacity: 0.8,
             strokeStyle: 'shortdot',
             map: this.map,
@@ -158,7 +158,7 @@ export class KakaoCourseMap implements CourseMap {
       this.line = new this.maps.Polyline({
         path: stops.map((s) => this.latLng(s.center)),
         strokeWeight: 4,
-        strokeColor: this.routeColor('--route', '#e0664f'),
+        strokeColor: this.routeColor('--route', '#2f6fe0'),
         strokeOpacity: 0.85,
         strokeStyle: 'shortdash',
         map: this.map,
@@ -171,7 +171,7 @@ export class KakaoCourseMap implements CourseMap {
     this.preview = place
       ? new this.maps.CustomOverlay({
           position: this.latLng(place.center),
-          content: createMarkerElement('＋', 'preview'),
+          content: createMarkerElement('', 'preview'),
           yAnchor: 0.5,
           zIndex: 3,
           map: this.map,

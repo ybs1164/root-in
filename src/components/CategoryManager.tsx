@@ -1,7 +1,9 @@
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useState, type CSSProperties } from 'react';
-import { categoryStyle, orderedCategories, PIN_LIMITS, type CategoryProblem, type NewCategoryInput } from '../domain/pin';
+import { categoryStyle, orderedCategories, PIN_LIMITS, UNCATEGORIZED, type CategoryProblem, type NewCategoryInput } from '../domain/pin';
 import { PIN_COLORS, PIN_ICONS, type PinCategory, type PinIcon } from '../types/pin';
+import ConfirmDialog from './ConfirmDialog';
+import PinGlyph from './PinGlyph';
 
 interface CategoryManagerProps {
   categories: PinCategory[];
@@ -27,6 +29,8 @@ export default function CategoryManager({ categories, pinCounts, onCreate, onEdi
   const [newName, setNewName] = useState('');
   const [subName, setSubName] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
+  // The category whose bin was tapped, waiting on the confirm.
+  const [deleting, setDeleting] = useState<PinCategory | null>(null);
 
   const create = (input: NewCategoryInput, reset: () => void) => {
     const result = onCreate(input);
@@ -37,6 +41,16 @@ export default function CategoryManager({ categories, pinCounts, onCreate, onEdi
   return (
     <div className="cat-manager">
       <ul className="cat-manager__list">
+        {/* 미분류 always comes first and can't be edited or deleted: where pins go when their category does. */}
+        <li className="cat-item cat-item--fixed">
+          <div className="cat-item__head">
+            <span className="pin-badge" style={{ '--pin': 'var(--pin-0)' } as CSSProperties} aria-hidden>
+              <PinGlyph icon="pin" />
+            </span>
+            <span className="cat-item__name">{UNCATEGORIZED.name}</span>
+            <span className="cat-item__count">{pinCounts.get(UNCATEGORIZED.id) ? `${pinCounts.get(UNCATEGORIZED.id)}곳` : ''}</span>
+          </div>
+        </li>
         {orderedCategories(categories).map(({ category, depth }) => {
           const style = categoryStyle(categories, category.id);
           const expanded = open === category.id;
@@ -45,7 +59,7 @@ export default function CategoryManager({ categories, pinCounts, onCreate, onEdi
             <li key={category.id} className={`cat-item ${depth ? 'cat-item--sub' : ''}`}>
               <button className="cat-item__head" aria-expanded={expanded} onClick={() => setOpen(expanded ? null : category.id)}>
                 <span className="pin-badge" style={{ '--pin': `var(--pin-${style.color})` } as CSSProperties} aria-hidden>
-                  {style.emoji}
+                  <PinGlyph icon={style.icon} />
                 </span>
                 <span className="cat-item__name">{category.name}</span>
                 <span className="cat-item__count">{count > 0 ? `${count}곳` : ''}</span>
@@ -66,10 +80,10 @@ export default function CategoryManager({ categories, pinCounts, onCreate, onEdi
                           key={icon}
                           className={`icon-grid__btn ${category.icon === icon ? 'is-on' : ''}`}
                           aria-pressed={category.icon === icon}
-                          aria-label={icon}
+                          aria-label={PIN_ICONS[icon]}
                           onClick={() => onEdit(category.id, { icon })}
                         >
-                          {PIN_ICONS[icon]}
+                          <PinGlyph icon={icon} />
                         </button>
                       ))}
                     </div>
@@ -97,10 +111,7 @@ export default function CategoryManager({ categories, pinCounts, onCreate, onEdi
                     <button
                       className="icon-btn icon-btn--danger"
                       aria-label="카테고리 삭제"
-                      onClick={() => {
-                        const note = depth ? '핀은 상위 카테고리로 옮겨져요.' : '세부 카테고리도 함께 지워지고, 핀은 미분류로 옮겨져요.';
-                        if (window.confirm(`'${category.name}' 카테고리를 삭제할까요? ${note}`)) onDelete(category.id);
-                      }}
+                      onClick={() => setDeleting(category)}
                     >
                       <Trash2 size={20} aria-hidden />
                     </button>
@@ -140,6 +151,15 @@ export default function CategoryManager({ categories, pinCounts, onCreate, onEdi
         </button>
       </form>
       {problem && <p className="hint">{problem}</p>}
+      {deleting && (
+        <ConfirmDialog
+          label="카테고리 삭제"
+          message={`'${deleting.name}' 카테고리를 삭제합니다.`}
+          detail={deleting.parentId ? '이 카테고리의 핀은 미분류로 옮겨져요.' : '세부 카테고리도 함께 지워지고, 핀은 모두 미분류로 옮겨져요.'}
+          onConfirm={() => onDelete(deleting.id)}
+          onClose={() => setDeleting(null)}
+        />
+      )}
     </div>
   );
 }

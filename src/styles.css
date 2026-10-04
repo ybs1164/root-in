@@ -1,16 +1,17 @@
 :root {
+  /* 여행 theme: white paper, one blue (#2f6fe0) and navy ink. */
   color-scheme: light;
-  --bg: #fbf6f0;
+  --bg: #ffffff;
   --surface: #ffffff;
-  --surface-2: #f5eee6;
-  --text: #2f2622;
-  --muted: #8b7d74;
-  --border: rgba(47, 38, 34, 0.1);
-  --accent: #e0664f;
-  --accent-strong: #c9513b;
-  --accent-soft: #fde7e1;
+  --surface-2: #f1f4f9;
+  --text: #1b2440;
+  --muted: #8a93a8;
+  --border: rgba(27, 36, 64, 0.1);
+  --accent: #2f6fe0;
+  --accent-strong: #2459c0;
+  --accent-soft: #e3ecfc;
   --on-accent: #ffffff;
-  --route: #e0664f;
+  --route: #2f6fe0;
   --sage: #4f9a72;
   --sage-soft: #e1f1e7;
   --sky: #3f7fc4;
@@ -19,9 +20,16 @@
   --amber: #b7791f;
   --amber-soft: #fbefd9;
   --danger: #d14b4b;
-  --shadow: 0 10px 30px rgba(47, 38, 34, 0.16);
-  --shadow-sm: 0 2px 10px rgba(47, 38, 34, 0.12);
-  --pin-shadow: 0 2px 3px rgba(47, 38, 34, 0.25);
+  --shadow: 0 10px 30px rgba(27, 36, 64, 0.12);
+  --shadow-sm: 0 2px 10px rgba(27, 36, 64, 0.08);
+  --pin-shadow: 0 2px 3px rgba(27, 36, 64, 0.22);
+  /* Boarding-pass tear line on the pin card. */
+  --perforation: rgba(27, 36, 64, 0.22);
+  /* drop-shadow() for the ticket-shaped tab bar (a box-shadow would be cut by its notches). */
+  --ticket-shadow: 0 6px 12px rgba(27, 36, 64, 0.14);
+  --dialog-shadow: 0 18px 36px rgba(27, 36, 64, 0.28);
+  /* The orange arrow between the ticket's two places. */
+  --ticket-arrow: #f08a2b;
   --mask-show: #fff; /* SVG masks: white = fully shown (not a colour anyone sees) */
   --mask-hide: #000; /* …and black = hidden (the eraser's rub) */
   /* 꾸미기: fixed ink colours (not themed), the tool sheet and the palette rainbow. */
@@ -49,7 +57,7 @@
   --hue-shade: #000000;
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
   --backdrop: rgba(0, 0, 0, 0.4);
-  --step-arrow: #c9c1ba; /* the < > beside a route's name: light grey, no button behind */
+  --step-arrow: #c3cad8; /* the < > beside a route's name: light grey, no button behind */
 }
 
 /* Layout tokens and the pin palette (same in light and dark: a pin keeps
@@ -69,10 +77,13 @@
   --pin-6: #16a085;
   --pin-7: #eaa21a;
   --pin-8: #7f8c8d;
-  /* Area map: the focus's sub-areas over whole neighbors, gaps show the background. */
-  --map-bg: #f4ede2;
-  --map-area: #a9c1c1;
-  --map-area-other: #d6dfdc;
+  /* 미분류: the plain pin in whatever the accent is (a day theme included). */
+  --pin-0: var(--accent);
+  /* Area map: the focus's sub-areas over whole neighbors, gaps show the
+     background — in the travel theme's pale blue-greys. */
+  --map-bg: #f7f9fc;
+  --map-area: #c9d7ee;
+  --map-area-other: #e1e7f1;
   /* Base map: land on water, parks on land, roads on top (tier 1 darker). */
   --map-land: #f5f5f3;
   --map-water: #94d9ef;
@@ -84,17 +95,17 @@
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --bg: #1b1715;
-    --surface: #25201d;
-    --surface-2: #2f2926;
-    --text: #f3ebe5;
-    --muted: #a8998f;
-    --border: rgba(243, 235, 229, 0.12);
-    --accent: #f07a62;
-    --accent-strong: #ff8d76;
-    --accent-soft: #4a2a23;
-    --on-accent: #1b1715;
-    --route: #f07a62;
+    --bg: #0f1626;
+    --surface: #172036;
+    --surface-2: #1f2a42;
+    --text: #e8edf7;
+    --muted: #8d98b3;
+    --border: rgba(232, 237, 247, 0.12);
+    --accent: #5b8ff0;
+    --accent-strong: #7fa8f5;
+    --accent-soft: #1d2d52;
+    --on-accent: #ffffff;
+    --route: #5b8ff0;
     --sage: #7cc39b;
     --sage-soft: #23382c;
     --sky: #7fb1e6;
@@ -107,9 +118,12 @@
     --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
     --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.45);
     --backdrop: rgba(0, 0, 0, 0.6);
-    --map-bg: #2a2521;
-    --map-area: #3d5253;
-    --map-area-other: #33393a;
+    --perforation: rgba(232, 237, 247, 0.22);
+    --ticket-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+    --dialog-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+    --map-bg: #141c2e;
+    --map-area: #2b3c5c;
+    --map-area-other: #212b42;
     --map-land: #1f2225;
     --map-water: #1d4656;
     --map-park: #22402f;
@@ -120,8 +134,8 @@
 
 :root {
   /* Theme swatches in the 꾸미기 → 테마 tray: each theme's background and accent. */
-  --swatch-default-bg: #fbf6f0;
-  --swatch-default-accent: #e0664f;
+  --swatch-default-bg: #ffffff;
+  --swatch-default-accent: #2f6fe0;
   --swatch-night-bg: #1b1715;
   --swatch-night-accent: #f07a62;
   --swatch-mint-bg: #e6f4ee;
@@ -230,6 +244,8 @@
 
 :root[data-theme='night'] {
   color-scheme: dark;
+  --perforation: rgba(243, 235, 229, 0.22);
+  --ticket-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
   --bg: #1b1715;
   --surface: #25201d;
   --surface-2: #2f2926;
@@ -270,7 +286,11 @@ body,
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+  /* Tall and condensed throughout, like the TODAY title: Oswald sets Latin
+     and digits, Do Hyeon (which Oswald lacks) the Hangul. */
+  font-family: "Oswald", "Do Hyeon", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+  /* Do Hyeon has one weight; a faked bold smears it, so bold Hangul stays as drawn. */
+  font-synthesis-weight: none;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
@@ -485,10 +505,17 @@ button:disabled {
 .map-marker--preview {
   width: 38px;
   height: 38px;
-  background: var(--sky);
-  color: var(--on-sky);
-  font-size: 20px;
+  /* A new pin's place: 미분류's plain pin in the accent, drawn like the pins. */
+  background: transparent;
+  box-shadow: none;
+  color: var(--pin-0);
+  filter: drop-shadow(0 0 1px var(--surface)) drop-shadow(0 0 1px var(--surface)) drop-shadow(var(--pin-shadow));
   animation: pop 0.25s ease-out;
+}
+
+.map-marker--preview .pin-glyph {
+  width: 32px;
+  height: 32px;
 }
 
 @keyframes pop {
@@ -510,38 +537,6 @@ button:disabled {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   transition: transform 0.25s ease;
-}
-
-.place-card__info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding-right: 40px;
-}
-
-.place-card__info strong {
-  font-size: 17px;
-}
-
-.place-card__info span {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.place-card__actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.place-card__actions .btn--primary {
-  flex: 1;
-}
-
-.place-card__close {
-  position: absolute;
-  top: 6px;
-  right: 6px;
 }
 
 /* ---------- Bottom sheet ---------- */
@@ -697,30 +692,6 @@ button:disabled {
   color: var(--on-accent);
 }
 
-.segmented {
-  display: flex;
-  padding: 3px;
-  border-radius: 12px;
-  background: var(--surface-2);
-}
-
-.segmented button {
-  flex: 1;
-  min-height: 40px;
-  border: 0;
-  border-radius: 9px;
-  background: transparent;
-  color: var(--muted);
-  font-weight: 700;
-  font-size: 14px;
-}
-
-.segmented button.is-on {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-sm);
-}
-
 .summary-line {
   margin: 0;
   color: var(--muted);
@@ -732,41 +703,6 @@ button:disabled {
   margin: 0;
   font-size: 13px;
   color: var(--accent-strong);
-}
-
-.hint--muted {
-  color: var(--muted);
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  padding: 24px 16px;
-  border: 1.5px dashed var(--border);
-  border-radius: var(--radius);
-  background: transparent;
-  text-align: center;
-}
-
-.empty-state__icon {
-  font-size: 28px;
-}
-
-.empty-state span:last-child {
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.add-more {
-  min-height: 48px;
-  border: 1.5px dashed var(--accent);
-  border-radius: 14px;
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  font-weight: 700;
 }
 
 /* ---------- Stops ---------- */
@@ -951,10 +887,6 @@ button:disabled {
   color: var(--text);
 }
 
-.btn--block {
-  width: 100%;
-}
-
 .action-bar {
   position: sticky;
   bottom: -16px;
@@ -966,68 +898,6 @@ button:disabled {
   padding: 12px 16px;
   background: var(--surface);
   border-top: 1px solid var(--border);
-}
-
-/* ---------- Course list ---------- */
-
-.course-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.course-card {
-  display: flex;
-  align-items: flex-start;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-
-.course-card--active {
-  border-color: var(--accent);
-}
-
-.course-card__main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  padding: 14px;
-  border: 0;
-  background: transparent;
-  text-align: left;
-}
-
-.course-card__badges {
-  display: flex;
-  gap: 6px;
-}
-
-.course-card__title {
-  font-size: 16px;
-}
-
-.course-card__stops {
-  width: 100%;
-  font-size: 13px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.course-card__meta {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.course-card .icon-btn {
-  margin: 6px;
 }
 
 .badge {
@@ -1055,15 +925,9 @@ button:disabled {
   color: var(--amber);
 }
 
-.badge--etc,
-.badge--shared {
+.badge--etc {
   background: var(--surface-2);
   color: var(--muted);
-}
-
-.badge--shared {
-  background: var(--sage-soft);
-  color: var(--sage);
 }
 
 /* ---------- Shared course ---------- */
@@ -1143,27 +1007,6 @@ button:disabled {
   font-size: 18px;
 }
 
-.share-sheet__course {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--surface-2);
-}
-
-.share-sheet__course span {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.share-sheet__row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
 .field {
   display: flex;
   flex-direction: column;
@@ -1177,15 +1020,6 @@ button:disabled {
   height: 46px;
   padding: 0 14px;
   color: var(--text);
-}
-
-.toast-inline {
-  min-height: 1em;
-  margin: 0;
-  color: var(--sage);
-  font-size: 14px;
-  font-weight: 600;
-  text-align: center;
 }
 
 /* ---------- 꾸미기 (calendar day): stickers, pen, theme ---------- */
@@ -1950,34 +1784,31 @@ button:disabled {
   }
 }
 
-/* ---------- macOS-style popup window ---------- */
+/* ---------- Popups: a boarding pass ---------- */
 
-.mac-window {
-  width: min(calc(100% - 32px), 420px);
+/* The centred popups (profile, a delete confirm, day share) are tickets,
+   like the tab bar: the content, then a dashed tear line with a notch at
+   each end, then the stub holding what to do. The <dialog> itself is see-
+   through and only casts the shadow; each half masks its own half of the
+   notches, so the stub can grow (계정 정보 opening) and the notches follow. */
+.ticket-dialog {
+  width: min(320px, calc(100vw - 48px));
   max-height: calc(100dvh - 48px);
   margin: auto;
   padding: 0;
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  /* Vibrancy: a little see-through, blurred behind. */
-  background: color-mix(in srgb, var(--surface) 90%, transparent);
-  -webkit-backdrop-filter: blur(24px) saturate(1.6);
-  backdrop-filter: blur(24px) saturate(1.6);
+  overflow: visible;
+  border: 0;
+  background: transparent;
   color: var(--text);
-  box-shadow:
-    0 30px 80px color-mix(in srgb, var(--text) 35%, transparent),
-    0 0 0 0.5px color-mix(in srgb, var(--text) 20%, transparent);
+  filter: drop-shadow(var(--dialog-shadow));
 }
 
-.mac-window[open] {
+.ticket-dialog[open] {
   animation: mac-open 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
 }
 
-.mac-window::backdrop {
-  background: color-mix(in srgb, var(--backdrop) 70%, transparent);
-  -webkit-backdrop-filter: blur(3px);
-  backdrop-filter: blur(3px);
+.ticket-dialog::backdrop {
+  background: var(--backdrop);
 }
 
 @keyframes mac-open {
@@ -1987,20 +1818,82 @@ button:disabled {
   }
 }
 
-.mac-window__body {
+.ticket-dialog__main,
+.ticket-dialog__stub {
+  margin: 0;
+  background: var(--surface);
+  --notch: 10px;
+}
+
+.ticket-dialog__main {
+  border-radius: 22px 22px 0 0;
+  -webkit-mask:
+    radial-gradient(circle var(--notch) at 0 100%, transparent 98%, black) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 100%, transparent 98%, black) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle var(--notch) at 0 100%, transparent 98%, black) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 100%, transparent 98%, black) right / 51% 100% no-repeat;
+}
+
+.ticket-dialog__stub {
+  display: grid;
+  place-items: center;
+  min-height: 56px;
+  border-top: 1.5px dashed var(--perforation);
+  border-radius: 0 0 22px 22px;
+  -webkit-mask:
+    radial-gradient(circle var(--notch) at 0 0, transparent 98%, black) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle var(--notch) at 0 0, transparent 98%, black) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black) right / 51% 100% no-repeat;
+}
+
+/* A stub torn in two (취소 | 확인), like the tab bar: the action's half is filled. */
+.ticket-dialog__split {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.ticket-dialog__split > button {
+  flex: 1;
+  min-height: 56px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.ticket-dialog__split > button + button {
+  border-left: 1.5px dashed var(--perforation);
+}
+
+.ticket-dialog__split > .is-danger {
+  border-left-color: transparent;
+  background: var(--danger);
+  color: var(--on-accent);
+}
+
+.ticket-dialog__split > button:active {
+  opacity: 0.8;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mac-window[open] {
+  .ticket-dialog[open] {
     animation: none;
   }
 }
 
 /* ---------- Day share (📅 → 공유) ---------- */
+
+.day-share .ticket-dialog__main {
+  padding: 16px 16px 14px;
+}
+
+.day-share .ticket-dialog__stub {
+  min-height: 72px;
+}
 
 .day-share__preview {
   display: grid;
@@ -2125,191 +2018,6 @@ button:disabled {
   letter-spacing: -0.02em;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.diary-bar__by {
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.diary-empty {
-  margin: 8px 0;
-  color: var(--muted);
-  font-size: 14px;
-  text-align: center;
-}
-
-.star-btn {
-  color: var(--muted);
-}
-
-.star-btn--on {
-  color: var(--amber);
-}
-
-.diary-add {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
-}
-
-/* Timeline: time · place · one line */
-
-.timeline {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.timeline__item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.timeline__item:last-child {
-  border-bottom: 0;
-}
-
-.timeline__time {
-  flex: none;
-  width: 52px;
-  padding-top: 11px;
-  color: var(--accent-strong);
-  font-size: 15px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-input.timeline__time {
-  width: 104px;
-  height: 44px;
-  padding: 0 4px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  font-size: 16px;
-  outline: none;
-}
-
-/* Phones open their own picker on tap; the desktop clock icon only eats width. */
-input.timeline__time::-webkit-calendar-picker-indicator {
-  display: none;
-}
-
-input.timeline__time:focus {
-  background: var(--surface-2);
-}
-
-.timeline__body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.timeline__name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  font-size: 16px;
-  font-weight: 700;
-  text-align: left;
-  overflow-wrap: anywhere;
-}
-
-.timeline__num {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.timeline__memo {
-  height: 40px;
-  padding: 0;
-  border: 0;
-  border-bottom: 1px dashed transparent;
-  background: transparent;
-  color: var(--text);
-  font-size: 16px;
-  outline: none;
-}
-
-.timeline__memo:focus {
-  border-bottom-color: var(--accent);
-}
-
-.timeline__memo::placeholder {
-  color: var(--muted);
-  opacity: 0.6;
-}
-
-.timeline__note {
-  margin: 0 0 6px;
-  font-size: 14px;
-}
-
-.timeline__remove {
-  color: var(--muted);
-  font-size: 14px;
-}
-
-/* Day list */
-
-.day-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.day-row {
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid var(--border);
-}
-
-.day-row__main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  min-height: 60px;
-  padding: 10px 0;
-  border: 0;
-  background: transparent;
-  text-align: left;
-}
-
-.day-row__date {
-  font-weight: 800;
-  font-size: 15px;
-}
-
-.day-row__route {
-  width: 100%;
-  color: var(--muted);
-  font-size: 13px;
-  overflow: hidden;
-  white-space: nowrap;
   text-overflow: ellipsis;
 }
 
@@ -2836,23 +2544,6 @@ input.timeline__time:focus {
   pointer-events: auto;
 }
 
-/* The route's icon, centred over the name (the pen beside the name, 16px
-   plus the 8px gap, would pull a plain 50% off centre). */
-.route-title__icon {
-  position: absolute;
-  bottom: calc(100% + 16px);
-  left: calc(50% - 12px);
-  font-size: 34px;
-  line-height: 1;
-  translate: -50% 0;
-  pointer-events: none;
-}
-
-/* No pen beside the name (editing the route): the name alone is the centre. */
-.route-title--no-pen .route-title__icon {
-  left: 50%;
-}
-
 .route-title__name {
   min-width: 0;
   margin: 0;
@@ -3032,33 +2723,34 @@ input.timeline__time:focus {
   flex: none;
   display: flex;
   align-items: center;
-  justify-content: space-between; /* the icon at the left, ✓ at the right */
+  justify-content: space-between; /* the folder at the left, ✓ at the right */
   padding: 12px 12px 0;
 }
 
-.route-edit__icon-box {
+.route-edit__folder-box {
   position: relative;
 }
 
-.route-edit__icon {
+/* The route's folder, like the create sheet's: its icon, or an empty slot for 미분류. */
+.route-edit__folder {
   display: grid;
   place-items: center;
   width: 44px;
   height: 44px;
   padding: 0;
   border: 0;
-  border-radius: 50%;
+  border-radius: 12px;
   background: var(--surface-2);
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1;
 }
 
-.route-edit__icon[aria-expanded='true'] {
+.route-edit__folder[aria-expanded='true'] {
   background: var(--accent-soft);
 }
 
-/* The icon grid pops up above the button, over the map, like a folder tab's. */
-.route-edit__icons.folder-picker {
+/* The folder grid pops up above the button, over the map, like a folder tab's. */
+.route-edit__folders.folder-picker {
   left: 0;
 }
 
@@ -3342,7 +3034,7 @@ input.timeline__time:focus {
   opacity: 0.5;
 }
 
-/* The description: a box five lines tall, its icon button in the top-left corner. */
+/* The description: a box five lines tall. */
 .route-create__row--note {
   align-items: flex-end;
 }
@@ -3356,10 +3048,6 @@ input.timeline__time:focus {
   padding: 6px;
   border-radius: 12px;
   background: var(--surface-2);
-}
-
-.route-create__btn--icon {
-  background: var(--surface);
 }
 
 .route-create__note {
@@ -3405,29 +3093,18 @@ input.timeline__time:focus {
 /* Delete confirm (a native modal <dialog>, so it sits in the top layer). */
 .confirm-dialog {
   width: min(300px, calc(100vw - 48px));
-  padding: 22px 18px 16px;
-  border: 0;
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  color: var(--text);
   text-align: center;
 }
 
-.confirm-dialog::backdrop {
-  background: var(--backdrop);
-}
-
 .confirm-dialog p {
-  margin: 0 0 18px;
-  font-size: 15px;
+  padding: 30px 20px 22px;
+  font-size: 17px;
   line-height: 1.5;
 }
 
-.confirm-dialog__actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+.confirm-dialog p span {
+  color: var(--muted);
+  font-size: 15px;
 }
 
 .btn--danger {
@@ -3540,19 +3217,12 @@ input.timeline__time:focus {
   gap: 8px;
 }
 
+/* The route's folder, before its name (none, nothing there). */
 .route-row__folder {
   flex: none;
   display: grid;
   place-items: center;
-  margin-left: auto; /* right end of the title line */
-  padding-left: 8px;
-  color: var(--muted);
-  font-size: 16px;
-  line-height: 1;
-}
-
-.route-row__icon {
-  flex: none;
+  width: 24px;
   font-size: 20px;
   line-height: 1;
 }
@@ -3585,9 +3255,9 @@ input.timeline__time:focus {
   line-clamp: 2;
 }
 
-/* In line with the name, past the icon (20px + the 8px gap). */
-.route-row__note.has-icon {
-  margin-left: 32px;
+/* In line with the name, past the folder icon (24px + the 8px gap). */
+.route-row__note.has-folder {
+  margin-left: 36px;
 }
 
 .route-row__tool {
@@ -3695,101 +3365,218 @@ input.timeline__time:focus {
   rotate: 45deg;
 }
 
-/* Pin card: (icon) name (pen) / (⋯) … (bin). */
-.pin-card__top {
+/* Pin card: a boarding pass. Left, the place: SEOUL → SEONGSU (from its
+   address), its name, its one-line memo, the pen. Right of the tear line, the
+   stub: GROUP, the category glyph, the bin. */
+.app .place-card.place-card--pin.pin-card {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  /* Long and low, like a real boarding pass. */
+  width: min(344px, calc(100vw - 24px));
+  padding: 0;
 }
 
-.pin-card__icon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--pin, var(--surface-2));
-  font-size: 22px;
-  line-height: 1;
+.pin-card__main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 18px 16px 24px;
+}
+
+.pin-card__route {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 21px;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pin-card__arrow {
+  color: var(--ticket-arrow);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 15px;
 }
 
 .pin-card__name {
-  flex: 1;
-  min-width: 0;
+  margin-top: 2px;
   overflow: hidden;
-  font-size: 17px;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.pin-card__name-input {
-  flex: 1;
-  min-width: 0;
-  height: 40px;
-  padding: 0 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface-2);
-  color: var(--text);
-  font: inherit;
-  font-size: 16px; /* no iOS zoom-in */
-  font-weight: 700;
-}
-
-.pin-card__tool {
+.pin-card__memo {
+  min-height: 1.4em;
+  /* A little air between the place and its note. */
+  margin: 8px 0 0;
+  /* Clear of the pen in the bottom-right corner. */
+  padding-right: 34px;
+  overflow: hidden;
   color: var(--muted);
-}
-
-.pin-card .chip-row {
-  margin-top: 10px;
-}
-
-.pin-card__details {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 6px 12px;
-  align-items: center;
-  margin: 10px 0 0;
   font-size: 14px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.pin-card__details dt {
+.pin-card__memo.is-empty {
+  letter-spacing: 0.12em;
+}
+
+.pin-card__name-input,
+.pin-card__memo-input {
+  /* Editing changes nothing on screen but the caret: no box, no fill, no
+     ring — the fields wear the same type as the text they replace. */
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-family: inherit;
+}
+
+.pin-card__name-input:focus-visible,
+.pin-card__memo-input:focus-visible {
+  outline: none;
+}
+
+.pin-card__name-input {
+  margin-top: 2px;
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.pin-card__memo-input {
+  /* 16px keeps iOS from zooming in; scaled to the memo's 14px (and its 1.4
+     line) so editing looks exactly like the text it replaces. */
+  width: calc((100% - 34px) / 0.875);
+  height: 19.6px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 19.6px;
+  scale: 0.875;
+  transform-origin: 0 50%;
+}
+
+.pin-card__memo-input::placeholder {
+  color: var(--muted);
+  letter-spacing: 0.12em;
+}
+
+/* A new pin's memo asks for one in words; tapping in clears the ask. */
+.pin-card--new .pin-card__memo-input::placeholder {
+  letter-spacing: 0;
+}
+
+.pin-card__memo-input:focus::placeholder {
+  color: transparent;
+}
+
+.pin-card__pen {
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
   color: var(--muted);
 }
 
-.pin-card__details dd {
-  margin: 0;
-  min-width: 0;
-  color: var(--text);
+.pin-card.is-editing .pin-card__pen {
+  color: var(--accent);
 }
 
-.pin-card__details .place-card__memo {
-  margin: 0;
+/* The stub, past the tear line. */
+.pin-card__stub {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  width: 84px;
+  padding: 16px 0 4px;
+  border-left: 1.5px dashed var(--perforation);
 }
 
-.pin-card__link {
-  grid-column: 1 / -1;
+.pin-card__group {
+  color: var(--muted);
+  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  line-height: 1;
 }
 
-.pin-card__link a {
-  color: var(--accent-strong);
-  font-weight: 600;
+/* The category as on the map: its glyph alone, in its colour. */
+.pin-card__category {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  /* A full touch target that only takes 36px of the card's height. */
+  margin: -4px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--pin, var(--muted));
 }
 
-/* The icon picker pops up above the card (the folder tabs' bubble, pinned to
-   the card's left edge instead of a tab). Each icon wears its colour. */
+.pin-card__category .pin-glyph {
+  width: 30px;
+  height: 30px;
+}
+
+/* Editing: it is a button now, so it says so. */
+.pin-card__category.is-editable:focus-visible {
+  outline: none;
+}
+
+.pin-card__bin {
+  margin-bottom: -4px;
+  color: var(--muted);
+}
+
+/* A new pin's ✓, where an existing pin's bin is. */
+.pin-card__confirm {
+  margin-bottom: -4px;
+  color: var(--accent);
+}
+
+.pin-card__icon-opt .pin-glyph {
+  width: 24px;
+  height: 24px;
+}
+
+/* The category picker pops up above the card (the folder tabs' bubble,
+   pinned to the card's right edge, over the stub). Each icon wears its colour. */
 .pin-card__icons {
-  left: 0;
+  right: 0;
+  left: auto;
   bottom: calc(100% + 10px);
 }
 
 .pin-card__icon-opt {
+  display: grid;
+  place-items: center;
   border-radius: 50%;
   background: var(--pin, var(--surface-2));
-  font-size: 22px;
+  color: var(--on-accent);
 }
 
 /* The current one keeps its colour (the folder bubble would tint it) and gets a ring. */
@@ -3798,14 +3585,6 @@ input.timeline__time:focus {
   box-shadow:
     0 0 0 2px var(--surface),
     0 0 0 4px var(--accent);
-}
-
-/* ⋯ on the left, the bin at the bottom right. */
-.pin-card__bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 4px;
 }
 
 @keyframes pin-card-in {
@@ -3877,11 +3656,16 @@ input.timeline__time:focus {
 }
 
 .pin-rail__pin {
-  font-size: 21px;
+  /* The category's colour with its glyph cut out in white. */
+  background: var(--pin, var(--surface-2));
+  color: var(--on-accent);
   /* A tighter shadow than the other buttons: the scroll box would clip a wide one. */
-  box-shadow:
-    inset 0 0 0 3px var(--pin, var(--surface-2)),
-    var(--shadow-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.pin-rail__pin .pin-glyph {
+  width: 22px;
+  height: 22px;
 }
 
 /* ALL: every pin. Text in a white button; on, the accent colour like 핀 · 경로. */
@@ -3898,9 +3682,13 @@ input.timeline__time:focus {
   color: var(--on-accent);
 }
 
-/* Picked: filled with the category colour. */
+/* Picked: a ring of the same colour around it (every button is already filled). */
 .pin-rail__pin.is-on {
   background: var(--pin, var(--surface-2));
+  box-shadow:
+    inset 0 0 0 2px var(--surface),
+    0 0 0 2px var(--pin, var(--surface-2)),
+    var(--shadow-sm);
 }
 
 .bottom-bar-wrap {
@@ -3926,73 +3714,71 @@ input.timeline__time:focus {
   height: var(--bar-h);
 }
 
-/* Round, icon-only. The current screen's button grows, the others shrink. */
+/* One boarding-pass ticket holding both tabs, icon only: a dashed tear line
+   between them with a notch top and bottom, and the current screen's half
+   filled with the accent. The shadow sits on a wrapper because the notches
+   are a mask, which would cut a box-shadow off with them. */
+.bottom-bar__ticket {
+  filter: drop-shadow(var(--ticket-shadow));
+}
+
+.bottom-bar__stub {
+  display: flex;
+  height: 54px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface);
+  -webkit-mask:
+    radial-gradient(circle 7px at 50% 0, transparent 98%, black) top / 100% 51% no-repeat,
+    radial-gradient(circle 7px at 50% 100%, transparent 98%, black) bottom / 100% 51% no-repeat;
+  mask:
+    radial-gradient(circle 7px at 50% 0, transparent 98%, black) top / 100% 51% no-repeat,
+    radial-gradient(circle 7px at 50% 100%, transparent 98%, black) bottom / 100% 51% no-repeat;
+  pointer-events: auto;
+}
+
 .bottom-bar__btn {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 66px;
+  height: 100%;
   padding: 0;
   border: 0;
-  border-radius: 50%;
-  background: var(--surface);
+  border-radius: 0;
+  background: transparent;
   color: var(--muted);
-  box-shadow: var(--shadow-sm);
-  pointer-events: auto;
-  transition: width 0.25s ease, height 0.25s ease, transform 0.15s ease;
+}
+
+.bottom-bar__btn + .bottom-bar__btn {
+  border-left: 1.5px dashed var(--perforation);
 }
 
 .bottom-bar__btn svg {
-  width: 20px;
-  height: 20px;
-  transition: width 0.25s ease, height 0.25s ease;
+  width: 22px;
+  height: 22px;
+  transition: transform 0.15s ease;
 }
 
 .bottom-bar__btn.is-on {
-  width: 58px;
-  height: 58px;
-  /* The current tab's button carries the accent colour, whichever it is. */
+  /* The current tab's half carries the accent colour, whichever it is. */
   background: var(--accent);
   color: var(--on-accent);
 }
 
-.bottom-bar__btn.is-on svg {
-  width: 26px;
-  height: 26px;
-}
-
-/* The pin is the app's main action, so it grows a little more than the others. */
-.bottom-bar__btn--pin.is-on {
-  width: 66px;
-  height: 66px;
-}
-
-.bottom-bar__btn--pin.is-on svg {
-  width: 30px;
-  height: 30px;
-}
-
-.bottom-bar__btn:active {
-  transform: scale(0.94);
-}
-
-.bottom-bar__slot {
-  position: relative;
-  display: grid;
-  place-items: center;
+.bottom-bar__btn:active svg {
+  transform: scale(0.88);
 }
 
 .calendar-today text {
   font-family: inherit;
 }
 
-/* Pin-drop mode: same colours, the pin tilts as before. */
-.bottom-bar__btn.is-pinning {
+/* Pin-drop mode: the pin tilts as before. */
+.bottom-bar__btn.is-pinning svg {
   transform: rotate(-12deg);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bottom-bar__btn,
   .bottom-bar__btn svg {
     transition: none;
   }
@@ -4007,19 +3793,33 @@ input.timeline__time:focus {
 
 .map-marker--pin {
   z-index: 1;
-  width: 34px;
-  height: 34px;
-  background: var(--pin);
-  font-size: 17px;
-  line-height: 1;
+  width: 38px;
+  height: 38px;
+  /* On the map a pin is its category's glyph alone, in the pin colour: no
+     disc behind it. A thin halo of the surface keeps it off busy streets. */
+  background: transparent;
+  box-shadow: none;
+  color: var(--pin);
+  filter: drop-shadow(0 0 1px var(--surface)) drop-shadow(0 0 1px var(--surface)) drop-shadow(var(--pin-shadow));
 }
 
+.pin-glyph {
+  display: block;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+}
+
+.map-marker--pin .pin-glyph {
+  width: 32px;
+  height: 32px;
+}
+
+/* Picked: bigger, on a faint disc of its own colour. */
 .map-marker--pin.is-selected {
   z-index: 3;
-  transform: scale(1.25);
-  box-shadow:
-    0 0 0 3px var(--accent),
-    var(--shadow-sm);
+  transform: scale(1.3);
+  background: color-mix(in srgb, var(--pin) 16%, transparent);
 }
 
 /* Pin mode: fixed aim at the map centre; the sheet steps aside. */
@@ -4101,7 +3901,12 @@ input.timeline__time:focus {
   height: 30px;
   border-radius: 50%;
   background: var(--pin);
-  font-size: 15px;
+  color: var(--on-accent);
+}
+
+.cat-chip__dot .pin-glyph {
+  width: 17px;
+  height: 17px;
 }
 
 .cat-chip--on {
@@ -4109,29 +3914,10 @@ input.timeline__time:focus {
   box-shadow: inset 0 0 0 2px var(--pin);
 }
 
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid var(--border);
-  border-radius: 22px;
-  background: var(--surface);
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 700;
-}
-
 .pill--on {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent-strong);
-}
-
-.pill--block {
-  justify-content: center;
-  width: 100%;
 }
 
 /* ---------- Pin list ---------- */
@@ -4169,10 +3955,6 @@ input.timeline__time:focus {
   text-align: left;
 }
 
-.pin-list--compact .pin-row {
-  min-height: 48px;
-}
-
 .pin-row--on {
   background: var(--accent-soft);
 }
@@ -4185,7 +3967,12 @@ input.timeline__time:focus {
   height: 36px;
   border-radius: 50%;
   background: var(--pin, var(--surface-2));
-  font-size: 17px;
+  color: var(--on-accent);
+}
+
+.pin-badge .pin-glyph {
+  width: 20px;
+  height: 20px;
 }
 
 .pin-row__text {
@@ -4219,10 +4006,6 @@ input.timeline__time:focus {
 
 .place-card .chip-row {
   margin-top: 10px;
-}
-
-.place-card__actions .btn--ghost {
-  padding: 0 14px;
 }
 
 .place-card__memo {
@@ -4356,37 +4139,6 @@ input.timeline__time:focus {
   background: var(--accent);
 }
 
-.day-row__badge {
-  margin-left: 6px;
-  vertical-align: 1px;
-}
-
-/* Plans and route-in */
-
-.check-btn {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 2px solid var(--border);
-  border-radius: 50%;
-  background: var(--surface);
-  color: transparent;
-}
-
-.check-btn.is-on {
-  border-color: var(--sage);
-  background: var(--sage);
-  color: var(--on-accent);
-}
-
-.timeline__item--done .timeline__name {
-  color: var(--muted);
-  text-decoration: line-through;
-}
-
 .route-in {
   display: flex;
   flex-direction: column;
@@ -4395,24 +4147,6 @@ input.timeline__time:focus {
   border: 1.5px solid var(--accent);
   border-radius: var(--radius);
   background: var(--accent-soft);
-}
-
-.route-in__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.diary-add {
-  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-}
-
-.pin-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 260px;
-  overflow-y: auto;
 }
 
 /* ---------- Profile (popup from the top-right button) ---------- */
@@ -4441,30 +4175,12 @@ input.timeline__time:focus {
   margin: 2px;
 }
 
-.profile-sheet {
-  width: min(320px, calc(100vw - 48px));
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  color: var(--text);
-}
-
-.profile-sheet[open] {
-  animation: mac-open 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
-}
-
-.profile-sheet::backdrop {
-  background: var(--backdrop);
-}
-
 .profile {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 4px;
-  padding: 28px 18px 18px;
+  padding: 28px 18px 20px;
   text-align: center;
 }
 
@@ -4585,16 +4301,23 @@ input.timeline__time:focus {
   color: var(--danger);
 }
 
-/* 계정 정보 toggle: a quiet row; the chevron turns when open. */
+.profile__stub {
+  padding: 6px 18px;
+}
+
+.profile__stub > * {
+  width: 100%;
+}
+
+/* 계정 정보 toggle: a quiet row in the stub; the chevron turns when open. */
 .profile__account {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 4px;
   min-height: 44px;
-  margin-top: 18px;
   padding: 0 4px;
   border: 0;
-  border-top: 1px solid var(--border);
   background: transparent;
   color: var(--muted);
   font-size: 14px;
@@ -4613,7 +4336,7 @@ input.timeline__time:focus {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin-top: 4px;
+  margin-bottom: 10px;
   animation: profile-account-in 0.18s ease both;
 }
 
@@ -4687,11 +4410,18 @@ input.timeline__time:focus {
 }
 
 .icon-grid__btn {
+  display: grid;
+  place-items: center;
   height: 44px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
-  font-size: 20px;
+  color: var(--text);
+}
+
+.icon-grid__btn .pin-glyph {
+  width: 22px;
+  height: 22px;
 }
 
 .icon-grid__btn.is-on {
@@ -4936,9 +4666,12 @@ input.timeline__time:focus {
   border: 0;
   background: transparent;
   color: var(--text);
-  font-size: 44px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
+  /* 여행: a boarding pass's condensed caps (TODAY, DAY n are Latin); the
+     system sans stands in until it loads. */
+  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+  font-size: 56px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
   line-height: 1;
 }
 

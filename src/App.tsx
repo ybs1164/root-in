@@ -1,11 +1,10 @@
 import type { PatternId, ThemeId } from './domain/decor';
 import DayPattern from './components/DayPattern';
-import { Plus, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomBar from './components/BottomBar';
-import CalendarSheet from './components/CalendarSheet';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
-import CategoryChips from './components/CategoryChips';
+import NewPinCard, { type NewPinInput } from './components/NewPinCard';
 import PinCard from './components/PinCard';
 import PinDropTray from './components/PinDropTray';
 import PinRail from './components/PinRail';
@@ -20,39 +19,33 @@ import ProfileSheet, { ProfileAvatar } from './components/ProfileSheet';
 import CategorySheet from './components/CategorySheet';
 import SharedCourseView from './components/SharedCourseView';
 import SharedPinsView from './components/SharedPinsView';
-import ShareSheet from './components/ShareSheet';
 import { visibleCenter } from './domain/adminAreas';
 import { calendarAgain, homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
-import { addStop, COURSE_LIMITS } from './domain/course';
-import { DIARY_LIMITS, diaryKind } from './domain/diary';
+import { COURSE_LIMITS } from './domain/course';
 import type { MapViewport } from './domain/districtMap';
-import { categoryFamily, categoryStyle, filterPinsByCategories } from './domain/pin';
+import { categoryFamily, categoryStyle, filterPinsByCategories, isUncategorized, UNCATEGORIZED } from './domain/pin';
 import { pinRailNext, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
 import { PRESS } from './domain/dayPings';
 import { buildRouteLook, EMPTY_BUILD_LOOK, nextRouteName, ROUTE_NOTE_MAX, toggleBuildStop, withBuildEdge, withBuildShape, type BuildLook } from './domain/routeBuild';
 import { addEditStop, moveStop, toggleEditStop, withEditStops, type RouteEdit } from './domain/routeEdit';
 import { cleanRouteLook, withEdgeStyle, withStopShape } from './domain/routeStyle';
-import { moveRoute, neighborRoute, type RouteTab } from './domain/routeFolders';
-import { useCourseDraft } from './hooks/useCourseDraft';
-import { useDiaryDay } from './hooks/useDiaryDay';
+import { folderOf, moveRoute, neighborRoute, type RouteTab } from './domain/routeFolders';
+import { useCourses } from './hooks/useCourses';
 import { useAreaMap } from './hooks/useAreaMap';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
-import { useIncomingDiary } from './hooks/useIncomingDiary';
 import { useIncomingPins } from './hooks/useIncomingPins';
 import { usePageSwipe } from './hooks/usePageSwipe';
 import { usePins } from './hooks/usePins';
 import { useRouteFolders } from './hooks/useRouteFolders';
 import { usePlaceSearch } from './hooks/usePlaceSearch';
 import { useSettings } from './hooks/useSettings';
-import { kakaoPlaceUrl } from './lib/directionsLink';
 import { SEOUL_CENTER, type CourseMap, type MapPadding, type PinMarker } from './map/courseMap';
 import { createMapStack } from './map/createCourseMap';
 import { pointPlace, type PlaceSearchService } from './services/placeSearch/placeSearchService';
 import { withRecentCategory } from './services/settingsRepository';
 import { loadProfile, saveProfile, type Profile } from './services/profileRepository';
-import type { ShareTarget } from './services/shareTargets';
 import type { CourseStop, PlaceRef } from './types/course';
-import { PIN_ICONS, type Pin } from './types/pin';
+import type { Pin } from './types/pin';
 
 type SheetSize = 'peek' | 'full';
 type Toast = { text: string; undo?: () => void };
@@ -104,17 +97,12 @@ export default function App() {
   const pinStore = usePins();
   const routeFolders = useRouteFolders();
   const { pins, categories } = pinStore;
-  const course = useCourseDraft();
-  const day = useDiaryDay(notify);
+  const course = useCourses();
   const { incoming: incomingCourse, dismiss: dismissCourse } = useIncomingCourse();
-  const { incoming: incomingDiary, dismiss: dismissDiary } = useIncomingDiary();
   const { incoming: incomingPins, dismiss: dismissPins } = useIncomingPins();
 
   const [tab, setTab] = useState<AppTab>('pins');
-  // Only a course being built from a place card shows on the pin map now.
-  const [sub, setSub] = useState<'pins' | 'edit'>('pins');
   const [sheet, setSheet] = useState<SheetSize>('peek');
-  const [shareTarget, setShareTarget] = useState<ShareTarget | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [profile, setProfile] = useState(loadProfile);
   const changeProfile = (next: Profile) => {
@@ -128,7 +116,6 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [preview, setPreview] = useState<PlaceRef | null>(null);
-  const [previewPinning, setPreviewPinning] = useState(false);
 
   const [pinning, setPinning] = useState(false);
   // The calendar page: its zoom level (reported by CalendarZoom), and the
@@ -175,7 +162,6 @@ export default function App() {
   const [picked, setPicked] = useState<Set<string>>(new Set());
 
   const sharedCourse = incomingCourse.status === 'ready' ? incomingCourse.course : null;
-  const sharedDiary = incomingDiary.status === 'ready' ? incomingDiary.diary : null;
   const sharedPins = incomingPins.status === 'ready' ? incomingPins.set : null;
   const activePin = pins.find((p) => p.id === activePinId) ?? null;
   const onPinHome = tab === 'pins' && !sharedCourse && !sharedPins;
@@ -234,15 +220,8 @@ export default function App() {
     if (buildPins) return buildPins.map((p) => p.place);
     if (editRoute) return editRoute.stops.map((s) => s.place);
     if (shownRoute) return shownRoute.stops.map((s) => s.place);
-    if (tab === 'calendar') {
-      if (sharedDiary) return sharedDiary.stops.map((s) => s.place);
-      if (day.screen.kind === 'edit') return day.draft.stops.map((s) => s.place);
-      if (day.screen.kind === 'wish') return day.screen.item.stops.map((s) => s.place);
-      return [];
-    }
-    if (tab === 'pins' && sub !== 'pins') return course.draft.stops.map((s) => s.place);
     return [];
-  }, [sharedCourse, sharedPins, buildPins, editRoute, shownRoute, sharedDiary, tab, sub, day.screen, day.draft.stops, course.draft.stops]);
+  }, [sharedCourse, sharedPins, buildPins, editRoute, shownRoute]);
 
   // Only whether a route is being edited changes the markers, not each edit
   // (re-making them would drop every pin in again).
@@ -257,7 +236,7 @@ export default function App() {
           id: `shared:${i}`,
           center: pin.place.center,
           name: pin.place.name,
-          emoji: PIN_ICONS[parent?.icon ?? category?.icon ?? 'pin'],
+          icon: parent?.icon ?? category?.icon ?? 'pin',
           color: category?.color ?? 8,
         };
       });
@@ -273,7 +252,7 @@ export default function App() {
         id: pin.id,
         center: pin.place.center,
         name: pin.place.name,
-        emoji: style.emoji,
+        icon: style.icon,
         color: style.color,
         // While making a route, chosen pins show their order as numbered stops instead.
         selected: pin.id === activePinId,
@@ -467,17 +446,6 @@ export default function App() {
   }, [incomingCourse, dismissCourse, notify]);
 
   useEffect(() => {
-    if (incomingDiary.status === 'invalid') {
-      notify('공유받은 하루 루트를 열 수 없어요. 링크가 잘렸는지 확인해 주세요.');
-      dismissDiary();
-    }
-    if (incomingDiary.status === 'ready') {
-      setTab(tabForIncoming('day'));
-      setSheet('peek');
-    }
-  }, [incomingDiary, dismissDiary, notify]);
-
-  useEffect(() => {
     if (incomingPins.status === 'invalid') {
       notify('공유받은 핀셋을 열 수 없어요. 링크가 잘렸는지 확인해 주세요.');
       dismissPins();
@@ -496,9 +464,6 @@ export default function App() {
   }, [toast]);
 
   // ----- Map events -----
-
-  const focusPoint = (center: [number, number], extra = 0) =>
-    requestAnimationFrame(() => mapRef.current?.focus(center, mapPadding(extra)));
 
   mapEvents.current.stop = (index: number) => {
     // Making a route: a chosen pin is covered by its numbered stop, so a tap
@@ -534,7 +499,8 @@ export default function App() {
     const place = pointPlace(center);
     setActivePinId(null);
     setPreview(place);
-    setPreviewPinning(false);
+    // Into the middle at the current zoom; the new pin's card stands above it.
+    mapRef.current?.centerOn(center);
     const named = await searchService?.reverse(center);
     // Only if the user is still looking at that spot.
     if (named) setPreview((p) => (p?.id === place.id ? { ...named, id: place.id } : p));
@@ -547,7 +513,11 @@ export default function App() {
     setPinning(false);
     setPreview(null);
     setActivePinId(null);
-    if (next !== 'calendar' && sharedDiary) dismissDiary();
+    // An open search belongs to the map: leaving for another tab cancels it
+    // (it would otherwise keep the map, and the old panel, showing under 달력).
+    setSearchOpen(false);
+    setQuery('');
+    searchInput.current?.blur();
   };
 
   const startSearch = () => {
@@ -560,10 +530,8 @@ export default function App() {
     searchInput.current?.blur();
     setActivePinId(null);
     setPreview(place);
-    setPreviewPinning(false);
-    setSheet('peek');
-    // Leave room for the place card that sits above the sheet.
-    focusPoint(place.center, 150);
+    // Into the middle at the current zoom; the new pin's card stands above it.
+    mapRef.current?.centerOn(place.center);
   };
 
   // Stable, so the card's outside-touch listener isn't re-attached every render.
@@ -574,7 +542,6 @@ export default function App() {
     if (!pin) return;
     setPreview(null);
     setActivePinId(id);
-    setSub('pins');
     // Into the middle of the map at the current zoom; its card opens just above it.
     mapRef.current?.centerOn(pin.place.center);
   };
@@ -714,21 +681,24 @@ export default function App() {
       id: shownRoute.id,
       stops: shownRoute.stops,
       note: shownRoute.note ?? '',
-      icon: shownRoute.icon,
+      folder: folderOf(routeFolders.folders, shownRoute.id),
       look: { stopShapes: shownRoute.stopShapes, edgeStyles: shownRoute.edgeStyles },
     });
   };
 
-  // ✓ on the edit sheet: keep the stops with their look, the icon and the description.
+  // ✓ on the edit sheet: keep the stops with their look, the description and the folder.
   const saveEdit = async () => {
     if (!editRoute || !shownRoute || editRoute.stops.length < COURSE_LIMITS.minStops) return;
     await course.save({
       ...shownRoute,
       stops: editRoute.stops,
       note: editRoute.note.trim().slice(0, ROUTE_NOTE_MAX) || undefined,
-      icon: editRoute.icon,
       ...cleanRouteLook(editRoute.look, editRoute.stops.length),
     });
+    if (editRoute.folder !== folderOf(routeFolders.folders, shownRoute.id)) {
+      const { folder } = editRoute;
+      routeFolders.setFolders((f) => moveRoute(f, shownRoute.id, folder));
+    }
     setEditing(null);
     // Back to showing it: the map glides over, the pins fade off, the stops drop in again.
     setLandedRoute(null);
@@ -736,11 +706,11 @@ export default function App() {
     setRefit((n) => n + 1);
   };
 
-  const saveBuilt = async (title: string, note: string, icon: string | undefined, folder: string | null) => {
+  const saveBuilt = async (title: string, note: string, folder: string | null) => {
     if (!buildPins || buildPins.length < COURSE_LIMITS.minStops) return;
     const stops = buildPins.map((p) => ({ place: p.place }));
     const look = buildRouteLook(buildPins.map((p) => p.id), buildLook);
-    const saved = await course.save({ title, note: note || undefined, icon, theme: 'etc', travelMode: 'walk', stops, ...look });
+    const saved = await course.save({ title, note: note || undefined, theme: 'etc', travelMode: 'walk', stops, ...look });
     // Into the folder picked on the create sheet (none = 미분류).
     if (folder) routeFolders.setFolders((f) => moveRoute(f, saved.id, folder));
     setBuilding(null);
@@ -748,45 +718,24 @@ export default function App() {
     notify(`${saved.title} 경로를 저장했어요.`);
   };
 
-  // ----- Adding places -----
-
-  const inCalendar = tab === 'calendar' && !sharedCourse;
-  const courseFull = course.draft.stops.length >= COURSE_LIMITS.maxStops;
-  const dayFull = day.draft.stops.length >= DIARY_LIMITS.maxStops;
-  const addLabel = inCalendar
-    ? dayFull
-      ? `최대 ${DIARY_LIMITS.maxStops}곳`
-      : diaryKind(day.draft) === 'plan'
-        ? '계획에 추가'
-        : '기록에 추가'
-    : courseFull
-      ? `최대 ${COURSE_LIMITS.maxStops}곳`
-      : `${course.draft.stops.length + 1}번째로 추가`;
-
-  const addPlace = (place: PlaceRef) => {
-    if (inCalendar) {
-      if (sharedDiary) dismissDiary();
-      day.addPlace(place);
-    } else {
-      if (sharedCourse) dismissCourse();
-      course.setDraft((d) => ({ ...d, stops: addStop(d.stops, place) }));
-      setTab('pins');
-      setSub('edit');
-      notify(`${place.name}을(를) ${course.draft.stops.length + 1}번째로 추가했어요.`);
-    }
-    setPreview(null);
-    setActivePinId(null);
-    setQuery('');
-  };
-
   // ----- Pins -----
 
-  const savePinAt = (place: PlaceRef, categoryId: string) => {
-    const result = pinStore.savePin(place, categoryId);
+  const savePinAt = (place: PlaceRef, categoryId: string, memo?: string) => {
+    const result = pinStore.savePin(place, categoryId, memo);
     if (!result) return notify('핀은 500개까지 저장할 수 있어요.');
-    updateSettings((s) => withRecentCategory(s, categoryId));
+    if (categoryId !== UNCATEGORIZED.id) updateSettings((s) => withRecentCategory(s, categoryId));
     notify(result.existed ? `${place.name}의 카테고리를 바꿨어요.` : `${place.name} 핀을 꽂았어요.`, result.undo);
   };
+
+  // ✓ on a new pin's card: pinned with the name, memo and group it shows.
+  const confirmNewPin = ({ name, memo, categoryId }: NewPinInput) => {
+    if (!preview) return;
+    savePinAt({ ...preview, name }, categoryId, memo || undefined);
+    setPreview(null);
+    setQuery('');
+  };
+  // Stable, so the card's outside-touch listener isn't re-attached every render.
+  const closeNewPin = useCallback(() => setPreview(null), []);
 
   const dropPin = async (categoryId: string) => {
     const map = mapRef.current;
@@ -803,7 +752,6 @@ export default function App() {
     if (sharedCourse) dismissCourse();
     if (sharedPins) dismissPins();
     changeTab('pins');
-    setSub('pins');
     setPinning(true);
   };
 
@@ -813,9 +761,13 @@ export default function App() {
     mapProvider === 'kakao' ? '카카오' : mapProvider === 'maplibre' ? 'OpenStreetMap (카카오 키 없음)' : '준비 중';
   const pinCounts = useMemo(() => {
     const counts = new Map<string, number>();
-    pins.forEach((p) => counts.set(p.categoryId, (counts.get(p.categoryId) ?? 0) + 1));
+    // Pins under a category that's gone count as 미분류, where they show.
+    pins.forEach((p) => {
+      const id = isUncategorized(categories, p.categoryId) ? UNCATEGORIZED.id : p.categoryId;
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    });
     return counts;
-  }, [pins]);
+  }, [pins, categories]);
   // For the rail: sub-categories' pins included, which is what picking one shows.
   const railCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -824,6 +776,7 @@ export default function App() {
       categoryFamily(categories, c.id).forEach((id) => (n += pinCounts.get(id) ?? 0));
       counts.set(c.id, n);
     }
+    counts.set(UNCATEGORIZED.id, pinCounts.get(UNCATEGORIZED.id) ?? 0);
     return counts;
   }, [categories, pinCounts]);
 
@@ -838,13 +791,6 @@ export default function App() {
               await course.save({ ...sharedCourse, sharedBy: sharedCourse.sharedBy ?? '익명' });
               setSharedSaved(true);
               notify('내 코스에 저장했어요.');
-            }}
-            onEditCopy={() => {
-              const { title, theme, travelMode, stops, note } = sharedCourse;
-              if (!course.replaceDraft({ title, theme, travelMode, stops, note })) return;
-              dismissCourse();
-              setTab('pins');
-              setSub('edit');
             }}
             onClose={dismissCourse}
             onFocusStop={(i) => mapEvents.current.stop(i)}
@@ -869,30 +815,10 @@ export default function App() {
         </div>
       );
     }
-    if (tab === 'calendar') {
-      return (
-        <div className="sheet__content">
-          <CalendarSheet
-            key={sharedDiary?.sharedAt ?? 'mine'}
-            day={day}
-            sharedDiary={sharedDiary}
-            onDismissShared={dismissDiary}
-            search={searchService}
-            pins={pins}
-            categories={categories}
-            onFocusStop={(i) => mapEvents.current.stop(i)}
-            onStartSearch={startSearch}
-            onShare={(draft) => setShareTarget({ kind: 'day', draft })}
-          />
-        </div>
-      );
-    }
     return null;
   };
 
-  const cardTargetFull = inCalendar ? dayFull : courseFull;
-  // A received day (#diary=) still opens in the old timeline view.
-  const calendarZoom = tab === 'calendar' && !sharedDiary;
+  const calendarZoom = tab === 'calendar';
   const onPage = showsPage(tab, Boolean(sharedCourse || sharedPins || searchOpen || preview));
   // Swiping 달력 left slides the page off and uncovers the map (핀).
   const swipe = usePageSwipe(onPage && !decorating ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
@@ -960,7 +886,7 @@ export default function App() {
           onDeleteRoutes={async (cs) => {
             if (cs.some((c) => c.id === shownRouteId)) setShownRouteId(null);
             routeFolders.setFolders((f) => cs.reduce((acc, c) => moveRoute(acc, c.id, null), f));
-            for (const c of cs) await course.removeCourse(c);
+            for (const c of cs) await course.remove(c.id);
           }}
         />
       )}
@@ -990,7 +916,6 @@ export default function App() {
         <RouteTitle
           routeId={shownRoute.id}
           title={shownRoute.title}
-          icon={editRoute ? editRoute.icon : shownRoute.icon}
           onRename={(title) => course.save({ ...shownRoute, title })}
           slideFrom={routeStep?.id === shownRoute.id ? routeStep.from : 0}
           onEdit={startEditing}
@@ -1081,8 +1006,9 @@ export default function App() {
             onNote={(note) => setEditing((e) => (e ? { ...e, note } : e))}
             onMove={(from, to) => editStops((stops) => moveStop(stops, from, to))}
             onRemove={(index) => editStops((stops) => stops.filter((_, i) => i !== index))}
-            icon={editRoute.icon}
-            onIcon={(icon) => setEditing((e) => (e ? { ...e, icon } : e))}
+            folders={routeFolders.folders.folders}
+            folder={editRoute.folder}
+            onFolder={(folder) => setEditing((e) => (e ? { ...e, folder } : e))}
             onDone={saveEdit}
           />
         </>
@@ -1099,41 +1025,13 @@ export default function App() {
       )}
 
       {preview && !searchOpen && !pinning && (
-        <div className="place-card" role="dialog" aria-label="선택한 장소">
-          <div className="place-card__info">
-            <strong>{preview.name}</strong>
-            <span>{[preview.category, preview.address].filter(Boolean).join(' · ')}</span>
-          </div>
-          {previewPinning && (
-            <CategoryChips
-              categories={categories}
-              recent={settings.recentCategoryIds}
-              label="핀 카테고리"
-              onPick={(id) => {
-                savePinAt(preview, id);
-                setPreview(null);
-              }}
-            />
-          )}
-          <div className="place-card__actions">
-            <a className="btn btn--ghost" href={kakaoPlaceUrl(preview)} target="_blank" rel="noreferrer">
-              상세
-            </a>
-            <button
-              className={`btn ${previewPinning ? 'btn--secondary' : 'btn--ghost'}`}
-              aria-pressed={previewPinning}
-              onClick={() => setPreviewPinning((v) => !v)}
-            >
-              📍 핀
-            </button>
-            <button className="btn btn--primary" onClick={() => addPlace(preview)} disabled={cardTargetFull}>
-              {addLabel}
-            </button>
-          </div>
-          <button className="place-card__close icon-btn" aria-label="닫기" onClick={() => setPreview(null)}>
-            <X size={20} aria-hidden />
-          </button>
-        </div>
+        <NewPinCard
+          key={preview.id}
+          place={preview}
+          categories={categories}
+          onSave={confirmNewPin}
+          onClose={closeNewPin}
+        />
       )}
 
       {activePin && !preview && !searchOpen && !pinning && onPinHome && (
@@ -1202,7 +1100,6 @@ export default function App() {
         />
       </div>
 
-      {shareTarget && <ShareSheet target={shareTarget} onClose={() => setShareTarget(null)} />}
       {profileOpen && <ProfileSheet profile={profile} onChange={changeProfile} onClose={() => setProfileOpen(false)} />}
       {categoriesOpen && (
         <CategorySheet
