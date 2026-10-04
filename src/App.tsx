@@ -5,7 +5,6 @@ import BottomBar from './components/BottomBar';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
 import NewPinCard, { type NewPinInput } from './components/NewPinCard';
 import PinCard from './components/PinCard';
-import PinDropTray from './components/PinDropTray';
 import PinRail from './components/PinRail';
 import RouteBuildLayer, { pinAt } from './components/RouteBuildLayer';
 import RouteEditTray from './components/RouteEditTray';
@@ -120,7 +119,6 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [preview, setPreview] = useState<PlaceRef | null>(null);
 
-  const [pinning, setPinning] = useState(false);
   // The calendar page: its zoom level (reported by CalendarZoom), and the
   // calendar button's commands sent down to it.
   const [calendarMode, setCalendarMode] = useState<'day' | 'month'>('day');
@@ -130,7 +128,6 @@ export default function App() {
   const sendCalendar = (type: CalendarCommand['type']) => {
     setCalendarCommand((prev) => ({ type, seq: (prev?.seq ?? 0) + 1 }));
   };
-  const [dropBusy, setDropBusy] = useState(false);
   const [activePinId, setActivePinId] = useState<string | null>(null);
   // The round buttons under ⚙, and the categories picked in its 핀 list.
   const [railMode, setRailMode] = useState<PinRailMode>('menu');
@@ -171,7 +168,7 @@ export default function App() {
   // On phones the pin screen's sheet drops down from the top, leaving the map's lower half clear.
   const sheetTop = tab === 'pins';
   // 경로 open on the pin map: the folder sheet takes the tab buttons' place.
-  const routeMode = onPinHome && railMode === 'route' && !searchOpen && !pinning;
+  const routeMode = onPinHome && railMode === 'route' && !searchOpen;
   // A saved route can be on show (and being edited) while 경로 is open and no new one is being made.
   const routeShowing = routeMode && building === null;
   // While a route is being made or edited, the folder sheet steps down out of the way.
@@ -243,12 +240,12 @@ export default function App() {
         };
       });
     }
-    if (sharedCourse || !(onPinHome || pinning)) return [];
+    if (sharedCourse || !onPinHome) return [];
     // A saved route on show has the map to itself: every pin steps aside
     // (its stops, shaped or numbered, stand in for the places).
     // Editing it, they come back to be picked.
-    if (shownRoute && !isEditing && !pinning && pinsGone) return [];
-    return (pinning ? pins : shownPins).map((pin) => {
+    if (shownRoute && !isEditing && pinsGone) return [];
+    return shownPins.map((pin) => {
       const style = categoryStyle(categories, pin.categoryId);
       return {
         id: pin.id,
@@ -260,7 +257,7 @@ export default function App() {
         selected: pin.id === activePinId,
       };
     });
-  }, [sharedPins, sharedCourse, onPinHome, pinning, pins, shownPins, categories, activePinId, shownRoute, isEditing, pinsGone]);
+  }, [sharedPins, sharedCourse, onPinHome, shownPins, categories, activePinId, shownRoute, isEditing, pinsGone]);
 
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
   // 제외 주소 are located with the same place search (search failing just leaves the address text to match).
@@ -486,7 +483,6 @@ export default function App() {
       if (pin) mapRef.current?.focus(pin.place.center, mapPadding());
       return;
     }
-    if (pinning) return;
     // Making a route: a tap adds the pin as the next stop (or takes it back out).
     if (building && routeMode) return setBuilding((b) => (b ? toggleBuildStop(b, id) : b));
     if (editRoute) {
@@ -499,7 +495,12 @@ export default function App() {
 
   mapEvents.current.longPress = async (center: [number, number]) => {
     // Making a route, or a saved one on show (its long presses restyle it): no place card.
-    if (pinning || sharedCourse || sharedPins || (building && routeMode) || shownRoute) return;
+    if (sharedCourse || sharedPins || (building && routeMode) || shownRoute) return;
+    await openNewPinAt(center);
+  };
+
+  // A new pin's card on a spot: centred, named by its address once that's known.
+  const openNewPinAt = async (center: [number, number]) => {
     const place = pointPlace(center);
     setActivePinId(null);
     setPreview(place);
@@ -514,7 +515,6 @@ export default function App() {
 
   const changeTab = (next: AppTab) => {
     setTab(next);
-    setPinning(false);
     setPreview(null);
     setActivePinId(null);
     // An open search belongs to the map: leaving for another tab cancels it
@@ -654,7 +654,7 @@ export default function App() {
   // With 핀's category list out, a quick tap on bare map (not a pan, a long
   // press or a marker) closes it back to just 핀 · 경로; the categories
   // picked stay picked. A tap that closes a pin card or place card does only that.
-  const pinsListOpen = onPinHome && railMode === 'pins' && !searchOpen && !pinning;
+  const pinsListOpen = onPinHome && railMode === 'pins' && !searchOpen;
   const cardOpenRef = useRef(false);
   cardOpenRef.current = !!activePinId || !!preview;
   useEffect(() => {
@@ -749,22 +749,18 @@ export default function App() {
   // Stable, so the card's outside-touch listener isn't re-attached every render.
   const closeNewPin = useCallback(() => setPreview(null), []);
 
-  const dropPin = async (categoryId: string) => {
-    const map = mapRef.current;
-    if (!map) return;
-    const center = map.getCenter();
-    setDropBusy(true);
-    const named = await searchService?.reverse(center);
-    setDropBusy(false);
-    savePinAt(named ?? pointPlace(center), categoryId);
-  };
-
+  // 📍 again on the pin screen: a new pin right where the map is looking —
+  // the same card a search pick or a long press opens (name, memo, group,
+  // ✓ to pin). With a card already up, the press first closes it (a touch
+  // outside the card), then opens a fresh one on the map's current centre.
   const startPinning = () => {
-    if (pinning) return setPinning(false);
     if (sharedCourse) dismissCourse();
     if (sharedPins) dismissPins();
     changeTab('pins');
-    setPinning(true);
+    // 경로 owns the map's taps while it's open; a new pin closes it.
+    if (railMode === 'route') railAction('route');
+    const center = mapRef.current?.getCenter();
+    if (center) void openNewPinAt(center);
   };
 
   // ----- Render -----
@@ -828,7 +824,7 @@ export default function App() {
   const barAway = (decorating && calendarZoom && onPage) || routeMode;
 
   return (
-    <div className={`app ${searchOpen ? 'app--searching' : ''} ${pinning ? 'app--pinning' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''}`}>
+    <div className={`app ${searchOpen ? 'app--searching' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''}`}>
       <div ref={mapEl} className="map" aria-label="지도" />
 
       <SearchBar
@@ -850,7 +846,7 @@ export default function App() {
         <ProfileAvatar photo={profile.photo} size={52} />
       </button>
 
-      {onPinHome && !searchOpen && !pinning && (
+      {onPinHome && !searchOpen && (
         <PinRail
           mode={railMode}
           onAction={railAction}
@@ -1009,17 +1005,7 @@ export default function App() {
         </>
       )}
 
-      {pinning && (
-        <PinDropTray
-          categories={categories}
-          recent={settings.recentCategoryIds}
-          busy={dropBusy}
-          onPick={dropPin}
-          onCancel={() => setPinning(false)}
-        />
-      )}
-
-      {preview && !searchOpen && !pinning && (
+      {preview && !searchOpen && (
         <NewPinCard
           key={preview.id}
           place={preview}
@@ -1029,7 +1015,7 @@ export default function App() {
         />
       )}
 
-      {activePin && !preview && !searchOpen && !pinning && onPinHome && (
+      {activePin && !preview && !searchOpen && onPinHome && (
         <PinCard
           pin={activePin}
           categories={categories}
@@ -1092,7 +1078,7 @@ export default function App() {
       <div ref={barEl} className={`bottom-bar-wrap ${barAway ? 'is-away' : ''}`} inert={barAway}>
         <BottomBar
           tab={swipe.leaving ? 'pins' : tab}
-          pinning={pinning}
+          pinning={!!preview}
           onTab={changeTab}
           onPin={startPinning}
           onCalendarAgain={() => sendCalendar(calendarAgain(calendarMode))}

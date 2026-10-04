@@ -3843,97 +3843,7 @@ button:disabled {
   background: color-mix(in srgb, var(--pin) 16%, transparent);
 }
 
-/* Pin mode: fixed aim at the map centre; the sheet steps aside. */
-.aim {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  z-index: 14;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transform: translate(-50%, calc(-100% + 4px));
-  pointer-events: none;
-}
-
-.aim__pin {
-  font-size: 40px;
-  line-height: 1;
-  animation: aim-drop 0.3s ease-out;
-}
-
-.aim__shadow {
-  width: 14px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--text);
-  opacity: 0.3;
-}
-
-@keyframes aim-drop {
-  from {
-    transform: translateY(-16px);
-    opacity: 0;
-  }
-}
-
-.app--pinning .sheet,
-.app--pinning .place-card {
-  transform: translateY(calc(100% + var(--bar-h) + 40px));
-}
-
-.drop-tray {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: calc(var(--bar-h) + var(--safe-bottom) + 16px);
-  z-index: 15;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px 14px;
-  background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-
-.drop-tray__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 14px;
-}
-
 /* ---------- Category chips / pills ---------- */
-
-.cat-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 14px 0 6px;
-}
-
-.cat-chip__dot {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: var(--pin);
-  color: var(--on-accent);
-}
-
-.cat-chip__dot .pin-glyph {
-  width: 17px;
-  height: 17px;
-}
-
-.cat-chip--on {
-  border-color: var(--pin);
-  box-shadow: inset 0 0 0 2px var(--pin);
-}
 
 .pill--on {
   border-color: var(--accent);
@@ -5279,8 +5189,7 @@ button:disabled {
     order: 2;
   }
 
-  .app--searching .sheet--top,
-  .app--pinning .sheet--top {
+  .app--searching .sheet--top {
     transform: translateY(-110%);
   }
 
@@ -5366,17 +5275,6 @@ button:disabled {
 
   .pin-rail {
     top: calc(24px + 52px + 12px);
-  }
-
-  .drop-tray {
-    left: 424px;
-    right: auto;
-    bottom: 24px;
-    width: 420px;
-  }
-
-  .app--pinning .sheet {
-    transform: none;
   }
 
   .maplibregl-ctrl-bottom-right,
