@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useBackdropTap } from '../hooks/useBackdropTap';
 
 interface ConfirmDialogProps {
   /** Read out for the dialog (it shows no title). */
@@ -20,6 +21,7 @@ interface ConfirmDialogProps {
  */
 export default function ConfirmDialog({ label, message, detail, onConfirm, onClose }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const backdrop = useBackdropTap(dialogRef);
   // No close() in cleanup: it would fire onClose during StrictMode's
   // mount→unmount→mount check; unmounting removes the dialog anyway.
   useEffect(() => {
@@ -40,9 +42,11 @@ export default function ConfirmDialog({ label, message, detail, onConfirm, onClo
         onClose();
       }}
       onCancel={(event) => event.stopPropagation()}
+      onPointerDown={backdrop.onPointerDown}
+      onPointerUp={backdrop.onPointerUp}
       onClick={(event) => {
         event.stopPropagation();
-        if (event.target === dialogRef.current) dialogRef.current?.close();
+        if (backdrop.isBackdropTap(event.target)) dialogRef.current?.close();
       }}
     >
       <p className="ticket-dialog__main">

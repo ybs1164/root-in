@@ -11,19 +11,13 @@ interface SharedPinsViewProps {
   onClose: () => void;
 }
 
-const path = (set: SharedPinSet, index: number) => {
-  const category = set.categories[index];
-  if (!category) return '';
-  const parent = category.parent !== undefined ? set.categories[category.parent] : undefined;
-  return parent ? `${parent.name} › ${category.name}` : category.name;
-};
+const path = (set: SharedPinSet, index: number) => set.categories[index]?.name ?? '';
 
 /** A received `#pins=` link: the pins as the sender styled them, one button to keep them all. */
 export default function SharedPinsView({ set, saved, onSave, onFocus, onClose }: SharedPinsViewProps) {
   const style = (index: number) => {
     const category = set.categories[index];
-    const parent = category?.parent !== undefined ? set.categories[category.parent] : undefined;
-    return { icon: parent?.icon ?? category?.icon ?? 'pin', color: category?.color ?? 8 };
+    return { icon: category?.icon ?? 'pin', color: category?.color ?? 8 };
   };
 
   return (

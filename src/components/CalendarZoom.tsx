@@ -28,6 +28,7 @@ import DayShareSheet from './DayShareSheet';
 import DecorLayer, { type TextFocus } from './DecorLayer';
 import { DecorRail, DecorTray } from './DecorTools';
 import MonthCalendar from './MonthCalendar';
+import { hasHome, withoutExcluded, type ExcludedPlace } from '../domain/privacy';
 
 type Mode = 'day' | 'month';
 type Point = { x: number; y: number };
@@ -101,12 +102,16 @@ interface CalendarZoomProps {
   onDayTheme: (theme: ThemeId) => void;
   /** Likewise the day's background pattern, which the app lays across the page. */
   onDayPattern: (pattern: PatternId) => void;
+  /** 제외 주소: pings there are left out of the shared image. */
+  excluded: ExcludedPlace[];
+  /** 공유 pressed before 집 is set (it's required): the app asks for it. */
+  onNeedHome: () => void;
 }
 
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
 
-export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme, onDayPattern }: CalendarZoomProps) {
+export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme, onDayPattern, excluded, onNeedHome }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
   const [date, setDate] = useState(today);
@@ -584,6 +589,9 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
     };
   }, []);
 
+  // The day as shared: pings on a 제외 주소 are left out of the image.
+  const shareCut = sharing ? withoutExcluded(pingsForDate(date), (ping) => ping, excluded) : null;
+
   return (
     <div
       ref={stageEl}
@@ -630,6 +638,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
           }}
           onShare={() => {
             setTool(null);
+            if (!hasHome(excluded)) return onNeedHome();
             setSharing(true);
           }}
         />
@@ -709,7 +718,8 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
         <DayShareSheet
           date={date}
           title={dayTitle(date, today)}
-          pings={pingsForDate(date)}
+          pings={shareCut?.kept ?? []}
+          removed={shareCut?.removed ?? 0}
           shapeOf={(ping) => days.shapes[pingKey(date, ping)] ?? 'pin'}
           edgeStyleOf={(from, to) => days.edges[edgeKey(date, from, to)] ?? 'solid'}
           decor={days.decor[date] ?? EMPTY_DECOR}

@@ -39,6 +39,25 @@ export const isPinColor = (value: unknown): value is PinColor =>
 
 const byOrder = (a: PinCategory, b: PinCategory) => a.order - b.order || a.name.localeCompare(b.name);
 
+/**
+ * Categories saved before sub-categories were dropped (2026-10-04) may carry
+ * a `parentId`: each sub-category becomes a category of its own, listed
+ * right after its old parent, keeping its colour and the parent's icon it
+ * was drawn with.
+ */
+export function flattenLegacyCategories(stored: (PinCategory & { parentId?: string })[]): PinCategory[] {
+  const parents = stored.filter((c) => !c.parentId || !stored.some((p) => p.id === c.parentId)).sort(byOrder);
+  const flat: PinCategory[] = [];
+  for (const parent of parents) {
+    flat.push(parent);
+    const children = stored.filter((c) => c.parentId === parent.id && c.id !== parent.id).sort(byOrder);
+    flat.push(...children.map((c) => ({ ...c, icon: parent.icon })));
+  }
+  // Anything malformed (deeper than two levels) still keeps its pins.
+  flat.push(...stored.filter((c) => !flat.some((f) => f.id === c.id)));
+  return flat.map(({ id, name, icon, color }, order) => ({ id, name, icon, color, order }));
+}
+
 export function findCategory(categories: PinCategory[], id: string): PinCategory {
   return categories.find((c) => c.id === id) ?? UNCATEGORIZED;
 }
@@ -48,54 +67,29 @@ export function isUncategorized(categories: PinCategory[], id: string): boolean 
   return !categories.some((c) => c.id === id);
 }
 
-/**
- * Sub-categories wear the parent's icon (only the color is their own).
- * 미분류 is the plain pin in the theme's accent (`--pin-0`).
- */
+/** A category's look; 미분류 is the plain pin in the theme's accent (`--pin-0`). */
 export function categoryStyle(categories: PinCategory[], id: string): { icon: PinIcon; color: PinTint } {
   if (isUncategorized(categories, id)) return { icon: 'pin', color: 0 };
   const category = findCategory(categories, id);
-  const parent = category.parentId ? categories.find((c) => c.id === category.parentId) : undefined;
-  const icon = parent?.icon ?? category.icon;
-  return { icon, color: category.color };
+  return { icon: category.icon, color: category.color };
 }
 
-/** '카페 › 디저트' */
-export function categoryPath(categories: PinCategory[], id: string): string {
-  const category = findCategory(categories, id);
-  const parent = category.parentId ? categories.find((c) => c.id === category.parentId) : undefined;
-  return parent ? `${parent.name} › ${category.name}` : category.name;
-}
-
-/** The category and its sub-categories — what a filter on it should show. */
-export function categoryFamily(categories: PinCategory[], id: string): Set<string> {
-  return new Set([id, ...categories.filter((c) => c.parentId === id).map((c) => c.id)]);
-}
-
-/** Parents in order, each followed by its children: the shape every list renders. */
-export function orderedCategories(categories: PinCategory[]): { category: PinCategory; depth: 0 | 1 }[] {
-  const out: { category: PinCategory; depth: 0 | 1 }[] = [];
-  for (const parent of categories.filter((c) => !c.parentId).sort(byOrder)) {
-    out.push({ category: parent, depth: 0 });
-    for (const child of categories.filter((c) => c.parentId === parent.id).sort(byOrder)) {
-      out.push({ category: child, depth: 1 });
-    }
-  }
-  return out;
+/** In order: the shape every list renders. */
+export function orderedCategories(categories: PinCategory[]): PinCategory[] {
+  return [...categories].sort(byOrder);
 }
 
 /** 미분류 first (it can't be deleted or moved), then the categories in order: what pickers and the rail list. */
-export function categoriesWithUncategorized(categories: PinCategory[]): { category: PinCategory; depth: 0 | 1 }[] {
-  return [{ category: UNCATEGORIZED, depth: 0 }, ...orderedCategories(categories)];
+export function categoriesWithUncategorized(categories: PinCategory[]): PinCategory[] {
+  return [UNCATEGORIZED, ...orderedCategories(categories)];
 }
 
-export type CategoryProblem = 'empty-name' | 'too-many' | 'too-deep' | 'bad-parent';
+export type CategoryProblem = 'empty-name' | 'too-many';
 
 export interface NewCategoryInput {
   name: string;
   icon?: PinIcon;
   color?: PinColor;
-  parentId?: string;
 }
 
 /** Adds a category; returns the problem instead when it isn't allowed. */
@@ -107,18 +101,13 @@ export function addCategory(
   const name = input.name.trim().slice(0, PIN_LIMITS.categoryName);
   if (!name) return { problem: 'empty-name' };
   if (categories.length >= PIN_LIMITS.maxCategories) return { problem: 'too-many' };
-  const parent = input.parentId ? categories.find((c) => c.id === input.parentId) : undefined;
-  if (input.parentId && !parent) return { problem: 'bad-parent' };
-  if (parent?.parentId) return { problem: 'too-deep' };
-  const siblings = categories.filter((c) => c.parentId === input.parentId);
   const category: PinCategory = {
     id: makeId(),
     name,
-    icon: parent?.icon ?? input.icon ?? 'pin',
-    color: input.color ?? parent?.color ?? 7,
-    order: siblings.reduce((max, c) => Math.max(max, c.order + 1), 0),
+    icon: input.icon ?? 'pin',
+    color: input.color ?? 7,
+    order: categories.reduce((max, c) => Math.max(max, c.order + 1), 0),
   };
-  if (parent) category.parentId = parent.id;
   return { categories: [...categories, category], category };
 }
 
@@ -134,36 +123,38 @@ export function updateCategory(
   });
 }
 
-/** Swaps with the previous/next sibling. */
+/** Swaps with the previous/next category. */
 export function moveCategory(categories: PinCategory[], id: string, direction: -1 | 1): PinCategory[] {
-  const target = categories.find((c) => c.id === id);
-  if (!target) return categories;
-  const siblings = categories.filter((c) => c.parentId === target.parentId).sort(byOrder);
-  const index = siblings.findIndex((c) => c.id === id);
-  const other = siblings[index + direction];
-  if (!other) return categories;
-  // Renumber so equal/missing orders can't make the swap a no-op.
-  const order = new Map(siblings.map((c, i) => [c.id, i]));
-  order.set(target.id, index + direction);
-  order.set(other.id, index);
-  return categories.map((c) => (order.has(c.id) ? { ...c, order: order.get(c.id) as number } : c));
+  const ordered = orderedCategories(categories);
+  const index = ordered.findIndex((c) => c.id === id);
+  if (index === -1 || !ordered[index + direction]) return categories;
+  return placeCategory(categories, id, index + direction);
 }
 
-/**
- * Deletes a category without deleting pins: its pins become 미분류. A
- * parent takes its sub-categories with it, and their pins go to 미분류 too.
- */
+/** Puts a category at `to` in the order (a drag in the editor). */
+export function placeCategory(categories: PinCategory[], id: string, to: number): PinCategory[] {
+  const ordered = orderedCategories(categories);
+  const from = ordered.findIndex((c) => c.id === id);
+  if (from === -1) return categories;
+  const index = Math.max(0, Math.min(ordered.length - 1, Math.round(to)));
+  if (index === from) return categories;
+  const [target] = ordered.splice(from, 1);
+  ordered.splice(index, 0, target);
+  // Renumber so equal/missing orders can't make the move a no-op.
+  const order = new Map(ordered.map((c, i) => [c.id, i]));
+  return categories.map((c) => ({ ...c, order: order.get(c.id) as number }));
+}
+
+/** Deletes a category without deleting pins: its pins become 미분류. */
 export function removeCategory(
   categories: PinCategory[],
   pins: Pin[],
   id: string,
 ): { categories: PinCategory[]; pins: Pin[] } {
-  const target = categories.find((c) => c.id === id);
-  if (!target) return { categories, pins };
-  const removed = target.parentId ? new Set([id]) : categoryFamily(categories, id);
+  if (!categories.some((c) => c.id === id)) return { categories, pins };
   return {
-    categories: categories.filter((c) => !removed.has(c.id)),
-    pins: pins.map((p) => (removed.has(p.categoryId) ? { ...p, categoryId: UNCATEGORIZED.id } : p)),
+    categories: categories.filter((c) => c.id !== id),
+    pins: pins.map((p) => (p.categoryId === id ? { ...p, categoryId: UNCATEGORIZED.id } : p)),
   };
 }
 
@@ -191,22 +182,20 @@ export function upsertPin(
 
 /** Pins shown for a filter (null = all), newest first. */
 export function filterPins(pins: Pin[], categories: PinCategory[], filter: string | null): Pin[] {
-  const family = filter ? categoryFamily(categories, filter) : null;
   return pins
-    .filter((p) => !family || family.has(p.categoryId))
+    .filter((p) => !filter || p.categoryId === filter)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 /**
- * The map rail's filter: any number of categories picked at once, each
- * bringing its sub-categories. Nothing picked shows every pin.
+ * The map rail's filter: any number of categories picked at once. Nothing
+ * picked shows every pin.
  */
 export function filterPinsByCategories(pins: Pin[], categories: PinCategory[], picked: ReadonlySet<string>): Pin[] {
   // Only categories that still exist (and 미분류) count: none of those picked is ALL, every pin.
   const live = [...picked].filter((id) => id === UNCATEGORIZED.id || categories.some((c) => c.id === id));
   if (live.length === 0) return filterPins(pins, categories, null);
-  const shown = new Set<string>();
-  live.forEach((id) => categoryFamily(categories, id).forEach((c) => shown.add(c)));
+  const shown = new Set(live);
   const loose = live.includes(UNCATEGORIZED.id);
   return filterPins(pins, categories, null).filter((p) => shown.has(p.categoryId) || (loose && isUncategorized(categories, p.categoryId)));
 }
@@ -217,7 +206,7 @@ export const PIN_SET_LIMITS = { maxPins: 30, title: 40 } as const;
 
 /**
  * Snapshot of `pins` for a `#pins=` link, carrying only the categories they
- * use (plus the parents of used sub-categories, so paths survive).
+ * use.
  */
 export function buildPinSet(
   title: string,
@@ -227,22 +216,12 @@ export function buildPinSet(
 ): { set: SharedPinSet; dropped: number } {
   const chosen = pins.slice(0, PIN_SET_LIMITS.maxPins);
   const used = new Set<string>();
-  for (const pin of chosen) {
-    const category = findCategory(categories, pin.categoryId);
-    used.add(category.id);
-    if (category.parentId) used.add(category.parentId);
-  }
-  const all = [...categories, UNCATEGORIZED];
-  // Parents first, so a child's `parent` index always points backwards.
-  const ordered = orderedCategories(all).map((c) => c.category).filter((c) => used.has(c.id));
+  for (const pin of chosen) used.add(findCategory(categories, pin.categoryId).id);
+  const ordered = orderedCategories([...categories, UNCATEGORIZED]).filter((c) => used.has(c.id));
   const index = new Map(ordered.map((c, i) => [c.id, i]));
   const set: SharedPinSet = {
     title: title.trim().slice(0, PIN_SET_LIMITS.title) || '핀 모음',
-    categories: ordered.map((c) => {
-      const out: SharedPinCategory = { name: c.name, icon: c.icon, color: c.color };
-      if (c.parentId && index.has(c.parentId)) out.parent = index.get(c.parentId);
-      return out;
-    }),
+    categories: ordered.map((c): SharedPinCategory => ({ name: c.name, icon: c.icon, color: c.color })),
     pins: chosen.map((p) => {
       const out: SharedPin = { place: p.place, category: index.get(findCategory(categories, p.categoryId).id) ?? 0 };
       if (p.memo) out.memo = p.memo;
@@ -256,7 +235,7 @@ export function buildPinSet(
 
 /**
  * Saves a received pin set into my pins: categories are matched by name
- * (and parent name) and created when missing; pins are upserted by place.
+ * and created when missing; pins are upserted by place.
  * When my category list is full, the rest land in 미분류.
  */
 export function importPinSet(
@@ -270,16 +249,10 @@ export function importPinSet(
   const resolved: string[] = [];
   set.categories.forEach((incoming, i) => {
     if (incoming.name === UNCATEGORIZED.name) return (resolved[i] = UNCATEGORIZED.id);
-    const parentId = incoming.parent !== undefined && incoming.parent < i ? resolved[incoming.parent] : undefined;
-    const usableParent = parentId && parentId !== UNCATEGORIZED.id ? parentId : undefined;
-    const match = nextCategories.find((c) => c.name === incoming.name && c.parentId === usableParent);
+    const match = nextCategories.find((c) => c.name === incoming.name);
     if (match) return (resolved[i] = match.id);
-    const result = addCategory(
-      nextCategories,
-      { name: incoming.name, icon: incoming.icon, color: incoming.color, parentId: usableParent },
-      makeId,
-    );
-    if ('problem' in result) return (resolved[i] = usableParent ?? UNCATEGORIZED.id);
+    const result = addCategory(nextCategories, { name: incoming.name, icon: incoming.icon, color: incoming.color }, makeId);
+    if ('problem' in result) return (resolved[i] = UNCATEGORIZED.id);
     nextCategories = result.categories;
     resolved[i] = result.category.id;
   });

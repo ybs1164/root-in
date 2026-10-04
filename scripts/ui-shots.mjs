@@ -87,7 +87,7 @@ const STATES = {
     await page.getByRole('button', { name: '핀', exact: true }).click({ timeout: 3000 });
     await page.getByRole('button', { name: /^카페 / }).first().click({ timeout: 3000 });
   },
-  'pin-drop': async (page) => { await click(page, '지도에 핀 꽂기'); },
+  'new-pin': async (page) => { await click(page, '지도에 핀 꽂기'); },
   'calendar': async (page) => { await click(page, '달력'); },
   'calendar-month': async (page) => { await click(page, '달력'); await page.locator('.cal-zoom__title').click(); },
   'profile': async (page) => { await click(page, '프로필'); },
@@ -97,7 +97,15 @@ const STATES = {
     await click(page, '아이디 수정');
     await page.keyboard.type('My ID!');
   },
-  'categories': async (page) => { await click(page, '핀 카테고리 편집'); },
+  'categories': async (page) => {
+    await page.getByRole('button', { name: '핀', exact: true }).click({ timeout: 3000 });
+    await click(page, '핀 카테고리 편집');
+  },
+  'category-form': async (page) => {
+    await page.getByRole('button', { name: '핀', exact: true }).click({ timeout: 3000 });
+    await click(page, '핀 카테고리 편집');
+    await click(page, '카테고리 추가');
+  },
   'shared-course': async (page, vp, reload) => { await reload(await shareHash(page, 'share')); },
   'shared-diary': async (page, vp, reload) => { await reload(await shareHash(page, 'diary')); },
 };

@@ -1,7 +1,7 @@
 import { Check } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { addressRoute } from '../domain/addressRoute';
-import { categoriesWithUncategorized, categoryPath, categoryStyle, PIN_LIMITS, UNCATEGORIZED } from '../domain/pin';
+import { categoriesWithUncategorized, categoryStyle, findCategory, PIN_LIMITS, UNCATEGORIZED } from '../domain/pin';
 import type { PlaceRef } from '../types/course';
 import type { PinCategory } from '../types/pin';
 import PinGlyph from './PinGlyph';
@@ -62,7 +62,7 @@ export default function NewPinCard({ place, categories, onSave, onClose }: NewPi
     <div ref={cardEl} className="place-card place-card--pin pin-card pin-card--new is-editing" role="dialog" aria-label="새 핀">
       {picking && (
         <div className="folder-picker pin-card__icons" role="dialog" aria-label="그룹 고르기">
-          {categoriesWithUncategorized(categories).map(({ category }) => {
+          {categoriesWithUncategorized(categories).map((category) => {
             const s = categoryStyle(categories, category.id);
             const on = category.id === categoryId;
             return (
@@ -70,7 +70,7 @@ export default function NewPinCard({ place, categories, onSave, onClose }: NewPi
                 key={category.id}
                 className={`folder-picker__opt pin-card__icon-opt ${on ? 'is-on' : ''}`}
                 style={{ '--pin': `var(--pin-${s.color})` } as CSSProperties}
-                aria-label={categoryPath(categories, category.id)}
+                aria-label={category.name}
                 aria-pressed={on}
                 onClick={() => {
                   setCategoryId(category.id);
@@ -125,7 +125,7 @@ export default function NewPinCard({ place, categories, onSave, onClose }: NewPi
         <button
           className="pin-card__category is-editable"
           style={{ '--pin': `var(--pin-${style.color})` } as CSSProperties}
-          aria-label={`그룹 바꾸기 (지금 ${categoryPath(categories, categoryId)})`}
+          aria-label={`그룹 바꾸기 (지금 ${findCategory(categories, categoryId).name})`}
           aria-expanded={picking}
           onClick={() => setPicking((v) => !v)}
         >

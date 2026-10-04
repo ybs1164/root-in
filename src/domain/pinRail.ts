@@ -28,3 +28,18 @@ export function togglePicked(picked: ReadonlySet<string>, id: string): Set<strin
   else next.add(id);
   return next;
 }
+
+/** How many category buttons 핀's list shows at once; ↓ brings the next set. */
+export const RAIL_PAGE_SIZE = 5;
+
+/** Sets of RAIL_PAGE_SIZE (the last one may be shorter); at least one, even empty. */
+export function railPageCount(total: number, size = RAIL_PAGE_SIZE): number {
+  return Math.max(1, Math.ceil(total / size));
+}
+
+/** The categories on `page` (taken modulo the page count, so ↓ past the last set wraps to the first). */
+export function railPage<T>(items: readonly T[], page: number, size = RAIL_PAGE_SIZE): T[] {
+  const count = railPageCount(items.length, size);
+  const p = ((page % count) + count) % count;
+  return items.slice(p * size, p * size + size);
+}

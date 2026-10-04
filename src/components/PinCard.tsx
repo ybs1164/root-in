@@ -1,7 +1,7 @@
 import { Check, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { addressRoute } from '../domain/addressRoute';
-import { categoriesWithUncategorized, categoryPath, categoryStyle, PIN_LIMITS } from '../domain/pin';
+import { categoriesWithUncategorized, categoryStyle, findCategory, PIN_LIMITS } from '../domain/pin';
 import type { Pin, PinCategory } from '../types/pin';
 import PinGlyph from './PinGlyph';
 
@@ -84,7 +84,7 @@ export default function PinCard({ pin, categories, onRecategorize, onRename, onM
     >
       {picking && (
         <div className="folder-picker pin-card__icons" role="dialog" aria-label="카테고리 바꾸기">
-          {categoriesWithUncategorized(categories).map(({ category }) => {
+          {categoriesWithUncategorized(categories).map((category) => {
             const s = categoryStyle(categories, category.id);
             const on = category.id === pin.categoryId;
             return (
@@ -92,7 +92,7 @@ export default function PinCard({ pin, categories, onRecategorize, onRename, onM
                 key={category.id}
                 className={`folder-picker__opt pin-card__icon-opt ${on ? 'is-on' : ''}`}
                 style={{ '--pin': `var(--pin-${s.color})` } as CSSProperties}
-                aria-label={categoryPath(categories, category.id)}
+                aria-label={category.name}
                 aria-pressed={on}
                 onClick={() => {
                   onRecategorize(category.id);
@@ -168,7 +168,7 @@ export default function PinCard({ pin, categories, onRecategorize, onRename, onM
           <button
             className="pin-card__category is-editable"
             style={{ '--pin': `var(--pin-${style.color})` } as CSSProperties}
-            aria-label={`카테고리 바꾸기 (지금 ${categoryPath(categories, pin.categoryId)})`}
+            aria-label={`카테고리 바꾸기 (지금 ${findCategory(categories, pin.categoryId).name})`}
             aria-expanded={picking}
             onClick={() => setPicking((v) => !v)}
           >
@@ -179,7 +179,7 @@ export default function PinCard({ pin, categories, onRecategorize, onRename, onM
             className="pin-card__category"
             style={{ '--pin': `var(--pin-${style.color})` } as CSSProperties}
             role="img"
-            aria-label={categoryPath(categories, pin.categoryId)}
+            aria-label={findCategory(categories, pin.categoryId).name}
           >
             <PinGlyph icon={style.icon} />
           </span>

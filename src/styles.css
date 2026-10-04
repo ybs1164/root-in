@@ -510,18 +510,21 @@ button:disabled {
   box-shadow: none;
   color: var(--pin-0);
   filter: drop-shadow(0 0 1px var(--surface)) drop-shadow(0 0 1px var(--surface)) drop-shadow(var(--pin-shadow));
-  animation: pop 0.25s ease-out;
+  /* Drops in from just above, like a route's stops. Not a transform
+     animation: the map places markers with transform, so animating it made
+     the pin fly in from the map's corner. */
+  animation: stop-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-marker--preview {
+    animation: none;
+  }
 }
 
 .map-marker--preview .pin-glyph {
   width: 32px;
   height: 32px;
-}
-
-@keyframes pop {
-  from {
-    transform: scale(0.4);
-  }
 }
 
 /* ---------- Place preview card ---------- */
@@ -1907,6 +1910,13 @@ button:disabled {
   background: var(--surface-2);
 }
 
+.day-share__note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
 .day-share__preview img {
   display: block;
   width: 100%;
@@ -2039,17 +2049,6 @@ button:disabled {
   box-shadow: var(--shadow);
   color: var(--text);
   transition: transform 0.25s ease;
-}
-
-/* Pin map, bottom-right: + opens 핀 카테고리, level with the bottom tab buttons. */
-.corner-btn--bottom {
-  top: auto;
-  bottom: calc(var(--safe-bottom) + 6px + (var(--bar-h) - 44px) / 2);
-  right: 16px; /* centred under the 52px profile button */
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  color: var(--muted);
 }
 
 .app--searching .corner-btn {
@@ -3677,9 +3676,26 @@ button:disabled {
   box-shadow: var(--shadow-sm);
 }
 
-.pin-rail__all.is-on {
+/* ALL stays white; on, a blue ring and blue letters (over the rail's filled is-on). */
+.pin-rail__btn.pin-rail__all.is-on {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow:
+    inset 0 0 0 2px var(--accent),
+    var(--shadow-sm);
+}
+
+/* ↓ under the categories: the next five. */
+.pin-rail__more {
+  color: var(--muted);
+  box-shadow: var(--shadow-sm);
+}
+
+/* + at the foot of the list: 핀 카테고리, a white + on blue. */
+.pin-rail__add {
   background: var(--accent);
   color: var(--on-accent);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Picked: a ring of the same colour around it (every button is already filled). */
@@ -3689,6 +3705,14 @@ button:disabled {
     inset 0 0 0 2px var(--surface),
     0 0 0 2px var(--pin, var(--surface-2)),
     var(--shadow-sm);
+}
+
+/* 미분류: white, with its glyph in the colour its pings have on the map
+   (the accent, --pin-0) instead of a filled disc. Picked, the same ring. */
+.pin-rail__pin--none,
+.pin-rail__pin--none.is-on {
+  background: var(--surface);
+  color: var(--pin-0);
 }
 
 .bottom-bar-wrap {
@@ -3822,97 +3846,7 @@ button:disabled {
   background: color-mix(in srgb, var(--pin) 16%, transparent);
 }
 
-/* Pin mode: fixed aim at the map centre; the sheet steps aside. */
-.aim {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  z-index: 14;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transform: translate(-50%, calc(-100% + 4px));
-  pointer-events: none;
-}
-
-.aim__pin {
-  font-size: 40px;
-  line-height: 1;
-  animation: aim-drop 0.3s ease-out;
-}
-
-.aim__shadow {
-  width: 14px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--text);
-  opacity: 0.3;
-}
-
-@keyframes aim-drop {
-  from {
-    transform: translateY(-16px);
-    opacity: 0;
-  }
-}
-
-.app--pinning .sheet,
-.app--pinning .place-card {
-  transform: translateY(calc(100% + var(--bar-h) + 40px));
-}
-
-.drop-tray {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: calc(var(--bar-h) + var(--safe-bottom) + 16px);
-  z-index: 15;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px 14px;
-  background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-}
-
-.drop-tray__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 14px;
-}
-
 /* ---------- Category chips / pills ---------- */
-
-.cat-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 14px 0 6px;
-}
-
-.cat-chip__dot {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: var(--pin);
-  color: var(--on-accent);
-}
-
-.cat-chip__dot .pin-glyph {
-  width: 17px;
-  height: 17px;
-}
-
-.cat-chip--on {
-  border-color: var(--pin);
-  box-shadow: inset 0 0 0 2px var(--pin);
-}
 
 .pill--on {
   border-color: var(--accent);
@@ -3968,6 +3902,13 @@ button:disabled {
   border-radius: 50%;
   background: var(--pin, var(--surface-2));
   color: var(--on-accent);
+}
+
+/* 미분류 (as on the 핀 rail): white, with the glyph in its map pings' colour. */
+.pin-badge--none {
+  background: var(--surface);
+  color: var(--pin-0);
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 
 .pin-badge .pin-glyph {
@@ -4351,6 +4292,172 @@ button:disabled {
   color: var(--danger);
 }
 
+/* 개인 정보 → 제외 주소: places never shared. Left-aligned rows in the stub. */
+.privacy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+  text-align: left;
+  animation: profile-account-in 0.18s ease both;
+}
+
+.privacy__title {
+  margin: 0;
+  font-size: 15px;
+}
+
+.privacy__desc,
+.privacy__status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.privacy__notice {
+  margin: 0;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+/* Long lists scroll inside the popup rather than past the screen. */
+.privacy__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 36dvh;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.privacy__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 6px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.privacy__name {
+  grid-column: 1;
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+}
+
+.privacy__label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* An extra place's name: tap to rename. */
+.privacy__label--edit {
+  align-items: center;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+}
+
+.privacy__label--edit svg {
+  color: var(--muted);
+}
+
+.privacy__required {
+  color: var(--accent);
+  font-size: 11px;
+  font-style: normal;
+}
+
+/* 집 still empty: the required tag turns red. */
+.privacy__row.is-missing .privacy__required {
+  color: var(--danger);
+}
+
+.privacy__address {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  text-align: left;
+}
+
+.privacy__address span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.privacy__address svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.privacy__address.is-empty span {
+  color: var(--muted);
+}
+
+/* 16px so iOS doesn't zoom in. */
+.privacy__input {
+  min-width: 0;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 16px;
+  outline: none;
+}
+
+.privacy__input,
+.privacy__address {
+  grid-column: 1;
+}
+
+.privacy__input--name {
+  width: 100%;
+}
+
+/* The bin sits on the right, across both lines. */
+.privacy__remove {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  color: var(--muted);
+}
+
+.privacy__status {
+  grid-column: 1 / -1;
+}
+
+.privacy__add {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .category-sheet[open] {
   animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
@@ -4368,10 +4475,6 @@ button:disabled {
 
 .cat-item {
   border-bottom: 1px solid var(--border);
-}
-
-.cat-item--sub {
-  padding-left: 24px;
 }
 
 .cat-item__head {
@@ -4394,13 +4497,6 @@ button:disabled {
 .cat-item__count {
   color: var(--muted);
   font-size: 13px;
-}
-
-.cat-item__edit {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 4px 0 12px;
 }
 
 .icon-grid {
@@ -4449,34 +4545,170 @@ button:disabled {
   box-shadow: 0 0 0 3px var(--text);
 }
 
-.cat-item__tools {
+
+.category-sheet__actions {
   display: flex;
   align-items: center;
 }
 
-.cat-item__spacer {
-  flex: 1;
+/* 편집 상태 on: the pen in the accent colour. */
+.category-sheet__pen.is-on {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
-.inline-add {
+/* 편집 상태: the drag handle at the far left of each row. touch-action none:
+   a press on it drags the row at once instead of scrolling the list. */
+.cat-item__grip {
+  flex: none;
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
+  place-items: center;
+  width: 28px;
+  height: 44px;
+  margin-right: -4px;
+  color: var(--muted);
+  cursor: grab;
+  touch-action: none;
 }
 
-.inline-add input {
-  min-width: 0;
+/* 미분류 can't move: an empty slot keeps its badge in line with the rest. */
+.cat-item__grip.is-blank {
+  cursor: default;
+}
+
+/* 편집 상태: ✎ 🗑 where the count was, right-aligned. */
+.cat-item__tools {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+/* Rows are held to drag (and, out of 편집 상태, to start it): no text selection or iOS callout. */
+.cat-manager__list .cat-item__head {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.cat-manager__list.is-sorting .cat-item {
+  position: relative;
+  transition: transform 0.18s ease;
+}
+
+/* The row a long press brought 편집 상태 on with. */
+.cat-item.is-picked {
+  background: var(--accent-soft);
+}
+
+/* The lifted row follows the finger, over the rest. */
+.cat-manager__list.is-sorting .cat-item.is-dragged {
+  z-index: 1;
+  transition: none;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/* A category opened out of 편집 상태: its pins' names; a tap shows one on the map. */
+.cat-item__pins {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 8px 46px;
+}
+
+.cat-item__pin {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cat-item__pin:active {
+  background: var(--surface-2);
+}
+
+.cat-item__empty {
+  padding: 10px 4px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* 핀 카테고리 생성 / 편집: a boarding pass (ticket-dialog). */
+.cat-form__main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 20px 22px;
+}
+
+.cat-form__title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.cat-form__icon.pin-badge {
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border: 0;
+}
+
+.cat-form__icon.pin-badge .pin-glyph {
+  width: 38px;
+  height: 38px;
+}
+
+.cat-form__icons {
+  width: 100%;
+}
+
+.cat-form__colors {
+  display: grid;
+  grid-template-columns: repeat(4, 44px);
+  gap: 10px 16px;
+  justify-content: center;
+}
+
+.cat-form__name {
+  width: 100%;
   height: 48px;
   padding: 0 14px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface-2);
+  color: var(--text);
   font-size: 16px;
+  text-align: center;
   outline: none;
 }
 
-.inline-add input:focus {
+.cat-form__name:focus {
   border-color: var(--accent);
+}
+
+.cat-form__problem {
+  margin: -6px 0 0;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+/* 생성 / 완료: the stub's filled half, in the accent colour. */
+.ticket-dialog__split > .is-action {
+  border-left-color: transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.ticket-dialog__split > button:disabled {
+  opacity: 0.45;
 }
 
 /* MapLibre fallback: keep attribution clear of the sheet on phones. */
@@ -4965,8 +5197,7 @@ button:disabled {
     order: 2;
   }
 
-  .app--searching .sheet--top,
-  .app--pinning .sheet--top {
+  .app--searching .sheet--top {
     transform: translateY(-110%);
   }
 
@@ -5054,17 +5285,6 @@ button:disabled {
     top: calc(24px + 52px + 12px);
   }
 
-  .drop-tray {
-    left: 424px;
-    right: auto;
-    bottom: 24px;
-    width: 420px;
-  }
-
-  .app--pinning .sheet {
-    transform: none;
-  }
-
   .maplibregl-ctrl-bottom-right,
   .maplibregl-ctrl-bottom-left {
     bottom: 0;
@@ -5079,10 +5299,5 @@ button:disabled {
   .category-sheet {
     margin: auto auto 0;
     border-radius: 22px 22px 0 0;
-  }
-
-  .corner-btn--bottom {
-    top: auto;
-    bottom: calc(12px + (var(--bar-h) - 44px) / 2);
   }
 }

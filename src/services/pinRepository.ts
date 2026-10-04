@@ -1,8 +1,10 @@
-import { DEFAULT_CATEGORIES, isPinColor, isPinIcon } from '../domain/pin';
+import { DEFAULT_CATEGORIES, flattenLegacyCategories, isPinColor, isPinIcon } from '../domain/pin';
 import type { Pin, PinCategory } from '../types/pin';
 
 const PINS_KEY = 'goodroot:pins:v1';
-const CATEGORIES_KEY = 'goodroot:pin-categories:v1';
+// v2 (2026-10-04): flat — sub-categories (v1's `parentId`) are gone.
+const CATEGORIES_KEY = 'goodroot:pin-categories:v2';
+const LEGACY_CATEGORIES_KEY = 'goodroot:pin-categories:v1';
 
 /** Same seam as CourseRepository: a server-backed version can replace localStorage later. */
 export interface PinRepository {
@@ -69,12 +71,21 @@ export class LocalPinRepository implements PinRepository {
 
 export class LocalPinCategoryRepository implements PinCategoryRepository {
   async list(): Promise<PinCategory[]> {
-    const raw = readJson(CATEGORIES_KEY);
+    let raw = readJson(CATEGORIES_KEY);
+    if (!Array.isArray(raw)) {
+      // From v1: each sub-category becomes a category of its own.
+      const legacy = readJson(LEGACY_CATEGORIES_KEY);
+      if (Array.isArray(legacy)) {
+        raw = flattenLegacyCategories(legacy.filter(isCategory));
+        writeJson(CATEGORIES_KEY, raw);
+      }
+    }
     if (!Array.isArray(raw)) {
       writeJson(CATEGORIES_KEY, DEFAULT_CATEGORIES);
       return DEFAULT_CATEGORIES;
     }
-    return raw.filter(isCategory);
+    // Strip any stray parentId so nothing downstream sees a hierarchy.
+    return raw.filter(isCategory).map(({ id, name, icon, color, order }) => ({ id, name, icon, color, order: Number(order) || 0 }));
   }
 
   async saveAll(categories: PinCategory[]): Promise<void> {

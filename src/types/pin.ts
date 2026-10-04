@@ -31,8 +31,6 @@ export interface PinCategory {
   name: string;
   icon: PinIcon;
   color: PinColor;
-  /** Set on a sub-category. Only two levels: a parent never has a parent. */
-  parentId?: string;
   order: number;
 }
 
@@ -60,8 +58,6 @@ export interface SharedPinCategory {
   name: string;
   icon: PinIcon;
   color: PinColor;
-  /** Index of the parent in `categories`. */
-  parent?: number;
 }
 
 export interface SharedPin {

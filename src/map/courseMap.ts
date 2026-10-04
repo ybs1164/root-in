@@ -31,10 +31,14 @@ export interface CourseMap {
    * above its whole neighbors. null restores the tiles.
    */
   setAreaMap(shapes: AreaShapes | null): void;
-  /** Resolves once the map has finished moving there (never rejects). */
-  fitCourse(padding: MapPadding): Promise<void>;
+  /**
+   * Resolves once the map has finished moving there (never rejects).
+   * `glideMs` overrides how long the glide takes (e.g. to keep pace with the
+   * route title sliding over when stepping between routes).
+   */
+  fitCourse(padding: MapPadding, glideMs?: number): Promise<void>;
   /** Fits arbitrary points (pins, a guide line). Resolves once the move ends. */
-  fitPoints(points: [number, number][], padding: MapPadding): Promise<void>;
+  fitPoints(points: [number, number][], padding: MapPadding, glideMs?: number): Promise<void>;
   focus(center: [number, number], padding?: MapPadding): void;
   /** Pans so `center` sits in the middle of the map, leaving the zoom as it is. */
   centerOn(center: [number, number]): void;
