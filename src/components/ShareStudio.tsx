@@ -17,7 +17,7 @@ import {
   type TextStyle,
   type ThemeId,
 } from '../domain/decor';
-import { cardPercent, DRAWING_BOX, POLAROID } from '../domain/polaroid';
+import { SCENE } from '../domain/polaroid';
 import type { ShareSubject } from '../domain/shareSubject';
 import { canShareImage, downloadDataUrl, renderShareImage, shareImage } from '../lib/shareImage';
 import { loadDecor, saveDecor, type DecorStore } from '../services/decorRepository';
@@ -26,8 +26,6 @@ import { DecorRail, DecorTray } from './DecorTools';
 
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
-
-const BOX_STYLE = cardPercent({ x: DRAWING_BOX.x, y: DRAWING_BOX.y, w: DRAWING_BOX.size, h: DRAWING_BOX.size });
 
 interface ShareStudioProps {
   subject: ShareSubject;
@@ -38,8 +36,9 @@ interface ShareStudioProps {
 
 /**
  * 꾸미기: a screen of its own for a share card (a calendar day's, or a saved
- * route's). The polaroid is drawn once as an image, and the stickers, pen,
- * text, theme and background pattern are laid over it here; the bottom row
+ * route's). The scene (two polaroids on a backdrop) is drawn once as an
+ * image, and the stickers, pen, text, theme and background pattern are laid
+ * over all of it here, a little past the cards too; the bottom row
  * saves the finished card, copies its link or hands it to an SNS app.
  * Decorations are kept per card, so it opens again the way it was left.
  */
@@ -185,6 +184,7 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
       </button>
 
       <DecorRail
+        row
         tool={tool}
         onTool={(next) => {
           setTool(next);
@@ -194,14 +194,15 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
       />
 
       <div className="studio__stage">
-        <div className="studio__card" style={{ aspectRatio: `${POLAROID.w} / ${POLAROID.h}` }}>
+        <div className="studio__card" style={{ aspectRatio: `${SCENE.w} / ${SCENE.h}` }}>
           {base ? (
             <img className="studio__image" src={base} alt={`${subject.title} 카드`} draggable={false} />
           ) : (
             <span className="studio__loading hint">카드 만드는 중…</span>
           )}
-          <div className="studio__box" style={BOX_STYLE}>
+          <div className="studio__box">
             <DecorLayer
+              aspect={SCENE.h / SCENE.w}
               decor={decor}
               tool={tool}
               armed={armed}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Course } from '../types/course';
 import type { DayPing } from './dayPings';
-import { DRAWING_BOX, POLAROID, STRIP } from './polaroid';
+import { BACK_CARD, cardToScene, DRAWING_BOX, FRONT_CARD, POLAROID, SCENE, STRIP } from './polaroid';
 import type { ExcludedPlace } from './privacy';
 import { dayCardTitle, daySubject, isDecorKey, routeSubject } from './shareSubject';
 
@@ -18,6 +18,20 @@ describe('share cards', () => {
     // The drawing box sits inside the photo.
     expect(DRAWING_BOX.x).toBeGreaterThan(POLAROID.photo.x);
     expect(DRAWING_BOX.y + DRAWING_BOX.size).toBeLessThan(STRIP.y);
+  });
+
+  it('lie as two askew polaroids wholly inside a taller-than-wide scene, with backdrop around them', () => {
+    expect(SCENE.h).toBeGreaterThan(SCENE.w);
+    for (const pose of [FRONT_CARD, BACK_CARD]) {
+      expect(pose.angle).not.toBe(0);
+      for (const [x, y] of [[0, 0], [POLAROID.w, 0], [0, POLAROID.h], [POLAROID.w, POLAROID.h]]) {
+        const p = cardToScene(pose, x, y);
+        expect(p.x).toBeGreaterThan(40);
+        expect(p.x).toBeLessThan(SCENE.w - 40);
+        expect(p.y).toBeGreaterThan(40);
+        expect(p.y).toBeLessThan(SCENE.h - 40);
+      }
+    }
   });
 
   it('make a day into its pings, cutting the ones on a 제외 주소 and the lines through them', () => {

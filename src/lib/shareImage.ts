@@ -1,6 +1,6 @@
 import { latestPingIndex, layoutPings, type DayPing, type EdgeStyle } from '../domain/dayPings';
 import { ERASER_SCALE, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, textWeight, type DayDecor, type PlacedText } from '../domain/decor';
-import { DRAWING_BOX, POLAROID, STRIP } from '../domain/polaroid';
+import { BACK_CARD, DRAWING_BOX, FRONT_CARD, POLAROID, SCENE, STRIP, type CardPose } from '../domain/polaroid';
 import type { StopMark } from '../domain/shareSubject';
 import { paintPattern } from './dayPatterns';
 import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
@@ -12,14 +12,14 @@ export interface ShareImageInput {
   marks: StopMark[];
   /** `edges[i]` joins `pings[i]` and `pings[i + 1]`. */
   edges: EdgeStyle[];
-  /** Stickers, pen strokes, text boxes, theme and pattern; in the drawing box's coordinates. */
+  /** Stickers, pen strokes, text boxes, theme and pattern; pieces in scene fractions (0..1 of its width / height). */
   decor?: DayDecor;
   /** Leave the stickers, strokes and text boxes off (the 꾸미기 screen lays its own over the image). */
   withoutPieces?: boolean;
 }
 
-const W = POLAROID.w;
-const H = POLAROID.h;
+const W = SCENE.w;
+const H = SCENE.h;
 const PHOTO = POLAROID.photo;
 const BOX = DRAWING_BOX;
 
@@ -28,8 +28,10 @@ function tokens() {
   const css = getComputedStyle(document.documentElement);
   const get = (name: string) => css.getPropertyValue(name).trim();
   return {
+    backdrop: get('--accent-soft'),
     card: get('--polaroid'),
     cardInk: get('--polaroid-ink'),
+    cardShadow: get('--polaroid-shadow'),
     photo: get('--surface-2'),
     text: get('--text'),
     muted: get('--muted'),
@@ -51,11 +53,12 @@ const DASHES: Record<EdgeStyle, { width: number; dash: number[]; cap: CanvasLine
 };
 
 /**
- * Draws a polaroid of a day's pings or a route's stops: the photo (theme
- * colour and pattern, the lines and stops laid out as the day screen does,
- * then the 꾸미기 pieces) and the title handwritten on the strip under it.
- * Returns a PNG data URL. Drawn from the data rather than screenshotting
- * the DOM: sharp at any size, and no capture library needed.
+ * Draws the share image: two polaroids lying askew on the backdrop (its
+ * theme colour and pattern), the front one holding the photo (the lines and
+ * stops laid out as the day screen does) with the title handwritten on its
+ * strip, and the 꾸미기 pieces over all of it. Returns a PNG data URL.
+ * Drawn from the data rather than screenshotting the DOM: sharp at any
+ * size, and no capture library needed.
  */
 export async function renderShareImage({ title, pings, marks, edges, decor, withoutPieces }: ShareImageInput): Promise<string> {
   await document.fonts?.ready;
@@ -72,45 +75,57 @@ export async function renderShareImage({ title, pings, marks, edges, decor, with
   canvas.height = H;
   const ctx = canvas.getContext('2d')!;
 
-  ctx.fillStyle = c.card;
+  ctx.fillStyle = c.backdrop;
   ctx.fillRect(0, 0, W, H);
-
-  // The photo: everything of the day stays inside it.
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
-  ctx.clip();
-  ctx.fillStyle = c.photo;
-  ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
   // The background pattern, as a still frame even if it flows on screen.
-  if (decor?.pattern) {
+  if (decor?.pattern) paintPattern(ctx, decor.pattern, { w: W, h: H }, W / 390, c.accent);
+
+  // The blank card behind, then the one with the photo.
+  onCard(ctx, BACK_CARD, () => {
+    drawPaper(ctx, c);
+    ctx.fillStyle = c.photo;
+    ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
+  });
+  onCard(ctx, FRONT_CARD, () => {
+    drawPaper(ctx, c);
     ctx.save();
-    ctx.translate(PHOTO.x, PHOTO.y);
-    paintPattern(ctx, decor.pattern, { w: PHOTO.w, h: PHOTO.h }, W / 390, c.accent);
+    ctx.beginPath();
+    ctx.rect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
+    ctx.clip();
+    ctx.fillStyle = c.photo;
+    ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
+    drawStops(ctx, c, pings, marks, edges);
     ctx.restore();
-  }
-  drawStops(ctx, c, pings, marks, edges);
+    ctx.fillStyle = c.cardInk;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `110px ${HAND_FONT}`;
+    ctx.fillText(title, POLAROID.w / 2, STRIP.y + STRIP.h * 0.48, PHOTO.w);
+  });
+
   if (decor && !withoutPieces) drawDecor(ctx, decor, c.font);
-  ctx.restore();
-
-  // The strip: the title in handwriting, and a faint signature in its corner.
-  ctx.fillStyle = c.cardInk;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = `110px ${HAND_FONT}`;
-  ctx.fillText(title, W / 2, STRIP.y + STRIP.h * 0.46, PHOTO.w);
-  // Drawn whole on its own layer first, then faded as one piece, so the
-  // pin's hole stays the card colour instead of a blend.
-  const logo = document.createElement('canvas');
-  logo.width = W;
-  logo.height = H;
-  drawLogo(logo.getContext('2d')!, c, PHOTO.x + PHOTO.w - 80, H - 34, 26);
-  ctx.save();
-  ctx.globalAlpha = 0.35;
-  ctx.drawImage(logo, 0, 0);
-  ctx.restore();
-
   return canvas.toDataURL('image/png');
+}
+
+/** Draws in a card's own pixels (0..POLAROID.w/h), as the card lies on the scene. */
+function onCard(ctx: CanvasRenderingContext2D, pose: CardPose, draw: () => void) {
+  ctx.save();
+  ctx.translate(pose.cx, pose.cy);
+  ctx.rotate((pose.angle * Math.PI) / 180);
+  ctx.translate(-POLAROID.w / 2, -POLAROID.h / 2);
+  draw();
+  ctx.restore();
+}
+
+/** The card's paper, with a soft shadow on what's under it. */
+function drawPaper(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>) {
+  ctx.save();
+  ctx.shadowColor = c.cardShadow;
+  ctx.shadowBlur = 46;
+  ctx.shadowOffsetY = 14;
+  ctx.fillStyle = c.card;
+  ctx.fillRect(0, 0, POLAROID.w, POLAROID.h);
+  ctx.restore();
 }
 
 /** Lines first, then the stops over them, laid out in the drawing box. */
@@ -200,10 +215,15 @@ function drawStops(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, 
 const textFont = (t: PlacedText, sizePx: number) =>
   `${t.italic ? 'italic ' : ''}${textWeight(t)} ${sizePx}px ${textFamily(t.font)}`;
 
-/** Pen strokes, then stickers, then text boxes, over the drawing, mapped from box fractions onto BOX. */
+/**
+ * Pen strokes, then stickers, then text boxes, over the whole scene: places
+ * are fractions of its width and height, sizes fractions of its width (as
+ * the 꾸미기 layer lays them out).
+ */
 function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, font: string) {
   const css = getComputedStyle(document.documentElement);
-  const px = (v: number) => v * BOX.size;
+  const px = (v: number) => v * W;
+  const at = (x: number, y: number): [number, number] => [x * W, y * H];
   // Ink goes on its own layer so eraser passes (destination-out) cut only
   // ink drawn before them, never the pings or the page underneath.
   const layer = document.createElement('canvas');
@@ -214,8 +234,8 @@ function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, font: string)
   ink.lineJoin = 'round';
   const trace = (points: [number, number][]) => {
     ink.beginPath();
-    points.forEach(([x, y], i) => (i ? ink.lineTo : ink.moveTo).call(ink, BOX.x + px(x), BOX.y + px(y)));
-    if (points.length === 1) ink.lineTo(BOX.x + px(points[0][0]) + 0.01, BOX.y + px(points[0][1]));
+    points.forEach(([x, y], i) => (i ? ink.lineTo : ink.moveTo).call(ink, ...at(x, y)));
+    if (points.length === 1) ink.lineTo(at(...points[0])[0] + 0.01, at(...points[0])[1]);
     ink.stroke();
   };
   for (const stroke of decor.strokes) {
@@ -260,7 +280,7 @@ function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, font: string)
   ctx.textBaseline = 'middle';
   for (const s of decor.stickers) {
     ctx.save();
-    ctx.translate(BOX.x + px(s.x), BOX.y + px(s.y));
+    ctx.translate(...at(s.x, s.y));
     ctx.rotate(((s.rotate ?? 0) * Math.PI) / 180);
     ctx.font = `${px(s.size * 0.78)}px ${font}`;
     ctx.fillText(s.emoji, 0, 0);
@@ -270,7 +290,7 @@ function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, font: string)
     const fs = px(t.size);
     const lh = fs * TEXT_LINE_HEIGHT;
     ctx.save();
-    ctx.translate(BOX.x + px(t.x), BOX.y + px(t.y));
+    ctx.translate(...at(t.x, t.y));
     ctx.rotate(((t.rotate ?? 0) * Math.PI) / 180);
     ctx.font = textFont(t, fs);
     ctx.fillStyle = isCustomColor(t.color) ? t.color : css.getPropertyValue(`--${t.color}`).trim();
@@ -293,48 +313,6 @@ function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, font: string)
     });
     ctx.restore();
   }
-  ctx.restore();
-}
-
-/**
- * The root-in wordmark (components/Logo.tsx) drawn centred on (cx, baseline):
- * "root" in the card's ink, then the pin standing in for the i and "n" in the
- * accent. Proportions follow .logo / .logo__i in styles.css (em = size).
- */
-function drawLogo(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, cx: number, baseline: number, size: number) {
-  ctx.save();
-  ctx.font = `800 ${size}px ${c.font}`;
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
-  if ('letterSpacing' in ctx) ctx.letterSpacing = `${-0.02 * size}px`;
-  const root = ctx.measureText('root').width;
-  const n = ctx.measureText('n').width;
-  const gap = 0.07 * size + 0.01 * size; // .logo__in margin + the pin's own margin
-  const pinW = 0.72 * size;
-  const pinH = 0.95 * size;
-  const x0 = cx - (root + gap + pinW + 0.01 * size + n) / 2;
-
-  ctx.fillStyle = c.cardInk;
-  ctx.fillText('root', x0, baseline);
-
-  // Pin viewBox is 4 1.5 16 21; it fits the 0.72em × 0.95em box by width,
-  // centred in the height, so the tip lands on the baseline like on screen.
-  const pinX = x0 + root + gap;
-  const k = Math.min(pinW / 16, pinH / 21);
-  ctx.save();
-  ctx.translate(pinX + (pinW - 16 * k) / 2, baseline - pinH + (pinH - 21 * k) / 2);
-  ctx.scale(k, k);
-  ctx.translate(-4, -1.5);
-  ctx.fillStyle = c.accent;
-  ctx.fill(new Path2D(PIN_PATH));
-  ctx.fillStyle = c.card;
-  ctx.beginPath();
-  ctx.arc(12, 10, 3.2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-
-  ctx.fillStyle = c.accent;
-  ctx.fillText('n', pinX + pinW + 0.01 * size, baseline);
   ctx.restore();
 }
 

@@ -33,6 +33,7 @@
   /* The share polaroid's card and its handwriting: white paper in every theme. */
   --polaroid: #ffffff;
   --polaroid-ink: #2b2b2b;
+  --polaroid-shadow: rgba(27, 36, 64, 0.22);
   --mask-show: #fff; /* SVG masks: white = fully shown (not a colour anyone sees) */
   --mask-hide: #000; /* …and black = hidden (the eraser's rub) */
   /* 꾸미기: fixed ink colours (not themed), the tool sheet and the palette rainbow. */
@@ -1895,24 +1896,6 @@ button:disabled {
 
 /* ---------- 꾸미기 (share card) ---------- */
 
-/* The day screen's 공유, where its 꾸미기 buttons used to be: one round accent button. */
-.day-share-btn {
-  position: absolute;
-  top: 4px;
-  right: 8px;
-  z-index: 3;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  box-shadow: var(--shadow-sm);
-}
-
 /* 공유 as an upright luggage tag (ShareTagButton). */
 .share-tag {
   position: relative;
@@ -1959,6 +1942,14 @@ button:disabled {
 
 .share-tag--route.has-note {
   bottom: 246px;
+}
+
+/* The day screen's 공유: the same tag, at its bottom right (just above the tab bar). */
+.share-tag--day {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  z-index: 3;
 }
 
 @keyframes tag-in {
@@ -2010,6 +2001,10 @@ button:disabled {
   right: 12px;
 }
 
+.decor-rail--row {
+  flex-direction: row;
+}
+
 /* Sized so the whole card fits between the buttons, whichever way the screen runs short. */
 .studio__stage {
   position: relative;
@@ -2017,16 +2012,16 @@ button:disabled {
   min-height: 0;
   display: grid;
   place-items: center;
-  padding: calc(var(--safe-top) + 68px) 64px calc(var(--safe-bottom) + 104px);
+  padding: calc(var(--safe-top) + 68px) 16px calc(var(--safe-bottom) + 96px);
   container-type: size;
 }
 
 .studio__card {
   position: relative;
-  width: min(100cqw, 100cqh * 1080 / 1682); /* POLAROID in domain/polaroid.ts */
-  border-radius: 3px;
-  background: var(--polaroid);
-  box-shadow: var(--dialog-shadow);
+  width: min(100cqw, 100cqh * 1400 / 2000); /* SCENE in domain/polaroid.ts */
+  border-radius: 14px;
+  background: var(--accent-soft);
+  box-shadow: var(--shadow-sm);
 }
 
 .studio__image {
@@ -2056,9 +2051,10 @@ button:disabled {
   padding-bottom: calc(30dvh + 12px);
 }
 
-/* The drawing box on the card (inline from DRAWING_BOX): the pieces scale with it (cqw). */
+/* The whole scene is the 꾸미기 area: the pieces scale with it (cqw). */
 .studio__box {
   position: absolute;
+  inset: 0;
   container-type: inline-size;
 }
 

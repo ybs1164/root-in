@@ -63,14 +63,17 @@ export function DecorRail({
   tool,
   onTool,
   onShare,
+  row = false,
 }: {
   tool: DecorTool | null;
   onTool: (tool: DecorTool | null) => void;
   /** A 공유 button under the tools, set apart (left out when the screen shares another way). */
   onShare?: () => void;
+  /** Laid out in a row (the 꾸미기 screen's top edge) rather than a column. */
+  row?: boolean;
 }) {
   return (
-    <div className="decor-rail" role="toolbar" aria-label="꾸미기" aria-orientation="vertical">
+    <div className={`decor-rail ${row ? 'decor-rail--row' : ''}`} role="toolbar" aria-label="꾸미기" aria-orientation={row ? 'horizontal' : 'vertical'}>
       {RAIL.map(({ tool: t, label, Icon }) => (
         <button
           key={t}

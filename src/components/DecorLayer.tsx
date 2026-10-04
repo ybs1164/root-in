@@ -49,12 +49,17 @@ interface DecorLayerProps {
   textStyle?: TextStyle;
   /** A sticker or text box is being dragged (the tool sheet steps aside for the trash under the box). */
   onDragging?: (on: boolean) => void;
+  /**
+   * The box's height over its width (1: a square). Places are fractions of
+   * the box's width and height; sizes, pen widths included, of its width.
+   */
+  aspect?: number;
 }
 
 /** How far a finger may wander and still count as a tap on a box (px). */
 const TAP_SLOP = 6;
 
-/** CSS for a text box's looks (the share image draws the same in lib/dayImage.ts). */
+/** CSS for a text box's looks (the share image draws the same in lib/shareImage.ts). */
 const textCss = (t: PlacedText) => ({
   fontFamily: textFamily(t.font),
   fontWeight: textWeight(t),
@@ -65,8 +70,9 @@ const textCss = (t: PlacedText) => ({
   lineHeight: TEXT_LINE_HEIGHT,
 });
 
-const strokePath = (points: [number, number][]) =>
-  points.map(([x, y], i) => `${i ? 'L' : 'M'}${(x * 100).toFixed(2)} ${(y * 100).toFixed(2)}`).join(' ') +
+/** In the ink's viewBox: 100 across, 100 × aspect down. */
+const strokePath = (points: [number, number][], aspect: number) =>
+  points.map(([x, y], i) => `${i ? 'L' : 'M'}${(x * 100).toFixed(2)} ${(y * 100 * aspect).toFixed(2)}`).join(' ') +
   // A single tap still leaves a dot.
   (points.length === 1 ? ` l0.01 0` : '');
 
@@ -75,8 +81,8 @@ const strokePath = (points: [number, number][]) =>
  * highlighter; or a neon tube (blurred glow in the colour, then the colour,
  * then a bright core).
  */
-function Ink({ stroke, glowId }: { stroke: Stroke; glowId: string }) {
-  const d = strokePath(stroke.points);
+function Ink({ stroke, glowId, aspect }: { stroke: Stroke; glowId: string; aspect: number }) {
+  const d = strokePath(stroke.points, aspect);
   const w = PEN_WIDTHS[stroke.width] * 100;
   const color = inkCss(stroke.color);
   if (stroke.tool === 'highlighter') {
@@ -99,19 +105,20 @@ function Ink({ stroke, glowId }: { stroke: Stroke; glowId: string }) {
  * in a mask that hides where it rubbed, so it clears an area of earlier
  * ink but not what's drawn afterwards.
  */
-function inkLayers(strokes: Stroke[], glowId: string, maskId: string): ReactNode[] {
+function inkLayers(strokes: Stroke[], glowId: string, maskId: string, aspect: number): ReactNode[] {
+  const h = 100 * aspect + 20;
   let layers: ReactNode[] = [];
   strokes.forEach((stroke, i) => {
     if (stroke.tool !== 'eraser') {
-      layers.push(<Ink key={i} stroke={stroke} glowId={glowId} />);
+      layers.push(<Ink key={i} stroke={stroke} glowId={glowId} aspect={aspect} />);
       return;
     }
     const id = `${maskId}-${i}`;
     layers = [
-      <mask key={`m${i}`} id={id} maskUnits="userSpaceOnUse" x="-10" y="-10" width="120" height="120">
-        <rect x="-10" y="-10" width="120" height="120" className="decor__mask-keep" />
+      <mask key={`m${i}`} id={id} maskUnits="userSpaceOnUse" x="-10" y="-10" width="120" height={h}>
+        <rect x="-10" y="-10" width="120" height={h} className="decor__mask-keep" />
         <path
-          d={strokePath(stroke.points)}
+          d={strokePath(stroke.points, aspect)}
           className="decor__mask-rub"
           style={{ strokeWidth: PEN_WIDTHS[stroke.width] * ERASER_SCALE * 100 }}
         />
@@ -144,6 +151,7 @@ export default function DecorLayer({
   onTextFocus = () => {},
   textStyle = { font: 'sans', color: 'ink-black', align: 'center' },
   onDragging,
+  aspect = 1,
 }: DecorLayerProps) {
   const layer = useRef<HTMLDivElement | null>(null);
   const [drawing, setDrawing] = useState<Stroke | null>(null);
@@ -459,15 +467,15 @@ export default function DecorLayer({
       aria-hidden={!active}
     >
       {strokes.length > 0 && (
-        <svg className="decor__ink" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+        <svg className="decor__ink" viewBox={`0 0 100 ${100 * aspect}`} preserveAspectRatio="none" aria-hidden>
           <defs>
             {/* Filter region in box units, not the stroke's own bounds: a flat
                 stroke's bounds are too thin and would clip the glow square. */}
-            <filter id={glowId} filterUnits="userSpaceOnUse" x="-10" y="-10" width="120" height="120">
+            <filter id={glowId} filterUnits="userSpaceOnUse" x="-10" y="-10" width="120" height={100 * aspect + 20}>
               <feGaussianBlur stdDeviation="1.4" />
             </filter>
           </defs>
-          {inkLayers(strokes, glowId, `rub-${uid}`)}
+          {inkLayers(strokes, glowId, `rub-${uid}`, aspect)}
         </svg>
       )}
       {decor.stickers.map((s) => {
