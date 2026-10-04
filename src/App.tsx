@@ -421,9 +421,13 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sharedPinsKey, mapProvider]);
 
+  // Keyed by the spot, not the object: the address name landing a moment
+  // later mustn't re-make the marker (and drop it in a second time).
+  const previewSpot = preview ? `${preview.id}|${preview.center.join(',')}` : '';
   useEffect(() => {
     mapRef.current?.setPreview(preview);
-  }, [preview, mapProvider]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewSpot, mapProvider]);
 
   useEffect(() => {
     const onResize = () => mapRef.current?.resize();

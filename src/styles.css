@@ -510,18 +510,21 @@ button:disabled {
   box-shadow: none;
   color: var(--pin-0);
   filter: drop-shadow(0 0 1px var(--surface)) drop-shadow(0 0 1px var(--surface)) drop-shadow(var(--pin-shadow));
-  animation: pop 0.25s ease-out;
+  /* Drops in from just above, like a route's stops. Not a transform
+     animation: the map places markers with transform, so animating it made
+     the pin fly in from the map's corner. */
+  animation: stop-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-marker--preview {
+    animation: none;
+  }
 }
 
 .map-marker--preview .pin-glyph {
   width: 32px;
   height: 32px;
-}
-
-@keyframes pop {
-  from {
-    transform: scale(0.4);
-  }
 }
 
 /* ---------- Place preview card ---------- */
