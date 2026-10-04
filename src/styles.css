@@ -4549,7 +4549,11 @@ button:disabled {
   top: 10px;
   right: 10px;
   display: flex;
-  gap: 2px;
+}
+
+/* The icons close together; their 44px targets overlap a little instead. */
+.profile__switch + .profile__switch {
+  margin-left: -12px;
 }
 
 .profile__switch {

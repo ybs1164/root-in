@@ -732,14 +732,12 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
         }}
       >
         {routes.length === 0 ? (
-          // An empty folder of the user's own just stays blank.
-          (current === 'all' || current === 'none') && (
-            <p className="route-folders__empty">
-              {courses.length === 0 ? (
-                <>저장된 루트가 없어요.<br />드래그해 루트를 만들어 보세요.</>
-              ) : '여기에 있는 경로가 없어요.'}
-            </p>
-          )
+          // No routes at all: how to make one. A folder (or tab) with none of them: says so.
+          <p className="route-folders__empty">
+            {courses.length === 0 && (current === 'all' || current === 'none') ? (
+              <>저장된 루트가 없어요.<br />드래그해 루트를 만들어 보세요.</>
+            ) : '여기에 있는 경로가 없어요.'}
+          </p>
         ) : (
           <ul className="route-folders__list">
             {routes.map((c, index) => {
