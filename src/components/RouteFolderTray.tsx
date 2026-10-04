@@ -777,11 +777,15 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
                         {selected.has(c.id) && <Check size={14} strokeWidth={3} />}
                       </span>
                     )}
-                    {/* Its folder's icon, before the name; a route in none shows nothing. */}
-                    {filed && (
+                    {/* A stop on the dashed line down the list: hollow, filled for the route on show. */}
+                    {!selecting && <span className={`route-row__dot ${shown ? 'is-on' : ''}`} aria-hidden />}
+                    {/* Its folder's icon, before the name; a route in none keeps the slot empty so the names line up. */}
+                    {filed ? (
                       <span className="route-row__folder" aria-label={`${folderName(filed)}에 있음`}>
                         {folderIcon(filed)}
                       </span>
+                    ) : (
+                      <span className="route-row__folder" aria-hidden />
                     )}
                     <strong>{c.title || '이름 없는 경로'}</strong>
                   </button>

@@ -1953,7 +1953,7 @@ button:disabled {
 .share-tag--edit {
   position: absolute;
   right: 84px;
-  bottom: 256px;
+  bottom: 328px;
   z-index: 12;
   width: 44px;
   height: 56px;
@@ -1961,11 +1961,11 @@ button:disabled {
 }
 
 /* A route on show: the tag stands at the right, just above the lowered
-   folder sheet (242px: .route-folders.is-lowered). */
+   folder sheet (314px: .route-folders.is-lowered). */
 .share-tag--route {
   position: absolute;
   right: 14px;
-  bottom: 256px;
+  bottom: 328px;
   z-index: 12;
   animation: tag-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }
@@ -2295,7 +2295,7 @@ button:disabled {
 /* A route on show: the sheet sinks so only its tabs and the route's row stay
    up (App's FOLDER_LOWERED_PX), leaving the map to the route. */
 .route-folders.is-lowered {
-  transform: translateY(calc(100% - 242px)); /* tabs, the toolbar and the route's row with its trash */
+  transform: translateY(calc(100% - 314px)); /* tabs, the toolbar, the route's row with its trash, and the next route's name with room under it */
 }
 
 /* Room to scroll any route, even the last, up to the top of the strip. */
@@ -2894,7 +2894,8 @@ button:disabled {
    button is bigger than the chevron so it's easy to hit from the edge. */
 .route-step {
   position: fixed;
-  top: 50%;
+  /* A little above the middle: clear of the 공유 / 수정 tags over the lowered folder sheet. */
+  top: calc(50% - 80px);
   z-index: 14;
   display: grid;
   place-items: center;
@@ -3434,10 +3435,50 @@ button:disabled {
 }
 
 .route-row {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  border-bottom: 1px solid var(--border);
+}
+
+/* The routes as stops on a dashed line down the list: a dot before each
+   name (hollow; filled for the route on show), the line running from one
+   dot to the next. Dots sit at the middle of a row's 56px name line. */
+.route-row__dot {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--accent);
+  transition: background-color 0.2s ease;
+}
+
+.route-row__dot.is-on {
+  background: var(--accent);
+  animation: dot-fill 0.32s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+@keyframes dot-fill {
+  from {
+    scale: 0.5;
+  }
+}
+
+.route-folders__list > .route-row:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 10px; /* the dot's middle: the row's 4px padding + half the 14px dot - half the line */
+  top: 38px;
+  height: calc(100% - 20px);
+  border-left: 2px dashed var(--perforation);
+  pointer-events: none;
+}
+
+/* 다중 선택 puts its check circles there instead. */
+.route-folders__body.is-selecting .route-row::after {
+  display: none;
 }
 
 .route-row:last-child {

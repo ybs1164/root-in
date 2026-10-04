@@ -59,7 +59,7 @@ const DESKTOP_QUERY = '(min-width: 900px)';
 /** Matches `tray-down` in styles.css: the 경로 폴더 sheet stays mounted while it slides away. */
 const ROUTE_TRAY_OUT_MS = 170;
 /** How much of the folder sheet stays up while a route is on show (matches .route-folders.is-lowered). */
-const FOLDER_LOWERED_PX = 242;
+const FOLDER_LOWERED_PX = 314;
 /** Once the map has glided over to a route, the pins fade off (matches .app--pins-away), and only then do its stops drop in. */
 const PINS_FADE_MS = 250;
 /** A route stepped to with < > glides over as fast as its name slides in (RouteTitle SLIDE_MS). */
