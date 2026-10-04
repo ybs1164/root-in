@@ -3688,9 +3688,9 @@ button:disabled {
   box-shadow: var(--shadow-sm);
 }
 
-/* + at the foot of the list: 핀 카테고리. */
+/* + at the foot of the list: 핀 카테고리, a blue + on white (like ALL). */
 .pin-rail__add {
-  color: var(--muted);
+  color: var(--accent);
   box-shadow: var(--shadow-sm);
 }
 
