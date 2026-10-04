@@ -17,7 +17,15 @@ export default function CategoryIconPicker({ selected, onSelect, onClose }: Cate
   const backdrop = useBackdropTap(dialogRef);
   const [group, setGroup] = useState('all');
   const bodyRef = useRef<HTMLDivElement | null>(null);
-  const groups = PIN_ICON_GROUPS.filter((g) => group === 'all' || g.id === group);
+  const scrollToGroup = (id: string) => {
+    setGroup(id);
+    const body = bodyRef.current;
+    if (!body) return;
+    const heading = body.querySelector<HTMLElement>(`[data-icon-group="${id}"] h3`);
+    const top = heading ? body.scrollTop + heading.getBoundingClientRect().top - body.getBoundingClientRect().top : 0;
+    // The scroll container naturally clamps lower sections to its bottom.
+    body.scrollTo({ top, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+  };
 
   useEffect(() => {
     if (!dialogRef.current?.open) dialogRef.current?.showModal();
@@ -49,15 +57,15 @@ export default function CategoryIconPicker({ selected, onSelect, onClose }: Cate
             key={g.id}
             type="button"
             aria-pressed={group === g.id}
-            onClick={() => { setGroup(g.id); if (bodyRef.current) bodyRef.current.scrollTop = 0; }}
+            onClick={() => scrollToGroup(g.id)}
           >
             {g.label}
           </button>
         ))}
       </nav>
       <div ref={bodyRef} className="category-icon-picker__body">
-        {groups.map((g) => (
-          <section key={g.id} aria-label={g.label}>
+        {PIN_ICON_GROUPS.map((g) => (
+          <section key={g.id} data-icon-group={g.id} aria-label={g.label}>
             <h3>{g.label}</h3>
             <div className="category-icon-picker__grid">
               {g.icons.map((icon) => (
