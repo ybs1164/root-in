@@ -1,4 +1,4 @@
-import { Check, GripVertical } from 'lucide-react';
+import { Check, GripVertical, Inbox } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from 'react';
 import { COURSE_LIMITS } from '../domain/course';
 import { ROUTE_NOTE_MAX } from '../domain/routeBuild';
@@ -90,14 +90,14 @@ export default function RouteEditTray({ stops, note, onNote, onMove, onRemove, o
     <section className="route-edit" aria-label="루트 수정">
       <div className="route-edit__head">
         <div ref={folderBox} className="route-edit__folder-box">
-          {/* Its folder's icon; 미분류 shows an empty slot, as on the create sheet. */}
+          {/* Its folder as an index tab standing out of the sheet's top edge, as on the folder sheet: its icon, or 미분류's tray. */}
           <button
             className="route-edit__folder"
             aria-label={`폴더 ${filed?.name ?? '미분류'}, 바꾸기`}
             aria-expanded={pickingFolder}
             onClick={() => setPickingFolder((v) => !v)}
           >
-            {filed?.icon}
+            {filed?.icon ?? <Inbox size={20} aria-hidden />}
           </button>
           {pickingFolder && (
             <div className="route-edit__folders folder-picker" role="group" aria-label="폴더">

@@ -2495,6 +2495,42 @@ button:disabled {
     color 0.12s ease;
 }
 
+.route-folders__move-wrap {
+  position: absolute;
+  right: 80px;
+  bottom: calc(var(--safe-bottom) + 16px);
+  z-index: 6;
+}
+
+/* 다중 선택: move what's picked, beside the trash, the same round button. */
+.route-folders__move {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  animation: picker-in 0.18s ease both;
+}
+
+.route-folders__move.is-on {
+  color: var(--accent);
+}
+
+.route-folders__move:disabled {
+  color: var(--muted);
+}
+
+/* Its folders open above it, right-aligned to it. */
+.route-folders__move-picker {
+  left: auto;
+  right: 0;
+}
+
 .route-folders__trash:disabled {
   color: var(--muted);
 }
@@ -2789,19 +2825,21 @@ button:disabled {
   inset: -12px;
 }
 
-/* The whole description under the name, every paragraph of it, on a card so it reads over the map. */
+/* The whole description under the name, every paragraph of it, centred and
+   bare like the name (the same halo keeps it readable over the map). */
 .route-title__note {
   flex-basis: 100%;
   /* Clear of the < > at the screen's edges (64px wide, the title box is 20px in). */
   max-width: min(480px, calc(100% - 88px));
-  margin: 10px 0 0;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  margin: 8px 0 0;
   color: var(--text);
   font-size: 15px;
+  font-weight: 600;
   line-height: 1.5;
+  text-align: center;
+  text-shadow:
+    0 0 6px var(--surface),
+    0 0 2px var(--surface);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   animation: note-open 0.18s ease-out both;
@@ -2922,30 +2960,41 @@ button:disabled {
   flex: none;
   display: flex;
   align-items: center;
-  justify-content: space-between; /* the folder at the left, ✓ at the right */
+  justify-content: flex-end; /* ✓ at the right (the folder is a tab above the sheet) */
   padding: 12px 12px 0;
 }
 
-.route-edit__folder-box {
-  position: relative;
+/* The route's folder as an index tab out of the sheet's top edge, at its
+   left (like the folder sheet's tabs): its icon, or 미분류's tray. */
+.route-edit__folder-box,
+.route-create__pick.route-create__pick {
+  position: absolute;
+  left: 16px;
+  bottom: 100%;
 }
 
-/* The route's folder, like the create sheet's: its icon, or an empty slot for 미분류. */
-.route-edit__folder {
+.route-edit__folder,
+.route-create__btn.route-create__btn {
   display: grid;
   place-items: center;
-  width: 44px;
+  width: 56px;
   height: 44px;
   padding: 0;
   border: 0;
-  border-radius: 12px;
-  background: var(--surface-2);
+  border-radius: 14px 14px 0 0;
+  /* The sheet's own paper, so the tab and the sheet read as one piece. */
+  background: var(--surface);
+  box-shadow: var(--shadow-up);
+  /* The sheet's shadow mustn't show where the two meet. */
+  clip-path: inset(-30px -30px 0 -30px);
+  color: var(--muted);
   font-size: 22px;
   line-height: 1;
 }
 
-.route-edit__folder[aria-expanded='true'] {
-  background: var(--accent-soft);
+.route-edit__folder[aria-expanded='true'],
+.route-create__btn.route-create__btn[aria-expanded='true'] {
+  color: var(--accent);
 }
 
 /* The folder grid pops up above the button, over the map, like a folder tab's. */
@@ -3198,10 +3247,6 @@ button:disabled {
   line-height: 1;
 }
 
-.route-create__btn[aria-expanded='true'] {
-  background: var(--accent-soft);
-}
-
 /* Their grids pop up above the button, over the map. */
 .route-create__grid.folder-picker {
   left: 0;
@@ -3428,7 +3473,7 @@ button:disabled {
   line-height: 1;
 }
 
-/* The open route's tools, small, under its name at the right. */
+/* The open route's tool, small, under its name at the right. */
 .route-row__tools {
   flex-basis: 100%;
   display: flex;
@@ -3438,8 +3483,6 @@ button:disabled {
   padding-bottom: 4px;
 }
 
-/* Under the open route's name; two lines at most, so the lowered sheet's
-   strip still shows the route's tools. */
 .route-row__tool {
   display: grid;
   place-items: center;
@@ -3485,37 +3528,13 @@ button:disabled {
   background: var(--surface-2);
 }
 
-.route-row__chooser {
-  flex-basis: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 0 0 10px;
-}
 
-.route-row__to {
-  display: grid;
-  place-items: center;
-  min-width: 44px;
-  height: 44px;
-  padding: 0 10px;
-  border: 1px solid var(--border);
-  border-radius: 22px;
-  background: none;
-  color: var(--text);
-  font-size: 20px;
-  line-height: 1;
-}
 
 .route-row__in {
   display: inline-flex;
   vertical-align: -2px;
 }
 
-.route-row__to.is-on {
-  border-color: var(--accent);
-  background: var(--surface-2);
-}
 
 /* A pin's card stands just above the pin, which tapping it pans to the middle
    of the map (the map fills the screen, so that is the screen's middle). The

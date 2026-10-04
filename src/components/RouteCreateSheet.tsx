@@ -1,4 +1,4 @@
-import { Pencil } from 'lucide-react';
+import { Inbox, Pencil } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ROUTE_NOTE_MAX, ROUTE_TITLE_MAX } from '../domain/routeBuild';
 import type { RouteFolder } from '../domain/routeFolders';
@@ -55,7 +55,7 @@ export default function RouteCreateSheet({ draft, onDraft, defaultTitle, folders
             aria-expanded={picking}
             onClick={() => setPicking(!picking)}
           >
-            {folder?.icon}
+            {folder?.icon ?? <Inbox size={20} aria-hidden />}
           </button>
           {picking && (
             <div className="folder-picker route-create__grid" role="group" aria-label="폴더">

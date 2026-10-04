@@ -108,14 +108,16 @@ export default function RouteTitle({ routeId, title, onRename, slideFrom = 0, on
         ) : (
           <h2
             className={`route-title__name ${editMode ? 'is-renamable' : ''}`}
-            onClick={
-              editMode
-                ? () => {
-                    setDraft(title);
-                    setEditing(true);
-                  }
-                : undefined
-            }
+            // Shown: a tap on the name opens (or shuts) its description, or does
+            // nothing at all without one; it's never a tap on bare map.
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (editMode) {
+                setDraft(title);
+                setEditing(true);
+              } else if (hasNote) setNoteOpen((o) => !o);
+            }}
           >
             {title}
           </h2>
