@@ -1,6 +1,7 @@
 import type { DistrictMap, MapViewport } from '../domain/districtMap';
 import type { PlaceRef } from '../types/course';
-import type { PinColor } from '../types/pin';
+import { pinGlyphSvg } from '../lib/pinGlyphs';
+import type { PinColor, PinIcon } from '../types/pin';
 
 export interface MapPadding {
   top: number;
@@ -46,7 +47,7 @@ export interface CourseMap {
 export interface PinMarker {
   id: string;
   center: [number, number];
-  emoji: string;
+  icon: PinIcon;
   color: PinColor;
   name: string;
   selected?: boolean;
@@ -89,7 +90,8 @@ export function createPinElement(pin: PinMarker, onClick?: (id: string) => void)
   el.type = 'button';
   el.className = `map-marker map-marker--pin${pin.selected ? ' is-selected' : ''}`;
   el.style.setProperty('--pin', `var(--pin-${pin.color})`);
-  el.textContent = pin.emoji;
+  // The category's solid glyph in the pin colour, no disc behind it.
+  el.innerHTML = pinGlyphSvg(pin.icon);
   el.setAttribute('aria-label', pin.name);
   // Lets a finger drawing a route over the map find the pin under it.
   el.dataset.pinId = pin.id;

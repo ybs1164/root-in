@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { categoryPath, categoryStyle, orderedCategories } from '../domain/pin';
 import type { PinCategory } from '../types/pin';
+import PinGlyph from './PinGlyph';
 
 interface CategoryChipsProps {
   categories: PinCategory[];
@@ -41,7 +42,7 @@ export default function CategoryChips({ categories, onPick, recent = [], selecte
             onClick={() => onPick(category.id)}
           >
             <span className="cat-chip__dot" aria-hidden>
-              {style.emoji}
+              <PinGlyph icon={style.icon} />
             </span>
             {depth === 0 ? category.name : recent.length > 0 ? categoryPath(categories, category.id) : `› ${category.name}`}
           </button>

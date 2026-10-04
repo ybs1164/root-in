@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { categoryPath, categoryStyle, orderedCategories, PIN_LIMITS } from '../domain/pin';
 import { kakaoPlaceUrl } from '../lib/directionsLink';
 import type { Pin, PinCategory } from '../types/pin';
+import PinGlyph from './PinGlyph';
 
 interface PinCardProps {
   pin: Pin;
@@ -75,7 +76,7 @@ export default function PinCard({ pin, categories, onRecategorize, onRename, onM
                     setPicking(false);
                   }}
                 >
-                  {s.emoji}
+                  <PinGlyph icon={s.icon} />
                 </button>
               );
             })}
@@ -88,7 +89,7 @@ export default function PinCard({ pin, categories, onRecategorize, onRename, onM
           aria-expanded={picking}
           onClick={() => setPicking((v) => !v)}
         >
-          <span aria-hidden>{style.emoji}</span>
+          <PinGlyph icon={style.icon} />
         </button>
         {renaming ? (
           <input

@@ -3704,8 +3704,14 @@ input.timeline__time:focus {
   border: 0;
   border-radius: 50%;
   background: var(--pin, var(--surface-2));
-  font-size: 22px;
+  color: var(--on-accent);
   line-height: 1;
+}
+
+.pin-card__icon .pin-glyph,
+.pin-card__icon-opt .pin-glyph {
+  width: 24px;
+  height: 24px;
 }
 
 .pin-card__name {
@@ -3779,9 +3785,11 @@ input.timeline__time:focus {
 }
 
 .pin-card__icon-opt {
+  display: grid;
+  place-items: center;
   border-radius: 50%;
   background: var(--pin, var(--surface-2));
-  font-size: 22px;
+  color: var(--on-accent);
 }
 
 /* The current one keeps its colour (the folder bubble would tint it) and gets a ring. */
@@ -3872,11 +3880,16 @@ input.timeline__time:focus {
 }
 
 .pin-rail__pin {
-  font-size: 21px;
+  /* The category's colour with its glyph cut out in white. */
+  background: var(--pin, var(--surface-2));
+  color: var(--on-accent);
   /* A tighter shadow than the other buttons: the scroll box would clip a wide one. */
-  box-shadow:
-    inset 0 0 0 3px var(--pin, var(--surface-2)),
-    var(--shadow-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.pin-rail__pin .pin-glyph {
+  width: 22px;
+  height: 22px;
 }
 
 /* ALL: every pin. Text in a white button; on, the accent colour like 핀 · 경로. */
@@ -3893,9 +3906,13 @@ input.timeline__time:focus {
   color: var(--on-accent);
 }
 
-/* Picked: filled with the category colour. */
+/* Picked: a ring of the same colour around it (every button is already filled). */
 .pin-rail__pin.is-on {
   background: var(--pin, var(--surface-2));
+  box-shadow:
+    inset 0 0 0 2px var(--surface),
+    0 0 0 2px var(--pin, var(--surface-2)),
+    var(--shadow-sm);
 }
 
 .bottom-bar-wrap {
@@ -4002,19 +4019,33 @@ input.timeline__time:focus {
 
 .map-marker--pin {
   z-index: 1;
-  width: 34px;
-  height: 34px;
-  background: var(--pin);
-  font-size: 17px;
-  line-height: 1;
+  width: 38px;
+  height: 38px;
+  /* On the map a pin is its category's glyph alone, in the pin colour: no
+     disc behind it. A thin halo of the surface keeps it off busy streets. */
+  background: transparent;
+  box-shadow: none;
+  color: var(--pin);
+  filter: drop-shadow(0 0 1px var(--surface)) drop-shadow(0 0 1px var(--surface)) drop-shadow(var(--pin-shadow));
 }
 
+.pin-glyph {
+  display: block;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+}
+
+.map-marker--pin .pin-glyph {
+  width: 32px;
+  height: 32px;
+}
+
+/* Picked: bigger, on a faint disc of its own colour. */
 .map-marker--pin.is-selected {
   z-index: 3;
-  transform: scale(1.25);
-  box-shadow:
-    0 0 0 3px var(--accent),
-    var(--shadow-sm);
+  transform: scale(1.3);
+  background: color-mix(in srgb, var(--pin) 16%, transparent);
 }
 
 /* Pin mode: fixed aim at the map centre; the sheet steps aside. */
@@ -4096,7 +4127,12 @@ input.timeline__time:focus {
   height: 30px;
   border-radius: 50%;
   background: var(--pin);
-  font-size: 15px;
+  color: var(--on-accent);
+}
+
+.cat-chip__dot .pin-glyph {
+  width: 17px;
+  height: 17px;
 }
 
 .cat-chip--on {
@@ -4180,7 +4216,12 @@ input.timeline__time:focus {
   height: 36px;
   border-radius: 50%;
   background: var(--pin, var(--surface-2));
-  font-size: 17px;
+  color: var(--on-accent);
+}
+
+.pin-badge .pin-glyph {
+  width: 20px;
+  height: 20px;
 }
 
 .pin-row__text {
@@ -4682,11 +4723,18 @@ input.timeline__time:focus {
 }
 
 .icon-grid__btn {
+  display: grid;
+  place-items: center;
   height: 44px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
-  font-size: 20px;
+  color: var(--text);
+}
+
+.icon-grid__btn .pin-glyph {
+  width: 22px;
+  height: 22px;
 }
 
 .icon-grid__btn.is-on {

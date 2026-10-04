@@ -60,7 +60,7 @@ describe('pins', () => {
 
   it('sub-categories are at most two levels deep and inherit the parent icon', () => {
     const categories = withDessert();
-    expect(categoryStyle(categories, 'dessert')).toMatchObject({ icon: 'cafe', color: 5, emoji: '☕' });
+    expect(categoryStyle(categories, 'dessert')).toEqual({ icon: 'cafe', color: 5 });
     expect(categoryPath(categories, 'dessert')).toBe('카페 › 디저트');
     expect(addCategory(categories, { name: '마카롱', parentId: 'dessert' }, makeId)).toEqual({ problem: 'too-deep' });
     expect(addCategory(categories, { name: '  ' }, makeId)).toEqual({ problem: 'empty-name' });

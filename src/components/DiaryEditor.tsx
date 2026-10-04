@@ -20,6 +20,7 @@ import type { Pin, PinCategory } from '../types/pin';
 import CategoryChips from './CategoryChips';
 import DiaryTimeline from './DiaryTimeline';
 import { WishStar } from './icons';
+import PinGlyph from './PinGlyph';
 
 interface DiaryEditorProps {
   draft: DiaryDraft;
@@ -183,7 +184,7 @@ export default function DiaryEditor({
                 <li key={pin.id}>
                   <button className="pin-row" disabled={full} onClick={() => onAddPlace(pin.place)}>
                     <span className="pin-badge" style={{ '--pin': `var(--pin-${style.color})` } as CSSProperties} aria-hidden>
-                      {style.emoji}
+                      <PinGlyph icon={style.icon} />
                     </span>
                     <span className="pin-row__text">
                       <strong>{pin.place.name}</strong>

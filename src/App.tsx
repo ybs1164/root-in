@@ -51,7 +51,7 @@ import { withRecentCategory } from './services/settingsRepository';
 import { loadProfile, saveProfile, type Profile } from './services/profileRepository';
 import type { ShareTarget } from './services/shareTargets';
 import type { CourseStop, PlaceRef } from './types/course';
-import { PIN_ICONS, type Pin } from './types/pin';
+import type { Pin } from './types/pin';
 
 type SheetSize = 'peek' | 'full';
 type Toast = { text: string; undo?: () => void };
@@ -256,7 +256,7 @@ export default function App() {
           id: `shared:${i}`,
           center: pin.place.center,
           name: pin.place.name,
-          emoji: PIN_ICONS[parent?.icon ?? category?.icon ?? 'pin'],
+          icon: parent?.icon ?? category?.icon ?? 'pin',
           color: category?.color ?? 8,
         };
       });
@@ -272,7 +272,7 @@ export default function App() {
         id: pin.id,
         center: pin.place.center,
         name: pin.place.name,
-        emoji: style.emoji,
+        icon: style.icon,
         color: style.color,
         // While making a route, chosen pins show their order as numbered stops instead.
         selected: pin.id === activePinId,

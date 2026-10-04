@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { categoryStyle, orderedCategories } from '../domain/pin';
 import { isAllPicked, type PinRailEntry, type PinRailMode } from '../domain/pinRail';
 import type { PinCategory } from '../types/pin';
+import PinGlyph from './PinGlyph';
 
 interface PinRailProps {
   mode: PinRailMode;
@@ -105,7 +106,7 @@ export default function PinRail({ mode, onAction, categories, counts, picked, on
                   aria-pressed={on}
                   onClick={() => onToggle(category.id)}
                 >
-                  <span aria-hidden>{style.emoji}</span>
+                  <PinGlyph icon={style.icon} />
                 </button>
               </li>
             );

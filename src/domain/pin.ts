@@ -43,11 +43,11 @@ export function findCategory(categories: PinCategory[], id: string): PinCategory
 }
 
 /** Sub-categories wear the parent's icon (only the color is their own). */
-export function categoryStyle(categories: PinCategory[], id: string): { icon: PinIcon; color: PinColor; emoji: string } {
+export function categoryStyle(categories: PinCategory[], id: string): { icon: PinIcon; color: PinColor } {
   const category = findCategory(categories, id);
   const parent = category.parentId ? categories.find((c) => c.id === category.parentId) : undefined;
   const icon = parent?.icon ?? category.icon;
-  return { icon, color: category.color, emoji: PIN_ICONS[icon] };
+  return { icon, color: category.color };
 }
 
 /** '카페 › 디저트' */

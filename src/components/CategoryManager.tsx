@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useState, type CSSProperties } from 'react';
 import { categoryStyle, orderedCategories, PIN_LIMITS, type CategoryProblem, type NewCategoryInput } from '../domain/pin';
 import { PIN_COLORS, PIN_ICONS, type PinCategory, type PinIcon } from '../types/pin';
+import PinGlyph from './PinGlyph';
 
 interface CategoryManagerProps {
   categories: PinCategory[];
@@ -45,7 +46,7 @@ export default function CategoryManager({ categories, pinCounts, onCreate, onEdi
             <li key={category.id} className={`cat-item ${depth ? 'cat-item--sub' : ''}`}>
               <button className="cat-item__head" aria-expanded={expanded} onClick={() => setOpen(expanded ? null : category.id)}>
                 <span className="pin-badge" style={{ '--pin': `var(--pin-${style.color})` } as CSSProperties} aria-hidden>
-                  {style.emoji}
+                  <PinGlyph icon={style.icon} />
                 </span>
                 <span className="cat-item__name">{category.name}</span>
                 <span className="cat-item__count">{count > 0 ? `${count}곳` : ''}</span>
@@ -66,10 +67,10 @@ export default function CategoryManager({ categories, pinCounts, onCreate, onEdi
                           key={icon}
                           className={`icon-grid__btn ${category.icon === icon ? 'is-on' : ''}`}
                           aria-pressed={category.icon === icon}
-                          aria-label={icon}
+                          aria-label={PIN_ICONS[icon]}
                           onClick={() => onEdit(category.id, { icon })}
                         >
-                          {PIN_ICONS[icon]}
+                          <PinGlyph icon={icon} />
                         </button>
                       ))}
                     </div>
