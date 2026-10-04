@@ -742,9 +742,14 @@ export default function App() {
     for (const c of cs) await course.remove(c.id);
   };
 
-  // 핀 삭제 asks first; a pin some route stops at can't go until it's taken out of them.
+  // Deleting a pin also removes every route that contains its place.
   const [pinDeleting, setPinDeleting] = useState<Pin | null>(null);
   const routesWithPin = (pin: Pin) => course.courses.filter((c) => c.stops.some((s) => s.place.id === pin.place.id));
+  const deletePinWithRoutes = async (pin: Pin) => {
+    await deleteRoutes(routesWithPin(pin));
+    pinStore.removePin(pin.id);
+    if (activePinId === pin.id) setActivePinId(null);
+  };
 
   // ✓ on the edit sheet: keep the stops with their look, the description and the folder.
   const saveEdit = async () => {
@@ -1166,24 +1171,22 @@ export default function App() {
       {pinDeleting &&
         (routesWithPin(pinDeleting).length > 0 ? (
           <ConfirmDialog
-            label="장소 삭제 불가"
-            message="이 장소는 루트에 들어 있는 장소예요."
+            label="장소와 루트 삭제"
+            message="이 장소는 루트에 포함되어 있는 장소예요."
             detail={
               <>
-                소속 루트:{' '}
+                포함된 루트:{' '}
                 {routesWithPin(pinDeleting).map((c, i) => (
                   <span key={c.id}>
                     {i > 0 && '  '}
                     <b className="confirm-dialog__em">'{c.title}'</b>
                   </span>
                 ))}
-                {'\n'}먼저 해당하는 루트에서 장소를 제거해 주세요.
+                {'\n'}루트도 같이 삭제돼요.
               </>
             }
-            confirmLabel="루트 편집"
-            tone="action"
-            // The first route named: straight into editing it.
-            onConfirm={() => editRouteNow(routesWithPin(pinDeleting)[0])}
+            confirmLabel="삭제"
+            onConfirm={() => void deletePinWithRoutes(pinDeleting)}
             onClose={() => setPinDeleting(null)}
           />
         ) : (
