@@ -22,7 +22,6 @@ function easeInOutSine(t: number): number {
   return -(Math.cos(Math.PI * t) - 1) / 2;
 }
 
-const LINE_SOURCE = 'course-line';
 const GUIDE_SOURCE = 'guide-line';
 const AREA_COVER = 'area-cover';
 const AREA_OTHERS = 'area-others';
@@ -102,28 +101,7 @@ export class MapLibreCourseMap implements CourseMap {
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: { 'line-color': token('--muted', '#8a93a8'), 'line-width': 3, 'line-opacity': 0.8, 'line-dasharray': [0.5, 2] },
       });
-      this.map.addSource(LINE_SOURCE, { type: 'geojson', data: this.lineData() });
-      this.map.addLayer({
-        id: LINE_SOURCE,
-        type: 'line',
-        source: LINE_SOURCE,
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: {
-          'line-color': getComputedStyle(document.documentElement).getPropertyValue('--route').trim() || '#2f6fe0',
-          'line-width': 4,
-          'line-opacity': 0.85,
-          'line-dasharray': [1.5, 1.5],
-        },
-      });
     });
-  }
-
-  private lineData(): GeoJSON.Feature<GeoJSON.LineString> {
-    return {
-      type: 'Feature',
-      properties: {},
-      geometry: { type: 'LineString', coordinates: this.stops.length >= 2 ? this.stops.map((s) => s.center) : [] },
-    };
   }
 
   private guideData(): GeoJSON.Feature<GeoJSON.LineString> {
@@ -199,6 +177,8 @@ export class MapLibreCourseMap implements CourseMap {
     });
   }
 
+  // Only the numbered stops: the lines between them are StopLines' (drawn in
+  // as the stops land), so the map draws none of its own ahead of them.
   setCourse(stops: PlaceRef[]): void {
     this.stops = stops;
     this.stopMarkers.forEach((m) => m.remove());
@@ -209,8 +189,6 @@ export class MapLibreCourseMap implements CourseMap {
         .setLngLat(stop.center)
         .addTo(this.map),
     );
-    const source = this.map.getSource(LINE_SOURCE) as maplibregl.GeoJSONSource | undefined;
-    source?.setData(this.lineData());
   }
 
   setPreview(place: PlaceRef | null): void {

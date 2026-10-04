@@ -21,7 +21,6 @@ export class KakaoCourseMap implements CourseMap {
   private readonly map: KakaoMapInstance;
   private stops: PlaceRef[] = [];
   private stopOverlays: Overlay[] = [];
-  private line: Overlay | null = null;
   private preview: Overlay | null = null;
   private pinOverlays: Overlay[] = [];
   private guide: Overlay | null = null;
@@ -138,11 +137,11 @@ export class KakaoCourseMap implements CourseMap {
     return new this.maps.LatLng(lat, lon);
   }
 
+  // Only the numbered stops: the lines between them are StopLines' (drawn in
+  // as the stops land), so the map draws none of its own ahead of them.
   setCourse(stops: PlaceRef[]): void {
     this.stops = stops;
     this.stopOverlays.forEach((o) => o.setMap(null));
-    this.line?.setMap(null);
-    this.line = null;
 
     this.stopOverlays = stops.map(
       (stop, index) =>
@@ -154,16 +153,6 @@ export class KakaoCourseMap implements CourseMap {
           map: this.map,
         }),
     );
-    if (stops.length >= 2) {
-      this.line = new this.maps.Polyline({
-        path: stops.map((s) => this.latLng(s.center)),
-        strokeWeight: 4,
-        strokeColor: this.routeColor('--route', '#2f6fe0'),
-        strokeOpacity: 0.85,
-        strokeStyle: 'shortdash',
-        map: this.map,
-      });
-    }
   }
 
   setPreview(place: PlaceRef | null): void {
@@ -218,7 +207,6 @@ export class KakaoCourseMap implements CourseMap {
     this.pinOverlays.forEach((o) => o.setMap(null));
     this.guide?.setMap(null);
     this.stopOverlays.forEach((o) => o.setMap(null));
-    this.line?.setMap(null);
     this.preview?.setMap(null);
   }
 }
