@@ -33,18 +33,21 @@ export default function DayShareSheet({ date, onClose, ...image }: DayShareSheet
   return (
     <dialog
       ref={dialogRef}
-      className="mac-window day-share"
+      className="day-share ticket-dialog"
       aria-label={`${image.title} 공유`}
       onClose={onClose}
       onClick={(event) => {
         if (event.target === dialogRef.current) onClose();
       }}
     >
-      <div className="mac-window__body">
+      <div className="ticket-dialog__main">
         <div className="day-share__preview">
           {src ? <img src={src} alt={`${image.title}에 다녀온 곳을 잇는 그림`} /> : <span className="hint">이미지 만드는 중…</span>}
         </div>
+      </div>
 
+      {/* Past the tear line: what to do with it. */}
+      <div className="ticket-dialog__stub">
         <div className="day-share__actions" role="group" aria-label="공유">
           {/* TODO: decide what 링크 복사 copies, then wire it up. */}
           <button className="day-share__action" aria-label="링크 복사" disabled>

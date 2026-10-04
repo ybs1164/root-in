@@ -598,24 +598,25 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
       )}
       <dialog
         ref={confirmEl}
-        className="confirm-dialog"
+        className="confirm-dialog ticket-dialog"
         aria-label="폴더 삭제"
         onClose={() => {
           setConfirming(null);
           setDeleting(null);
         }}
       >
-        <p>
+        <p className="ticket-dialog__main">
           폴더를 삭제합니다.
           <br />
-          이 작업은 되돌릴 수 없습니다.
+          <span>이 작업은 되돌릴 수 없습니다.</span>
         </p>
-        <div className="confirm-dialog__actions">
-          <button className="btn btn--ghost" onClick={() => confirmEl.current?.close()}>
+        {/* The stub torn in two, like the tab bar: 취소 | 확인. */}
+        <div className="ticket-dialog__stub ticket-dialog__split">
+          <button onClick={() => confirmEl.current?.close()}>
             취소
           </button>
           <button
-            className="btn btn--danger"
+            className="is-danger"
             onClick={() => {
               if (confirming) onFolders(deleteFolder(folders, confirming));
               confirmEl.current?.close();

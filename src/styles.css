@@ -27,6 +27,7 @@
   --perforation: rgba(27, 36, 64, 0.22);
   /* drop-shadow() for the ticket-shaped tab bar (a box-shadow would be cut by its notches). */
   --ticket-shadow: 0 6px 12px rgba(27, 36, 64, 0.14);
+  --dialog-shadow: 0 18px 36px rgba(27, 36, 64, 0.28);
   /* The orange arrow between the ticket's two places. */
   --ticket-arrow: #f08a2b;
   --mask-show: #fff; /* SVG masks: white = fully shown (not a colour anyone sees) */
@@ -109,6 +110,8 @@
     --backdrop: rgba(0, 0, 0, 0.6);
     --perforation: rgba(232, 237, 247, 0.22);
     --ticket-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+  --dialog-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+    --dialog-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
     --map-road: #141c2e;
     --map-block: #24304a;
   }
@@ -1952,34 +1955,31 @@ button:disabled {
   }
 }
 
-/* ---------- macOS-style popup window ---------- */
+/* ---------- Popups: a boarding pass ---------- */
 
-.mac-window {
-  width: min(calc(100% - 32px), 420px);
+/* The centred popups (profile, a delete confirm, day share) are tickets,
+   like the tab bar: the content, then a dashed tear line with a notch at
+   each end, then the stub holding what to do. The <dialog> itself is see-
+   through and only casts the shadow; each half masks its own half of the
+   notches, so the stub can grow (계정 정보 opening) and the notches follow. */
+.ticket-dialog {
+  width: min(320px, calc(100vw - 48px));
   max-height: calc(100dvh - 48px);
   margin: auto;
   padding: 0;
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  /* Vibrancy: a little see-through, blurred behind. */
-  background: color-mix(in srgb, var(--surface) 90%, transparent);
-  -webkit-backdrop-filter: blur(24px) saturate(1.6);
-  backdrop-filter: blur(24px) saturate(1.6);
+  overflow: visible;
+  border: 0;
+  background: transparent;
   color: var(--text);
-  box-shadow:
-    0 30px 80px color-mix(in srgb, var(--text) 35%, transparent),
-    0 0 0 0.5px color-mix(in srgb, var(--text) 20%, transparent);
+  filter: drop-shadow(var(--dialog-shadow));
 }
 
-.mac-window[open] {
+.ticket-dialog[open] {
   animation: mac-open 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
 }
 
-.mac-window::backdrop {
-  background: color-mix(in srgb, var(--backdrop) 70%, transparent);
-  -webkit-backdrop-filter: blur(3px);
-  backdrop-filter: blur(3px);
+.ticket-dialog::backdrop {
+  background: var(--backdrop);
 }
 
 @keyframes mac-open {
@@ -1989,20 +1989,82 @@ button:disabled {
   }
 }
 
-.mac-window__body {
+.ticket-dialog__main,
+.ticket-dialog__stub {
+  margin: 0;
+  background: var(--surface);
+  --notch: 10px;
+}
+
+.ticket-dialog__main {
+  border-radius: 22px 22px 0 0;
+  -webkit-mask:
+    radial-gradient(circle var(--notch) at 0 100%, transparent 98%, black) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 100%, transparent 98%, black) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle var(--notch) at 0 100%, transparent 98%, black) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 100%, transparent 98%, black) right / 51% 100% no-repeat;
+}
+
+.ticket-dialog__stub {
+  display: grid;
+  place-items: center;
+  min-height: 56px;
+  border-top: 1.5px dashed var(--perforation);
+  border-radius: 0 0 22px 22px;
+  -webkit-mask:
+    radial-gradient(circle var(--notch) at 0 0, transparent 98%, black) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle var(--notch) at 0 0, transparent 98%, black) left / 51% 100% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black) right / 51% 100% no-repeat;
+}
+
+/* A stub torn in two (취소 | 확인), like the tab bar: the action's half is filled. */
+.ticket-dialog__split {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.ticket-dialog__split > button {
+  flex: 1;
+  min-height: 56px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.ticket-dialog__split > button + button {
+  border-left: 1.5px dashed var(--perforation);
+}
+
+.ticket-dialog__split > .is-danger {
+  border-left-color: transparent;
+  background: var(--danger);
+  color: var(--on-accent);
+}
+
+.ticket-dialog__split > button:active {
+  opacity: 0.8;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mac-window[open] {
+  .ticket-dialog[open] {
     animation: none;
   }
 }
 
 /* ---------- Day share (📅 → 공유) ---------- */
+
+.day-share .ticket-dialog__main {
+  padding: 16px 16px 14px;
+}
+
+.day-share .ticket-dialog__stub {
+  min-height: 72px;
+}
 
 .day-share__preview {
   display: grid;
@@ -3360,29 +3422,18 @@ input.timeline__time:focus {
 /* Delete confirm (a native modal <dialog>, so it sits in the top layer). */
 .confirm-dialog {
   width: min(300px, calc(100vw - 48px));
-  padding: 22px 18px 16px;
-  border: 0;
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  color: var(--text);
   text-align: center;
 }
 
-.confirm-dialog::backdrop {
-  background: var(--backdrop);
-}
-
 .confirm-dialog p {
-  margin: 0 0 18px;
-  font-size: 15px;
+  padding: 30px 20px 22px;
+  font-size: 17px;
   line-height: 1.5;
 }
 
-.confirm-dialog__actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+.confirm-dialog p span {
+  color: var(--muted);
+  font-size: 15px;
 }
 
 .btn--danger {
@@ -4514,30 +4565,12 @@ input.timeline__time:focus {
   margin: 2px;
 }
 
-.profile-sheet {
-  width: min(320px, calc(100vw - 48px));
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  color: var(--text);
-}
-
-.profile-sheet[open] {
-  animation: mac-open 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
-}
-
-.profile-sheet::backdrop {
-  background: var(--backdrop);
-}
-
 .profile {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 4px;
-  padding: 28px 18px 18px;
+  padding: 28px 18px 20px;
   text-align: center;
 }
 
@@ -4658,16 +4691,23 @@ input.timeline__time:focus {
   color: var(--danger);
 }
 
-/* 계정 정보 toggle: a quiet row; the chevron turns when open. */
+.profile__stub {
+  padding: 6px 18px;
+}
+
+.profile__stub > * {
+  width: 100%;
+}
+
+/* 계정 정보 toggle: a quiet row in the stub; the chevron turns when open. */
 .profile__account {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 4px;
   min-height: 44px;
-  margin-top: 18px;
   padding: 0 4px;
   border: 0;
-  border-top: 1px solid var(--border);
   background: transparent;
   color: var(--muted);
   font-size: 14px;
@@ -4686,7 +4726,7 @@ input.timeline__time:focus {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-  margin-top: 4px;
+  margin-bottom: 10px;
   animation: profile-account-in 0.18s ease both;
 }
 
