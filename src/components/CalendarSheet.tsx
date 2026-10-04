@@ -92,17 +92,6 @@ export default function CalendarSheet({
         }
         tools={
           <>
-            <button
-              className="icon-btn star-btn star-btn--on"
-              aria-label="위시리스트에서 빼기"
-              onClick={async () => {
-                if (!window.confirm('위시리스트에서 뺄까요?')) return;
-                await diary.removeWish(item.id);
-                day.setScreen({ kind: 'calendar' });
-              }}
-            >
-              <WishStar on />
-            </button>
             <button className="icon-btn" aria-label="공유" onClick={() => onShare(snapshotToDraft(item))}>
               <Share size={21} aria-hidden />
             </button>

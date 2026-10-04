@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useState, type CSSProperties } from 'react';
 import { categoryStyle, orderedCategories, PIN_LIMITS, type CategoryProblem, type NewCategoryInput } from '../domain/pin';
 import { PIN_COLORS, PIN_ICONS, type PinCategory, type PinIcon } from '../types/pin';
+import ConfirmDialog from './ConfirmDialog';
 import PinGlyph from './PinGlyph';
 
 interface CategoryManagerProps {
@@ -28,6 +29,8 @@ export default function CategoryManager({ categories, pinCounts, onCreate, onEdi
   const [newName, setNewName] = useState('');
   const [subName, setSubName] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
+  // The category whose bin was tapped, waiting on the confirm.
+  const [deleting, setDeleting] = useState<PinCategory | null>(null);
 
   const create = (input: NewCategoryInput, reset: () => void) => {
     const result = onCreate(input);
@@ -98,10 +101,7 @@ export default function CategoryManager({ categories, pinCounts, onCreate, onEdi
                     <button
                       className="icon-btn icon-btn--danger"
                       aria-label="카테고리 삭제"
-                      onClick={() => {
-                        const note = depth ? '핀은 상위 카테고리로 옮겨져요.' : '세부 카테고리도 함께 지워지고, 핀은 미분류로 옮겨져요.';
-                        if (window.confirm(`'${category.name}' 카테고리를 삭제할까요? ${note}`)) onDelete(category.id);
-                      }}
+                      onClick={() => setDeleting(category)}
                     >
                       <Trash2 size={20} aria-hidden />
                     </button>
@@ -141,6 +141,15 @@ export default function CategoryManager({ categories, pinCounts, onCreate, onEdi
         </button>
       </form>
       {problem && <p className="hint">{problem}</p>}
+      {deleting && (
+        <ConfirmDialog
+          label="카테고리 삭제"
+          message={`'${deleting.name}' 카테고리를 삭제합니다.`}
+          detail={deleting.parentId ? '핀은 상위 카테고리로 옮겨져요.' : '세부 카테고리도 함께 지워지고, 핀은 미분류로 옮겨져요.'}
+          onConfirm={() => onDelete(deleting.id)}
+          onClose={() => setDeleting(null)}
+        />
+      )}
     </div>
   );
 }

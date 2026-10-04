@@ -17,6 +17,7 @@ import {
   type RouteTab,
 } from '../domain/routeFolders';
 import type { Course } from '../types/course';
+import ConfirmDialog from './ConfirmDialog';
 
 interface RouteFolderTrayProps {
   /** False while it slides away (it stays mounted for that). */
@@ -96,7 +97,6 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
   dragOrderRef.current = dragOrder;
   const [deleting, setDeleting] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
-  const confirmEl = useRef<HTMLDialogElement | null>(null);
   const foldersRef = useRef(folders);
   foldersRef.current = folders;
 
@@ -172,13 +172,6 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     document.addEventListener('pointerdown', away);
     return () => document.removeEventListener('pointerdown', away);
   }, [deleting]);
-
-  // The confirm is a native modal <dialog>: the top layer escapes the sheet's
-  // slide-in transform, and Esc / focus handling come with it.
-  useEffect(() => {
-    const dialog = confirmEl.current;
-    if (confirming && dialog && !dialog.open) dialog.showModal();
-  }, [confirming]);
 
   // ----- Drag animation -----
   // Positions are offsetLeft (layout, untouched by transforms), all in the
@@ -596,36 +589,18 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
           </div>
         </>
       )}
-      <dialog
-        ref={confirmEl}
-        className="confirm-dialog ticket-dialog"
-        aria-label="폴더 삭제"
-        onClose={() => {
-          setConfirming(null);
-          setDeleting(null);
-        }}
-      >
-        <p className="ticket-dialog__main">
-          폴더를 삭제합니다.
-          <br />
-          <span>이 작업은 되돌릴 수 없습니다.</span>
-        </p>
-        {/* The stub torn in two, like the tab bar: 취소 | 확인. */}
-        <div className="ticket-dialog__stub ticket-dialog__split">
-          <button onClick={() => confirmEl.current?.close()}>
-            취소
-          </button>
-          <button
-            className="is-danger"
-            onClick={() => {
-              if (confirming) onFolders(deleteFolder(folders, confirming));
-              confirmEl.current?.close();
-            }}
-          >
-            확인
-          </button>
-        </div>
-      </dialog>
+      {confirming && (
+        <ConfirmDialog
+          label="폴더 삭제"
+          message="폴더를 삭제합니다."
+          detail="이 작업은 되돌릴 수 없습니다."
+          onConfirm={() => onFolders(deleteFolder(folders, confirming))}
+          onClose={() => {
+            setConfirming(null);
+            setDeleting(null);
+          }}
+        />
+      )}
 
       <div ref={tabsEl} className="route-folders__tabs" role="tablist" aria-label="폴더">
         {tabButton('all', '전체', ALL_ICON)}
