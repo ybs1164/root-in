@@ -296,7 +296,7 @@ export default function CategoryManager({
         <ConfirmDialog
           label="카테고리 삭제"
           message={`'${deleting.name}' 카테고리를 삭제합니다.`}
-          detail={deleting.parentId ? '이 카테고리의 핀은 미분류로 옮겨져요.' : '세부 카테고리도 함께 지워지고, 핀은 모두 미분류로 옮겨져요.'}
+          detail={deleting.parentId ? '이 카테고리의 핀은 미분류로 옮겨져요.' : '핀은 모두 미분류로 옮겨져요.'}
           onConfirm={() => onDelete(deleting.id)}
           onClose={() => setDeleting(null)}
         />
