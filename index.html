@@ -7,6 +7,9 @@
     <meta name="theme-color" content="#0f1626" media="(prefers-color-scheme: dark)" />
     <meta name="description" content="데이트·여행·맛집 코스를 지도에 만들고 링크로 공유하세요" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- The Kakao Maps SDK loader and the script it pulls in come from these; connecting early saves round trips before the map can start. -->
+    <link rel="preconnect" href="https://dapi.kakao.com" />
+    <link rel="preconnect" href="https://t1.daumcdn.net" />
     <!-- Fonts for the app's tall, condensed type (Oswald for Latin, Do Hyeon for Hangul), 꾸미기 text boxes (domain/decor.ts TEXT_FONTS) and the calendar title (Bebas Neue); each has a fallback if this can't load. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

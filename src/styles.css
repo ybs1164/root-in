@@ -530,6 +530,32 @@ button:disabled {
   height: 32px;
 }
 
+/* Area names (useAreaMap labels): quiet text inside each drawn area, under
+   every marker and never in the way of a tap. */
+.map-area-label {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: nowrap;
+  opacity: 0.62;
+  pointer-events: none;
+  user-select: none;
+  text-shadow:
+    0 0 3px var(--map-bg),
+    0 0 1px var(--map-bg);
+  transition: opacity 0.25s ease-out;
+}
+
+.map-area-label--other {
+  color: var(--muted);
+  opacity: 0.9;
+}
+
+/* A route on show: its stop names take over. */
+.app--pins-away .map-area-label {
+  opacity: 0;
+}
+
 /* ---------- Place preview card ---------- */
 
 .place-card {

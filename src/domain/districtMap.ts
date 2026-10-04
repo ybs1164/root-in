@@ -74,6 +74,11 @@ export interface DistrictMap {
 export interface MapViewport {
   bounds: Bbox;
   widthPx: number;
+  /**
+   * The screen itself when the map is turned: `bounds` is then the box around
+   * it. Labels are laid out upright on screen, so they need the real thing.
+   */
+  screen?: { width: number; height: number; bearing: number };
 }
 
 export interface CourseRegion {
