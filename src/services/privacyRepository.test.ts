@@ -30,4 +30,23 @@ describe('privacy storage', () => {
     expect(excluded[1].address).toHaveLength(80);
     expect(excluded[1].center).toBeUndefined();
   });
+
+  it('keeps the name of an extra place (10 chars), never one on 집', () => {
+    localStorage.setItem(
+      'goodroot:privacy:v1',
+      JSON.stringify({
+        excluded: [
+          { id: 'home', kind: 'home', address: '집 주소', name: '우리집' },
+          { id: 'w', kind: 'other', address: '회사 주소', name: '  회사  ' },
+          { id: 'p', kind: 'other', address: '본가 주소', name: '아주아주아주긴부모님댁이름' },
+          { id: 'q', kind: 'other', address: '이름 없음' },
+        ],
+      }),
+    );
+    const [home, work, parents, plain] = loadPrivacy().excluded;
+    expect(home.name).toBeUndefined();
+    expect(work.name).toBe('회사');
+    expect(parents.name).toHaveLength(10);
+    expect(plain.name).toBeUndefined();
+  });
 });

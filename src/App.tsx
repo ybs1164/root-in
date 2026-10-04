@@ -1108,6 +1108,7 @@ export default function App() {
             places: privacy.excluded,
             resolving: privacy.resolving,
             onAddress: privacy.setAddress,
+            onName: privacy.setName,
             onAdd: privacy.add,
             onRemove: privacy.remove,
           }}

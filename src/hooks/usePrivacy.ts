@@ -21,7 +21,8 @@ export function usePrivacy(resolve: ResolveAddress) {
   }, [excluded]);
 
   const setAddress = useCallback((id: string, address: string) => {
-    setExcluded((list) => list.map((p) => (p.id === id ? { id: p.id, kind: p.kind, address } : p)));
+    // A new address drops the old location (it's looked up again below).
+    setExcluded((list) => list.map((p) => (p.id === id ? { ...p, address, center: undefined } : p)));
     if (!address) return;
     setResolving((s) => new Set(s).add(id));
     void resolveRef.current(address).then((center) => {
@@ -41,9 +42,20 @@ export function usePrivacy(resolve: ResolveAddress) {
     return id;
   }, [excluded.length]);
 
+  const setName = useCallback((id: string, name: string) => {
+    const label = name.trim().slice(0, PRIVACY_LIMITS.name);
+    setExcluded((list) =>
+      list.map((p) => {
+        if (p.id !== id || p.kind === 'home') return p;
+        const { name: _old, ...rest } = p;
+        return label ? { ...rest, name: label } : rest;
+      }),
+    );
+  }, []);
+
   const remove = useCallback((id: string) => {
     setExcluded((list) => list.filter((p) => p.id !== id || p.kind === 'home'));
   }, []);
 
-  return { excluded, resolving, setAddress, add, remove };
+  return { excluded, resolving, setAddress, setName, add, remove };
 }

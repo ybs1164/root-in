@@ -7,8 +7,10 @@ import { haversineMeters } from './geo';
  */
 export interface ExcludedPlace {
   id: string;
-  /** '집' is the fixed first row; the rest are plain extra addresses. */
+  /** '집' is the fixed first row; the rest are extra addresses. */
   kind: 'home' | 'other';
+  /** An extra address's own name ('회사', '부모님 댁'…); 집 is always '집'. */
+  name?: string;
   /** What the user typed. Empty until filled in. */
   address: string;
   /** Where the address was found (place search); missing if it couldn't be. */
@@ -17,6 +19,7 @@ export interface ExcludedPlace {
 
 export const PRIVACY_LIMITS = {
   address: 80,
+  name: 10,
   /** 집 plus up to five more. */
   maxPlaces: 6,
 } as const;

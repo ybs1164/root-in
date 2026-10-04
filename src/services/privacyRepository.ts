@@ -17,9 +17,11 @@ const isCenter = (value: unknown): value is [number, number] =>
 // Hand-edited or stale storage: keep the rows that make sense, clamp the text.
 function parsePlace(raw: unknown): ExcludedPlace | null {
   if (!raw || typeof raw !== 'object') return null;
-  const { id, kind, address, center } = raw as Partial<ExcludedPlace>;
+  const { id, kind, address, name, center } = raw as Partial<ExcludedPlace>;
   if (typeof id !== 'string' || (kind !== 'home' && kind !== 'other') || typeof address !== 'string') return null;
   const place: ExcludedPlace = { id, kind, address: address.slice(0, PRIVACY_LIMITS.address) };
+  const label = typeof name === 'string' ? name.trim().slice(0, PRIVACY_LIMITS.name) : '';
+  if (kind === 'other' && label) place.name = label;
   if (isCenter(center)) place.center = center;
   return place;
 }

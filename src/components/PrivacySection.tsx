@@ -9,24 +9,27 @@ interface PrivacySectionProps {
   /** Shown above the list (e.g. why 공유 sent the user here). */
   notice?: string | null;
   onAddress: (id: string, address: string) => void;
+  onName: (id: string, name: string) => void;
   /** Adds an empty row and returns its id (to start editing it). */
   onAdd: () => string | null;
   onRemove: (id: string) => void;
 }
 
+type Field = 'name' | 'address';
+
 /**
  * 개인 정보 → 제외 주소: addresses that never go out in a share. 집 is the
- * fixed, required first row; up to five more can be added (and removed).
- * Each address shows as text with a small pen; the pen (or a tap on it)
- * edits it in place, Enter or tapping away saves.
+ * fixed, required first row; up to five more can be added (and removed),
+ * each with a name of its own. Name and address each show as text with a
+ * small pen; a tap edits it in place, Enter or tapping away saves.
  */
-export default function PrivacySection({ places, resolving, notice, onAddress, onAdd, onRemove }: PrivacySectionProps) {
-  const [editing, setEditingState] = useState<string | null>(null);
+export default function PrivacySection({ places, resolving, notice, onAddress, onName, onAdd, onRemove }: PrivacySectionProps) {
+  const [editing, setEditingState] = useState<{ id: string; field: Field } | null>(null);
   // Mirrors `editing` for the blur that can follow Esc as the input goes away.
-  const editingRef = useRef<string | null>(null);
-  const setEditing = (id: string | null) => {
-    editingRef.current = id;
-    setEditingState(id);
+  const editingRef = useRef(editing);
+  const setEditing = (next: { id: string; field: Field } | null) => {
+    editingRef.current = next;
+    setEditingState(next);
   };
   const [draft, setDraft] = useState('');
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -35,22 +38,55 @@ export default function PrivacySection({ places, resolving, notice, onAddress, o
     if (editing) inputRef.current?.focus();
   }, [editing]);
 
-  const start = (place: ExcludedPlace) => {
-    setDraft(place.address);
-    setEditing(place.id);
+  const start = (place: ExcludedPlace, field: Field) => {
+    setDraft(field === 'name' ? (place.name ?? '') : place.address);
+    setEditing({ id: place.id, field });
   };
 
-  const finish = (save: boolean) => {
-    const place = places.find((p) => p.id === editingRef.current);
-    if (!editingRef.current) return;
+  /** `next`: Enter on a new place's name goes straight on to its address. */
+  const finish = (save: boolean, next = false) => {
+    const current = editingRef.current;
+    if (!current) return;
     setEditing(null);
+    const place = places.find((p) => p.id === current.id);
     if (!place) return;
     const text = draft.trim();
-    // An extra row left empty goes away; 집 stays (it's required).
-    if (save && !text && place.kind === 'other') return onRemove(place.id);
+    if (current.field === 'name') {
+      if (save && text !== (place.name ?? '')) onName(place.id, text);
+      if (next && !place.address) {
+        setDraft('');
+        setEditing({ id: place.id, field: 'address' });
+      }
+      return;
+    }
+    // An extra row with no address goes away; 집 stays (it's required).
+    if (place.kind === 'other' && !(save ? text : place.address)) return onRemove(place.id);
     if (save && text !== place.address) onAddress(place.id, text);
-    if (!save && !place.address && place.kind === 'other') onRemove(place.id);
   };
+
+  const input = (label: string, maxLength: number, placeholder: string, className: string) => (
+    <input
+      ref={inputRef}
+      className={`privacy__input ${className}`}
+      value={draft}
+      maxLength={maxLength}
+      placeholder={placeholder}
+      aria-label={label}
+      enterKeyHint="done"
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => finish(true)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          finish(true, true);
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          finish(false);
+        }
+      }}
+    />
+  );
 
   let other = 0;
   return (
@@ -61,45 +97,46 @@ export default function PrivacySection({ places, resolving, notice, onAddress, o
       <ul className="privacy__list">
         {places.map((place) => {
           const home = place.kind === 'home';
-          const label = home ? '집' : `주소 ${(other += 1)}`;
+          // Unnamed extras read as 주소 1, 주소 2… in the order they're listed.
+          const fallback = home ? '집' : `주소 ${(other += 1)}`;
+          const label = home ? '집' : place.name || fallback;
           const missing = home && !place.address.trim();
           const status = resolving.has(place.id)
             ? '위치 찾는 중…'
             : place.address && !place.center
               ? '위치를 못 찾았어요 · 주소가 같은 장소만 빠져요'
               : '';
+          const editingName = editing?.id === place.id && editing.field === 'name';
+          const editingAddress = editing?.id === place.id && editing.field === 'address';
           return (
             <li key={place.id} className={`privacy__row ${missing ? 'is-missing' : ''}`}>
-              <span className="privacy__label">
-                {label}
-                {home && <em className="privacy__required">필수</em>}
-              </span>
-              {editing === place.id ? (
-                <input
-                  ref={inputRef}
-                  className="privacy__input"
-                  value={draft}
-                  maxLength={PRIVACY_LIMITS.address}
-                  placeholder="주소를 입력하세요"
-                  aria-label={`${label} 주소`}
-                  enterKeyHint="done"
-                  onChange={(e) => setDraft(e.target.value)}
-                  onBlur={() => finish(true)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') e.currentTarget.blur();
-                    if (e.key === 'Escape') {
-                      e.preventDefault();
-                      finish(false);
-                    }
-                  }}
-                />
+              <div className="privacy__name">
+                {home ? (
+                  <span className="privacy__label">
+                    집<em className="privacy__required">필수</em>
+                  </span>
+                ) : editingName ? (
+                  input(`${label} 이름`, PRIVACY_LIMITS.name, fallback, 'privacy__input--name')
+                ) : (
+                  <button className="privacy__label privacy__label--edit" aria-label={`${label} 이름 바꾸기`} onClick={() => start(place, 'name')}>
+                    <span>{label}</span>
+                    <PenLine size={13} aria-hidden />
+                  </button>
+                )}
+              </div>
+              {editingAddress ? (
+                input(`${label} 주소`, PRIVACY_LIMITS.address, '주소를 입력하세요', '')
               ) : (
-                <button className={`privacy__address ${place.address ? '' : 'is-empty'}`} aria-label={`${label} 주소 수정`} onClick={() => start(place)}>
+                <button
+                  className={`privacy__address ${place.address ? '' : 'is-empty'}`}
+                  aria-label={`${label} 주소 수정`}
+                  onClick={() => start(place, 'address')}
+                >
                   <span>{place.address || '주소를 입력하세요'}</span>
                   <PenLine size={14} aria-hidden />
                 </button>
               )}
-              {!home && editing !== place.id && (
+              {!home && !editing && (
                 <button className="icon-btn privacy__remove" aria-label={`${label} 삭제`} onClick={() => onRemove(place.id)}>
                   <Trash2 size={18} aria-hidden />
                 </button>
@@ -114,10 +151,10 @@ export default function PrivacySection({ places, resolving, notice, onAddress, o
           className="privacy__add"
           onClick={() => {
             const id = onAdd();
-            if (id) {
-              setDraft('');
-              setEditing(id);
-            }
+            if (!id) return;
+            // A new place starts with its name, then its address.
+            setDraft('');
+            setEditing({ id, field: 'name' });
           }}
         >
           <Plus size={16} aria-hidden />
