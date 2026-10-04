@@ -13,6 +13,7 @@ import SettingsSheet from './components/SettingsSheet';
 import SharedCourseView from './components/SharedCourseView';
 import SharedPinsView from './components/SharedPinsView';
 import ShareSheet from './components/ShareSheet';
+import { visibleCenter } from './domain/adminAreas';
 import { calendarAgain, homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { addStop, COURSE_LIMITS, emptyDraft } from './domain/course';
 import { DIARY_LIMITS, diaryKind } from './domain/diary';
@@ -21,7 +22,7 @@ import { buildPinSet, categoryStyle, filterPins } from './domain/pin';
 import { orderByNearest } from './domain/routeOrder';
 import { useCourseDraft } from './hooks/useCourseDraft';
 import { useDiaryDay } from './hooks/useDiaryDay';
-import { useDistrictMap } from './hooks/useDistrictMap';
+import { useAreaMap } from './hooks/useAreaMap';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
 import { useIncomingDiary } from './hooks/useIncomingDiary';
 import { useIncomingPins } from './hooks/useIncomingPins';
@@ -207,10 +208,31 @@ export default function App() {
     };
   }, []);
 
-  const districtMap = useDistrictMap(viewport);
+  // Focus the area in the middle of the uncovered map, not under the sheet.
+  const areaFocus = useMemo(() => {
+    const el = mapEl.current;
+    if (!viewport || !el) return null;
+    return visibleCenter(viewport.bounds, { width: el.clientWidth, height: el.clientHeight }, mapPadding());
+  }, [viewport, mapPadding]);
+  const areaMap = useAreaMap(viewport, areaFocus);
   useEffect(() => {
-    mapRef.current?.setDistrictMap(districtMap);
-  }, [districtMap, mapProvider]);
+    mapRef.current?.setAreaMap(areaMap);
+  }, [areaMap, mapProvider]);
+  // Entering an area turns the map so the area looks most like a rectangle.
+  // Turning moves the screen center, which can pick a neighbor whose own
+  // angle would turn the map back; focus changes right after our own turn
+  // are taken as that and not followed.
+  const turnedFor = useRef({ code: '', until: 0 });
+  useEffect(() => {
+    const focus = areaMap?.focus;
+    const last = turnedFor.current;
+    if (!focus || focus.code === last.code) return;
+    last.code = focus.code;
+    const now = Date.now();
+    if (now < last.until) return;
+    last.until = now + 1500;
+    mapRef.current?.setBearing(focus.bearing);
+  }, [areaMap]);
 
   const stopsKey = shownStops.map((p) => p.id).join('|');
   useEffect(() => {

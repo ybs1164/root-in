@@ -1,4 +1,5 @@
-import type { DistrictMap, MapViewport } from '../domain/districtMap';
+import type { AreaShapes } from '../domain/adminAreas';
+import type { MapViewport } from '../domain/districtMap';
 import type { PlaceRef } from '../types/course';
 import type { PinColor } from '../types/pin';
 
@@ -24,15 +25,21 @@ export interface CourseMap {
   /** A faint dashed line (e.g. "이 카테고리 잇기"); not a saved course. */
   setGuideLine(points: [number, number][] | null): void;
   /**
-   * Illustrated block map of the visible area: hides the basemap under the
-   * road color and draws only the rounded blocks. null restores the basemap.
+   * Administrative-area map of the visible area: hides the SDK's own tiles
+   * under the background color and draws the squared-off sub-areas of the focus
+   * above its whole neighbors. null restores the tiles.
    */
-  setDistrictMap(district: DistrictMap | null): void;
+  setAreaMap(shapes: AreaShapes | null): void;
   fitCourse(padding: MapPadding): void;
   /** Fits arbitrary points (pins, a guide line). */
   fitPoints(points: [number, number][], padding: MapPadding): void;
   focus(center: [number, number], padding?: MapPadding): void;
   getCenter(): [number, number];
+  /**
+   * Turns the map so `bearing` (degrees clockwise from north) points up.
+   * Maps that can't rotate ignore it.
+   */
+  setBearing(bearing: number): void;
   /** Call after the container changes size (e.g. sheet resize, rotation). */
   resize(): void;
   destroy(): void;
@@ -58,6 +65,9 @@ export interface CourseMapOptions {
 }
 
 export const SEOUL_CENTER: [number, number] = [126.978, 37.5665];
+
+/** Credit line for the boundary data (KOGL Type 1 requires it). */
+export const ADMIN_ATTRIBUTION = '행정경계: 통계청 SGIS · admdongkor';
 
 /** Shared marker DOM so both map providers look identical. */
 export function createMarkerElement(label: string, variant: 'stop' | 'preview', onClick?: () => void): HTMLElement {

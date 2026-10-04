@@ -46,9 +46,16 @@
   --pin-6: #16a085;
   --pin-7: #eaa21a;
   --pin-8: #7f8c8d;
-  /* Illustrated block map: roads are the background, blocks sit on top. */
-  --map-road: #f4ede2;
-  --map-block: #a9c1c1;
+  /* Area map: the focus's sub-areas over whole neighbors, gaps show the background. */
+  --map-bg: #f4ede2;
+  --map-area: #a9c1c1;
+  --map-area-other: #d6dfdc;
+  /* Base map: land on water, parks on land, roads on top (tier 1 darker). */
+  --map-land: #f5f5f3;
+  --map-water: #94d9ef;
+  --map-park: #c4efd5;
+  --map-road: #d8e0e7;
+  --map-road-major: #8ca6c3;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -77,8 +84,14 @@
     --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
     --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.45);
     --backdrop: rgba(0, 0, 0, 0.6);
-    --map-road: #2a2521;
-    --map-block: #3d5253;
+    --map-bg: #2a2521;
+    --map-area: #3d5253;
+    --map-area-other: #33393a;
+    --map-land: #1f2225;
+    --map-water: #1d4656;
+    --map-park: #22402f;
+    --map-road: #3a434d;
+    --map-road-major: #5f7894;
   }
 }
 

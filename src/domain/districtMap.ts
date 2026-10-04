@@ -25,10 +25,36 @@ export interface Bbox {
   north: number;
 }
 
-/** A city block: the land between roads, with rounded corners. */
+/** A convex land polygon. Generated blocks have no interior holes. */
 export interface DistrictBlock {
   outer: Ring;
   holes: Ring[];
+  /** Area before clipping to a grid tile, so edge fragments share a cutoff. */
+  areaM2?: number;
+  /** A partial region at the padded tile edge has no reliable total area. */
+  continuesBeyondTile?: boolean;
+}
+
+export const MIN_DISTRICT_BLOCK_PX2 = 0;
+
+/** Net land area; water holes must not make a tiny region appear large. */
+export function districtBlockAreaM2(block: DistrictBlock): number {
+  if (block.areaM2 !== undefined) return block.areaM2;
+  const [lon, lat] = block.outer[0];
+  const kx = 111320 * Math.cos(lat * Math.PI / 180);
+  const area = (ring: Ring) => {
+    let twiceArea = 0;
+    for (let i = 1; i < ring.length; i++) {
+      const a = ring[i - 1], b = ring[i];
+      twiceArea += (a[0] - lon) * (b[1] - lat) - (b[0] - lon) * (a[1] - lat);
+    }
+    return Math.abs(twiceArea) * kx * 110540 / 2;
+  };
+  return Math.max(0, area(block.outer) - block.holes.reduce((sum, hole) => sum + area(hole), 0));
+}
+
+export function districtBlockVisible(block: DistrictBlock, mpp: number): boolean {
+  return block.continuesBeyondTile === true || districtBlockAreaM2(block) >= MIN_DISTRICT_BLOCK_PX2 * mpp ** 2;
 }
 
 /**
@@ -38,6 +64,10 @@ export interface DistrictBlock {
 export interface DistrictMap {
   region: Ring;
   blocks: DistrictBlock[];
+  /** Baked road buffer width. Used only when preparing screen geometry. */
+  sourceRoadWidthM?: number;
+  roadWidthPx?: number;
+  cornerRadiusPx?: number;
 }
 
 /** What the map is showing: its bounds and how many CSS pixels wide it is. */
@@ -57,9 +87,9 @@ export interface CourseRegion {
 export interface DistrictOptions {
   majorWidth: number;
   minorWidth: number;
-  /** Corner radius of blocks, in meters. */
+  /** Legacy styling option; convex partitioning does not erode corners. */
   cornerRadius: number;
-  /** Blocks smaller than this (m²) are slivers, not places. */
+  /** Legacy option; small regions are retained regardless of this value. */
   minBlockArea: number;
 }
 
@@ -67,20 +97,20 @@ export const DEFAULT_DISTRICT_OPTIONS: DistrictOptions = {
   majorWidth: 30,
   minorWidth: 18,
   cornerRadius: 22,
-  minBlockArea: 1500,
+  minBlockArea: 0,
 };
 
 // Real road widths are meters, but a 30m road is a hairline zoomed out and a
 // highway zoomed in; the drawing reads best when every road stays in this band.
 const MIN_ROAD_PX = 4;
-const MAX_ROAD_PX = 8;
+const MAX_ROAD_PX = 6;
 // A radius fixed in meters would erase every strip of land narrower than
 // twice itself once zoomed in, turning it into an oversized road gap.
 const MAX_CORNER_PX = 8;
 
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
 
-/** Road widths for a zoom level, kept between 4 and 8 screen pixels. */
+/** Road widths for a zoom level, kept between 4 and 6 CSS pixels. */
 export function districtOptionsFor(
   metersPerPixel: number,
   base: DistrictOptions = DEFAULT_DISTRICT_OPTIONS,
@@ -213,7 +243,7 @@ export const bboxContains = (outer: Bbox, inner: Bbox): boolean =>
 
 /**
  * The area worth illustrating for what's on screen: the viewport grown on
- * every side, so the eroded (rounded) region edge stays off-screen.
+ * every side, so the generated region edge stays off-screen during pans.
  * Returns null when the screen is city-scale — the basemap is more useful then.
  */
 export function viewportRegion(viewport: Bbox): CourseRegion | null {
@@ -414,15 +444,9 @@ export function pruneDeadEnds(roads: RoadSegment[], region: Ring): RoadSegment[]
   return out;
 }
 
-/**
- * Turns road center lines into rounded city blocks.
- *
- * Morphological opening: erode the land (region minus roads, both widened
- * by the corner radius), then grow what's left back by the same radius.
- * Growing a shape rounds its convex corners, so every block comes out with
- * soft corners of exactly `cornerRadius`, while the gaps between blocks keep
- * the real road widths. Dead-ends leave a rounded notch, the way a
- * hand-drawn map would.
+/** Build convex blocks covering all land outside dividing-road buffers.
+ * Dead ends are pruned; concave faces and holes are partitioned, then merged
+ * wherever convexity permits. Size and corner options never discard land.
  */
 export function buildDistrictMap(
   region: Ring,
@@ -431,43 +455,71 @@ export function buildDistrictMap(
 ): DistrictMap {
   if (region.length < 3) return { region, blocks: [] };
   const projection = new LocalProjection(centroid(region));
-  const r = options.cornerRadius;
   const regionPath = region.map((p) => projection.toPoint(p));
+  const dividingRoads = pruneDeadEnds(roads, region);
 
   const roadPaths = (kind: RoadKind) =>
-    roads.filter((road) => road.kind === kind && road.path.length >= 2).map((road) => road.path.map((p) => projection.toPoint(p)));
+    dividingRoads.filter((road) => road.kind === kind && road.path.length >= 2).map((road) => road.path.map((p) => projection.toPoint(p)));
   const roadMask = [
-    ...offset(roadPaths('major'), options.majorWidth / 2 + r, ClipperLib.EndType.etOpenRound),
-    ...offset(roadPaths('minor'), options.minorWidth / 2 + r, ClipperLib.EndType.etOpenRound),
+    ...offset(roadPaths('major'), options.majorWidth / 2, ClipperLib.EndType.etOpenRound),
+    ...offset(roadPaths('minor'), options.minorWidth / 2, ClipperLib.EndType.etOpenRound),
   ];
 
-  // Shrinking the region too rounds the blocks cut by the region's edge.
+  // Subtract only road buffers; retain the complete region boundary.
   const land = new ClipperLib.Clipper();
-  land.AddPaths(offset([regionPath], -r, ClipperLib.EndType.etClosedPolygon), ClipperLib.PolyType.ptSubject, true);
+  land.AddPaths([regionPath], ClipperLib.PolyType.ptSubject, true);
   land.AddPaths(roadMask, ClipperLib.PolyType.ptClip, true);
-  const eroded: ClipperLib.Paths = [];
+  const landPaths: ClipperLib.Paths = [];
   land.Execute(
     ClipperLib.ClipType.ctDifference,
-    eroded,
+    landPaths,
     ClipperLib.PolyFillType.pftNonZero,
     ClipperLib.PolyFillType.pftNonZero,
   );
 
-  const grow = new ClipperLib.ClipperOffset(2, 0.4 * SCALE);
-  grow.AddPaths(eroded, ClipperLib.JoinType.jtRound, ClipperLib.EndType.etClosedPolygon);
-  const tree = new ClipperLib.PolyTree();
-  grow.Execute(tree, r * SCALE);
-
-  const minArea = options.minBlockArea * SCALE * SCALE;
   const toRing = (path: ClipperLib.Path): Ring => {
     const ring = path.map((p) => projection.toLonLat(p));
     return [...ring, ring[0]];
   };
-  const blocks = ClipperLib.JS.PolyTreeToExPolygons(tree)
-    .filter((ex) => Math.abs(ClipperLib.Clipper.Area(ex.outer)) >= minArea)
-    .map((ex) => ({
-      outer: toRing(ex.outer),
-      holes: ex.holes.filter((h) => Math.abs(ClipperLib.Clipper.Area(h)) >= minArea).map(toRing),
-    }));
+  const blocks = partitionConvex(landPaths).map((path) => ({ outer: toRing(path), holes: [] }));
   return { region, blocks };
+}
+
+/** Slice at every vertex X: each resulting face is a convex trapezoid.
+ * Merge adjacent faces only when their exact union equals their convex hull.
+ * No area cutoff or corner erosion removes narrow land.
+ */
+function partitionConvex(paths: ClipperLib.Paths): ClipperLib.Paths {
+  const points = paths.flat();
+  if (!points.length) return [];
+  const xs = [...new Set(points.map((p) => p.X))].sort((a, b) => a - b);
+  const bottom = Math.min(...points.map((p) => p.Y)) - 1;
+  const top = Math.max(...points.map((p) => p.Y)) + 1;
+  const pieces: ClipperLib.Paths = [];
+  for (let i = 1; i < xs.length; i++) {
+    const clip = new ClipperLib.Clipper();
+    clip.AddPaths(paths, ClipperLib.PolyType.ptSubject, true);
+    clip.AddPath([{ X: xs[i - 1], Y: bottom }, { X: xs[i], Y: bottom },
+      { X: xs[i], Y: top }, { X: xs[i - 1], Y: top }], ClipperLib.PolyType.ptClip, true);
+    const sliced: ClipperLib.Paths = [];
+    clip.Execute(ClipperLib.ClipType.ctIntersection, sliced,
+      ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero);
+    pieces.push(...sliced.filter((p) => ClipperLib.Clipper.Area(p) !== 0).map(convexHull));
+  }
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (let a = 0; a < pieces.length; a++) {
+      for (let b = a + 1; b < pieces.length; b++) {
+        const hull = convexHull([...pieces[a], ...pieces[b]]);
+        const area = Math.abs(ClipperLib.Clipper.Area(pieces[a])) + Math.abs(ClipperLib.Clipper.Area(pieces[b]));
+        if (Math.abs(ClipperLib.Clipper.Area(hull)) !== area) continue;
+        pieces[a] = hull;
+        pieces.splice(b, 1);
+        changed = true;
+        break;
+      }
+    }
+  }
+  return pieces;
 }

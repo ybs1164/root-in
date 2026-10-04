@@ -4,6 +4,8 @@ import {
   buildDistrictMap,
   DEFAULT_DISTRICT_OPTIONS,
   districtOptionsFor,
+  districtBlockAreaM2,
+  districtBlockVisible,
   mergeDualCarriageways,
   pruneDeadEnds,
   viewportRegion,
@@ -37,6 +39,29 @@ describe('viewportRegion', () => {
 });
 
 describe('buildDistrictMap on a viewport', () => {
+  it('covers concave land with convex blocks without discarding small pieces', () => {
+    const region: LonLat[] = [[127, 37], [127.002, 37], [127.002, 37.0005],
+      [127.0005, 37.0005], [127.0005, 37.002], [127, 37.002], [127, 37]];
+    const map = buildDistrictMap(region, [], { ...DEFAULT_DISTRICT_OPTIONS, minBlockArea: 1e9 });
+    expect(map.blocks.length).toBeGreaterThan(1);
+    const expected = districtBlockAreaM2({ outer: region, holes: [] });
+    expect(map.blocks.reduce((sum, b) => sum + districtBlockAreaM2(b), 0)).toBeCloseTo(expected, -2);
+    for (const block of map.blocks) {
+      expect(block.holes).toEqual([]);
+      const p = block.outer.slice(0, -1);
+      const turns = p.map((a, i) => {
+        const b = p[(i + 1) % p.length], c = p[(i + 2) % p.length];
+        return (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+      });
+      expect(turns.every((t) => t >= -1e-15) || turns.every((t) => t <= 1e-15)).toBe(true);
+    }
+  });
+  it('does not carve a dead-end into a region', () => {
+    const region = viewportRegion(small)!;
+    const through: RoadSegment = { kind: 'major', path: [[126.978, 37.54], [126.978, 37.566], [126.978, 37.59]] };
+    const branch: RoadSegment = { kind: 'minor', path: [[126.978, 37.566], [126.981, 37.566]] };
+    expect(buildDistrictMap(region.region, [through, branch])).toEqual(buildDistrictMap(region.region, [through]));
+  });
   it('splits the screen into blocks along a road', () => {
     const region = viewportRegion(small)!;
     const midLon = (small.west + small.east) / 2;
@@ -47,19 +72,43 @@ describe('buildDistrictMap on a viewport', () => {
   });
 });
 
+describe('region visibility', () => {
+  const outer: LonLat[] = [[0, 0], [.001, 0], [.001, .001], [0, .001], [0, 0]];
+
+  it('retains small regions as the map zooms out', () => {
+    const block = { outer, holes: [], areaM2: 900 };
+    expect(districtBlockVisible(block, 5)).toBe(true);
+    expect(districtBlockVisible(block, 5.01)).toBe(true);
+    expect(districtBlockVisible(block, 10000)).toBe(true);
+    expect(districtBlockVisible(block, 2)).toBe(true);
+  });
+
+  it('uses area before tile clipping and preserves incomplete boundary regions', () => {
+    expect(districtBlockVisible({ outer, holes: [], areaM2: 3600 }, 10)).toBe(true);
+    expect(districtBlockVisible({ outer, holes: [], areaM2: 1, continuesBeyondTile: true }, 10)).toBe(true);
+  });
+
+  it('subtracts water holes when estimating the area of older tiles', () => {
+    const hole: LonLat[] = [[.0001, .0001], [.0009, .0001], [.0009, .0009], [.0001, .0009], [.0001, .0001]];
+    const full = districtBlockAreaM2({ outer, holes: [] });
+    expect(districtBlockAreaM2({ outer, holes: [hole] })).toBeCloseTo(full * .36, 6);
+    expect(districtBlockAreaM2({ outer: [...outer].reverse(), holes: [] })).toBeCloseTo(full, 6);
+  });
+});
+
 describe('districtOptionsFor', () => {
-  it('keeps both road classes between 4 and 8 screen pixels', () => {
+  it('keeps both road classes between 4 and 6 screen pixels', () => {
     // Zoomed in (0.5 m/px): 30m and 18m would be 60px and 36px.
     const near = districtOptionsFor(0.5);
-    expect(near.majorWidth / 0.5).toBe(8);
-    expect(near.minorWidth / 0.5).toBe(8);
+    expect(near.majorWidth / 0.5).toBe(6);
+    expect(near.minorWidth / 0.5).toBe(6);
     // Zoomed out (10 m/px): they would be 3px and 1.8px.
     const far = districtOptionsFor(10);
     expect(far.majorWidth / 10).toBe(4);
     expect(far.minorWidth / 10).toBe(4);
     // In between the real widths survive.
     const mid = districtOptionsFor(4.5);
-    expect(mid.majorWidth).toBe(DEFAULT_DISTRICT_OPTIONS.majorWidth);
+    expect(mid.majorWidth).toBe(27);
     expect(mid.minorWidth).toBe(DEFAULT_DISTRICT_OPTIONS.minorWidth);
   });
 
