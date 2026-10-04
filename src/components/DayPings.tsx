@@ -11,6 +11,7 @@ import {
   type PingShape,
 } from '../domain/dayPings';
 import { HEART_PATH, PIN_PATH, STAR_PATH } from '../lib/pingPaths';
+import { labelSide } from '../domain/stopLabels';
 
 export function PingIcon({ shape, className }: { shape: PingShape; className?: string }) {
   if (shape === 'pin') {
@@ -196,12 +197,15 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
       )}
       {pings.map((ping, i) => {
         const shape = shapeOf(ping);
+        // Its name goes below it unless one of its lines leaves that way (as a route's stops do).
+        const side = labelSide(points[i], [points[i - 1], points[i + 1]].filter((p): p is { x: number; y: number } => !!p));
         return (
           <div
             key={`${ping.time}-${ping.name}`}
             className={[
               'ping',
               `ping--${shape}`,
+              `ping--label-${side}`,
               i === latest ? 'ping--latest' : '',
               same(pressed, { kind: 'ping', index: i }) ? 'is-pressed' : '',
             ].join(' ')}

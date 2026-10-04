@@ -1,5 +1,10 @@
+import { Pencil } from 'lucide-react';
 import type { PatternId, ThemeId } from './domain/decor';
 import DayPattern from './components/DayPattern';
+import ShareStudio from './components/ShareStudio';
+import ConfirmDialog from './components/ConfirmDialog';
+import ShareTagButton from './components/ShareTagButton';
+import { routeSubject, type ShareSubject } from './domain/shareSubject';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomBar from './components/BottomBar';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
@@ -44,7 +49,7 @@ import { withRecentCategory } from './services/settingsRepository';
 import { loadProfile, saveProfile, type Profile } from './services/profileRepository';
 import { usePrivacy } from './hooks/usePrivacy';
 import { hasHome } from './domain/privacy';
-import type { CourseStop, PlaceRef } from './types/course';
+import type { CourseStop, PlaceRef, Course } from './types/course';
 import type { Pin } from './types/pin';
 
 type SheetSize = 'peek' | 'full';
@@ -55,9 +60,7 @@ const DESKTOP_QUERY = '(min-width: 900px)';
 /** Matches `tray-down` in styles.css: the 경로 폴더 sheet stays mounted while it slides away. */
 const ROUTE_TRAY_OUT_MS = 170;
 /** How much of the folder sheet stays up while a route is on show (matches .route-folders.is-lowered). */
-const FOLDER_LOWERED_PX = 190;
-/** …and taller by its description's two lines when the route on show has one (.has-note). */
-const FOLDER_NOTE_PX = 42;
+const FOLDER_LOWERED_PX = 314;
 /** Once the map has glided over to a route, the pins fade off (matches .app--pins-away), and only then do its stops drop in. */
 const PINS_FADE_MS = 250;
 /** A route stepped to with < > glides over as fast as its name slides in (RouteTitle SLIDE_MS). */
@@ -78,11 +81,17 @@ export default function App() {
 
   const { settings, update: updateSettings } = useSettings();
 
-  // Themes belong to calendar days: the day on screen reports its own, and
-  // it lives on <html data-theme>, where styles.css swaps the tokens.
-  const [dayTheme, setDayTheme] = useState<ThemeId>('default');
+  // Themes belong to calendar days (the day on screen reports its own) and
+  // to share cards (the 꾸미기 screen reports its card's, over the day's while
+  // it's up); the one showing lives on <html data-theme>, where styles.css
+  // swaps the tokens.
+  const [calendarTheme, setDayTheme] = useState<ThemeId>('default');
   // …and so do background patterns, drawn across the calendar page.
   const [dayPattern, setDayPattern] = useState<PatternId>('none');
+  // The card on the 꾸미기 screen (a calendar day's or a route's), while it's up.
+  const [studio, setStudio] = useState<ShareSubject | null>(null);
+  const [studioTheme, setStudioTheme] = useState<ThemeId>('default');
+  const dayTheme = studio ? studioTheme : calendarTheme;
   useEffect(() => {
     const root = document.documentElement;
     if (dayTheme === 'default') delete root.dataset.theme;
@@ -285,8 +294,7 @@ export default function App() {
     if (folderTray) {
       // Lowered (a route on show) only its top strip covers the map.
       const lowered = folderTray.classList.contains('is-lowered');
-      const noted = folderTray.classList.contains('has-note') ? FOLDER_NOTE_PX : 0;
-      const covered = lowered ? FOLDER_LOWERED_PX + noted : folderTray.offsetHeight;
+      const covered = lowered ? FOLDER_LOWERED_PX : folderTray.offsetHeight;
       // A route on show has its name under the rail; the route sits below it.
       const title = document.querySelector<HTMLElement>('.route-title:not(.route-title--out)');
       const top = lowered && title ? title.getBoundingClientRect().bottom + 30 : 90;
@@ -695,17 +703,39 @@ export default function App() {
     setBuilding([]);
   };
 
-  const startEditing = () => {
-    if (!shownRoute) return;
+  /** Straight into editing a route, from wherever: 경로 opens on it, put on show. */
+  const editRouteNow = (c: Course) => {
     setActivePinId(null);
+    setBuilding(null);
+    setRailMode('route');
+    setRouteStep(null);
+    setShownRouteId(c.id);
     setEditing({
-      id: shownRoute.id,
-      stops: shownRoute.stops,
-      note: shownRoute.note ?? '',
-      folder: folderOf(routeFolders.folders, shownRoute.id),
-      look: { stopShapes: shownRoute.stopShapes, edgeStyles: shownRoute.edgeStyles },
+      id: c.id,
+      stops: c.stops,
+      note: c.note ?? '',
+      folder: folderOf(routeFolders.folders, c.id),
+      look: { stopShapes: c.stopShapes, edgeStyles: c.edgeStyles },
     });
   };
+  const startEditing = () => {
+    if (shownRoute) editRouteNow(shownRoute);
+  };
+
+  // 루트 수정's trash asks first, then the route goes (and editing with it).
+  const [routeDeleting, setRouteDeleting] = useState<string | null>(null);
+  const deleteRoutes = async (cs: Course[]) => {
+    if (cs.some((c) => c.id === shownRouteId)) {
+      setEditing(null);
+      setShownRouteId(null);
+    }
+    routeFolders.setFolders((f) => cs.reduce((acc, c) => moveRoute(acc, c.id, null), f));
+    for (const c of cs) await course.remove(c.id);
+  };
+
+  // 핀 삭제 asks first; a pin some route stops at can't go until it's taken out of them.
+  const [pinDeleting, setPinDeleting] = useState<Pin | null>(null);
+  const routesWithPin = (pin: Pin) => course.courses.filter((c) => c.stops.some((s) => s.place.id === pin.place.id));
 
   // ✓ on the edit sheet: keep the stops with their look, the description and the folder.
   const saveEdit = async () => {
@@ -827,10 +857,15 @@ export default function App() {
   const calendarZoom = tab === 'calendar';
   const onPage = showsPage(tab, Boolean(sharedCourse || sharedPins || searchOpen || preview));
   // Swiping 달력 left slides the page off and uncovers the map (핀).
-  const swipe = usePageSwipe(onPage && !decorating ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
+  const swipe = usePageSwipe(onPage && !decorating && !studio ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
 
-  // The tab buttons step aside for a 꾸미기 tool's tray, and for the 경로 폴더.
-  const barAway = (decorating && calendarZoom && onPage) || routeMode;
+  // The tab buttons step aside for a 꾸미기 tool's tray, for the 경로 폴더, and under the 꾸미기 screen.
+  const barAway = (decorating && calendarZoom && onPage) || routeMode || !!studio;
+  // 공유 before 집 is set (it's required) opens the profile on 개인 정보 instead.
+  const needHome = () => {
+    setPrivacyNotice('공유하려면 집 주소를 먼저 입력하세요.');
+    setProfileOpen(true);
+  };
 
   return (
     <div className={`app ${searchOpen ? 'app--searching' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''}`}>
@@ -883,11 +918,7 @@ export default function App() {
           tab={routeTab}
           onTab={setRouteTab}
           onNewRoute={startBuilding}
-          onDeleteRoutes={async (cs) => {
-            if (cs.some((c) => c.id === shownRouteId)) setShownRouteId(null);
-            routeFolders.setFolders((f) => cs.reduce((acc, c) => moveRoute(acc, c.id, null), f));
-            for (const c of cs) await course.remove(c.id);
-          }}
+          onDeleteRoutes={deleteRoutes}
         />
       )}
 
@@ -897,6 +928,8 @@ export default function App() {
           count={shownStops.length}
           edgeStyles={buildPins ? buildRouteLook(buildPins.map((p) => p.id), buildLook).edgeStyles : editRoute ? editRoute.look.edgeStyles : shownRoute?.edgeStyles}
           stopShapes={buildPins ? buildRouteLook(buildPins.map((p) => p.id), buildLook).stopShapes : editRoute ? editRoute.look.stopShapes : shownRoute?.stopShapes}
+          // A route on show names its stops, as a calendar day names its pings.
+          names={shownRoute && !buildPins && !editRoute ? shownRoute.stops.map((s) => s.place.name) : undefined}
           // A route put on show plays in once the map has glided over to it and the pins have gone
           // (until then app--route-arriving keeps its stops out of sight).
           play={
@@ -918,7 +951,7 @@ export default function App() {
           title={shownRoute.title}
           onRename={(title) => course.save({ ...shownRoute, title })}
           slideFrom={routeStep?.id === shownRoute.id ? routeStep.from : 0}
-          onEdit={startEditing}
+          note={shownRoute.note}
           editMode={!!editRoute}
           // Each arrow puts the neighbour on show the usual way, so the map
           // glides over and its stops drop in afresh.
@@ -932,6 +965,27 @@ export default function App() {
                 }
               : undefined
           }
+        />
+      )}
+
+      {/* 공유 for the route on show: makes its card and opens the 꾸미기 screen on it. */}
+      {shownRoute && !buildPins && !editRoute && routeTrayShown && onPinHome && (
+        <ShareTagButton
+          light
+          className="share-tag--edit"
+          label="루트 수정"
+          icon={<Pencil size={18} strokeWidth={2.2} />}
+          onClick={startEditing}
+        />
+      )}
+      {shownRoute && !buildPins && !editRoute && routeTrayShown && onPinHome && (
+        <ShareTagButton
+          className="share-tag--route"
+          label={`${shownRoute.title} 공유`}
+          onClick={() => {
+            if (!hasHome(privacy.excluded)) return needHome();
+            setStudio(routeSubject(shownRoute, privacy.excluded));
+          }}
         />
       )}
 
@@ -1010,6 +1064,7 @@ export default function App() {
             folder={editRoute.folder}
             onFolder={(folder) => setEditing((e) => (e ? { ...e, folder } : e))}
             onDone={saveEdit}
+            onDelete={() => setRouteDeleting(editRoute.id)}
           />
         </>
       )}
@@ -1034,11 +1089,7 @@ export default function App() {
           }}
           onRename={(name) => pinStore.updatePin(activePin.id, { place: { ...activePin.place, name } })}
           onMemo={(memo) => pinStore.updatePin(activePin.id, { memo: memo || undefined })}
-          onDelete={() => {
-            // Gone at once, without an undo toast.
-            pinStore.removePin(activePin.id);
-            setActivePinId(null);
-          }}
+          onDelete={() => setPinDeleting(activePin)}
           onClose={closePinCard}
         />
       )}
@@ -1057,10 +1108,8 @@ export default function App() {
             <CalendarZoom
               command={calendarCommand}
               excluded={privacy.excluded}
-              onNeedHome={() => {
-                setPrivacyNotice('공유하려면 집 주소를 먼저 입력하세요.');
-                setProfileOpen(true);
-              }}
+              onNeedHome={needHome}
+              onShare={setStudio}
               onDecorating={setDecorating}
               onDayTheme={setDayTheme}
               onDayPattern={setDayPattern}
@@ -1094,6 +1143,54 @@ export default function App() {
           calendarIcon={tab === 'calendar' && calendarZoom && calendarMode === 'day' ? 'month' : 'today'}
         />
       </div>
+
+      {routeDeleting && course.courses.some((c) => c.id === routeDeleting) && (
+        <ConfirmDialog
+          label="루트 삭제"
+          message={`'${course.courses.find((c) => c.id === routeDeleting)?.title || '이름 없는 경로'}' 루트를 삭제합니다.`}
+          detail="삭제한 루트는 복구할 수 없어요."
+          onConfirm={() => void deleteRoutes(course.courses.filter((c) => c.id === routeDeleting))}
+          onClose={() => setRouteDeleting(null)}
+        />
+      )}
+
+      {pinDeleting &&
+        (routesWithPin(pinDeleting).length > 0 ? (
+          <ConfirmDialog
+            label="장소 삭제 불가"
+            message="이 장소는 루트에 들어 있는 장소예요."
+            detail={
+              <>
+                소속 루트:{' '}
+                {routesWithPin(pinDeleting).map((c, i) => (
+                  <span key={c.id}>
+                    {i > 0 && '  '}
+                    <b className="confirm-dialog__em">'{c.title}'</b>
+                  </span>
+                ))}
+                {'\n'}먼저 해당하는 루트에서 장소를 제거해 주세요.
+              </>
+            }
+            confirmLabel="루트 편집"
+            tone="action"
+            // The first route named: straight into editing it.
+            onConfirm={() => editRouteNow(routesWithPin(pinDeleting)[0])}
+            onClose={() => setPinDeleting(null)}
+          />
+        ) : (
+          <ConfirmDialog
+            label="장소 삭제"
+            message={`'${pinDeleting.place.name}' 장소를 삭제합니다.`}
+            detail="삭제한 장소는 복구할 수 없어요."
+            onConfirm={() => {
+              pinStore.removePin(pinDeleting.id);
+              if (activePinId === pinDeleting.id) setActivePinId(null);
+            }}
+            onClose={() => setPinDeleting(null)}
+          />
+        ))}
+
+      {studio && <ShareStudio key={studio.key} subject={studio} onTheme={setStudioTheme} onClose={() => setStudio(null)} />}
 
       {profileOpen && (
         <ProfileSheet

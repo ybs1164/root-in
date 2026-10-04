@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Pencil } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { ROUTE_TITLE_MAX } from '../domain/routeBuild';
 
@@ -10,9 +10,9 @@ interface RouteTitleProps {
   slideFrom?: -1 | 0 | 1;
   /** < > to the route above / below in the open tab's list; left out, no arrows. */
   onStep?: (step: -1 | 1) => void;
-  /** The pen: into editing the route (its stops, order and description). */
-  onEdit?: () => void;
-  /** Editing the route: no pen or arrows, and a tap on the name renames it. */
+  /** The route's description, opened under the name by the toggle beside it. */
+  note?: string;
+  /** Editing the route: no toggle or arrows, and a tap on the name renames it. */
   editMode?: boolean;
 }
 
@@ -21,13 +21,18 @@ const SLIDE_MS = 260;
 
 /**
  * The name of the route on show, big at the top of the map like a calendar
- * day's "TODAY", with a small pen at its bottom right that opens editing the
- * route. While editing, a tap on the name renames it in place (Enter or a tap
+ * day's "TODAY", with a small toggle at its bottom right that opens its whole
+ * description under it (closed on every route it comes to). While editing
+ * the route, a tap on the name renames it in place (Enter or a tap
  * elsewhere sets it; Escape keeps the old one). The field looks just like the
  * name, so only the text changes.
  */
-export default function RouteTitle({ routeId, title, onRename, slideFrom = 0, onStep, onEdit, editMode = false }: RouteTitleProps) {
+export default function RouteTitle({ routeId, title, onRename, slideFrom = 0, onStep, note = '', editMode = false }: RouteTitleProps) {
   const [editing, setEditing] = useState(false);
+  // The description: shut on coming to a route, however it was left.
+  const [noteOpen, setNoteOpen] = useState(false);
+  useEffect(() => setNoteOpen(false), [routeId]);
+  const hasNote = note.trim() !== '';
   // What's typed so far, mirrored into a hidden copy that sizes the field to its text.
   const [draft, setDraft] = useState(title);
   const inputEl = useRef<HTMLTextAreaElement | null>(null);
@@ -67,7 +72,7 @@ export default function RouteTitle({ routeId, title, onRename, slideFrom = 0, on
           aria-hidden
         >
           <h2 className="route-title__name">{leaving.title}</h2>
-          <span className="route-title__pen" />
+          <span className="route-title__toggle" />
         </div>
       )}
       <div
@@ -103,36 +108,46 @@ export default function RouteTitle({ routeId, title, onRename, slideFrom = 0, on
         ) : (
           <h2
             className={`route-title__name ${editMode ? 'is-renamable' : ''}`}
-            onClick={
-              editMode
-                ? () => {
-                    setDraft(title);
-                    setEditing(true);
-                  }
-                : undefined
-            }
+            // Shown: a tap on the name opens (or shuts) its description, or does
+            // nothing at all without one; it's never a tap on bare map.
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (editMode) {
+                setDraft(title);
+                setEditing(true);
+              } else if (hasNote) setNoteOpen((o) => !o);
+            }}
           >
             {title}
           </h2>
         )}
-        {(!editMode || editing) && (
-        <button
-          className="route-title__pen"
-          aria-label={editing ? '이름 확정' : '루트 수정'}
-          aria-pressed={editing}
-          // While editing, keep the field focused: a blur first would save and close
-          // it, and this tap would then open it again.
-          onPointerDown={(e) => editing && e.preventDefault()}
-          onClick={() => {
-            if (editing) return commit();
-            if (onEdit) return onEdit();
-            setDraft(title);
-            setEditing(true);
-          }}
-        >
-          <Pencil size={13} aria-hidden />
-        </button>
+        {editing ? (
+          <button
+            className="route-title__pen"
+            aria-label="이름 확정"
+            aria-pressed
+            // Keep the field focused: a blur first would save and close it,
+            // and this tap would then open it again.
+            onPointerDown={(e) => e.preventDefault()}
+            onClick={commit}
+          >
+            <Pencil size={13} aria-hidden />
+          </button>
+        ) : (
+          !editMode &&
+          hasNote && (
+            <button
+              className={`route-title__toggle ${noteOpen ? 'is-open' : ''}`}
+              aria-label="설명"
+              aria-expanded={noteOpen}
+              onClick={() => setNoteOpen((o) => !o)}
+            >
+              <ChevronDown size={18} strokeWidth={2.4} aria-hidden />
+            </button>
+          )
         )}
+        {noteOpen && hasNote && !editMode && <p className="route-title__note">{note}</p>}
       </div>
       {onStep && !editMode && (
         <>

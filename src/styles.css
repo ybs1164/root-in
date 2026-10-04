@@ -30,6 +30,9 @@
   --dialog-shadow: 0 18px 36px rgba(27, 36, 64, 0.28);
   /* The orange arrow between the ticket's two places. */
   --ticket-arrow: #f08a2b;
+  /* The share polaroid's card: white paper in every theme. */
+  --polaroid: #ffffff;
+  --polaroid-shadow: rgba(27, 36, 64, 0.22);
   --mask-show: #fff; /* SVG masks: white = fully shown (not a colour anyone sees) */
   --mask-hide: #000; /* …and black = hidden (the eraser's rub) */
   /* 꾸미기: fixed ink colours (not themed), the tool sheet and the palette rainbow. */
@@ -554,7 +557,9 @@ button:disabled {
   flex-direction: column;
   height: var(--sheet-peek);
   background: var(--surface);
-  border-radius: 22px 22px 0 0;
+  /* The bottom sheets' look: a square top under a thick ink rule. */
+  border-radius: 0;
+  border-top: 3px solid var(--text);
   box-shadow: var(--shadow-up);
   transition:
     height 0.28s ease,
@@ -974,7 +979,9 @@ button:disabled {
   margin: auto auto 0;
   padding: 0;
   border: 0;
-  border-radius: 22px 22px 0 0;
+  /* The bottom sheets' look: a square top under a thick ink rule. */
+  border-radius: 0;
+  border-top: 3px solid var(--text);
   background: var(--surface);
   color: var(--text);
 }
@@ -1006,8 +1013,14 @@ button:disabled {
 }
 
 .share-sheet__head h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 22px;
+  min-width: 0;
   margin: 0;
-  font-size: 18px;
+  overflow: hidden;
+  font-size: 22px;
+  white-space: nowrap;
 }
 
 .field {
@@ -1890,90 +1903,238 @@ button:disabled {
 
 /* ---------- Day share (📅 → 공유) ---------- */
 
-.day-share .ticket-dialog__main {
-  padding: 16px 16px 14px;
+/* ---------- 꾸미기 (share card) ---------- */
+
+/* 공유 as an upright luggage tag (ShareTagButton). */
+.share-tag {
+  position: relative;
+  display: block;
+  width: 60px;
+  height: 76px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--on-accent);
+  /* drop-shadow follows the tag's outline (and leaves the eyelet clear). */
+  filter: drop-shadow(var(--ticket-shadow));
+  transition: scale 0.12s ease;
 }
 
-.day-share .ticket-dialog__stub {
-  min-height: 72px;
+.share-tag:active {
+  scale: 0.95;
 }
 
-.day-share__preview {
+.share-tag__shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: var(--accent);
+}
+
+.share-tag__icon {
+  position: absolute;
+  left: 50%;
+  top: 62%; /* the middle of the face under the eyelet */
+  display: grid;
+  translate: -50% -50%;
+}
+
+/* The white one, a lesser action beside 공유 (a route's 수정). */
+.share-tag--light {
+  color: var(--text);
+}
+
+.share-tag--light .share-tag__shape {
+  fill: var(--surface);
+}
+
+/* Small, standing just left of the route's 공유 tag, bottoms level. */
+.share-tag--edit {
+  position: absolute;
+  right: 84px;
+  bottom: 328px;
+  z-index: 12;
+  width: 44px;
+  height: 56px;
+  animation: tag-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+/* A route on show: the tag stands at the right, just above the lowered
+   folder sheet (314px: .route-folders.is-lowered). */
+.share-tag--route {
+  position: absolute;
+  right: 14px;
+  bottom: 328px;
+  z-index: 12;
+  animation: tag-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+/* The day screen's 공유: the same tag, at its bottom right (just above the tab bar). */
+.share-tag--day {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  z-index: 3;
+}
+
+@keyframes tag-in {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+  }
+}
+
+/* The 꾸미기 screen: the card in the middle, the tools down its right side,
+   the share buttons where the tab bar sits elsewhere. */
+.studio {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: var(--bg);
+  animation: studio-in 0.24s ease-out both;
+}
+
+@keyframes studio-in {
+  from {
+    opacity: 0;
+    translate: 24px 0;
+  }
+}
+
+.studio__back {
+  position: absolute;
+  top: calc(var(--safe-top) + 12px);
+  left: 12px;
+  z-index: 3;
   display: grid;
   place-items: center;
-  aspect-ratio: 4 / 5;
-  max-height: 52dvh;
-  margin: 0 auto;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: var(--surface-2);
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
 }
 
-.day-share__note {
-  margin: 8px 0 0;
+.studio .decor-rail {
+  top: calc(var(--safe-top) + 12px);
+  right: 12px;
+}
+
+.decor-rail--row {
+  flex-direction: row;
+}
+
+/* Sized so the whole card fits between the buttons, whichever way the screen runs short. */
+.studio__stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--safe-top) + 68px) 16px calc(var(--safe-bottom) + 96px);
+  container-type: size;
+}
+
+.studio__card {
+  position: relative;
+  width: min(100cqw, 100cqh * 1400 / 2000); /* SCENE in domain/polaroid.ts */
+  border-radius: 14px;
+  background: var(--accent-soft);
+  box-shadow: var(--shadow-sm);
+}
+
+.studio__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.studio__loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* A tool's sheet is up (a quarter of the screen, the theme's 30%): the card
+   shrinks to stay above it. */
+.studio__stage {
+  transition: padding-bottom 0.24s ease;
+}
+
+.studio.is-tooling .studio__stage {
+  padding-bottom: calc(30dvh + 12px);
+}
+
+/* The whole scene is the 꾸미기 area: the pieces scale with it (cqw). */
+.studio__box {
+  position: absolute;
+  inset: 0;
+  container-type: inline-size;
+}
+
+.studio__note {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--safe-bottom) + 80px);
+  margin: 0;
   color: var(--muted);
   font-size: 13px;
   text-align: center;
 }
 
-.day-share__preview img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.day-share__actions {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 52px;
-  justify-content: center;
-  gap: 20px;
-}
-
-.day-share__action {
+.studio__actions {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + 18px);
+  z-index: 3;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 4px 0;
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -0.03em;
-  text-align: center;
-  /* Two-word labels (링크 복사, 이미지 저장) break at the space, never mid-word. */
-  word-break: keep-all;
+  gap: 22px;
+  translate: -50% 0;
+  transition: transform 0.24s ease;
 }
 
-.day-share__action:disabled {
-  color: var(--muted);
-  opacity: 0.55;
+/* A tool's sheet is up: the buttons go down out of its way. */
+.studio__actions.is-away {
+  transform: translateY(calc(100% + 40px));
 }
 
-.day-share__action-dot {
+.studio__action {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
-  background: var(--surface-2);
+  background: var(--surface);
   color: var(--text);
-  font-size: 16px;
-  font-weight: 800;
+  box-shadow: var(--shadow-sm);
 }
 
-.day-share__action-dot--primary {
+.studio__action--primary {
   background: var(--accent);
   color: var(--on-accent);
 }
 
-.day-share__action:not(:disabled):active .day-share__action-dot {
+.studio__action:disabled {
+  color: var(--muted);
+  opacity: 0.55;
+}
+
+.studio__action:not(:disabled):active {
   scale: 0.94;
 }
 
@@ -2134,12 +2295,7 @@ button:disabled {
 /* A route on show: the sheet sinks so only its tabs and the route's row stay
    up (App's FOLDER_LOWERED_PX), leaving the map to the route. */
 .route-folders.is-lowered {
-  transform: translateY(calc(100% - 190px));
-}
-
-/* The route on show has a description under its name: its two lines too (App's FOLDER_NOTE_PX). */
-.route-folders.is-lowered.has-note {
-  transform: translateY(calc(100% - 232px));
+  transform: translateY(calc(100% - 314px)); /* tabs, the toolbar, the route's row with its trash, and the next route's name with room under it */
 }
 
 /* Room to scroll any route, even the last, up to the top of the strip. */
@@ -2266,7 +2422,7 @@ button:disabled {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 10px 16px calc(var(--safe-bottom) + 14px);
+  padding: 4px 16px calc(var(--safe-bottom) + 14px);
   background: var(--surface);
 }
 
@@ -2275,10 +2431,26 @@ button:disabled {
 /* ✓ (다중 선택) and + on their own line at the top right; the routes start
    just below (tucked up a little). */
 .route-folders__head {
+  flex: none;
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px 0 16px;
+  /* The tabs stand on the sheet's ink rule (the open one too), as on the other sheets. */
+  border-top: 3px solid var(--text);
+  background: var(--surface);
+}
+
+/* ROUTES, at the left like the category sheet's CATEGORY. */
+.route-folders__title {
+  margin: 0;
+  color: var(--text);
+  font-size: 22px;
+}
+
+.route-folders__tools {
+  display: flex;
   gap: 2px;
-  margin: -4px 0 -10px;
 }
 
 .route-folders__new {
@@ -2347,6 +2519,42 @@ button:disabled {
     scale 0.12s ease,
     background-color 0.12s ease,
     color 0.12s ease;
+}
+
+.route-folders__move-wrap {
+  position: absolute;
+  right: 80px;
+  bottom: calc(var(--safe-bottom) + 16px);
+  z-index: 6;
+}
+
+/* 다중 선택: move what's picked, beside the trash, the same round button. */
+.route-folders__move {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  animation: picker-in 0.18s ease both;
+}
+
+.route-folders__move.is-on {
+  color: var(--accent);
+}
+
+.route-folders__move:disabled {
+  color: var(--muted);
+}
+
+/* Its folders open above it, right-aligned to it. */
+.route-folders__move-picker {
+  left: auto;
+  right: 0;
 }
 
 .route-folders__trash:disabled {
@@ -2494,6 +2702,61 @@ button:disabled {
   pointer-events: none;
 }
 
+/* A route on show: each stop's name beside it (StopLines), below unless a
+   line leaves that way (data-side). Readable over the map like the title. */
+.stop-label {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.stop-label__text {
+  position: absolute;
+  max-width: 140px;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow:
+    0 0 4px var(--surface),
+    0 0 2px var(--surface),
+    0 0 1px var(--surface);
+  opacity: 0;
+  transition: opacity 0.3s ease 0.15s;
+}
+
+/* Its stop has landed (StopLines): the name fades in. */
+.stop-label[data-shown] .stop-label__text {
+  opacity: 1;
+}
+
+.stop-label[data-side='below'] .stop-label__text {
+  top: 22px;
+  translate: -50% 0;
+}
+
+.stop-label[data-side='above'] .stop-label__text {
+  bottom: 22px;
+  translate: -50% 0;
+}
+
+.stop-label[data-side='right'] .stop-label__text {
+  left: 22px;
+  translate: 0 -50%;
+}
+
+.stop-label[data-side='left'] .stop-label__text {
+  right: 22px;
+  translate: 0 -50%;
+}
+
 .stop-shape svg {
   position: absolute;
   left: -15px;
@@ -2521,7 +2784,8 @@ button:disabled {
 }
 
 /* The route on show, named big at the top of the map like a day's "TODAY",
-   with a small pen at its bottom right. Clear of the ⚙ rail on the right. */
+   with the description's toggle at its bottom right (the description opens
+   on the next line). Clear of the ⚙ rail on the right. */
 .route-title {
   position: fixed;
   /* Below the ⚙ rail's two buttons, so it can use the full width. */
@@ -2534,6 +2798,7 @@ button:disabled {
   z-index: 14;
   display: flex;
   align-items: flex-end;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
   pointer-events: none;
@@ -2614,6 +2879,60 @@ button:disabled {
   color: var(--muted);
 }
 
+/* The description's toggle, where the pen used to be: a bare chevron that turns over when open. */
+.route-title__toggle {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-bottom: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  transition: rotate 0.2s ease;
+}
+
+.route-title__toggle.is-open {
+  rotate: 180deg;
+  color: var(--accent);
+}
+
+.route-title__toggle::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
+}
+
+/* The whole description under the name, every paragraph of it, centred and
+   bare like the name (the same halo keeps it readable over the map). */
+.route-title__note {
+  flex-basis: 100%;
+  /* Clear of the < > at the screen's edges (64px wide, the title box is 20px in). */
+  max-width: min(480px, calc(100% - 88px));
+  margin: 8px 0 0;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
+  text-shadow:
+    0 0 6px var(--surface),
+    0 0 2px var(--surface);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  animation: note-open 0.18s ease-out both;
+}
+
+@keyframes note-open {
+  from {
+    opacity: 0;
+    translate: 0 -6px;
+  }
+}
+
 /* Small to look at, a fair size to hit. */
 .route-title__pen::after {
   content: '';
@@ -2630,7 +2949,8 @@ button:disabled {
    button is bigger than the chevron so it's easy to hit from the edge. */
 .route-step {
   position: fixed;
-  top: 50%;
+  /* A little above the middle: clear of the 공유 / 수정 tags over the lowered folder sheet. */
+  top: calc(50% - 80px);
   z-index: 14;
   display: grid;
   place-items: center;
@@ -2711,41 +3031,54 @@ button:disabled {
   display: flex;
   flex-direction: column;
   height: 44dvh;
-  border-radius: 20px 20px 0 0;
+  /* The bottom sheets' look: a square top under a thick ink rule. */
+  border-radius: 0;
+  border-top: 3px solid var(--text);
   background: var(--surface);
   box-shadow: var(--shadow-up);
   color: var(--text);
   animation: tray-up 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 
+/* Nothing of its own left in the sheet: the folder tab and ✓ both stand
+   out of its top edge (they're placed against the sheet itself). */
 .route-edit__head {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between; /* the folder at the left, ✓ at the right */
-  padding: 12px 12px 0;
+  display: contents;
 }
 
-.route-edit__folder-box {
-  position: relative;
+/* The route's folder as an index tab out of the sheet's top edge, at its
+   left (like the folder sheet's tabs): its icon, or 미분류's tray. */
+.route-edit__folder-box,
+.route-create__pick.route-create__pick {
+  position: absolute;
+  left: 16px;
+  /* Standing on the sheet's ink rule (3px, above its padding box) like the
+     folder sheet's tabs, not in front of it. */
+  bottom: calc(100% + 3px);
 }
 
-/* The route's folder, like the create sheet's: its icon, or an empty slot for 미분류. */
-.route-edit__folder {
+.route-edit__folder,
+.route-create__btn.route-create__btn {
   display: grid;
   place-items: center;
-  width: 44px;
+  width: 56px;
   height: 44px;
   padding: 0;
   border: 0;
-  border-radius: 12px;
-  background: var(--surface-2);
+  border-radius: 14px 14px 0 0;
+  /* The sheet's own paper, so the tab and the sheet read as one piece. */
+  background: var(--surface);
+  box-shadow: var(--shadow-up);
+  /* The sheet's shadow mustn't show where the two meet. */
+  clip-path: inset(-30px -30px 0 -30px);
+  color: var(--muted);
   font-size: 22px;
   line-height: 1;
 }
 
-.route-edit__folder[aria-expanded='true'] {
-  background: var(--accent-soft);
+.route-edit__folder[aria-expanded='true'],
+.route-create__btn.route-create__btn[aria-expanded='true'] {
+  color: var(--accent);
 }
 
 /* The folder grid pops up above the button, over the map, like a folder tab's. */
@@ -2753,16 +3086,39 @@ button:disabled {
   left: 0;
 }
 
+/* ✓ above the sheet's top edge at the right, across from the folder tab. */
 .route-edit__done {
+  position: absolute;
+  right: 16px;
+  bottom: calc(100% + 8px);
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   padding: 0;
   border: 0;
   border-radius: 50%;
   background: var(--accent);
+  box-shadow: var(--shadow);
   color: var(--on-accent);
+}
+
+/* The route's own trash at the sheet's bottom right (the same round button as 다중 선택's). */
+.route-edit__trash {
+  position: absolute;
+  right: 16px;
+  bottom: calc(var(--safe-bottom) + 16px);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--danger);
 }
 
 .route-edit__done:disabled {
@@ -2775,13 +3131,16 @@ button:disabled {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 4px 16px calc(var(--safe-bottom) + 16px);
+  /* The description starts at the top, in from the edges like the stops under it; room at the bottom so the trash never covers the last stop. */
+  padding: 14px 16px calc(var(--safe-bottom) + 84px);
 }
 
 .route-edit__note {
   display: block;
   width: 100%;
   min-height: 48px;
+  /* Grown to its text (RouteEditTray): every paragraph shows, nothing scrolls inside it. */
+  overflow: hidden;
   padding: 8px 4px;
   border: 0;
   border-radius: 10px;
@@ -2959,7 +3318,9 @@ button:disabled {
   gap: 10px;
   /* A clear margin under the fields, so they sit a little higher up. */
   padding: 16px 16px calc(var(--safe-bottom) + 76px);
-  border-radius: 20px 20px 0 0;
+  /* The bottom sheets' look: a square top under a thick ink rule. */
+  border-radius: 0;
+  border-top: 3px solid var(--text);
   background: var(--surface);
   box-shadow: var(--shadow-up);
   animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
@@ -2994,10 +3355,6 @@ button:disabled {
   background: var(--surface-2);
   font-size: 22px;
   line-height: 1;
-}
-
-.route-create__btn[aria-expanded='true'] {
-  background: var(--accent-soft);
 }
 
 /* Their grids pop up above the button, over the map. */
@@ -3099,11 +3456,19 @@ button:disabled {
   padding: 30px 20px 22px;
   font-size: 17px;
   line-height: 1.5;
+  word-break: keep-all; /* Korean lines break between words, not mid-word */
 }
 
 .confirm-dialog p span {
   color: var(--muted);
   font-size: 15px;
+  white-space: pre-line;
+}
+
+/* A word picked out in the quieter lines (a route's name): the accent, bold. */
+.confirm-dialog__em {
+  color: var(--accent);
+  font-weight: 700;
 }
 
 .btn--danger {
@@ -3153,10 +3518,50 @@ button:disabled {
 }
 
 .route-row {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  border-bottom: 1px solid var(--border);
+}
+
+/* The routes as stops on a dashed line down the list: a dot before each
+   name (hollow; filled for the route on show), the line running from one
+   dot to the next. Dots sit at the middle of a row's 56px name line. */
+.route-row__dot {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--accent);
+  transition: background-color 0.2s ease;
+}
+
+.route-row__dot.is-on {
+  background: var(--accent);
+  animation: dot-fill 0.32s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+@keyframes dot-fill {
+  from {
+    scale: 0.5;
+  }
+}
+
+.route-folders__list > .route-row:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 10px; /* the dot's middle: the row's 4px padding + half the 14px dot - half the line */
+  top: 38px;
+  height: calc(100% - 20px);
+  border-left: 2px dashed var(--perforation);
+  pointer-events: none;
+}
+
+/* 다중 선택 puts its check circles there instead. */
+.route-folders__body.is-selecting .route-row::after {
+  display: none;
 }
 
 .route-row:last-child {
@@ -3226,7 +3631,7 @@ button:disabled {
   line-height: 1;
 }
 
-/* The open route's tools, small, under its name at the right. */
+/* The open route's tool, small, under its name at the right. */
 .route-row__tools {
   flex-basis: 100%;
   display: flex;
@@ -3234,29 +3639,6 @@ button:disabled {
   gap: 2px;
   margin-top: -8px;
   padding-bottom: 4px;
-}
-
-/* Under the open route's name; two lines at most, so the lowered sheet's
-   strip still shows the route's tools. */
-.route-row__note {
-  flex-basis: 100%;
-  display: -webkit-box;
-  /* Room below as margin: padding would show a sliver of a clamped third line. */
-  margin: -10px 4px 10px;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.4;
-  white-space: pre-line;
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-}
-
-/* In line with the name, past the folder icon (24px + the 8px gap). */
-.route-row__note.has-folder {
-  margin-left: 36px;
 }
 
 .route-row__tool {
@@ -3281,7 +3663,7 @@ button:disabled {
 
 .route-row__main strong {
   overflow: hidden;
-  font-size: 15px;
+  font-size: 17px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -3304,37 +3686,13 @@ button:disabled {
   background: var(--surface-2);
 }
 
-.route-row__chooser {
-  flex-basis: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 0 0 10px;
-}
 
-.route-row__to {
-  display: grid;
-  place-items: center;
-  min-width: 44px;
-  height: 44px;
-  padding: 0 10px;
-  border: 1px solid var(--border);
-  border-radius: 22px;
-  background: none;
-  color: var(--text);
-  font-size: 20px;
-  line-height: 1;
-}
 
 .route-row__in {
   display: inline-flex;
   vertical-align: -2px;
 }
 
-.route-row__to.is-on {
-  border-color: var(--accent);
-  background: var(--surface-2);
-}
 
 /* A pin's card stands just above the pin, which tapping it pans to the middle
    of the map (the map fills the screen, so that is the screen's middle). The
@@ -4246,6 +4604,59 @@ button:disabled {
   padding: 6px 18px;
 }
 
+/* An open toggle with another below it: its own piece of stub, torn off
+   from the next by a tear line (notches at both its top and bottom). */
+.ticket-dialog__stub--mid {
+  border-radius: 0;
+  -webkit-mask:
+    radial-gradient(circle var(--notch) at 0 0, transparent 98%, black) left top / 51% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black) right top / 51% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 0 100%, transparent 98%, black) left bottom / 51% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 100%, transparent 98%, black) right bottom / 51% 51% no-repeat;
+  mask:
+    radial-gradient(circle var(--notch) at 0 0, transparent 98%, black) left top / 51% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black) right top / 51% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 0 100%, transparent 98%, black) left bottom / 51% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 100%, transparent 98%, black) right bottom / 51% 51% no-repeat;
+}
+
+/* 음소거 · 알림 at the popup's top right: bare icons, greyed with a slash when off. */
+.profile {
+  position: relative;
+}
+
+.profile__switches {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+}
+
+/* The icons close together; their 44px targets overlap a little instead. */
+.profile__switch + .profile__switch {
+  margin-left: -12px;
+}
+
+.profile__switch {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text);
+}
+
+.profile__switch.is-off {
+  color: var(--muted);
+}
+
+.profile__switch:active {
+  background: var(--surface-2);
+}
+
 .profile__stub > * {
   width: 100%;
 }
@@ -4465,6 +4876,16 @@ button:disabled {
 .category-sheet .share-sheet__body {
   max-height: 88dvh;
   overflow-y: auto;
+}
+
+/* Its toolbar (CATEGORY, ✎, +) stays at the top while the categories scroll under it. */
+.category-sheet .share-sheet__head {
+  position: sticky;
+  top: -8px; /* the body's own top padding scrolls away first */
+  z-index: 3;
+  margin: -8px -16px 0;
+  padding: 8px 16px 4px;
+  background: var(--surface);
 }
 
 .cat-manager__list {
@@ -5081,6 +5502,35 @@ button:disabled {
   pointer-events: none;
 }
 
+/* The name off the side its lines leave clear (DayPings, labelSide): the
+   icon keeps its place on the point; only the name moves. */
+.ping--label-above .ping__label,
+.ping--label-right .ping__label,
+.ping--label-left .ping__label {
+  position: absolute;
+  margin: 0;
+}
+
+.ping--label-above .ping__label {
+  bottom: calc(100% + 4px);
+}
+
+.ping--label-right .ping__label,
+.ping--label-left .ping__label {
+  top: calc(var(--h) * var(--k) / 2);
+  translate: 0 -50%;
+}
+
+.ping--label-right .ping__label {
+  left: calc(50% + var(--w) * var(--k) / 2 + 6px);
+  align-items: flex-start;
+}
+
+.ping--label-left .ping__label {
+  right: calc(50% + var(--w) * var(--k) / 2 + 6px);
+  align-items: flex-end;
+}
+
 .ping--latest .ping__label {
   font-size: 15px;
 }
@@ -5298,6 +5748,6 @@ button:disabled {
   /* Still rises from the bottom edge on wide screens. */
   .category-sheet {
     margin: auto auto 0;
-    border-radius: 22px 22px 0 0;
+    border-radius: 0;
   }
 }

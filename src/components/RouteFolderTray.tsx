@@ -83,7 +83,10 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
   // The folder whose icon picker is out.
   const [picking, setPicking] = useState<string | null>(null);
   // The route whose 폴더 chooser is out.
-  const [filing, setFiling] = useState<string | null>(null);
+  // A route about to be deleted from its row's trash (asked first), and
+  // 다중 선택's folder chooser by its trash.
+  const [deletingRoute, setDeletingRoute] = useState<Course | null>(null);
+  const [movingPicked, setMovingPicked] = useState(false);
   const tabsEl = useRef<HTMLDivElement | null>(null);
   // Long press: the tab being held / dragged, the one showing its ✕, and the
   // one waiting on the delete confirm.
@@ -132,7 +135,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     if (!shownId) return;
     const row = sheetEl.current?.querySelector<HTMLElement>('.route-row.is-shown');
     const body = row?.closest<HTMLElement>('.route-folders__body');
-    // The route becomes the first thing in view (the + row scrolls away above it).
+    // The route becomes the first thing in view, under the toolbar.
     if (row && body) body.scrollTo({ top: row.offsetTop - body.offsetTop - 6, behavior: 'smooth' });
   }, [shownId]);
 
@@ -308,7 +311,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
             swallowClick.current = false;
             return;
           }
-          setFiling(null);
+          setMovingPicked(false);
           // Any tab lets go of a route on show (the sheet comes back up).
           if (shownId) onShow(null);
           // The second tap on an open folder brings out its icon picker and,
@@ -389,7 +392,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
   const toggleSelecting = () => {
     setSelecting((on) => !on);
     setSelected(new Set());
-    setFiling(null);
+    setMovingPicked(false);
     if (shownId) onShow(null);
   };
 
@@ -431,7 +434,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
         const row = rowEls[index]?.getBoundingClientRect();
         if (!sheet || !row) return;
         el.setPointerCapture?.(pointerId);
-        setFiling(null);
+        setMovingPicked(false);
         // A long press picks the route held, switching 다중 선택 on if it's
         // off; everything picked goes along.
         const next = new Set(selecting ? selected : []).add(c.id);
@@ -569,7 +572,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
   return (
     <section
       ref={sheetEl}
-      className={`route-folders ${open ? '' : 'is-leaving'} ${lowered ? 'is-lowered' : ''} ${lowered && courses.find((c) => c.id === shownId)?.note ? 'has-note' : ''}`} aria-label="경로 폴더" inert={!open}>
+      className={`route-folders ${open ? '' : 'is-leaving'} ${lowered ? 'is-lowered' : ''}`} aria-label="경로 폴더" inert={!open}>
       {pickingFolder && pickerX !== null && (
         <>
           <div className="folder-picker" role="dialog" aria-label="폴더 아이콘" style={{ '--x': `${pickerX}px` } as CSSProperties}>
@@ -592,13 +595,23 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
       {confirming && (
         <ConfirmDialog
           label="폴더 삭제"
-          message={`'${folderIcon(confirming)}' 폴더를 삭제합니다.`}
+          message={`${folderIcon(confirming)} 폴더를 삭제합니다.`}
           detail="루트는 모두 미분류로 옮겨져요."
           onConfirm={() => onFolders(deleteFolder(folders, confirming))}
           onClose={() => {
             setConfirming(null);
             setDeleting(null);
           }}
+        />
+      )}
+
+      {deletingRoute && (
+        <ConfirmDialog
+          label="루트 삭제"
+          message={`'${deletingRoute.title || '이름 없는 경로'}' 루트를 삭제합니다.`}
+          detail="삭제한 루트는 복구할 수 없어요."
+          onConfirm={() => onDeleteRoutes([deletingRoute])}
+          onClose={() => setDeletingRoute(null)}
         />
       )}
 
@@ -616,6 +629,44 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
         </button>
       </div>
 
+      {selecting && (
+        // 다중 선택: move what's picked to a folder (미분류 or one of the user's), from the chooser above.
+        <div className="route-folders__move-wrap">
+          <button
+            className={`route-folders__move ${movingPicked ? 'is-on' : ''}`}
+            aria-label={`선택한 경로 ${pickedRoutes.length}개 폴더 옮기기`}
+            aria-expanded={movingPicked}
+            disabled={pickedRoutes.length === 0}
+            onClick={() => setMovingPicked((m) => !m)}
+          >
+            <FolderInput size={22} aria-hidden />
+          </button>
+          {movingPicked && pickedRoutes.length > 0 && (
+            <div
+              className="folder-picker route-folders__move-picker"
+              role="dialog"
+              aria-label="옮길 폴더"
+              // As many columns as there are folders (미분류 too), five at most.
+              style={{ gridTemplateColumns: `repeat(${Math.min(5, folders.folders.length + 1)}, 44px)` }}
+            >
+              {[{ id: null, name: '미분류', icon: NONE_ICON }, ...folders.folders].map((f) => (
+                <button
+                  key={f.id ?? 'none'}
+                  className="folder-picker__opt"
+                  aria-label={f.name}
+                  onClick={() => {
+                    onFolders(pickedRoutes.reduce((acc, c) => moveRoute(acc, c.id, f.id), folders));
+                    setSelected(new Set());
+                    setMovingPicked(false);
+                  }}
+                >
+                  {f.icon}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       {selecting && (
         // 다중 선택: delete what's picked, by tapping or by dropping them here.
         <button
@@ -654,16 +705,10 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
         </div>
       )}
 
-      <div
-        ref={bodyEl}
-        className={`route-folders__body ${rowDrag ? 'is-sorting' : ''} ${selecting ? 'is-selecting' : ''}`}
-        role="tabpanel"
-        onClick={(e) => {
-          // A tap on the sheet's empty space (not a row or a button) lets go of a route on show.
-          if (shownId && !(e.target as Element).closest('button, a, input')) onShow(null);
-        }}
-      >
-        <div className="route-folders__head">
+      {/* The sheet's toolbar: ROUTES and its tools stay put while the routes scroll under them. */}
+      <div className="route-folders__head">
+        <h2 className="route-folders__title">ROUTES</h2>
+        <div className="route-folders__tools">
           <button
             className={`route-folders__new route-folders__select ${selecting ? 'is-on' : ''}`}
             aria-label="여러 개 선택"
@@ -676,13 +721,23 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
             <Plus size={20} aria-hidden />
           </button>
         </div>
+      </div>
+      <div
+        ref={bodyEl}
+        className={`route-folders__body ${rowDrag ? 'is-sorting' : ''} ${selecting ? 'is-selecting' : ''}`}
+        role="tabpanel"
+        onClick={(e) => {
+          // A tap on the sheet's empty space (not a row or a button) lets go of a route on show.
+          if (shownId && !(e.target as Element).closest('button, a, input')) onShow(null);
+        }}
+      >
         {routes.length === 0 ? (
-          // An empty folder of the user's own just stays blank.
-          (current === 'all' || current === 'none') && (
-            <p className="route-folders__empty">
-              {courses.length === 0 ? '저장한 경로가 없어요. 오른쪽 위 + 로 핀을 이어 만들어 보세요.' : '여기에 있는 경로가 없어요.'}
-            </p>
-          )
+          // No routes at all: how to make one. A folder (or tab) with none of them: says so.
+          <p className="route-folders__empty">
+            {courses.length === 0 && (current === 'all' || current === 'none') ? (
+              <>저장된 루트가 없어요.<br />드래그해 루트를 만들어 보세요.</>
+            ) : '여기에 있는 경로가 없어요.'}
+          </p>
         ) : (
           <ul className="route-folders__list">
             {routes.map((c, index) => {
@@ -720,48 +775,24 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
                         {selected.has(c.id) && <Check size={14} strokeWidth={3} />}
                       </span>
                     )}
-                    {/* Its folder's icon, before the name; a route in none shows nothing. */}
-                    {filed && (
+                    {/* A stop on the dashed line down the list: hollow, filled for the route on show. */}
+                    {!selecting && <span className={`route-row__dot ${shown ? 'is-on' : ''}`} aria-hidden />}
+                    {/* Its folder's icon, before the name; a route in none keeps the slot empty so the names line up. */}
+                    {filed ? (
                       <span className="route-row__folder" aria-label={`${folderName(filed)}에 있음`}>
                         {folderIcon(filed)}
                       </span>
+                    ) : (
+                      <span className="route-row__folder" aria-hidden />
                     )}
                     <strong>{c.title || '이름 없는 경로'}</strong>
                   </button>
-                  {/* The open route's description, small and grey under its name. */}
-                  {shown && c.note && <p className={`route-row__note ${filed ? 'has-folder' : ''}`}>{c.note}</p>}
-                  {/* The open route's tools: small, at its bottom right. */}
+                  {/* The open route's tool: small, at its bottom right (delete asks first). */}
                   {shown && (
                     <div className="route-row__tools">
-                      <button
-                        className="route-row__tool"
-                        aria-label={`${c.title || '경로'} 폴더 옮기기`}
-                        aria-expanded={filing === c.id}
-                        onClick={() => setFiling(filing === c.id ? null : c.id)}
-                      >
-                        <FolderInput size={18} aria-hidden />
-                      </button>
-                      <button className="route-row__tool route-row__tool--danger" aria-label={`${c.title || '경로'} 삭제`} onClick={() => onDeleteRoutes([c])}>
+                      <button className="route-row__tool route-row__tool--danger" aria-label={`${c.title || '경로'} 삭제`} onClick={() => setDeletingRoute(c)}>
                         <Trash2 size={18} aria-hidden />
                       </button>
-                    </div>
-                  )}
-                  {shown && filing === c.id && (
-                    <div className="route-row__chooser" role="group" aria-label="옮길 폴더">
-                      {[{ id: null, name: '미분류', icon: NONE_ICON }, ...folders.folders].map((f) => (
-                        <button
-                          key={f.id ?? 'none'}
-                          className={`route-row__to ${filed === f.id ? 'is-on' : ''}`}
-                          aria-label={f.name}
-                          aria-pressed={filed === f.id}
-                          onClick={() => {
-                            onFolders(moveRoute(folders, c.id, f.id));
-                            setFiling(null);
-                          }}
-                        >
-                          {f.icon}
-                        </button>
-                      ))}
                     </div>
                   )}
                 </li>

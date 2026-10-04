@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'react';
 import { swipeCommits, SWIPE } from '../domain/appTabs';
-import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, pingsLandedMs, SAMPLE_PING_DATES, type EdgeStyle, type PingShape } from '../domain/dayPings';
+import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, pingsLandedMs, SAMPLE_PING_DATES } from '../domain/dayPings';
 import { addDays } from '../domain/calendar';
 import {
   canUndo,
@@ -24,11 +24,12 @@ import {
 import { loadDays, saveDays, type DayStore } from '../services/dayRepository';
 import { dateKey } from '../domain/diary';
 import DayPings from './DayPings';
-import DayShareSheet from './DayShareSheet';
 import DecorLayer, { type TextFocus } from './DecorLayer';
 import { DecorRail, DecorTray } from './DecorTools';
 import MonthCalendar from './MonthCalendar';
-import { hasHome, withoutExcluded, type ExcludedPlace } from '../domain/privacy';
+import ShareTagButton from './ShareTagButton';
+import { hasHome, type ExcludedPlace } from '../domain/privacy';
+import { daySubject, type ShareSubject } from '../domain/shareSubject';
 
 type Mode = 'day' | 'month';
 type Point = { x: number; y: number };
@@ -102,16 +103,18 @@ interface CalendarZoomProps {
   onDayTheme: (theme: ThemeId) => void;
   /** Likewise the day's background pattern, which the app lays across the page. */
   onDayPattern: (pattern: PatternId) => void;
-  /** 제외 주소: pings there are left out of the shared image. */
+  /** 제외 주소: pings there are left out of the shared card. */
   excluded: ExcludedPlace[];
   /** 공유 pressed before 집 is set (it's required): the app asks for it. */
   onNeedHome: () => void;
+  /** 공유: the day as a card (its 꾸미기 carried along), for the app's 꾸미기 screen. */
+  onShare: (subject: ShareSubject) => void;
 }
 
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
 
-export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme, onDayPattern, excluded, onNeedHome }: CalendarZoomProps) {
+export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme, onDayPattern, excluded, onNeedHome, onShare }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
   const [date, setDate] = useState(today);
@@ -226,8 +229,6 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
     setVisit((v) => v + 1);
     setMode('day');
   };
-
-  const [sharing, setSharing] = useState(false);
 
   // Commands from the calendar button's menu (and TODAY from the month).
   const lastCommand = useRef(command?.seq ?? 0);
@@ -589,9 +590,6 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
     };
   }, []);
 
-  // The day as shared: pings on a 제외 주소 are left out of the image.
-  const shareCut = sharing ? withoutExcluded(pingsForDate(date), (ping) => ping, excluded) : null;
-
   return (
     <div
       ref={stageEl}
@@ -636,12 +634,27 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
             setArmed(null);
             setTextFocus(null);
           }}
-          onShare={() => {
-            setTool(null);
-            if (!hasHome(excluded)) return onNeedHome();
-            setSharing(true);
-          }}
         />
+        {/* 공유, a luggage tag as on a route: makes the day's card, its 꾸미기 carried along, and opens it there. */}
+        {!tool && (
+          <ShareTagButton
+            className="share-tag--day"
+            label="공유"
+            onClick={() => {
+              if (!hasHome(excluded)) return onNeedHome();
+              onShare(
+                daySubject(
+                  date,
+                  pingsForDate(date),
+                  (ping) => days.shapes[pingKey(date, ping)] ?? 'pin',
+                  (from, to) => days.edges[edgeKey(date, from, to)] ?? 'solid',
+                  excluded,
+                  days.decor[date] ?? EMPTY_DECOR,
+                ),
+              );
+            }}
+          />
+        )}
         <div ref={curEl} className="cal-day">
           <button className="cal-zoom__title" aria-label={`${dayTitle(shownDate, today)}, 달력 보기`} onClick={() => toMonth()}>
             {dayTitle(shownDate, today)}
@@ -714,18 +727,6 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
         />
       )}
 
-      {sharing && (
-        <DayShareSheet
-          date={date}
-          title={dayTitle(date, today)}
-          pings={shareCut?.kept ?? []}
-          removed={shareCut?.removed ?? 0}
-          shapeOf={(ping) => days.shapes[pingKey(date, ping)] ?? 'pin'}
-          edgeStyleOf={(from, to) => days.edges[edgeKey(date, from, to)] ?? 'solid'}
-          decor={days.decor[date] ?? EMPTY_DECOR}
-          onClose={() => setSharing(false)}
-        />
-      )}
     </div>
   );
 }

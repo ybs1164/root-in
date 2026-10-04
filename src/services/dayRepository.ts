@@ -102,7 +102,7 @@ function readText(v: unknown): PlacedText | null {
   };
 }
 
-function readDecor(v: unknown): DayDecor | null {
+export function readDecor(v: unknown): DayDecor | null {
   const d = v as DayDecor;
   if (!d || typeof d !== 'object') return null;
   const strokes = (Array.isArray(d.strokes) ? d.strokes : []).map(readStroke).filter((s): s is Stroke => !!s).slice(-MAX_STROKES);
@@ -120,6 +120,7 @@ function readDecor(v: unknown): DayDecor | null {
     ...(texts.length ? { texts } : {}),
     ...(isThemeId(d.theme) && d.theme !== 'default' ? { theme: d.theme } : {}),
     ...(isPatternId(d.pattern) && d.pattern !== 'none' ? { pattern: d.pattern } : {}),
+    ...(d.titled === true ? { titled: true as const } : {}),
   };
 }
 
@@ -154,12 +155,22 @@ export function loadDays(): DayStore {
 // small in storage without looking any different.
 const round = (n: number) => Math.round(n * 1e4) / 1e4;
 
+/** Nothing on it worth a row. */
+export const isBlankDecor = (d: DayDecor): boolean =>
+  !d.strokes.length && !d.stickers.length && !d.texts?.length && !d.theme && !d.pattern && !d.titled;
+
+/** Strokes rounded for storage. */
+export const compactDecor = (d: DayDecor): DayDecor => ({
+  ...d,
+  strokes: d.strokes.map((s) => ({ ...s, points: s.points.map(([x, y]) => [round(x), round(y)] as [number, number]) })),
+});
+
 export function saveDays(store: DayStore): void {
   const decor: Record<string, DayDecor> = {};
   for (const [date, d] of Object.entries(store.decor)) {
     // Days left blank again aren't worth a row.
-    if (!d.strokes.length && !d.stickers.length && !d.texts?.length && !d.theme && !d.pattern) continue;
-    decor[date] = { ...d, strokes: d.strokes.map((s) => ({ ...s, points: s.points.map(([x, y]) => [round(x), round(y)]) })) };
+    if (isBlankDecor(d)) continue;
+    decor[date] = compactDecor(d);
   }
   try {
     window.localStorage.setItem(DAYS_KEY, JSON.stringify({ ...store, decor }));
