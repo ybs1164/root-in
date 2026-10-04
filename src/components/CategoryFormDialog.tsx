@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { MoreHorizontal } from 'lucide-react';
 import { PIN_LIMITS } from '../domain/pin';
+import { QUICK_PIN_ICONS } from '../domain/categoryIcons';
 import { PIN_COLORS, PIN_ICONS, type PinColor, type PinIcon } from '../types/pin';
 import PinGlyph from './PinGlyph';
 import { useBackdropTap } from '../hooks/useBackdropTap';
+import CategoryIconPicker from './CategoryIconPicker';
 
 export interface CategoryFormValue {
   name: string;
@@ -19,12 +22,10 @@ interface CategoryFormDialogProps {
   onClose: () => void;
 }
 
-const ICON_NAMES = Object.keys(PIN_ICONS) as PinIcon[];
-
 /**
  * 핀 카테고리 생성 / 편집, a boarding pass like the other centre popups
- * (`ticket-dialog`): the icon in the middle with the icon list always open
- * under it, the
+ * (`ticket-dialog`): the icon in the middle with five shortcuts and a library
+ * button under it, the
  * palette, the name, then the stub torn in two — 취소 | 생성 (완료).
  * A native modal <dialog>, so it sits above the category sheet.
  */
@@ -33,6 +34,8 @@ export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }:
   const backdrop = useBackdropTap(dialogRef);
   const [value, setValue] = useState(initial);
   const [problem, setProblem] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [extraIcon, setExtraIcon] = useState<PinIcon | null>(QUICK_PIN_ICONS.includes(initial.icon) ? null : initial.icon);
   // No close() in cleanup: it would fire onClose during StrictMode's check (as ConfirmDialog).
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -88,7 +91,7 @@ export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }:
             <PinGlyph icon={value.icon} />
           </span>
           <div className="icon-grid cat-form__icons" role="group" aria-label="아이콘">
-            {ICON_NAMES.map((icon) => (
+            {QUICK_PIN_ICONS.map((icon) => (
               <button
                 key={icon}
                 type="button"
@@ -100,6 +103,17 @@ export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }:
                 <PinGlyph icon={icon} />
               </button>
             ))}
+            <button
+              type="button"
+              className={`icon-grid__btn ${extraIcon && value.icon === extraIcon ? 'is-on' : ''}`}
+              aria-label={extraIcon ? `더 많은 아이콘: ${PIN_ICONS[extraIcon]}` : '더 많은 아이콘'}
+              aria-pressed={!!extraIcon && value.icon === extraIcon}
+              aria-haspopup="dialog"
+              aria-expanded={pickerOpen}
+              onClick={() => setPickerOpen(true)}
+            >
+              {extraIcon ? <PinGlyph icon={extraIcon} /> : <MoreHorizontal size={22} aria-hidden />}
+            </button>
           </div>
           <div className="cat-form__colors" role="group" aria-label="색">
             {PIN_COLORS.map((color) => (
@@ -136,6 +150,13 @@ export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }:
           </button>
         </div>
       </form>
+      {pickerOpen && (
+        <CategoryIconPicker
+          selected={value.icon}
+          onSelect={(icon) => { setExtraIcon(icon); setValue((v) => ({ ...v, icon })); }}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
     </dialog>
   );
 }
