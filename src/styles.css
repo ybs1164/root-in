@@ -3438,11 +3438,13 @@ button:disabled {
   padding: 30px 20px 22px;
   font-size: 17px;
   line-height: 1.5;
+  word-break: keep-all; /* Korean lines break between words, not mid-word */
 }
 
 .confirm-dialog p span {
   color: var(--muted);
   font-size: 15px;
+  white-space: pre-line;
 }
 
 .btn--danger {
@@ -5474,6 +5476,35 @@ button:disabled {
   font-weight: 700;
   white-space: nowrap;
   pointer-events: none;
+}
+
+/* The name off the side its lines leave clear (DayPings, labelSide): the
+   icon keeps its place on the point; only the name moves. */
+.ping--label-above .ping__label,
+.ping--label-right .ping__label,
+.ping--label-left .ping__label {
+  position: absolute;
+  margin: 0;
+}
+
+.ping--label-above .ping__label {
+  bottom: calc(100% + 4px);
+}
+
+.ping--label-right .ping__label,
+.ping--label-left .ping__label {
+  top: calc(var(--h) * var(--k) / 2);
+  translate: 0 -50%;
+}
+
+.ping--label-right .ping__label {
+  left: calc(50% + var(--w) * var(--k) / 2 + 6px);
+  align-items: flex-start;
+}
+
+.ping--label-left .ping__label {
+  right: calc(50% + var(--w) * var(--k) / 2 + 6px);
+  align-items: flex-end;
 }
 
 .ping--latest .ping__label {

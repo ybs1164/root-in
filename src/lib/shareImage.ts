@@ -4,6 +4,7 @@ import { BACK_CARD, DRAWING_BOX, FRONT_CARD, POLAROID, SCENE, type CardPose } fr
 import type { StopMark } from '../domain/shareSubject';
 import { paintPattern } from './dayPatterns';
 import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
+import { labelSide } from '../domain/stopLabels';
 
 export interface ShareImageInput {
   pings: DayPing[];
@@ -233,14 +234,30 @@ function drawStops(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, 
       bottom = mark === 'pin' ? y : y + h / 2;
     }
 
+    // The name (and time) below the mark, unless one of its lines leaves that
+    // way: then above, right or left of it, as on the day screen.
+    const side = labelSide({ x, y }, [points[i - 1], points[i + 1]].filter((p): p is { x: number; y: number } => !!p));
+    const top = mark === 'number' ? y - 34 : bottom - (mark === 'pin' ? (118 * k) : (84 * k));
+    const half = mark === 'number' ? 34 : (mark === 'pin' ? (shapeBox('pin').w * (118 * k)) / shapeBox('pin').h : 84 * k) / 2;
+    const mid = (top + bottom) / 2;
+    const lines = ping.time ? 2 : 1;
+    let tx = x;
+    let nameY = bottom + 46;
+    if (side === 'above') nameY = top - (lines === 2 ? 54 : 14);
+    if (side === 'right' || side === 'left') {
+      tx = side === 'right' ? x + half + 18 : x - half - 18;
+      nameY = mid + (lines === 2 ? -6 : 12);
+    }
+    ctx.textAlign = side === 'right' ? 'left' : side === 'left' ? 'right' : 'center';
     ctx.fillStyle = c.text;
     ctx.font = `700 ${Math.round(36 * (k > 1 ? 1.15 : 1))}px ${c.font}`;
-    ctx.fillText(ping.name, x, bottom + 46);
+    ctx.fillText(ping.name, tx, nameY);
     if (ping.time) {
       ctx.fillStyle = c.muted;
       ctx.font = `600 32px ${c.font}`;
-      ctx.fillText(ping.time, x, bottom + 88);
+      ctx.fillText(ping.time, tx, nameY + 42);
     }
+    ctx.textAlign = 'center';
   });
 }
 

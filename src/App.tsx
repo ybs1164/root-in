@@ -2,6 +2,7 @@ import { Pencil } from 'lucide-react';
 import type { PatternId, ThemeId } from './domain/decor';
 import DayPattern from './components/DayPattern';
 import ShareStudio from './components/ShareStudio';
+import ConfirmDialog from './components/ConfirmDialog';
 import ShareTagButton from './components/ShareTagButton';
 import { routeSubject, type ShareSubject } from './domain/shareSubject';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -48,7 +49,7 @@ import { withRecentCategory } from './services/settingsRepository';
 import { loadProfile, saveProfile, type Profile } from './services/profileRepository';
 import { usePrivacy } from './hooks/usePrivacy';
 import { hasHome } from './domain/privacy';
-import type { CourseStop, PlaceRef } from './types/course';
+import type { CourseStop, PlaceRef, Course } from './types/course';
 import type { Pin } from './types/pin';
 
 type SheetSize = 'peek' | 'full';
@@ -702,17 +703,28 @@ export default function App() {
     setBuilding([]);
   };
 
-  const startEditing = () => {
-    if (!shownRoute) return;
+  /** Straight into editing a route, from wherever: 경로 opens on it, put on show. */
+  const editRouteNow = (c: Course) => {
     setActivePinId(null);
+    setBuilding(null);
+    setRailMode('route');
+    setRouteStep(null);
+    setShownRouteId(c.id);
     setEditing({
-      id: shownRoute.id,
-      stops: shownRoute.stops,
-      note: shownRoute.note ?? '',
-      folder: folderOf(routeFolders.folders, shownRoute.id),
-      look: { stopShapes: shownRoute.stopShapes, edgeStyles: shownRoute.edgeStyles },
+      id: c.id,
+      stops: c.stops,
+      note: c.note ?? '',
+      folder: folderOf(routeFolders.folders, c.id),
+      look: { stopShapes: c.stopShapes, edgeStyles: c.edgeStyles },
     });
   };
+  const startEditing = () => {
+    if (shownRoute) editRouteNow(shownRoute);
+  };
+
+  // 핀 삭제 asks first; a pin some route stops at can't go until it's taken out of them.
+  const [pinDeleting, setPinDeleting] = useState<Pin | null>(null);
+  const routesWithPin = (pin: Pin) => course.courses.filter((c) => c.stops.some((s) => s.place.id === pin.place.id));
 
   // ✓ on the edit sheet: keep the stops with their look, the description and the folder.
   const saveEdit = async () => {
@@ -1069,11 +1081,7 @@ export default function App() {
           }}
           onRename={(name) => pinStore.updatePin(activePin.id, { place: { ...activePin.place, name } })}
           onMemo={(memo) => pinStore.updatePin(activePin.id, { memo: memo || undefined })}
-          onDelete={() => {
-            // Gone at once, without an undo toast.
-            pinStore.removePin(activePin.id);
-            setActivePinId(null);
-          }}
+          onDelete={() => setPinDeleting(activePin)}
           onClose={closePinCard}
         />
       )}
@@ -1127,6 +1135,33 @@ export default function App() {
           calendarIcon={tab === 'calendar' && calendarZoom && calendarMode === 'day' ? 'month' : 'today'}
         />
       </div>
+
+      {pinDeleting &&
+        (routesWithPin(pinDeleting).length > 0 ? (
+          <ConfirmDialog
+            label="장소 삭제 불가"
+            message="이 장소는 루트에 들어가 있는 장소예요."
+            detail={`소속 루트: ${routesWithPin(pinDeleting)
+              .map((c) => `'${c.title}'`)
+              .join('  ')}\n먼저 해당하는 루트에서 장소를 제거해 주세요.`}
+            confirmLabel="루트 편집"
+            tone="action"
+            // The first route named: straight into editing it.
+            onConfirm={() => editRouteNow(routesWithPin(pinDeleting)[0])}
+            onClose={() => setPinDeleting(null)}
+          />
+        ) : (
+          <ConfirmDialog
+            label="장소 삭제"
+            message={`'${pinDeleting.place.name}' 장소를 삭제합니다.`}
+            detail="삭제한 장소는 복구할 수 없어요."
+            onConfirm={() => {
+              pinStore.removePin(pinDeleting.id);
+              if (activePinId === pinDeleting.id) setActivePinId(null);
+            }}
+            onClose={() => setPinDeleting(null)}
+          />
+        ))}
 
       {studio && <ShareStudio key={studio.key} subject={studio} onTheme={setStudioTheme} onClose={() => setStudio(null)} />}
 

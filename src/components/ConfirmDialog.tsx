@@ -5,8 +5,12 @@ interface ConfirmDialogProps {
   /** Read out for the dialog (it shows no title). */
   label: string;
   message: string;
-  /** A second, quieter line under the message. */
+  /** Quieter lines under the message (its line breaks are kept). */
   detail?: string;
+  /** The confirm half's word (확인 unless given)… */
+  confirmLabel?: string;
+  /** …and whether it's red (deleting, the default) or the accent (going somewhere). */
+  tone?: 'danger' | 'action';
   onConfirm: () => void;
   /** Closed either way: after 확인, 취소, Esc or a tap outside. */
   onClose: () => void;
@@ -19,7 +23,7 @@ interface ConfirmDialogProps {
  * sheet (and its slide-in transform), with Esc and focus handling built in.
  * Mount it to ask; it opens itself.
  */
-export default function ConfirmDialog({ label, message, detail, onConfirm, onClose }: ConfirmDialogProps) {
+export default function ConfirmDialog({ label, message, detail, confirmLabel = '확인', tone = 'danger', onConfirm, onClose }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const backdrop = useBackdropTap(dialogRef);
   // No close() in cleanup: it would fire onClose during StrictMode's
@@ -61,13 +65,13 @@ export default function ConfirmDialog({ label, message, detail, onConfirm, onClo
       <div className="ticket-dialog__stub ticket-dialog__split">
         <button onClick={() => dialogRef.current?.close()}>취소</button>
         <button
-          className="is-danger"
+          className={tone === 'danger' ? 'is-danger' : 'is-action'}
           onClick={() => {
             onConfirm();
             dialogRef.current?.close();
           }}
         >
-          확인
+          {confirmLabel}
         </button>
       </div>
     </dialog>
