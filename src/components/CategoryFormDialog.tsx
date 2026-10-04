@@ -23,7 +23,8 @@ const ICON_NAMES = Object.keys(PIN_ICONS) as PinIcon[];
 
 /**
  * 핀 카테고리 생성 / 편집, a boarding pass like the other centre popups
- * (`ticket-dialog`): the icon in the middle (tap → the icon list), the
+ * (`ticket-dialog`): the icon in the middle with the icon list always open
+ * under it, the
  * palette, the name, then the stub torn in two — 취소 | 생성 (완료).
  * A native modal <dialog>, so it sits above the category sheet.
  */
@@ -31,7 +32,6 @@ export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }:
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const backdrop = useBackdropTap(dialogRef);
   const [value, setValue] = useState(initial);
-  const [picking, setPicking] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   // No close() in cleanup: it would fire onClose during StrictMode's check (as ConfirmDialog).
   useEffect(() => {
@@ -78,35 +78,29 @@ export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }:
           <h2 id="cat-form-title" className="cat-form__title">
             {title}
           </h2>
-          <button
-            type="button"
+          {/* The chosen icon, large, in the chosen colour; the icon list stays open under it. */}
+          <span
             className="pin-badge cat-form__icon"
             style={{ '--pin': `var(--pin-${value.color})` } as CSSProperties}
+            role="img"
             aria-label={`아이콘: ${PIN_ICONS[value.icon]}`}
-            aria-expanded={picking}
-            onClick={() => setPicking((p) => !p)}
           >
             <PinGlyph icon={value.icon} />
-          </button>
-          {picking && (
-            <div className="icon-grid cat-form__icons" role="group" aria-label="아이콘">
-              {ICON_NAMES.map((icon) => (
-                <button
-                  key={icon}
-                  type="button"
-                  className={`icon-grid__btn ${value.icon === icon ? 'is-on' : ''}`}
-                  aria-pressed={value.icon === icon}
-                  aria-label={PIN_ICONS[icon]}
-                  onClick={() => {
-                    setValue((v) => ({ ...v, icon }));
-                    setPicking(false);
-                  }}
-                >
-                  <PinGlyph icon={icon} />
-                </button>
-              ))}
-            </div>
-          )}
+          </span>
+          <div className="icon-grid cat-form__icons" role="group" aria-label="아이콘">
+            {ICON_NAMES.map((icon) => (
+              <button
+                key={icon}
+                type="button"
+                className={`icon-grid__btn ${value.icon === icon ? 'is-on' : ''}`}
+                aria-pressed={value.icon === icon}
+                aria-label={PIN_ICONS[icon]}
+                onClick={() => setValue((v) => ({ ...v, icon }))}
+              >
+                <PinGlyph icon={icon} />
+              </button>
+            ))}
+          </div>
           <div className="cat-form__colors" role="group" aria-label="색">
             {PIN_COLORS.map((color) => (
               <button
