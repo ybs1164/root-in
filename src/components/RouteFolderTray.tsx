@@ -569,7 +569,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
   return (
     <section
       ref={sheetEl}
-      className={`route-folders ${open ? '' : 'is-leaving'} ${lowered ? 'is-lowered' : ''} ${lowered && courses.find((c) => c.id === shownId)?.note ? 'has-note' : ''}`} aria-label="경로 폴더" inert={!open}>
+      className={`route-folders ${open ? '' : 'is-leaving'} ${lowered ? 'is-lowered' : ''}`} aria-label="경로 폴더" inert={!open}>
       {pickingFolder && pickerX !== null && (
         <>
           <div className="folder-picker" role="dialog" aria-label="폴더 아이콘" style={{ '--x': `${pickerX}px` } as CSSProperties}>
@@ -731,7 +731,6 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
                     <strong>{c.title || '이름 없는 경로'}</strong>
                   </button>
                   {/* The open route's description, small and grey under its name. */}
-                  {shown && c.note && <p className={`route-row__note ${filed ? 'has-folder' : ''}`}>{c.note}</p>}
                   {/* The open route's tools: small, at its bottom right. */}
                   {shown && (
                     <div className="route-row__tools">

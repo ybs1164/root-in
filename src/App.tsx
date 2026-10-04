@@ -1,3 +1,4 @@
+import { Pencil } from 'lucide-react';
 import type { PatternId, ThemeId } from './domain/decor';
 import DayPattern from './components/DayPattern';
 import ShareStudio from './components/ShareStudio';
@@ -59,8 +60,6 @@ const DESKTOP_QUERY = '(min-width: 900px)';
 const ROUTE_TRAY_OUT_MS = 170;
 /** How much of the folder sheet stays up while a route is on show (matches .route-folders.is-lowered). */
 const FOLDER_LOWERED_PX = 190;
-/** …and taller by its description's two lines when the route on show has one (.has-note). */
-const FOLDER_NOTE_PX = 42;
 /** Once the map has glided over to a route, the pins fade off (matches .app--pins-away), and only then do its stops drop in. */
 const PINS_FADE_MS = 250;
 /** A route stepped to with < > glides over as fast as its name slides in (RouteTitle SLIDE_MS). */
@@ -294,8 +293,7 @@ export default function App() {
     if (folderTray) {
       // Lowered (a route on show) only its top strip covers the map.
       const lowered = folderTray.classList.contains('is-lowered');
-      const noted = folderTray.classList.contains('has-note') ? FOLDER_NOTE_PX : 0;
-      const covered = lowered ? FOLDER_LOWERED_PX + noted : folderTray.offsetHeight;
+      const covered = lowered ? FOLDER_LOWERED_PX : folderTray.offsetHeight;
       // A route on show has its name under the rail; the route sits below it.
       const title = document.querySelector<HTMLElement>('.route-title:not(.route-title--out)');
       const top = lowered && title ? title.getBoundingClientRect().bottom + 30 : 90;
@@ -932,7 +930,7 @@ export default function App() {
           title={shownRoute.title}
           onRename={(title) => course.save({ ...shownRoute, title })}
           slideFrom={routeStep?.id === shownRoute.id ? routeStep.from : 0}
-          onEdit={startEditing}
+          note={shownRoute.note}
           editMode={!!editRoute}
           // Each arrow puts the neighbour on show the usual way, so the map
           // glides over and its stops drop in afresh.
@@ -952,8 +950,18 @@ export default function App() {
       {/* 공유 for the route on show: makes its card and opens the 꾸미기 screen on it. */}
       {shownRoute && !buildPins && !editRoute && routeTrayShown && onPinHome && (
         <ShareTagButton
+          key={`edit-${shownRoute.id}`}
+          light
+          className="share-tag--edit"
+          label="루트 수정"
+          icon={<Pencil size={18} strokeWidth={2.2} />}
+          onClick={startEditing}
+        />
+      )}
+      {shownRoute && !buildPins && !editRoute && routeTrayShown && onPinHome && (
+        <ShareTagButton
           key={shownRoute.id}
-          className={`share-tag--route ${shownRoute.note ? 'has-note' : ''}`}
+          className="share-tag--route"
           label={`${shownRoute.title} 공유`}
           onClick={() => {
             if (!hasHome(privacy.excluded)) return needHome();

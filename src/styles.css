@@ -1926,22 +1926,39 @@ button:disabled {
 .share-tag__icon {
   position: absolute;
   left: 50%;
-  top: 47px;
+  top: 62%; /* the middle of the face under the eyelet */
+  display: grid;
   translate: -50% -50%;
 }
 
+/* The white one, a lesser action beside 공유 (a route's 수정). */
+.share-tag--light {
+  color: var(--text);
+}
+
+.share-tag--light .share-tag__shape {
+  fill: var(--surface);
+}
+
+/* Small, standing just left of the route's 공유 tag, bottoms level. */
+.share-tag--edit {
+  position: absolute;
+  right: 84px;
+  bottom: 204px;
+  z-index: 12;
+  width: 44px;
+  height: 56px;
+  animation: tag-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
 /* A route on show: the tag stands at the right, just above the lowered
-   folder sheet (190px, or 232px with a description: .route-folders.is-lowered). */
+   folder sheet (190px: .route-folders.is-lowered). */
 .share-tag--route {
   position: absolute;
   right: 14px;
   bottom: 204px;
   z-index: 12;
   animation: tag-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
-}
-
-.share-tag--route.has-note {
-  bottom: 246px;
 }
 
 /* The day screen's 공유: the same tag, at its bottom right (just above the tab bar). */
@@ -2270,11 +2287,6 @@ button:disabled {
    up (App's FOLDER_LOWERED_PX), leaving the map to the route. */
 .route-folders.is-lowered {
   transform: translateY(calc(100% - 190px));
-}
-
-/* The route on show has a description under its name: its two lines too (App's FOLDER_NOTE_PX). */
-.route-folders.is-lowered.has-note {
-  transform: translateY(calc(100% - 232px));
 }
 
 /* Room to scroll any route, even the last, up to the top of the strip. */
@@ -2656,7 +2668,8 @@ button:disabled {
 }
 
 /* The route on show, named big at the top of the map like a day's "TODAY",
-   with a small pen at its bottom right. Clear of the ⚙ rail on the right. */
+   with the description's toggle at its bottom right (the description opens
+   on the next line). Clear of the ⚙ rail on the right. */
 .route-title {
   position: fixed;
   /* Below the ⚙ rail's two buttons, so it can use the full width. */
@@ -2669,6 +2682,7 @@ button:disabled {
   z-index: 14;
   display: flex;
   align-items: flex-end;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
   pointer-events: none;
@@ -2747,6 +2761,58 @@ button:disabled {
   border: 0;
   background: none;
   color: var(--muted);
+}
+
+/* The description's toggle, where the pen used to be: a bare chevron that turns over when open. */
+.route-title__toggle {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-bottom: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  transition: rotate 0.2s ease;
+}
+
+.route-title__toggle.is-open {
+  rotate: 180deg;
+  color: var(--accent);
+}
+
+.route-title__toggle::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
+}
+
+/* The whole description under the name, every paragraph of it, on a card so it reads over the map. */
+.route-title__note {
+  flex-basis: 100%;
+  /* Clear of the < > at the screen's edges (64px wide, the title box is 20px in). */
+  max-width: min(480px, calc(100% - 88px));
+  margin: 10px 0 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  animation: note-open 0.18s ease-out both;
+}
+
+@keyframes note-open {
+  from {
+    opacity: 0;
+    translate: 0 -6px;
+  }
 }
 
 /* Small to look at, a fair size to hit. */
@@ -2917,6 +2983,8 @@ button:disabled {
   display: block;
   width: 100%;
   min-height: 48px;
+  /* Grown to its text (RouteEditTray): every paragraph shows, nothing scrolls inside it. */
+  overflow: hidden;
   padding: 8px 4px;
   border: 0;
   border-radius: 10px;
@@ -3373,27 +3441,6 @@ button:disabled {
 
 /* Under the open route's name; two lines at most, so the lowered sheet's
    strip still shows the route's tools. */
-.route-row__note {
-  flex-basis: 100%;
-  display: -webkit-box;
-  /* Room below as margin: padding would show a sliver of a clamped third line. */
-  margin: -10px 4px 10px;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.4;
-  white-space: pre-line;
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-}
-
-/* In line with the name, past the folder icon (24px + the 8px gap). */
-.route-row__note.has-folder {
-  margin-left: 36px;
-}
-
 .route-row__tool {
   display: grid;
   place-items: center;

@@ -1,5 +1,5 @@
 import { Check, GripVertical } from 'lucide-react';
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from 'react';
 import { COURSE_LIMITS } from '../domain/course';
 import { ROUTE_NOTE_MAX } from '../domain/routeBuild';
 import type { RouteFolder } from '../domain/routeFolders';
@@ -32,6 +32,14 @@ export default function RouteEditTray({ stops, note, onNote, onMove, onRemove, o
   // The folder grid, open above the folder button; a tap anywhere else closes it.
   const [pickingFolder, setPickingFolder] = useState(false);
   const folderBox = useRef<HTMLDivElement | null>(null);
+  // The description grows to its text, so all of it shows however many lines it runs to.
+  const noteEl = useRef<HTMLTextAreaElement | null>(null);
+  useLayoutEffect(() => {
+    const el = noteEl.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [note]);
   useEffect(() => {
     if (!pickingFolder) return;
     const away = (e: globalThis.PointerEvent) => {
@@ -130,6 +138,7 @@ export default function RouteEditTray({ stops, note, onNote, onMove, onRemove, o
       </div>
       <div className="route-edit__body">
         <textarea
+          ref={noteEl}
           className="route-edit__note"
           aria-label="설명"
           placeholder="설명을 적어 보세요"
