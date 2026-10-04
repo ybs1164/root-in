@@ -92,7 +92,11 @@ export default function PrivacySection({ places, resolving, notice, onAddress, o
   return (
     <section id="profile-privacy" className="privacy" aria-label="제외 주소">
       <h3 className="privacy__title">제외 주소</h3>
-      <p className="privacy__desc">공유할 때 이 주소에 있는 장소는 자동으로 빠져요.</p>
+      <p className="privacy__desc">
+        공유할 때 여기 있는 장소는 자동으로 빠져요.
+        <br />
+        집·학교·직장·본가 등 유출에 민감한 장소를 꼭 등록해 주세요.
+      </p>
       {notice && <p className="privacy__notice">{notice}</p>}
       <ul className="privacy__list">
         {places.map((place) => {
