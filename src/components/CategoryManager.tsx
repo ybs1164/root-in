@@ -1,156 +1,294 @@
-import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
-import { useState, type CSSProperties } from 'react';
-import { categoryStyle, orderedCategories, PIN_LIMITS, UNCATEGORIZED, type CategoryProblem, type NewCategoryInput } from '../domain/pin';
-import { PIN_COLORS, PIN_ICONS, type PinCategory, type PinIcon } from '../types/pin';
+import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
+import { categoryStyle, isUncategorized, orderedCategories, placeCategory, UNCATEGORIZED } from '../domain/pin';
+import type { Pin, PinCategory } from '../types/pin';
 import ConfirmDialog from './ConfirmDialog';
 import PinGlyph from './PinGlyph';
 
 interface CategoryManagerProps {
   categories: PinCategory[];
+  pins: Pin[];
   pinCounts: Map<string, number>;
-  onCreate: (input: NewCategoryInput) => CategoryProblem | null;
-  onEdit: (id: string, patch: Partial<Pick<PinCategory, 'name' | 'icon' | 'color'>>) => void;
+  /** 편집 상태 (the sheet's pen): rows get ↑ ↓ 🗑, a tap edits, a long press drags. */
+  editing: boolean;
+  /** A tap on a row while editing: open 핀 카테고리 편집 for it. */
+  onEditCategory: (category: PinCategory) => void;
   onMove: (id: string, direction: -1 | 1) => void;
+  /** A row dragged to `to` among its siblings. */
+  onDrop: (id: string, to: number) => void;
   onDelete: (id: string) => void;
+  /** A pin picked from a category's list: as if it were tapped on the map. */
+  onPickPin: (id: string) => void;
 }
 
-const PROBLEMS: Record<CategoryProblem, string> = {
-  'empty-name': '이름을 입력하세요.',
-  'too-many': `카테고리는 ${PIN_LIMITS.maxCategories}개까지 만들 수 있어요.`,
-  'too-deep': '세부 카테고리 아래에는 더 만들 수 없어요.',
-  'bad-parent': '상위 카테고리를 찾을 수 없어요.',
-};
+/** Hold this long without moving to lift a row (moving sooner scrolls the list). */
+const HOLD_MS = 450;
+const HOLD_SLOP = 8;
 
-const ICON_NAMES = Object.keys(PIN_ICONS) as PinIcon[];
+interface Drag {
+  id: string;
+  startY: number;
+  dy: number;
+  /** Where it would land among its siblings. */
+  to: number;
+  rowH: number;
+}
 
-/** 핀 카테고리 (CategorySheet). Up/down buttons instead of drag (M1 rule). */
-export default function CategoryManager({ categories, pinCounts, onCreate, onEdit, onMove, onDelete }: CategoryManagerProps) {
+/**
+ * 핀 카테고리 (CategorySheet). Out of 편집 상태 a row opens the names of
+ * its pins (tap one to see it on the map); in it, a row shows ↑ ↓ 🗑 where
+ * its count was, a tap edits it, and a long press lifts it to drag.
+ */
+export default function CategoryManager({
+  categories,
+  pins,
+  pinCounts,
+  editing,
+  onEditCategory,
+  onMove,
+  onDrop,
+  onDelete,
+  onPickPin,
+}: CategoryManagerProps) {
   const [open, setOpen] = useState<string | null>(null);
-  const [newName, setNewName] = useState('');
-  const [subName, setSubName] = useState('');
-  const [problem, setProblem] = useState<string | null>(null);
   // The category whose bin was tapped, waiting on the confirm.
   const [deleting, setDeleting] = useState<PinCategory | null>(null);
+  const [drag, setDrag] = useState<Drag | null>(null);
+  const dragRef = useRef(drag);
+  dragRef.current = drag;
+  const hold = useRef<{ timer: number; id: string; x: number; y: number; el: HTMLElement; pointerId: number } | null>(null);
+  // The click that ends a drag (or a hold) isn't a tap.
+  const swallowClick = useRef(false);
+  const listRef = useRef<HTMLUListElement | null>(null);
 
-  const create = (input: NewCategoryInput, reset: () => void) => {
-    const result = onCreate(input);
-    setProblem(result ? PROBLEMS[result] : null);
-    if (!result) reset();
+  useEffect(() => setOpen(null), [editing]);
+  useEffect(() => () => cancelHold(), []);
+
+  // Once a row is lifted the finger drags it, not the list: stop the
+  // browser from taking the touch for a scroll (which would cancel it).
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const stop = (event: TouchEvent) => {
+      if (dragRef.current || hold.current) event.preventDefault();
+    };
+    list.addEventListener('touchmove', stop, { passive: false });
+    return () => list.removeEventListener('touchmove', stop);
+  }, []);
+
+  const rows = orderedCategories(categories);
+  const oldIndex = new Map(rows.map(({ category }, i) => [category.id, i]));
+
+  // Where every row sits if the dragged one landed at `to`.
+  const layoutAt = (id: string, to: number) =>
+    new Map(orderedCategories(placeCategory(categories, id, to)).map(({ category }, i) => [category.id, i]));
+
+  const siblingCount = (id: string) => {
+    const target = categories.find((c) => c.id === id);
+    return categories.filter((c) => c.parentId === target?.parentId).length;
   };
+
+  // The spot whose layout puts the dragged row nearest the finger.
+  const nearestSpot = (id: string, dy: number, rowH: number) => {
+    let best = 0;
+    let bestGap = Infinity;
+    for (let to = 0; to < siblingCount(id); to++) {
+      const gap = Math.abs(((layoutAt(id, to).get(id) ?? 0) - (oldIndex.get(id) ?? 0)) * rowH - dy);
+      if (gap < bestGap) [best, bestGap] = [to, gap];
+    }
+    return best;
+  };
+
+  const startSpot = (id: string) => {
+    const target = categories.find((c) => c.id === id);
+    return orderedCategories(categories)
+      .filter(({ category }) => category.parentId === target?.parentId)
+      .findIndex(({ category }) => category.id === id);
+  };
+
+  const cancelHold = () => {
+    if (hold.current) window.clearTimeout(hold.current.timer);
+    hold.current = null;
+  };
+
+  const onRowDown = (event: PointerEvent<HTMLElement>, id: string) => {
+    if (!editing || event.button !== 0) return;
+    cancelHold();
+    const el = event.currentTarget;
+    const pointerId = event.pointerId;
+    const timer = window.setTimeout(() => {
+      const h = hold.current;
+      hold.current = null;
+      if (!h) return;
+      const li = el.closest('li');
+      try {
+        el.setPointerCapture(pointerId);
+      } catch {
+        // The pointer may already be gone; the drag then ends on the next up.
+      }
+      swallowClick.current = true;
+      setDrag({ id, startY: h.y, dy: 0, to: startSpot(id), rowH: li?.offsetHeight ?? 52 });
+    }, HOLD_MS);
+    hold.current = { timer, id, x: event.clientX, y: event.clientY, el, pointerId };
+  };
+
+  const onRowMove = (event: PointerEvent<HTMLElement>) => {
+    const h = hold.current;
+    if (h && Math.hypot(event.clientX - h.x, event.clientY - h.y) > HOLD_SLOP) cancelHold();
+    const d = dragRef.current;
+    if (!d) return;
+    const dy = event.clientY - d.startY;
+    setDrag({ ...d, dy, to: nearestSpot(d.id, dy, d.rowH) });
+  };
+
+  const onRowUp = () => {
+    cancelHold();
+    const d = dragRef.current;
+    if (!d) return;
+    if (d.to !== startSpot(d.id)) onDrop(d.id, d.to);
+    setDrag(null);
+  };
+
+  // Rows the dragged one passes step aside; it (and its sub-categories) follow the finger.
+  const shift = (category: PinCategory): number => {
+    if (!drag) return 0;
+    if (category.id === drag.id || category.parentId === drag.id) return drag.dy;
+    const next = layoutAt(drag.id, drag.to).get(category.id) ?? 0;
+    return (next - (oldIndex.get(category.id) ?? 0)) * drag.rowH;
+  };
+
+  const pinsIn = (categoryId: string) =>
+    pins
+      .filter((p) => (isUncategorized(categories, p.categoryId) ? UNCATEGORIZED.id : p.categoryId) === categoryId)
+      .sort((a, b) => a.place.name.localeCompare(b.place.name, 'ko'));
+
+  const pinList = (categoryId: string) => {
+    const list = pinsIn(categoryId);
+    return (
+      <ul className="cat-item__pins" aria-label="이 카테고리의 핀">
+        {list.length === 0 && <li className="cat-item__empty">아직 핀이 없어요</li>}
+        {list.map((pin) => (
+          <li key={pin.id}>
+            <button className="cat-item__pin" onClick={() => onPickPin(pin.id)}>
+              {pin.place.name}
+            </button>
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
+  const badge = (color: string, icon: Parameters<typeof PinGlyph>[0]['icon']) => (
+    <span className="pin-badge" style={{ '--pin': `var(--pin-${color})` } as CSSProperties} aria-hidden>
+      <PinGlyph icon={icon} />
+    </span>
+  );
+
+  const countLabel = (id: string) => {
+    const n = pinCounts.get(id) ?? 0;
+    return n > 0 ? `${n}곳` : '';
+  };
+
+  const uncategorizedOpen = open === UNCATEGORIZED.id;
 
   return (
     <div className="cat-manager">
-      <ul className="cat-manager__list">
-        {/* 미분류 always comes first and can't be edited or deleted: where pins go when their category does. */}
+      <ul ref={listRef} className={`cat-manager__list ${editing ? 'is-editing' : ''} ${drag ? 'is-sorting' : ''}`}>
+        {/* 미분류 always comes first and can't be edited, moved or deleted: where pins go when their category does. */}
         <li className="cat-item cat-item--fixed">
-          <div className="cat-item__head">
-            <span className="pin-badge" style={{ '--pin': 'var(--pin-0)' } as CSSProperties} aria-hidden>
-              <PinGlyph icon="pin" />
-            </span>
-            <span className="cat-item__name">{UNCATEGORIZED.name}</span>
-            <span className="cat-item__count">{pinCounts.get(UNCATEGORIZED.id) ? `${pinCounts.get(UNCATEGORIZED.id)}곳` : ''}</span>
-          </div>
+          {editing ? (
+            <div className="cat-item__head">
+              {badge('0', 'pin')}
+              <span className="cat-item__name">{UNCATEGORIZED.name}</span>
+            </div>
+          ) : (
+            <button
+              className="cat-item__head"
+              aria-expanded={uncategorizedOpen}
+              onClick={() => setOpen(uncategorizedOpen ? null : UNCATEGORIZED.id)}
+            >
+              {badge('0', 'pin')}
+              <span className="cat-item__name">{UNCATEGORIZED.name}</span>
+              <span className="cat-item__count">{countLabel(UNCATEGORIZED.id)}</span>
+            </button>
+          )}
+          {uncategorizedOpen && pinList(UNCATEGORIZED.id)}
         </li>
-        {orderedCategories(categories).map(({ category, depth }) => {
+        {rows.map(({ category, depth }) => {
           const style = categoryStyle(categories, category.id);
           const expanded = open === category.id;
-          const count = pinCounts.get(category.id) ?? 0;
+          const lifted = drag && (drag.id === category.id || category.parentId === drag.id);
+          const offset = shift(category);
           return (
-            <li key={category.id} className={`cat-item ${depth ? 'cat-item--sub' : ''}`}>
-              <button className="cat-item__head" aria-expanded={expanded} onClick={() => setOpen(expanded ? null : category.id)}>
-                <span className="pin-badge" style={{ '--pin': `var(--pin-${style.color})` } as CSSProperties} aria-hidden>
-                  <PinGlyph icon={style.icon} />
-                </span>
-                <span className="cat-item__name">{category.name}</span>
-                <span className="cat-item__count">{count > 0 ? `${count}곳` : ''}</span>
-              </button>
-              {expanded && (
-                <div className="cat-item__edit">
-                  <input
-                    className="title-input"
-                    defaultValue={category.name}
-                    maxLength={PIN_LIMITS.categoryName}
-                    aria-label="카테고리 이름"
-                    onBlur={(e) => e.target.value.trim() && onEdit(category.id, { name: e.target.value.trim() })}
-                  />
-                  {depth === 0 && (
-                    <div className="icon-grid" role="group" aria-label="아이콘">
-                      {ICON_NAMES.map((icon) => (
-                        <button
-                          key={icon}
-                          className={`icon-grid__btn ${category.icon === icon ? 'is-on' : ''}`}
-                          aria-pressed={category.icon === icon}
-                          aria-label={PIN_ICONS[icon]}
-                          onClick={() => onEdit(category.id, { icon })}
-                        >
-                          <PinGlyph icon={icon} />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  <div className="color-row" role="group" aria-label="색">
-                    {PIN_COLORS.map((color) => (
-                      <button
-                        key={color}
-                        className={`color-dot ${category.color === color ? 'is-on' : ''}`}
-                        style={{ '--pin': `var(--pin-${color})` } as CSSProperties}
-                        aria-pressed={category.color === color}
-                        aria-label={`색 ${color}`}
-                        onClick={() => onEdit(category.id, { color })}
-                      />
-                    ))}
-                  </div>
-                  <div className="cat-item__tools">
-                    <button className="icon-btn" aria-label="위로" onClick={() => onMove(category.id, -1)}>
+            <li
+              key={category.id}
+              className={`cat-item ${depth ? 'cat-item--sub' : ''} ${lifted ? 'is-dragged' : ''}`}
+              style={offset ? { transform: `translateY(${offset}px)` } : undefined}
+            >
+              {editing ? (
+                <div
+                  className="cat-item__head"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${category.name} 편집`}
+                  onPointerDown={(e) => onRowDown(e, category.id)}
+                  onPointerMove={onRowMove}
+                  onPointerUp={onRowUp}
+                  onPointerCancel={() => {
+                    cancelHold();
+                    swallowClick.current = false;
+                    setDrag(null);
+                  }}
+                  onContextMenu={(e) => e.preventDefault()}
+                  onClick={() => {
+                    if (swallowClick.current) {
+                      swallowClick.current = false;
+                      return;
+                    }
+                    onEditCategory(category);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onEditCategory(category);
+                    }
+                  }}
+                >
+                  {badge(String(style.color), style.icon)}
+                  <span className="cat-item__name">{category.name}</span>
+                  {/* In the count's place: ↑ ↓ 🗑, right-aligned. Their own taps aren't the row's. */}
+                  <span
+                    className="cat-item__tools"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button className="icon-btn" aria-label={`${category.name} 위로`} onClick={() => onMove(category.id, -1)}>
                       <ArrowUp size={20} aria-hidden />
                     </button>
-                    <button className="icon-btn" aria-label="아래로" onClick={() => onMove(category.id, 1)}>
+                    <button className="icon-btn" aria-label={`${category.name} 아래로`} onClick={() => onMove(category.id, 1)}>
                       <ArrowDown size={20} aria-hidden />
                     </button>
-                    <span className="cat-item__spacer" />
                     <button
                       className="icon-btn icon-btn--danger"
-                      aria-label="카테고리 삭제"
+                      aria-label={`${category.name} 삭제`}
                       onClick={() => setDeleting(category)}
                     >
                       <Trash2 size={20} aria-hidden />
                     </button>
-                  </div>
-                  {depth === 0 && (
-                    <form
-                      className="inline-add"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        create({ name: subName, parentId: category.id }, () => setSubName(''));
-                      }}
-                    >
-                      <input value={subName} maxLength={PIN_LIMITS.categoryName} placeholder="세부 카테고리 (예: 디저트)" onChange={(e) => setSubName(e.target.value)} />
-                      <button className="btn btn--secondary" type="submit">
-                        <Plus size={18} aria-hidden />
-                        세부
-                      </button>
-                    </form>
-                  )}
+                  </span>
                 </div>
+              ) : (
+                <button className="cat-item__head" aria-expanded={expanded} onClick={() => setOpen(expanded ? null : category.id)}>
+                  {badge(String(style.color), style.icon)}
+                  <span className="cat-item__name">{category.name}</span>
+                  <span className="cat-item__count">{countLabel(category.id)}</span>
+                </button>
               )}
+              {expanded && !editing && pinList(category.id)}
             </li>
           );
         })}
       </ul>
-      <form
-        className="inline-add"
-        onSubmit={(e) => {
-          e.preventDefault();
-          create({ name: newName }, () => setNewName(''));
-        }}
-      >
-        <input value={newName} maxLength={PIN_LIMITS.categoryName} placeholder="새 카테고리 이름" onChange={(e) => setNewName(e.target.value)} />
-        <button className="btn btn--primary" type="submit">
-          <Plus size={18} aria-hidden />
-          추가
-        </button>
-      </form>
-      {problem && <p className="hint">{problem}</p>}
       {deleting && (
         <ConfirmDialog
           label="카테고리 삭제"

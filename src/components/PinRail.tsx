@@ -1,4 +1,4 @@
-import { MapPin, Route } from 'lucide-react';
+import { MapPin, Plus, Route } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { categoriesWithUncategorized, categoryStyle, UNCATEGORIZED } from '../domain/pin';
 import { isAllPicked, type PinRailEntry, type PinRailMode } from '../domain/pinRail';
@@ -15,6 +15,8 @@ interface PinRailProps {
   onToggle: (categoryId: string) => void;
   /** ALL: back to every pin (drops the picked categories). */
   onAll: () => void;
+  /** The + at the foot of the list: 핀 카테고리 (add, edit, browse). */
+  onCategories: () => void;
 }
 
 /** Matches `pin-rail-out` in styles.css; the category list stays mounted until it has gone. */
@@ -36,9 +38,9 @@ const ENTRIES: { entry: PinRailEntry; label: string; icon: ReactNode }[] = [
  * and 경로 each open on a tap and take the accent colour; a second tap
  * closes. 핀 opens one button per category below it, and 경로 moves down
  * below that list; picking categories narrows the map to them, and the map
- * stays narrowed after 핀 closes.
+ * stays narrowed after 핀 closes. The list ends in + (핀 카테고리).
  */
-export default function PinRail({ mode, onAction, categories, counts, picked, onToggle, onAll }: PinRailProps) {
+export default function PinRail({ mode, onAction, categories, counts, picked, onToggle, onAll, onCategories }: PinRailProps) {
   // ALL is on while nothing that exists (미분류 included) is picked.
   const allOn = isAllPicked(picked, [UNCATEGORIZED.id, ...categories.map((c) => c.id)]);
   // The category list trails the mode so it can play out before unmounting.
@@ -114,6 +116,12 @@ export default function PinRail({ mode, onAction, categories, counts, picked, on
               </li>
             );
           })}
+          {/* Last: + opens 핀 카테고리. */}
+          <li className={`pin-rail__item ${listOpen ? '' : 'is-leaving'}`} style={stagger(categories.length + 2)}>
+            <button className="pin-rail__btn pin-rail__add" aria-label="핀 카테고리 편집" onClick={onCategories}>
+              <Plus aria-hidden />
+            </button>
+          </li>
         </ul>
       )}
 

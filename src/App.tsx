@@ -1,6 +1,5 @@
 import type { PatternId, ThemeId } from './domain/decor';
 import DayPattern from './components/DayPattern';
-import { Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomBar from './components/BottomBar';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
@@ -546,6 +545,14 @@ export default function App() {
     mapRef.current?.centerOn(pin.place.center);
   };
 
+  // A pin picked from a 핀 카테고리 list: as if tapped on the map. If the
+  // rail's filter hides it, back to ALL so its marker is there under the card.
+  const pickListedPin = (id: string) => {
+    const pin = pins.find((p) => p.id === id);
+    if (pin && filterPinsByCategories([pin], categories, picked).length === 0) setPicked(new Set());
+    openPin(id);
+  };
+
   // The picked categories outlast the 핀 list: closing it keeps the map
   // filtered, and reopening shows what is picked.
   const railAction = (entry: PinRailEntry) => {
@@ -858,14 +865,8 @@ export default function App() {
           picked={picked}
           onToggle={(id) => setPicked((prev) => togglePicked(prev, id))}
           onAll={() => setPicked(new Set())}
+          onCategories={() => setCategoriesOpen(true)}
         />
-      )}
-
-      {/* Bottom-right corner of the pin map: 핀 카테고리 editing (the route sheet owns the bottom while 경로 is open). */}
-      {onPinHome && !searchOpen && !pinning && !routeMode && (
-        <button className="corner-btn corner-btn--bottom" aria-label="핀 카테고리 편집" onClick={() => setCategoriesOpen(true)}>
-          <Plus size={20} aria-hidden />
-        </button>
       )}
 
       {routeTrayShown && onPinHome && (
@@ -1105,11 +1106,14 @@ export default function App() {
         <CategorySheet
           onClose={() => setCategoriesOpen(false)}
           categories={categories}
+          pins={pins}
           pinCounts={pinCounts}
           onCreate={pinStore.createCategory}
           onEdit={pinStore.editCategory}
           onMove={pinStore.reorderCategory}
+          onDrop={pinStore.dropCategory}
           onDelete={pinStore.deleteCategory}
+          onPickPin={pickListedPin}
         />
       )}
 

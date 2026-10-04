@@ -14,6 +14,7 @@ import {
   moveCategory,
   orderedCategories,
   PIN_LIMITS,
+  placeCategory,
   removeCategory,
   UNCATEGORIZED,
   upsertPin,
@@ -88,6 +89,17 @@ describe('pins', () => {
     const moved = moveCategory(DEFAULT_CATEGORIES, 'food', -1);
     expect(orderedCategories(moved).map((c) => c.category.id).slice(0, 2)).toEqual(['food', 'cafe']);
     expect(moveCategory(DEFAULT_CATEGORIES, 'cafe', -1)).toBe(DEFAULT_CATEGORIES);
+  });
+
+  it('places a dragged category at any spot among its siblings', () => {
+    const ids = (cats: typeof DEFAULT_CATEGORIES) => orderedCategories(cats).map((c) => c.category.id);
+    expect(ids(placeCategory(DEFAULT_CATEGORIES, 'cafe', 3))).toEqual(['food', 'bar', 'photo', 'cafe', 'shop', 'togo']);
+    expect(ids(placeCategory(DEFAULT_CATEGORIES, 'togo', 0))).toEqual(['togo', 'cafe', 'food', 'bar', 'photo', 'shop']);
+    // Past the end clamps; the same spot changes nothing.
+    expect(ids(placeCategory(DEFAULT_CATEGORIES, 'food', 99)).at(-1)).toBe('food');
+    expect(placeCategory(DEFAULT_CATEGORIES, 'bar', 2)).toBe(DEFAULT_CATEGORIES);
+    // A parent takes its sub-category along.
+    expect(ids(placeCategory(withDessert(), 'cafe', 1))).toEqual(['food', 'cafe', 'dessert', 'bar', 'photo', 'shop', 'togo']);
   });
 
   it('filters by a category family (the category and its sub-categories)', () => {

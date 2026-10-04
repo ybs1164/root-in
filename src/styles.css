@@ -2041,17 +2041,6 @@ button:disabled {
   transition: transform 0.25s ease;
 }
 
-/* Pin map, bottom-right: + opens 핀 카테고리, level with the bottom tab buttons. */
-.corner-btn--bottom {
-  top: auto;
-  bottom: calc(var(--safe-bottom) + 6px + (var(--bar-h) - 44px) / 2);
-  right: 16px; /* centred under the 52px profile button */
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  color: var(--muted);
-}
-
 .app--searching .corner-btn {
   transform: translateX(calc(100% + 24px));
 }
@@ -3682,6 +3671,12 @@ button:disabled {
   color: var(--on-accent);
 }
 
+/* + at the foot of the list: 핀 카테고리. */
+.pin-rail__add {
+  color: var(--muted);
+  box-shadow: var(--shadow-sm);
+}
+
 /* Picked: a ring of the same colour around it (every button is already filled). */
 .pin-rail__pin.is-on {
   background: var(--pin, var(--surface-2));
@@ -4396,13 +4391,6 @@ button:disabled {
   font-size: 13px;
 }
 
-.cat-item__edit {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 4px 0 12px;
-}
-
 .icon-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
@@ -4449,34 +4437,147 @@ button:disabled {
   box-shadow: 0 0 0 3px var(--text);
 }
 
-.cat-item__tools {
+
+.category-sheet__actions {
   display: flex;
   align-items: center;
 }
 
-.cat-item__spacer {
-  flex: 1;
+/* 편집 상태 on: the pen in the accent colour. */
+.category-sheet__pen.is-on {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
-.inline-add {
+/* 편집 상태: ↑ ↓ 🗑 where the count was, right-aligned. */
+.cat-item__tools {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+/* Rows held to drag: no text selection or iOS callout. */
+.cat-manager__list.is-editing .cat-item__head {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.cat-manager__list.is-sorting .cat-item {
+  position: relative;
+  transition: transform 0.18s ease;
+}
+
+/* The lifted row (and its sub-categories) follows the finger, over the rest. */
+.cat-manager__list.is-sorting .cat-item.is-dragged {
+  z-index: 1;
+  transition: none;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+/* A category opened out of 편집 상태: its pins' names; a tap shows one on the map. */
+.cat-item__pins {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 8px 46px;
+}
+
+.cat-item__pin {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cat-item__pin:active {
+  background: var(--surface-2);
+}
+
+.cat-item__empty {
+  padding: 10px 4px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* 핀 카테고리 생성 / 편집: a boarding pass (ticket-dialog). */
+.cat-form__main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 20px 22px;
+}
+
+.cat-form__title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.cat-form__icon.pin-badge {
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border: 0;
+}
+
+.cat-form__icon.pin-badge .pin-glyph {
+  width: 38px;
+  height: 38px;
+}
+
+.cat-form__icons {
+  width: 100%;
+}
+
+.cat-form__colors {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
+  grid-template-columns: repeat(4, 44px);
+  gap: 10px 16px;
+  justify-content: center;
 }
 
-.inline-add input {
-  min-width: 0;
+.cat-form__name {
+  width: 100%;
   height: 48px;
   padding: 0 14px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface-2);
+  color: var(--text);
   font-size: 16px;
+  text-align: center;
   outline: none;
 }
 
-.inline-add input:focus {
+.cat-form__name:focus {
   border-color: var(--accent);
+}
+
+.cat-form__problem {
+  margin: -6px 0 0;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+/* 생성 / 완료: the stub's filled half, in the accent colour. */
+.ticket-dialog__split > .is-action {
+  border-left-color: transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.ticket-dialog__split > button:disabled {
+  opacity: 0.45;
 }
 
 /* MapLibre fallback: keep attribution clear of the sheet on phones. */
@@ -5079,10 +5180,5 @@ button:disabled {
   .category-sheet {
     margin: auto auto 0;
     border-radius: 22px 22px 0 0;
-  }
-
-  .corner-btn--bottom {
-    top: auto;
-    bottom: calc(12px + (var(--bar-h) - 44px) / 2);
   }
 }

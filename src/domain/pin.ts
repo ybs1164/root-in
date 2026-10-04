@@ -150,6 +150,24 @@ export function moveCategory(categories: PinCategory[], id: string, direction: -
 }
 
 /**
+ * Puts a category at `to` among its siblings (a drag in the editor): parents
+ * among parents, a sub-category among its parent's. Sub-categories follow
+ * their parent, since the list always renders them under it.
+ */
+export function placeCategory(categories: PinCategory[], id: string, to: number): PinCategory[] {
+  const target = categories.find((c) => c.id === id);
+  if (!target) return categories;
+  const siblings = categories.filter((c) => c.parentId === target.parentId).sort(byOrder);
+  const from = siblings.findIndex((c) => c.id === id);
+  const index = Math.max(0, Math.min(siblings.length - 1, Math.round(to)));
+  if (index === from) return categories;
+  const reordered = siblings.filter((c) => c.id !== id);
+  reordered.splice(index, 0, target);
+  const order = new Map(reordered.map((c, i) => [c.id, i]));
+  return categories.map((c) => (order.has(c.id) ? { ...c, order: order.get(c.id) as number } : c));
+}
+
+/**
  * Deletes a category without deleting pins: its pins become 미분류. A
  * parent takes its sub-categories with it, and their pins go to 미분류 too.
  */

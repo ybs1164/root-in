@@ -3,6 +3,7 @@ import {
   addCategory,
   importPinSet,
   moveCategory,
+  placeCategory,
   removeCategory,
   updateCategory,
   upsertPin,
@@ -112,6 +113,11 @@ export function usePins(pinsRepo: PinRepository = pinRepository, categoriesRepo:
     [commitCategories],
   );
 
+  const dropCategory = useCallback(
+    (id: string, to: number) => commitCategories(placeCategory(latest.current.categories, id, to)),
+    [commitCategories],
+  );
+
   const deleteCategory = useCallback(
     (id: string) => {
       const result = removeCategory(latest.current.categories, latest.current.pins, id);
@@ -140,6 +146,7 @@ export function usePins(pinsRepo: PinRepository = pinRepository, categoriesRepo:
     createCategory,
     editCategory,
     reorderCategory,
+    dropCategory,
     deleteCategory,
     importSet,
   };
