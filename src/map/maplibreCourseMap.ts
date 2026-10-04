@@ -80,14 +80,14 @@ export class MapLibreCourseMap implements CourseMap {
         id: DISTRICT_COVER,
         type: 'fill',
         source: DISTRICT_COVER,
-        paint: { 'fill-color': token('--map-road', '#f4ede2') },
+        paint: { 'fill-color': token('--map-road', '#f7f9fc') },
       });
       this.map.addSource(DISTRICT_BLOCKS, { type: 'geojson', data: this.blocksData() });
       this.map.addLayer({
         id: DISTRICT_BLOCKS,
         type: 'fill',
         source: DISTRICT_BLOCKS,
-        paint: { 'fill-color': token('--map-block', '#a9c1c1'), 'fill-antialias': true },
+        paint: { 'fill-color': token('--map-block', '#dfe6f1'), 'fill-antialias': true },
       });
       this.map.addSource(GUIDE_SOURCE, { type: 'geojson', data: this.guideData() });
       this.map.addLayer({
@@ -95,7 +95,7 @@ export class MapLibreCourseMap implements CourseMap {
         type: 'line',
         source: GUIDE_SOURCE,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': token('--muted', '#8b7d74'), 'line-width': 3, 'line-opacity': 0.8, 'line-dasharray': [0.5, 2] },
+        paint: { 'line-color': token('--muted', '#8a93a8'), 'line-width': 3, 'line-opacity': 0.8, 'line-dasharray': [0.5, 2] },
       });
       this.map.addSource(LINE_SOURCE, { type: 'geojson', data: this.lineData() });
       this.map.addLayer({
@@ -104,7 +104,7 @@ export class MapLibreCourseMap implements CourseMap {
         source: LINE_SOURCE,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
-          'line-color': getComputedStyle(document.documentElement).getPropertyValue('--route').trim() || '#e0664f',
+          'line-color': getComputedStyle(document.documentElement).getPropertyValue('--route').trim() || '#2f6fe0',
           'line-width': 4,
           'line-opacity': 0.85,
           'line-dasharray': [1.5, 1.5],

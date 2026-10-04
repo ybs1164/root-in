@@ -70,12 +70,12 @@ export class KakaoCourseMap implements CourseMap {
       path: ring([[120, 30], [135, 30], [135, 45], [120, 45]]),
       strokeWeight: 0,
       strokeOpacity: 0,
-      fillColor: this.routeColor('--map-road', '#f4ede2'),
+      fillColor: this.routeColor('--map-road', '#f7f9fc'),
       fillOpacity: 1,
       zIndex: 0,
       map: this.map,
     });
-    const blockColor = this.routeColor('--map-block', '#a9c1c1');
+    const blockColor = this.routeColor('--map-block', '#dfe6f1');
     const blocks = district.blocks.map(
       (block) =>
         new this.maps.Polygon({
@@ -117,7 +117,7 @@ export class KakaoCourseMap implements CourseMap {
         ? new this.maps.Polyline({
             path: points.map((p) => this.latLng(p)),
             strokeWeight: 3,
-            strokeColor: this.routeColor('--muted', '#8b7d74'),
+            strokeColor: this.routeColor('--muted', '#8a93a8'),
             strokeOpacity: 0.8,
             strokeStyle: 'shortdot',
             map: this.map,
@@ -162,7 +162,7 @@ export class KakaoCourseMap implements CourseMap {
       this.line = new this.maps.Polyline({
         path: stops.map((s) => this.latLng(s.center)),
         strokeWeight: 4,
-        strokeColor: this.routeColor('--route', '#e0664f'),
+        strokeColor: this.routeColor('--route', '#2f6fe0'),
         strokeOpacity: 0.85,
         strokeStyle: 'shortdash',
         map: this.map,
