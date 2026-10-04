@@ -57,7 +57,7 @@ describe('share cards', () => {
     expect(s.removed).toBe(1);
   });
 
-  it('carry a day’s own 꾸미기 along: its pieces for the photo, its theme and pattern for the card', () => {
+  it('carry a day’s own 꾸미기 along for the photo: its pieces, theme and pattern', () => {
     const pings: DayPing[] = [{ name: '서울숲', time: '17:40', center: [127.0374, 37.5444] }];
     const decor = {
       stickers: [{ id: 's', emoji: '⭐', x: 0.2, y: 0.3, size: 0.2 }],
@@ -67,8 +67,7 @@ describe('share cards', () => {
       pattern: 'hearts' as const,
     };
     const s = daySubject('2026-10-03', pings, () => 'pin', () => 'solid', [], decor);
-    expect(s.photo).toEqual({ stickers: decor.stickers, strokes: [], texts: decor.texts });
-    expect(s.look).toEqual({ theme: 'mint', pattern: 'hearts' });
+    expect(s.photo).toEqual(decor);
     expect(daySubject('2026-10-03', pings, () => 'pin', () => 'solid', []).photo).toBeUndefined();
   });
 

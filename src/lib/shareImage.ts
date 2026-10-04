@@ -1,5 +1,5 @@
 import { latestPingIndex, layoutPings, type DayPing, type EdgeStyle } from '../domain/dayPings';
-import { ERASER_SCALE, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, textWeight, type DayDecor, type PlacedText } from '../domain/decor';
+import { ERASER_SCALE, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, textWeight, type DayDecor, type PlacedText, type ThemeId } from '../domain/decor';
 import { BACK_CARD, DRAWING_BOX, FRONT_CARD, POLAROID, SCENE, STRIP, type CardPose } from '../domain/polaroid';
 import type { StopMark } from '../domain/shareSubject';
 import { paintPattern } from './dayPatterns';
@@ -16,7 +16,12 @@ export interface ShareImageInput {
   decor?: DayDecor;
   /** Leave the card's stickers, strokes and text boxes off (the 꾸미기 screen lays its own over the image). */
   withoutPieces?: boolean;
-  /** A day's own pieces from its day screen, in the drawing box: drawn into the photo, turned with the card. */
+  /**
+   * A day's own 꾸미기 from its day screen (pieces in the drawing box, its
+   * theme and pattern): the photo is drawn as that screen looks, in the
+   * day's colours and pattern whatever the card's own theme, then turned
+   * with the card. Left out (a route), the photo takes the card's theme.
+   */
   photo?: DayDecor;
 }
 
@@ -35,6 +40,7 @@ function tokens() {
     cardInk: get('--polaroid-ink'),
     cardShadow: get('--polaroid-shadow'),
     photo: get('--surface-2'),
+    page: get('--surface'),
     text: get('--text'),
     muted: get('--muted'),
     accent: get('--accent'),
@@ -96,11 +102,23 @@ export async function renderShareImage({ title, pings, marks, edges, decor, with
     ctx.beginPath();
     ctx.rect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
     ctx.clip();
-    ctx.fillStyle = c.photo;
-    ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
-    drawStops(ctx, c, pings, marks, edges);
-    // The day's own pieces stay inside the photo, as they sat on the day.
-    if (photo) drawDecor(ctx, photo, c.font, BOX_FRAME);
+    // A day's photo is its day screen as it looks there: its page colour,
+    // pattern, pin colours and pieces, in its own theme.
+    withTheme(photo ? (photo.theme ?? 'default') : null, () => {
+      const p = tokens();
+      const bg = photo ? p.page : p.photo;
+      ctx.fillStyle = bg;
+      ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
+      if (photo?.pattern) {
+        ctx.save();
+        ctx.translate(PHOTO.x, PHOTO.y);
+        // Tiles at the size they have beside the day's drawing (its box is 360 css px at most).
+        paintPattern(ctx, photo.pattern, { w: PHOTO.w, h: PHOTO.h }, BOX.size / 360, p.accent);
+        ctx.restore();
+      }
+      drawStops(ctx, p, bg, pings, marks, edges);
+      if (photo) drawDecor(ctx, photo, p.font, BOX_FRAME);
+    });
     ctx.restore();
     ctx.fillStyle = c.cardInk;
     ctx.textAlign = 'center';
@@ -111,6 +129,25 @@ export async function renderShareImage({ title, pings, marks, edges, decor, with
 
   if (decor && !withoutPieces) drawDecor(ctx, decor, c.font, SCENE_FRAME);
   return canvas.toDataURL('image/png');
+}
+
+/**
+ * Runs `draw` with the page in `theme`'s colours (null: as it is), for
+ * reading its tokens, then puts the page's own theme back. All in one go,
+ * so the page never shows the borrowed theme.
+ */
+function withTheme(theme: ThemeId | null, draw: () => void) {
+  const root = document.documentElement;
+  const before = root.dataset.theme;
+  if (theme === null || (theme === 'default' ? before === undefined : before === theme)) return draw();
+  if (theme === 'default') delete root.dataset.theme;
+  else root.dataset.theme = theme;
+  try {
+    draw();
+  } finally {
+    if (before === undefined) delete root.dataset.theme;
+    else root.dataset.theme = before;
+  }
 }
 
 /** Draws in a card's own pixels (0..POLAROID.w/h), as the card lies on the scene. */
@@ -135,7 +172,7 @@ function drawPaper(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>) 
 }
 
 /** Lines first, then the stops over them, laid out in the drawing box. */
-function drawStops(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, pings: DayPing[], marks: StopMark[], edges: EdgeStyle[]) {
+function drawStops(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, bg: string, pings: DayPing[], marks: StopMark[], edges: EdgeStyle[]) {
   const points = layoutPings(pings.map((p) => p.center)).map((p) => ({
     x: BOX.x + p.x * BOX.size,
     y: BOX.y + p.y * BOX.size,
@@ -197,7 +234,7 @@ function drawStops(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, 
         ctx.fill(new Path2D(mark === 'pin' ? PIN_PATH : mark === 'star' ? STAR_PATH : HEART_PATH));
       }
       if (mark === 'pin') {
-        ctx.fillStyle = c.photo;
+        ctx.fillStyle = bg;
         ctx.beginPath();
         ctx.arc(12, 10, 3, 0, Math.PI * 2);
         ctx.fill();

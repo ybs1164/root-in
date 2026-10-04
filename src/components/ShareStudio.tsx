@@ -38,19 +38,15 @@ interface ShareStudioProps {
  * 꾸미기: a screen of its own for a share card (a calendar day's, or a saved
  * route's). The scene (two polaroids on a backdrop) is drawn once as an
  * image, and the stickers, pen, text, theme and background pattern are laid
- * over all of it here, a little past the cards too (a day's own 꾸미기 from
- * its day screen is already in the photo); the bottom row
+ * over all of it here, a little past the cards too (a day's photo is its
+ * day screen as it looks there, with its own theme, pattern and pieces;
+ * what's chosen here is apart from it); the bottom row
  * saves the finished card, copies its link or hands it to an SNS app.
  * Decorations are kept per card, so it opens again the way it was left.
  */
 export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioProps) {
   const { key } = subject;
-  // Opened from a day, the card takes on the day's theme and pattern (they can still be changed here).
-  const [store, setStore] = useState<DecorStore>(() => {
-    const loaded = loadDecor();
-    const { look } = subject;
-    return look ? { ...loaded, [key]: { ...(loaded[key] ?? EMPTY_DECOR), theme: look.theme, pattern: look.pattern } } : loaded;
-  });
+  const [store, setStore] = useState<DecorStore>(loadDecor);
   const loaded = useRef(true);
   useEffect(() => {
     if (loaded.current) {
