@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { EdgeStyle, PingShape } from '../domain/dayPings';
+import { placeLabels } from '../domain/stopLabels';
 import { PingIcon } from './DayPings';
 
 /** Screen centre of the numbered stop marker `n` (1-based), if it's on the map. */
@@ -22,6 +23,8 @@ interface StopLinesProps {
    * the next stop. A new `key` replays it.
    */
   play?: { key: string; delayMs: number };
+  /** The stops' place names, shown beside them (a route on show); left out, no names. */
+  names?: string[];
 }
 
 /** Between stops dropping in; a drop's length; a line drawing itself. */
@@ -36,7 +39,7 @@ const LINE_MS = 320;
  * A stop given a shape is drawn here as that shape and its marker hidden
  * (`data-shape`), the marker staying in place for taps and long presses.
  */
-export default function StopLines({ count, edgeStyles, stopShapes, play }: StopLinesProps) {
+export default function StopLines({ count, edgeStyles, stopShapes, play, names }: StopLinesProps) {
   // When the current playback started (performance.now(), after its delay); null = all shown.
   const playStart = useRef<number | null>(null);
   useEffect(() => {
@@ -45,6 +48,12 @@ export default function StopLines({ count, edgeStyles, stopShapes, play }: StopL
 
   const segs = useRef<(SVGLineElement | null)[]>([]);
   const shapes = useRef<(HTMLDivElement | null)[]>([]);
+  const labels = useRef<(HTMLSpanElement | null)[]>([]);
+  // The names' sizes, measured once they're laid out (they're kept laid out, only faded out, so they can be).
+  const labelSizes = useRef<{ w: number; h: number }[]>([]);
+  useEffect(() => {
+    labelSizes.current = [];
+  }, [names?.join('\n')]);
   const shapesRef = useRef(stopShapes);
   shapesRef.current = stopShapes;
 
@@ -94,6 +103,33 @@ export default function StopLines({ count, edgeStyles, stopShapes, play }: StopL
           el.style.display = c && shape ? '' : 'none';
           if (c) el.style.transform = `translate(${c.x}px, ${c.y}px)`;
         }
+        // Its name: shown once it has landed (placed for all the stops below).
+        const label = labels.current[i];
+        if (label) {
+          const shown = !!c && since >= 0;
+          if (('shown' in label.dataset) !== shown) {
+            if (shown) label.dataset.shown = '';
+            else delete label.dataset.shown;
+          }
+          if (c) label.style.transform = `translate(${c.x}px, ${c.y}px)`;
+        }
+      }
+      // The names: each below its stop, or off the side its lines, the other
+      // names and the other stops leave clear.
+      if (labels.current.some(Boolean) && centres.every(Boolean)) {
+        const sizes = labels.current.slice(0, count).map((el, i) => {
+          const known = labelSizes.current[i];
+          if (known?.w) return known;
+          const text = el?.firstElementChild as HTMLElement | null;
+          const size = { w: text?.offsetWidth ?? 0, h: text?.offsetHeight ?? 0 };
+          labelSizes.current[i] = size;
+          return size;
+        });
+        const sides = placeLabels(centres as { x: number; y: number }[], sizes);
+        sides.forEach((side, i) => {
+          const el = labels.current[i];
+          if (el && el.dataset.side !== side) el.dataset.side = side;
+        });
       }
       frame = requestAnimationFrame(draw);
     };
@@ -106,7 +142,7 @@ export default function StopLines({ count, edgeStyles, stopShapes, play }: StopL
         delete m.dataset.drop;
       });
     };
-  }, [count]);
+  }, [count, names?.length]);
 
   return (
     <>
@@ -136,6 +172,18 @@ export default function StopLines({ count, edgeStyles, stopShapes, play }: StopL
           </div>
         );
       })}
+      {names?.slice(0, count).map((name, i) => (
+        <span
+          key={`label-${i}`}
+          ref={(el) => {
+            labels.current[i] = el;
+          }}
+          className="stop-label"
+          aria-hidden
+        >
+          <span className="stop-label__text">{name}</span>
+        </span>
+      ))}
     </>
   );
 }

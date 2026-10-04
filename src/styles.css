@@ -2702,6 +2702,61 @@ button:disabled {
   pointer-events: none;
 }
 
+/* A route on show: each stop's name beside it (StopLines), below unless a
+   line leaves that way (data-side). Readable over the map like the title. */
+.stop-label {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.stop-label__text {
+  position: absolute;
+  max-width: 140px;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow:
+    0 0 4px var(--surface),
+    0 0 2px var(--surface),
+    0 0 1px var(--surface);
+  opacity: 0;
+  transition: opacity 0.3s ease 0.15s;
+}
+
+/* Its stop has landed (StopLines): the name fades in. */
+.stop-label[data-shown] .stop-label__text {
+  opacity: 1;
+}
+
+.stop-label[data-side='below'] .stop-label__text {
+  top: 22px;
+  translate: -50% 0;
+}
+
+.stop-label[data-side='above'] .stop-label__text {
+  bottom: 22px;
+  translate: -50% 0;
+}
+
+.stop-label[data-side='right'] .stop-label__text {
+  left: 22px;
+  translate: 0 -50%;
+}
+
+.stop-label[data-side='left'] .stop-label__text {
+  right: 22px;
+  translate: 0 -50%;
+}
+
 .stop-shape svg {
   position: absolute;
   left: -15px;
