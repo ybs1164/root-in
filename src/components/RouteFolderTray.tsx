@@ -715,6 +715,9 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
         }}
       >
         <div className="route-folders__head">
+          <span className="sheet-label" aria-hidden>
+            ROUTES
+          </span>
           <button
             className={`route-folders__new route-folders__select ${selecting ? 'is-on' : ''}`}
             aria-label="여러 개 선택"

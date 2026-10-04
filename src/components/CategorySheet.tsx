@@ -72,9 +72,13 @@ export default function CategorySheet({
       }}
     >
       <div className="share-sheet__body">
-        <div className="sheet-grip" aria-hidden />
         <div className="share-sheet__head">
-          <h2 id="category-sheet-title">핀 카테고리</h2>
+          <h2 id="category-sheet-title">
+            핀 카테고리
+            <span className="sheet-label" aria-hidden>
+              CATEGORY
+            </span>
+          </h2>
           <div className="category-sheet__actions">
             <button
               className={`icon-btn category-sheet__pen ${editing ? 'is-on' : ''}`}

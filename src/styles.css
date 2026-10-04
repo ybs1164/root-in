@@ -557,7 +557,9 @@ button:disabled {
   flex-direction: column;
   height: var(--sheet-peek);
   background: var(--surface);
-  border-radius: 22px 22px 0 0;
+  /* The bottom sheets' look: a square top under a thick ink rule. */
+  border-radius: 0;
+  border-top: 3px solid var(--text);
   box-shadow: var(--shadow-up);
   transition:
     height 0.28s ease,
@@ -977,7 +979,9 @@ button:disabled {
   margin: auto auto 0;
   padding: 0;
   border: 0;
-  border-radius: 22px 22px 0 0;
+  /* The bottom sheets' look: a square top under a thick ink rule. */
+  border-radius: 0;
+  border-top: 3px solid var(--text);
   background: var(--surface);
   color: var(--text);
 }
@@ -1009,8 +1013,14 @@ button:disabled {
 }
 
 .share-sheet__head h2 {
+  display: flex;
+  align-items: baseline;
+  gap: 22px;
+  min-width: 0;
   margin: 0;
-  font-size: 18px;
+  overflow: hidden;
+  font-size: 22px;
+  white-space: nowrap;
 }
 
 .field {
@@ -2413,6 +2423,8 @@ button:disabled {
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 10px 16px calc(var(--safe-bottom) + 14px);
+  /* The tabs stand on the sheet's ink rule (the open one too), as on the other sheets. */
+  border-top: 3px solid var(--text);
   background: var(--surface);
 }
 
@@ -2423,8 +2435,23 @@ button:disabled {
 .route-folders__head {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 2px;
-  margin: -4px 0 -10px;
+  margin: -4px 0 -6px;
+}
+
+/* A sheet's small English label in spaced caps, beside its title (or its tools). */
+.sheet-label {
+  color: var(--muted);
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.26em;
+  line-height: 1;
+}
+
+.route-folders__head .sheet-label {
+  margin-right: 14px;
 }
 
 .route-folders__new {
@@ -2949,7 +2976,9 @@ button:disabled {
   display: flex;
   flex-direction: column;
   height: 44dvh;
-  border-radius: 20px 20px 0 0;
+  /* The bottom sheets' look: a square top under a thick ink rule. */
+  border-radius: 0;
+  border-top: 3px solid var(--text);
   background: var(--surface);
   box-shadow: var(--shadow-up);
   color: var(--text);
@@ -3214,7 +3243,9 @@ button:disabled {
   gap: 10px;
   /* A clear margin under the fields, so they sit a little higher up. */
   padding: 16px 16px calc(var(--safe-bottom) + 76px);
-  border-radius: 20px 20px 0 0;
+  /* The bottom sheets' look: a square top under a thick ink rule. */
+  border-radius: 0;
+  border-top: 3px solid var(--text);
   background: var(--surface);
   box-shadow: var(--shadow-up);
   animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
@@ -3509,7 +3540,7 @@ button:disabled {
 
 .route-row__main strong {
   overflow: hidden;
-  font-size: 15px;
+  font-size: 17px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -5551,6 +5582,6 @@ button:disabled {
   /* Still rises from the bottom edge on wide screens. */
   .category-sheet {
     margin: auto auto 0;
-    border-radius: 22px 22px 0 0;
+    border-radius: 0;
   }
 }
