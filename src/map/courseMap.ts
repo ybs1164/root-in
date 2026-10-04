@@ -1,4 +1,4 @@
-import type { AreaShapes } from '../domain/adminAreas';
+import type { AreaLabel, AreaShapes } from '../domain/adminAreas';
 import type { MapViewport } from '../domain/districtMap';
 import type { PlaceRef } from '../types/course';
 import { pinGlyphSvg } from '../lib/pinGlyphs';
@@ -28,7 +28,9 @@ export interface CourseMap {
   /**
    * Administrative-area map of the visible area: hides the SDK's own tiles
    * under the background color and draws the squared-off sub-areas of the focus
-   * above its whole neighbors. null restores the tiles.
+   * above its whole neighbors, with their names. null restores the tiles.
+   * Polygons are only redrawn when `parts` / `others` are new arrays, so a
+   * labels-only update is cheap.
    */
   setAreaMap(shapes: AreaShapes | null): void;
   /**
@@ -99,6 +101,41 @@ export function createMarkerElement(label: string, variant: 'stop' | 'preview', 
     el.tabIndex = -1;
   }
   return el;
+}
+
+/** An area's name on the map: not a button, taps go through to the map. */
+export function createAreaLabelElement(label: AreaLabel): HTMLElement {
+  const el = document.createElement('div');
+  el.className = `map-area-label${label.part ? '' : ' map-area-label--other'}`;
+  el.textContent = label.name;
+  el.setAttribute('aria-hidden', 'true');
+  return el;
+}
+
+/**
+ * Keeps one marker per label key: a label that only moved is moved, not
+ * rebuilt, and markers for labels no longer shown are removed.
+ */
+export function syncAreaLabels<M>(
+  current: Map<string, { label: AreaLabel; marker: M }>,
+  labels: AreaLabel[],
+  ops: { create(label: AreaLabel): M; move(marker: M, label: AreaLabel): void; remove(marker: M): void },
+): void {
+  const wanted = new Map(labels.map((l) => [`${l.part ? 'p' : 'o'}:${l.key}:${l.name}`, l]));
+  for (const [id, entry] of current) {
+    if (!wanted.has(id)) {
+      ops.remove(entry.marker);
+      current.delete(id);
+    }
+  }
+  for (const [id, label] of wanted) {
+    const entry = current.get(id);
+    if (!entry) current.set(id, { label, marker: ops.create(label) });
+    else if (entry.label.at[0] !== label.at[0] || entry.label.at[1] !== label.at[1]) {
+      ops.move(entry.marker, label);
+      entry.label = label;
+    }
+  }
 }
 
 export function createPinElement(pin: PinMarker, onClick?: (id: string) => void): HTMLElement {

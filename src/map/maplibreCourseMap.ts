@@ -1,11 +1,13 @@
 import maplibregl, { type Map as MapLibreMap, type Marker } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import type { AreaShapes } from '../domain/adminAreas';
+import type { AreaLabel, AreaShapes } from '../domain/adminAreas';
 import type { PlaceRef } from '../types/course';
 import {
   attachLongPress,
+  createAreaLabelElement,
   createMarkerElement,
   createPinElement,
+  syncAreaLabels,
   type CourseMap,
   type CourseMapOptions,
   type MapPadding,
@@ -41,6 +43,7 @@ export class MapLibreCourseMap implements CourseMap {
   private pinMarkers: Marker[] = [];
   private guide: [number, number][] = [];
   private areas: AreaShapes | null = null;
+  private areaLabels = new Map<string, { label: AreaLabel; marker: Marker }>();
   private readonly detachLongPress: () => void;
   /** Set once the style has loaded: the map renders from then on. */
   private ready = false;
@@ -72,6 +75,7 @@ export class MapLibreCourseMap implements CourseMap {
       options.onViewportChange?.({
         bounds: { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() },
         widthPx,
+        screen: { width: container.clientWidth, height: container.clientHeight, bearing: this.map.getBearing() },
       });
     };
     this.map.on('load', emitViewport);
@@ -124,10 +128,25 @@ export class MapLibreCourseMap implements CourseMap {
   }
 
   setAreaMap(shapes: AreaShapes | null): void {
+    const before = this.areas;
     this.areas = shapes;
-    for (const id of [AREA_COVER, AREA_OTHERS, AREA_PARTS]) {
-      (this.map.getSource(id) as maplibregl.GeoJSONSource | undefined)?.setData(this.areaData(id));
+    // A labels-only update keeps the same polygon arrays: no re-upload.
+    if (!before || !shapes || before.parts !== shapes.parts || before.others !== shapes.others) {
+      for (const id of [AREA_COVER, AREA_OTHERS, AREA_PARTS]) {
+        (this.map.getSource(id) as maplibregl.GeoJSONSource | undefined)?.setData(this.areaData(id));
+      }
     }
+    syncAreaLabels(this.areaLabels, shapes?.labels ?? [], {
+      create: (label) => {
+        const marker = new maplibregl.Marker({ element: createAreaLabelElement(label) }).setLngLat(label.at).addTo(this.map);
+        // Markers stack in DOM order: right above the canvas keeps the names
+        // under every pin and stop added before or after them.
+        this.map.getCanvas().after(marker.getElement());
+        return marker;
+      },
+      move: (marker, label) => marker.setLngLat(label.at),
+      remove: (marker) => marker.remove(),
+    });
   }
 
   setPins(pins: PinMarker[]): void {

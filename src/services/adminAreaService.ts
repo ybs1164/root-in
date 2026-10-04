@@ -42,6 +42,8 @@ export function parseAreas(value: unknown): AdminArea[] | null {
   return areas;
 }
 
+let warnedMissing = false;
+
 export class StaticAdminAreaService implements AdminAreaService {
   private cache = new Map<string, Promise<AdminArea[] | null>>();
 
@@ -51,7 +53,14 @@ export class StaticAdminAreaService implements AdminAreaService {
       // Not tied to one request's signal: a cancelled pan must not poison the cache.
       entry = fetch(`${BASE}${path}`)
         .then(async (response) => {
-          if (!response.ok) return null;
+          if (!response.ok) {
+            // Without the top file the map stays an empty background: say why.
+            if (path === 'sido.json' && response.status === 404 && !warnedMissing) {
+              warnedMissing = true;
+              console.warn(`[root-in] 행정구역 지도 데이터(${BASE}sido.json)가 없어 빈 지도로 보입니다. public/korea/admin을 함께 배포하세요 (scripts/korea-data/README.md).`);
+            }
+            return null;
+          }
           const json = await response.json() as unknown;
           return parseAreas(path === 'sido.json' ? (json as { areas?: unknown } | null)?.areas : json);
         })

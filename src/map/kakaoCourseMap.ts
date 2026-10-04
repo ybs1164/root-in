@@ -1,10 +1,12 @@
-import type { AreaShapes } from '../domain/adminAreas';
+import type { AreaLabel, AreaShapes } from '../domain/adminAreas';
 import type { KakaoMapInstance, KakaoMapsNamespace } from '../lib/kakaoSdk';
 import type { PlaceRef } from '../types/course';
 import {
   attachLongPress,
+  createAreaLabelElement,
   createMarkerElement,
   createPinElement,
+  syncAreaLabels,
   type CourseMap,
   type CourseMapOptions,
   type MapPadding,
@@ -13,6 +15,8 @@ import {
 } from './courseMap';
 
 type Overlay = { setMap(map: KakaoMapInstance | null): void };
+type KakaoPolygon = InstanceType<KakaoMapsNamespace['Polygon']>;
+type KakaoOverlay = InstanceType<KakaoMapsNamespace['CustomOverlay']>;
 
 const FOCUS_LEVEL = 4;
 
@@ -24,7 +28,11 @@ export class KakaoCourseMap implements CourseMap {
   private preview: Overlay | null = null;
   private pinOverlays: Overlay[] = [];
   private guide: Overlay | null = null;
-  private areaOverlays: Overlay[] = [];
+  private areas: AreaShapes | null = null;
+  private areaCover: KakaoPolygon | null = null;
+  private otherPolygons: KakaoPolygon[] = [];
+  private partPolygons: KakaoPolygon[] = [];
+  private areaLabels = new Map<string, { label: AreaLabel; marker: KakaoOverlay }>();
   private readonly container: HTMLElement;
   private attribution: HTMLElement | null = null;
   private readonly detachLongPress: () => void;
@@ -59,36 +67,60 @@ export class KakaoCourseMap implements CourseMap {
   }
 
   setAreaMap(shapes: AreaShapes | null): void {
-    this.areaOverlays.forEach((o) => o.setMap(null));
-    this.areaOverlays = [];
-    this.attribution?.remove();
-    this.attribution = null;
-    if (!shapes) return;
-    const polygon = (rings: [number, number][][], color: string, zIndex: number) =>
-      new this.maps.Polygon({
-        path: rings.map((ring) => ring.map((p) => this.latLng(p))),
-        strokeWeight: 0,
-        strokeOpacity: 0,
-        fillColor: color,
-        fillOpacity: 1,
-        zIndex,
+    const before = this.areas;
+    this.areas = shapes;
+    if (!shapes) {
+      [this.areaCover, ...this.otherPolygons, ...this.partPolygons].forEach((o) => o?.setMap(null));
+      this.areaCover = null;
+      this.otherPolygons = [];
+      this.partPolygons = [];
+      this.attribution?.remove();
+      this.attribution = null;
+    } else if (!before || before.parts !== shapes.parts || before.others !== shapes.others) {
+      // Kakao tiles can't be restyled, so a Korea-sized polygon hides them;
+      // the areas sit on top of it and the gaps between them show through.
+      this.areaCover ??= this.polygon([[[120, 30], [135, 30], [135, 45], [120, 45]]], this.routeColor('--map-bg', '#f7f9fc'), 0);
+      // Existing polygons take the new outlines: building hundreds of SDK
+      // objects per pan was much of the wait.
+      this.otherPolygons = this.reshape(this.otherPolygons, shapes.others, this.routeColor('--map-area-other', '#e1e7f1'), 1);
+      this.partPolygons = this.reshape(this.partPolygons, shapes.parts, this.routeColor('--map-area', '#c9d7ee'), 2);
+      if (!this.attribution) {
+        // Boundaries come from Statistics Korea (KOGL Type 1: credit required).
+        this.attribution = document.createElement('div');
+        this.attribution.className = 'map-attribution';
+        this.attribution.textContent = ADMIN_ATTRIBUTION;
+        this.container.appendChild(this.attribution);
+      }
+    }
+    syncAreaLabels(this.areaLabels, shapes?.labels ?? [], {
+      create: (label) => new this.maps.CustomOverlay({
+        position: this.latLng(label.at),
+        content: createAreaLabelElement(label),
+        // Under the pins (1) and stops.
+        zIndex: 0,
         map: this.map,
-      });
-    // Kakao tiles can't be restyled, so a Korea-sized polygon hides them;
-    // the areas sit on top of it and the gaps between them show through.
-    const cover = polygon([[[120, 30], [135, 30], [135, 45], [120, 45]]], this.routeColor('--map-bg', '#f7f9fc'), 0);
-    const otherColor = this.routeColor('--map-area-other', '#e1e7f1');
-    const partColor = this.routeColor('--map-area', '#c9d7ee');
-    this.areaOverlays = [
-      cover,
-      ...shapes.others.map((rings) => polygon(rings, otherColor, 1)),
-      ...shapes.parts.map((rings) => polygon(rings, partColor, 2)),
-    ];
-    // Boundaries come from Statistics Korea (KOGL Type 1: credit required).
-    this.attribution = document.createElement('div');
-    this.attribution.className = 'map-attribution';
-    this.attribution.textContent = ADMIN_ATTRIBUTION;
-    this.container.appendChild(this.attribution);
+      }),
+      move: (overlay, label) => overlay.setPosition(this.latLng(label.at)),
+      remove: (overlay) => overlay.setMap(null),
+    });
+  }
+
+  private polygon(rings: [number, number][][], color: string, zIndex: number): KakaoPolygon {
+    return new this.maps.Polygon({
+      path: rings.map((ring) => ring.map((p) => this.latLng(p))),
+      strokeWeight: 0,
+      strokeOpacity: 0,
+      fillColor: color,
+      fillOpacity: 1,
+      zIndex,
+      map: this.map,
+    });
+  }
+
+  private reshape(existing: KakaoPolygon[], list: [number, number][][][], color: string, zIndex: number): KakaoPolygon[] {
+    list.forEach((rings, i) => existing[i]?.setPath(rings.map((ring) => ring.map((p) => this.latLng(p)))));
+    existing.slice(list.length).forEach((o) => o.setMap(null));
+    return [...existing.slice(0, list.length), ...list.slice(existing.length).map((rings) => this.polygon(rings, color, zIndex))];
   }
 
   setPins(pins: PinMarker[]): void {

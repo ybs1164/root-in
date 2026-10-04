@@ -33,7 +33,7 @@ export interface KakaoMapsNamespace {
     xAnchor?: number;
     zIndex?: number;
     map?: KakaoMapInstance;
-  }) => { setMap(map: KakaoMapInstance | null): void };
+  }) => { setMap(map: KakaoMapInstance | null): void; setPosition(position: KakaoLatLng): void };
   Polyline: new (options: {
     path: KakaoLatLng[];
     strokeWeight: number;
@@ -52,7 +52,7 @@ export interface KakaoMapsNamespace {
     fillOpacity: number;
     zIndex?: number;
     map?: KakaoMapInstance;
-  }) => { setMap(map: KakaoMapInstance | null): void };
+  }) => { setMap(map: KakaoMapInstance | null): void; setPath(path: KakaoLatLng[] | KakaoLatLng[][]): void };
   event: {
     addListener(target: unknown, type: string, handler: (...args: unknown[]) => void): void;
   };
@@ -99,7 +99,8 @@ declare global {
 
 export const kakaoJsKey = (): string => (import.meta.env.VITE_KAKAO_JS_KEY as string | undefined)?.trim() ?? '';
 
-const SDK_TIMEOUT_MS = 8000;
+/** Past this the keyless map takes over: a blank screen any longer reads as broken. */
+const SDK_TIMEOUT_MS = 5000;
 let loading: Promise<KakaoMapsNamespace | null> | null = null;
 
 /**

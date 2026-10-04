@@ -26,12 +26,32 @@ export interface AreaMap {
   others: AdminArea[];
 }
 
+/** Which area a drawn polygon belongs to, for its name label. */
+export interface AreaTag {
+  /** Polygons sharing a key get one label (a 읍면동's sections share the 읍면동's). */
+  key: string;
+  name: string;
+}
+
+/** An area's name, placed inside its drawn shape. */
+export interface AreaLabel {
+  key: string;
+  name: string;
+  at: LonLat;
+  /** A sub-area of the focus (drawn darker) rather than a whole neighbor. */
+  part: boolean;
+}
+
 /** Screen-ready shapes after gaps and squared-off outlines (lon/lat rings). */
 export interface AreaShapes {
   parts: PolygonRings[];
   others: PolygonRings[];
   /** The focused area and the map bearing that shows it most like a rectangle. */
   focus?: { code: string; bearing: number };
+  /** Index-aligned with `parts` / `others`; only kept where labels are placed. */
+  partTags?: AreaTag[];
+  otherTags?: AreaTag[];
+  labels?: AreaLabel[];
 }
 
 /**
@@ -366,13 +386,38 @@ export function rectangleBearing(polygons: PolygonRings[]): number {
  * Done in screen pixels so the look holds at every zoom. An area too small
  * for the full radius retries with a smaller one rather than vanishing.
  */
+/** How far past the screen edges shapes are drawn (× screen width, px). */
+const RENDER_PAD_RATIO = 0.5;
+const renderPadPx = (widthPx: number) => Math.max(widthPx, 200) * RENDER_PAD_RATIO;
+/**
+ * Shapes are cut off where the drawn area ends, and that cut edge is rounded
+ * too; a screen this far inside the edge never shows it.
+ */
+const WINDOW_MARGIN_PX = OTHER_RADIUS_PX * 2 + 8;
+
+/**
+ * The lon/lat box a render of `viewport` covers with finished shapes: as
+ * long as the screen stays inside it (and the zoom stays about the same) the
+ * same shapes can be shown without redrawing them.
+ */
+export function areaRenderWindow(viewport: MapViewport): Bbox {
+  const projection = screenProjection(viewport);
+  const { bounds, widthPx } = viewport;
+  const inset = (renderPadPx(widthPx) - WINDOW_MARGIN_PX) * SCALE;
+  const top = projection.project([bounds.west, bounds.north]).Y;
+  const bottom = projection.project([bounds.west, bounds.south]).Y;
+  const [west, lowLat] = projection.unproject({ X: -inset, Y: Math.min(top, bottom) - inset });
+  const [east, highLat] = projection.unproject({ X: widthPx * SCALE + inset, Y: Math.max(top, bottom) + inset });
+  return { west, east, south: Math.min(lowLat, highLat), north: Math.max(lowLat, highLat) };
+}
+
 export function renderAreaMap(map: AreaMap, viewport: MapViewport): AreaShapes {
   const { bounds, widthPx } = viewport;
   if (!(widthPx > 0 && bounds.east > bounds.west && bounds.north > bounds.south)) return { parts: [], others: [] };
   const projection = screenProjection(viewport);
   // Areas far larger than the screen are cut down first; the cut edge lies
   // off-screen, beyond the padding, so its rounded corners never show.
-  const pad = Math.max(widthPx, 200) * 0.5 * SCALE;
+  const pad = renderPadPx(widthPx) * SCALE;
   const top = projection.project([bounds.west, bounds.north]).Y;
   const bottom = projection.project([bounds.west, bounds.south]).Y;
   const [minY, maxY] = [Math.min(top, bottom), Math.max(top, bottom)];
@@ -445,9 +490,11 @@ export function renderAreaMap(map: AreaMap, viewport: MapViewport): AreaShapes {
     }
     return [];
   };
+  // Sections (구획) have no names of their own: the 읍면동 gets one label.
+  const partTag = (a: AdminArea): AreaTag => (a.code.includes('-') ? { key: map.focus.code, name: map.focus.name } : { key: a.code, name: a.name });
   const shaped = [
-    ...map.parts.map((a) => ({ part: true, paths: shape(a, PART_RADIUS_PX, []) })),
-    ...map.others.map((a) => ({ part: false, paths: shape(a, OTHER_RADIUS_PX, focusOutline) })),
+    ...map.parts.map((a) => ({ part: true, tag: partTag(a), paths: shape(a, PART_RADIUS_PX, []) })),
+    ...map.others.map((a) => ({ part: false, tag: { key: a.code, name: a.name }, paths: shape(a, OTHER_RADIUS_PX, focusOutline) })),
   ].filter((s) => s.paths.length);
   // Enforce the minimum gap: each shape gives way to the ones before it
   // (the focus's own parts first). Only nearby shapes are checked.
@@ -484,9 +531,25 @@ export function renderAreaMap(map: AreaMap, viewport: MapViewport): AreaShapes {
     }
     return polygons;
   };
+  const collect = (part: boolean) => {
+    const polygons: PolygonRings[] = [];
+    const tags: AreaTag[] = [];
+    for (const s of shaped) {
+      if (s.part !== part) continue;
+      for (const polygon of rings(s.paths)) {
+        polygons.push(polygon);
+        tags.push(s.tag);
+      }
+    }
+    return { polygons, tags };
+  };
+  const parts = collect(true);
+  const others = collect(false);
   return {
-    parts: shaped.filter((s) => s.part).flatMap((s) => rings(s.paths)),
-    others: shaped.filter((s) => !s.part).flatMap((s) => rings(s.paths)),
+    parts: parts.polygons,
+    others: others.polygons,
+    partTags: parts.tags,
+    otherTags: others.tags,
     // From the source outlines, so it doesn't depend on the current zoom.
     focus: { code: map.focus.code, bearing: rectangleBearing(map.parts.flatMap((a) => a.polygons)) },
   };

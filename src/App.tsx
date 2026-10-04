@@ -344,12 +344,21 @@ export default function App() {
   }, []);
 
   // Focus the area in the middle of the uncovered map, not under the sheet.
-  const areaFocus = useMemo(() => {
+  // The same uncovered part keeps the area names clear of the bars and buttons.
+  const areaView = useMemo(() => {
     const el = mapEl.current;
     if (!viewport || !el) return null;
-    return visibleCenter(viewport.bounds, { width: el.clientWidth, height: el.clientHeight }, mapPadding());
+    const cover = mapPadding();
+    // On desktop the padding leaves the bottom bar out (nothing is fitted
+    // under it); a name there would still be hidden.
+    const bar = barEl.current?.getBoundingClientRect();
+    const underBar = bar && bar.height > 0 ? el.getBoundingClientRect().bottom - bar.top + 8 : 0;
+    return {
+      focus: visibleCenter(viewport.bounds, { width: el.clientWidth, height: el.clientHeight }, cover),
+      cover: { ...cover, bottom: Math.max(cover.bottom, underBar) },
+    };
   }, [viewport, mapPadding]);
-  const areaMap = useAreaMap(viewport, areaFocus);
+  const areaMap = useAreaMap(viewport, areaView?.focus, areaView?.cover);
   useEffect(() => {
     mapRef.current?.setAreaMap(areaMap);
   }, [areaMap, mapProvider]);
