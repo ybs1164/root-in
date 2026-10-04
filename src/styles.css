@@ -3096,6 +3096,95 @@ button:disabled {
   font-size: 15px;
 }
 
+/* The confirm's stub halves each carry their own paper, so tearing one off
+   leaves a gap; the perforation sits on the message's lower edge instead,
+   where it stays when a half goes. */
+.confirm-dialog .ticket-dialog__main {
+  border-bottom: 1.5px dashed var(--perforation);
+}
+
+.confirm-dialog .ticket-dialog__stub {
+  border-top: 0;
+  background: transparent;
+}
+
+.confirm-dialog .ticket-dialog__split > button {
+  background: var(--surface);
+}
+
+.confirm-dialog .ticket-dialog__split > .is-danger {
+  background: var(--danger);
+}
+
+.confirm-dialog .ticket-dialog__split > button:disabled {
+  opacity: 1;
+}
+
+.confirm-dialog .ticket-dialog__split > .is-gone {
+  visibility: hidden;
+}
+
+/* The half coming away: same paper and notch, it tugs at the tear line,
+   then falls with a turn and fades. */
+.confirm-dialog__torn {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 16px;
+  pointer-events: none;
+  --notch: 10px;
+  animation: ticket-tear 0.46s cubic-bezier(0.4, 0, 0.7, 0.4) both;
+}
+
+.confirm-dialog__torn.is-cancel {
+  border-radius: 0 0 0 22px;
+  transform-origin: 100% 0;
+  --tear-turn: -14deg;
+  --tear-x: -18px;
+  -webkit-mask: radial-gradient(circle var(--notch) at 0 0, transparent 98%, black);
+  mask: radial-gradient(circle var(--notch) at 0 0, transparent 98%, black);
+}
+
+.confirm-dialog__torn.is-confirm {
+  border-radius: 0 0 22px 0;
+  background: var(--danger);
+  color: var(--on-accent);
+  transform-origin: 0 0;
+  --tear-turn: 14deg;
+  --tear-x: 18px;
+  -webkit-mask: radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black);
+  mask: radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black);
+}
+
+@keyframes ticket-tear {
+  0% {
+    transform: none;
+    opacity: 1;
+  }
+  22% {
+    transform: translateY(3px) rotate(calc(var(--tear-turn) * 0.2));
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tear-x), 90px) rotate(var(--tear-turn));
+    opacity: 0;
+  }
+}
+
+/* What's left fades as the piece falls, then the dialog closes. */
+.confirm-dialog.is-tearing .ticket-dialog__main,
+.confirm-dialog.is-tearing .ticket-dialog__split > button:not(.is-gone) {
+  animation: ticket-rest-out 0.2s ease 0.26s both;
+}
+
+@keyframes ticket-rest-out {
+  to {
+    opacity: 0;
+  }
+}
+
 .btn--danger {
   background: var(--danger);
   color: var(--on-accent);
