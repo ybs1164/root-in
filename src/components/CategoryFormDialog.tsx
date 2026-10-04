@@ -39,7 +39,7 @@ export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }:
     if (dialog && !dialog.open) dialog.showModal();
   }, []);
 
-  const title = mode === 'create' ? '핀 카테고리 생성' : '핀 카테고리 편집';
+  const title = mode === 'create' ? '새 카테고리' : '카테고리 편집';
   const canSubmit = value.name.trim().length > 0;
   const submit = () => {
     if (!canSubmit) return;
