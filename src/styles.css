@@ -3747,7 +3747,7 @@ input.timeline__time:focus {
   padding-right: 34px;
   overflow: hidden;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3759,26 +3759,43 @@ input.timeline__time:focus {
 
 .pin-card__name-input,
 .pin-card__memo-input {
+  /* Editing changes nothing on screen but the caret: no box, no fill, no
+     ring — the fields wear the same type as the text they replace. */
+  display: block;
   width: 100%;
   min-width: 0;
-  height: 36px;
-  padding: 0 10px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface-2);
-  color: var(--text);
-  font: inherit;
-  font-size: 16px; /* no iOS zoom-in */
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-family: inherit;
+}
+
+.pin-card__name-input:focus-visible,
+.pin-card__memo-input:focus-visible {
+  outline: none;
 }
 
 .pin-card__name-input {
-  margin-top: 4px;
-  font-weight: 700;
+  margin-top: 2px;
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.25;
 }
 
 .pin-card__memo-input {
   width: calc(100% - 34px);
-  margin-top: 4px;
+  min-height: 1.4em;
+  color: var(--muted);
+  font-size: 16px; /* no iOS zoom-in; the memo text matches it */
+  line-height: 1.4;
+}
+
+.pin-card__memo-input::placeholder {
+  color: var(--muted);
+  letter-spacing: 0.12em;
 }
 
 .pin-card__pen {
@@ -3832,10 +3849,8 @@ input.timeline__time:focus {
 }
 
 /* Editing: it is a button now, so it says so. */
-.pin-card__category.is-editable {
-  background: color-mix(in srgb, var(--pin) 14%, transparent);
-  outline: 1.5px dashed var(--pin);
-  outline-offset: 2px;
+.pin-card__category.is-editable:focus-visible {
+  outline: none;
 }
 
 .pin-card__bin {

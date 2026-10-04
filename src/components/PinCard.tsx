@@ -131,7 +131,8 @@ export default function PinCard({ pin, categories, onRecategorize, onRename, onM
               defaultValue={pin.place.name}
               maxLength={PIN_LIMITS.name}
               autoFocus
-              onFocus={(e) => e.currentTarget.select()}
+              // Caret at the end, nothing selected: the text looks just as it did.
+              onFocus={(e) => e.currentTarget.setSelectionRange(e.currentTarget.value.length, e.currentTarget.value.length)}
               onKeyDown={keys}
             />
             <input
@@ -139,7 +140,7 @@ export default function PinCard({ pin, categories, onRecategorize, onRename, onM
               ref={memoEl}
               className="pin-card__memo-input"
               aria-label="한 줄 메모"
-              placeholder="한 줄 메모"
+              placeholder="..."
               defaultValue={pin.memo ?? ''}
               maxLength={PIN_LIMITS.memo}
               onKeyDown={keys}
