@@ -63,7 +63,7 @@ export default function CategorySheet({
     <dialog
       ref={dialogRef}
       className="share-sheet category-sheet"
-      aria-labelledby="category-sheet-title"
+      aria-label="핀 카테고리"
       onClose={onClose}
       onPointerDown={backdrop.onPointerDown}
       onPointerUp={backdrop.onPointerUp}
@@ -73,12 +73,7 @@ export default function CategorySheet({
     >
       <div className="share-sheet__body">
         <div className="share-sheet__head">
-          <h2 id="category-sheet-title">
-            핀 카테고리
-            <span className="sheet-label" aria-hidden>
-              CATEGORY
-            </span>
-          </h2>
+          <h2>CATEGORY</h2>
           <div className="category-sheet__actions">
             <button
               className={`icon-btn category-sheet__pen ${editing ? 'is-on' : ''}`}

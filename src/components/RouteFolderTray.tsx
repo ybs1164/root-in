@@ -135,7 +135,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     if (!shownId) return;
     const row = sheetEl.current?.querySelector<HTMLElement>('.route-row.is-shown');
     const body = row?.closest<HTMLElement>('.route-folders__body');
-    // The route becomes the first thing in view (the + row scrolls away above it).
+    // The route becomes the first thing in view, under the toolbar.
     if (row && body) body.scrollTo({ top: row.offsetTop - body.offsetTop - 6, behavior: 'smooth' });
   }, [shownId]);
 
@@ -705,19 +705,10 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
         </div>
       )}
 
-      <div
-        ref={bodyEl}
-        className={`route-folders__body ${rowDrag ? 'is-sorting' : ''} ${selecting ? 'is-selecting' : ''}`}
-        role="tabpanel"
-        onClick={(e) => {
-          // A tap on the sheet's empty space (not a row or a button) lets go of a route on show.
-          if (shownId && !(e.target as Element).closest('button, a, input')) onShow(null);
-        }}
-      >
-        <div className="route-folders__head">
-          <span className="sheet-label" aria-hidden>
-            ROUTES
-          </span>
+      {/* The sheet's toolbar: ROUTES and its tools stay put while the routes scroll under them. */}
+      <div className="route-folders__head">
+        <h2 className="route-folders__title">ROUTES</h2>
+        <div className="route-folders__tools">
           <button
             className={`route-folders__new route-folders__select ${selecting ? 'is-on' : ''}`}
             aria-label="여러 개 선택"
@@ -730,6 +721,16 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
             <Plus size={20} aria-hidden />
           </button>
         </div>
+      </div>
+      <div
+        ref={bodyEl}
+        className={`route-folders__body ${rowDrag ? 'is-sorting' : ''} ${selecting ? 'is-selecting' : ''}`}
+        role="tabpanel"
+        onClick={(e) => {
+          // A tap on the sheet's empty space (not a row or a button) lets go of a route on show.
+          if (shownId && !(e.target as Element).closest('button, a, input')) onShow(null);
+        }}
+      >
         {routes.length === 0 ? (
           // An empty folder of the user's own just stays blank.
           (current === 'all' || current === 'none') && (

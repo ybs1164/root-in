@@ -1953,7 +1953,7 @@ button:disabled {
 .share-tag--edit {
   position: absolute;
   right: 84px;
-  bottom: 204px;
+  bottom: 256px;
   z-index: 12;
   width: 44px;
   height: 56px;
@@ -1961,11 +1961,11 @@ button:disabled {
 }
 
 /* A route on show: the tag stands at the right, just above the lowered
-   folder sheet (190px: .route-folders.is-lowered). */
+   folder sheet (242px: .route-folders.is-lowered). */
 .share-tag--route {
   position: absolute;
   right: 14px;
-  bottom: 204px;
+  bottom: 256px;
   z-index: 12;
   animation: tag-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
 }
@@ -2295,7 +2295,7 @@ button:disabled {
 /* A route on show: the sheet sinks so only its tabs and the route's row stay
    up (App's FOLDER_LOWERED_PX), leaving the map to the route. */
 .route-folders.is-lowered {
-  transform: translateY(calc(100% - 190px));
+  transform: translateY(calc(100% - 242px)); /* tabs, the toolbar and the route's row with its trash */
 }
 
 /* Room to scroll any route, even the last, up to the top of the strip. */
@@ -2422,9 +2422,7 @@ button:disabled {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 10px 16px calc(var(--safe-bottom) + 14px);
-  /* The tabs stand on the sheet's ink rule (the open one too), as on the other sheets. */
-  border-top: 3px solid var(--text);
+  padding: 4px 16px calc(var(--safe-bottom) + 14px);
   background: var(--surface);
 }
 
@@ -2433,25 +2431,26 @@ button:disabled {
 /* ✓ (다중 선택) and + on their own line at the top right; the routes start
    just below (tucked up a little). */
 .route-folders__head {
+  flex: none;
   display: flex;
-  justify-content: flex-end;
   align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px 0 16px;
+  /* The tabs stand on the sheet's ink rule (the open one too), as on the other sheets. */
+  border-top: 3px solid var(--text);
+  background: var(--surface);
+}
+
+/* ROUTES, at the left like the category sheet's CATEGORY. */
+.route-folders__title {
+  margin: 0;
+  color: var(--text);
+  font-size: 22px;
+}
+
+.route-folders__tools {
+  display: flex;
   gap: 2px;
-  margin: -4px 0 -6px;
-}
-
-/* A sheet's small English label in spaced caps, beside its title (or its tools). */
-.sheet-label {
-  color: var(--muted);
-  font-family: "Bebas Neue", "Oswald", sans-serif;
-  font-size: 16px;
-  font-weight: 400;
-  letter-spacing: 0.26em;
-  line-height: 1;
-}
-
-.route-folders__head .sheet-label {
-  margin-right: 14px;
 }
 
 .route-folders__new {
@@ -4749,6 +4748,16 @@ button:disabled {
 .category-sheet .share-sheet__body {
   max-height: 88dvh;
   overflow-y: auto;
+}
+
+/* Its toolbar (CATEGORY, ✎, +) stays at the top while the categories scroll under it. */
+.category-sheet .share-sheet__head {
+  position: sticky;
+  top: -8px; /* the body's own top padding scrolls away first */
+  z-index: 3;
+  margin: -8px -16px 0;
+  padding: 8px 16px 4px;
+  background: var(--surface);
 }
 
 .cat-manager__list {
