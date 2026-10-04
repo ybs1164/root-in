@@ -2956,12 +2956,10 @@ button:disabled {
   animation: tray-up 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 
+/* Nothing of its own left in the sheet: the folder tab and ✓ both stand
+   out of its top edge (they're placed against the sheet itself). */
 .route-edit__head {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end; /* ✓ at the right (the folder is a tab above the sheet) */
-  padding: 12px 12px 0;
+  display: contents;
 }
 
 /* The route's folder as an index tab out of the sheet's top edge, at its
@@ -3002,15 +3000,20 @@ button:disabled {
   left: 0;
 }
 
+/* ✓ above the sheet's top edge at the right, across from the folder tab. */
 .route-edit__done {
+  position: absolute;
+  right: 16px;
+  bottom: calc(100% + 8px);
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   padding: 0;
   border: 0;
   border-radius: 50%;
   background: var(--accent);
+  box-shadow: var(--shadow);
   color: var(--on-accent);
 }
 
@@ -3024,7 +3027,8 @@ button:disabled {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 4px 16px calc(var(--safe-bottom) + 16px);
+  /* The description starts at the top, in from the edges like the stops under it. */
+  padding: 14px 16px calc(var(--safe-bottom) + 16px);
 }
 
 .route-edit__note {
