@@ -3,7 +3,6 @@ import DayPattern from './components/DayPattern';
 import { Plus, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomBar from './components/BottomBar';
-import CalendarSheet from './components/CalendarSheet';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
 import CategoryChips from './components/CategoryChips';
 import PinCard from './components/PinCard';
@@ -20,10 +19,8 @@ import ProfileSheet, { ProfileAvatar } from './components/ProfileSheet';
 import CategorySheet from './components/CategorySheet';
 import SharedCourseView from './components/SharedCourseView';
 import SharedPinsView from './components/SharedPinsView';
-import ShareSheet from './components/ShareSheet';
 import { calendarAgain, homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { addStop, COURSE_LIMITS } from './domain/course';
-import { DIARY_LIMITS, diaryKind } from './domain/diary';
 import type { MapViewport } from './domain/districtMap';
 import { categoryFamily, categoryStyle, filterPinsByCategories } from './domain/pin';
 import { pinRailNext, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
@@ -33,10 +30,8 @@ import { addEditStop, moveStop, toggleEditStop, withEditStops, type RouteEdit } 
 import { cleanRouteLook, withEdgeStyle, withStopShape } from './domain/routeStyle';
 import { moveRoute, neighborRoute, type RouteTab } from './domain/routeFolders';
 import { useCourseDraft } from './hooks/useCourseDraft';
-import { useDiaryDay } from './hooks/useDiaryDay';
 import { useDistrictMap } from './hooks/useDistrictMap';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
-import { useIncomingDiary } from './hooks/useIncomingDiary';
 import { useIncomingPins } from './hooks/useIncomingPins';
 import { usePageSwipe } from './hooks/usePageSwipe';
 import { usePins } from './hooks/usePins';
@@ -49,7 +44,6 @@ import { createMapStack } from './map/createCourseMap';
 import { pointPlace, type PlaceSearchService } from './services/placeSearch/placeSearchService';
 import { withRecentCategory } from './services/settingsRepository';
 import { loadProfile, saveProfile, type Profile } from './services/profileRepository';
-import type { ShareTarget } from './services/shareTargets';
 import type { CourseStop, PlaceRef } from './types/course';
 import type { Pin } from './types/pin';
 
@@ -104,16 +98,13 @@ export default function App() {
   const routeFolders = useRouteFolders();
   const { pins, categories } = pinStore;
   const course = useCourseDraft();
-  const day = useDiaryDay(notify);
   const { incoming: incomingCourse, dismiss: dismissCourse } = useIncomingCourse();
-  const { incoming: incomingDiary, dismiss: dismissDiary } = useIncomingDiary();
   const { incoming: incomingPins, dismiss: dismissPins } = useIncomingPins();
 
   const [tab, setTab] = useState<AppTab>('pins');
   // Only a course being built from a place card shows on the pin map now.
   const [sub, setSub] = useState<'pins' | 'edit'>('pins');
   const [sheet, setSheet] = useState<SheetSize>('peek');
-  const [shareTarget, setShareTarget] = useState<ShareTarget | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [profile, setProfile] = useState(loadProfile);
   const changeProfile = (next: Profile) => {
@@ -174,7 +165,6 @@ export default function App() {
   const [picked, setPicked] = useState<Set<string>>(new Set());
 
   const sharedCourse = incomingCourse.status === 'ready' ? incomingCourse.course : null;
-  const sharedDiary = incomingDiary.status === 'ready' ? incomingDiary.diary : null;
   const sharedPins = incomingPins.status === 'ready' ? incomingPins.set : null;
   const activePin = pins.find((p) => p.id === activePinId) ?? null;
   const onPinHome = tab === 'pins' && !sharedCourse && !sharedPins;
@@ -233,15 +223,9 @@ export default function App() {
     if (buildPins) return buildPins.map((p) => p.place);
     if (editRoute) return editRoute.stops.map((s) => s.place);
     if (shownRoute) return shownRoute.stops.map((s) => s.place);
-    if (tab === 'calendar') {
-      if (sharedDiary) return sharedDiary.stops.map((s) => s.place);
-      if (day.screen.kind === 'edit') return day.draft.stops.map((s) => s.place);
-      if (day.screen.kind === 'wish') return day.screen.item.stops.map((s) => s.place);
-      return [];
-    }
     if (tab === 'pins' && sub !== 'pins') return course.draft.stops.map((s) => s.place);
     return [];
-  }, [sharedCourse, sharedPins, buildPins, editRoute, shownRoute, sharedDiary, tab, sub, day.screen, day.draft.stops, course.draft.stops]);
+  }, [sharedCourse, sharedPins, buildPins, editRoute, shownRoute, tab, sub, course.draft.stops]);
 
   // Only whether a route is being edited changes the markers, not each edit
   // (re-making them would drop every pin in again).
@@ -445,17 +429,6 @@ export default function App() {
   }, [incomingCourse, dismissCourse, notify]);
 
   useEffect(() => {
-    if (incomingDiary.status === 'invalid') {
-      notify('공유받은 하루 루트를 열 수 없어요. 링크가 잘렸는지 확인해 주세요.');
-      dismissDiary();
-    }
-    if (incomingDiary.status === 'ready') {
-      setTab(tabForIncoming('day'));
-      setSheet('peek');
-    }
-  }, [incomingDiary, dismissDiary, notify]);
-
-  useEffect(() => {
     if (incomingPins.status === 'invalid') {
       notify('공유받은 핀셋을 열 수 없어요. 링크가 잘렸는지 확인해 주세요.');
       dismissPins();
@@ -525,7 +498,11 @@ export default function App() {
     setPinning(false);
     setPreview(null);
     setActivePinId(null);
-    if (next !== 'calendar' && sharedDiary) dismissDiary();
+    // An open search belongs to the map: leaving for another tab cancels it
+    // (it would otherwise keep the map, and the old panel, showing under 달력).
+    setSearchOpen(false);
+    setQuery('');
+    searchInput.current?.blur();
   };
 
   const startSearch = () => {
@@ -726,30 +703,15 @@ export default function App() {
 
   // ----- Adding places -----
 
-  const inCalendar = tab === 'calendar' && !sharedCourse;
   const courseFull = course.draft.stops.length >= COURSE_LIMITS.maxStops;
-  const dayFull = day.draft.stops.length >= DIARY_LIMITS.maxStops;
-  const addLabel = inCalendar
-    ? dayFull
-      ? `최대 ${DIARY_LIMITS.maxStops}곳`
-      : diaryKind(day.draft) === 'plan'
-        ? '계획에 추가'
-        : '기록에 추가'
-    : courseFull
-      ? `최대 ${COURSE_LIMITS.maxStops}곳`
-      : `${course.draft.stops.length + 1}번째로 추가`;
+  const addLabel = courseFull ? `최대 ${COURSE_LIMITS.maxStops}곳` : `${course.draft.stops.length + 1}번째로 추가`;
 
   const addPlace = (place: PlaceRef) => {
-    if (inCalendar) {
-      if (sharedDiary) dismissDiary();
-      day.addPlace(place);
-    } else {
-      if (sharedCourse) dismissCourse();
-      course.setDraft((d) => ({ ...d, stops: addStop(d.stops, place) }));
-      setTab('pins');
-      setSub('edit');
-      notify(`${place.name}을(를) ${course.draft.stops.length + 1}번째로 추가했어요.`);
-    }
+    if (sharedCourse) dismissCourse();
+    course.setDraft((d) => ({ ...d, stops: addStop(d.stops, place) }));
+    setTab('pins');
+    setSub('edit');
+    notify(`${place.name}을(를) ${course.draft.stops.length + 1}번째로 추가했어요.`);
     setPreview(null);
     setActivePinId(null);
     setQuery('');
@@ -845,30 +807,10 @@ export default function App() {
         </div>
       );
     }
-    if (tab === 'calendar') {
-      return (
-        <div className="sheet__content">
-          <CalendarSheet
-            key={sharedDiary?.sharedAt ?? 'mine'}
-            day={day}
-            sharedDiary={sharedDiary}
-            onDismissShared={dismissDiary}
-            search={searchService}
-            pins={pins}
-            categories={categories}
-            onFocusStop={(i) => mapEvents.current.stop(i)}
-            onStartSearch={startSearch}
-            onShare={(draft) => setShareTarget({ kind: 'day', draft })}
-          />
-        </div>
-      );
-    }
     return null;
   };
 
-  const cardTargetFull = inCalendar ? dayFull : courseFull;
-  // A received day (#diary=) still opens in the old timeline view.
-  const calendarZoom = tab === 'calendar' && !sharedDiary;
+  const calendarZoom = tab === 'calendar';
   const onPage = showsPage(tab, Boolean(sharedCourse || sharedPins || searchOpen || preview));
   // Swiping 달력 left slides the page off and uncovers the map (핀).
   const swipe = usePageSwipe(onPage && !decorating ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
@@ -1099,7 +1041,7 @@ export default function App() {
             >
               📍 핀
             </button>
-            <button className="btn btn--primary" onClick={() => addPlace(preview)} disabled={cardTargetFull}>
+            <button className="btn btn--primary" onClick={() => addPlace(preview)} disabled={courseFull}>
               {addLabel}
             </button>
           </div>
@@ -1175,7 +1117,6 @@ export default function App() {
         />
       </div>
 
-      {shareTarget && <ShareSheet target={shareTarget} onClose={() => setShareTarget(null)} />}
       {profileOpen && <ProfileSheet profile={profile} onChange={changeProfile} onClose={() => setProfileOpen(false)} />}
       {categoriesOpen && (
         <CategorySheet

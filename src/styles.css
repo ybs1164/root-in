@@ -956,10 +956,6 @@ button:disabled {
   color: var(--text);
 }
 
-.btn--block {
-  width: 100%;
-}
-
 .action-bar {
   position: sticky;
   bottom: -16px;
@@ -1148,27 +1144,6 @@ button:disabled {
   font-size: 18px;
 }
 
-.share-sheet__course {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--surface-2);
-}
-
-.share-sheet__course span {
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.share-sheet__row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
 .field {
   display: flex;
   flex-direction: column;
@@ -1182,15 +1157,6 @@ button:disabled {
   height: 46px;
   padding: 0 14px;
   color: var(--text);
-}
-
-.toast-inline {
-  min-height: 1em;
-  margin: 0;
-  color: var(--sage);
-  font-size: 14px;
-  font-weight: 600;
-  text-align: center;
 }
 
 /* ---------- 꾸미기 (calendar day): stickers, pen, theme ---------- */
@@ -2189,191 +2155,6 @@ button:disabled {
   letter-spacing: -0.02em;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.diary-bar__by {
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.diary-empty {
-  margin: 8px 0;
-  color: var(--muted);
-  font-size: 14px;
-  text-align: center;
-}
-
-.star-btn {
-  color: var(--muted);
-}
-
-.star-btn--on {
-  color: var(--amber);
-}
-
-.diary-add {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
-}
-
-/* Timeline: time · place · one line */
-
-.timeline {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.timeline__item {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.timeline__item:last-child {
-  border-bottom: 0;
-}
-
-.timeline__time {
-  flex: none;
-  width: 52px;
-  padding-top: 11px;
-  color: var(--accent-strong);
-  font-size: 15px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-input.timeline__time {
-  width: 104px;
-  height: 44px;
-  padding: 0 4px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  font-size: 16px;
-  outline: none;
-}
-
-/* Phones open their own picker on tap; the desktop clock icon only eats width. */
-input.timeline__time::-webkit-calendar-picker-indicator {
-  display: none;
-}
-
-input.timeline__time:focus {
-  background: var(--surface-2);
-}
-
-.timeline__body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.timeline__name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  font-size: 16px;
-  font-weight: 700;
-  text-align: left;
-  overflow-wrap: anywhere;
-}
-
-.timeline__num {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.timeline__memo {
-  height: 40px;
-  padding: 0;
-  border: 0;
-  border-bottom: 1px dashed transparent;
-  background: transparent;
-  color: var(--text);
-  font-size: 16px;
-  outline: none;
-}
-
-.timeline__memo:focus {
-  border-bottom-color: var(--accent);
-}
-
-.timeline__memo::placeholder {
-  color: var(--muted);
-  opacity: 0.6;
-}
-
-.timeline__note {
-  margin: 0 0 6px;
-  font-size: 14px;
-}
-
-.timeline__remove {
-  color: var(--muted);
-  font-size: 14px;
-}
-
-/* Day list */
-
-.day-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.day-row {
-  display: flex;
-  align-items: center;
-  border-bottom: 1px solid var(--border);
-}
-
-.day-row__main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  min-height: 60px;
-  padding: 10px 0;
-  border: 0;
-  background: transparent;
-  text-align: left;
-}
-
-.day-row__date {
-  font-weight: 800;
-  font-size: 15px;
-}
-
-.day-row__route {
-  width: 100%;
-  color: var(--muted);
-  font-size: 13px;
-  overflow: hidden;
-  white-space: nowrap;
   text-overflow: ellipsis;
 }
 
@@ -4228,29 +4009,10 @@ input.timeline__time:focus {
   box-shadow: inset 0 0 0 2px var(--pin);
 }
 
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid var(--border);
-  border-radius: 22px;
-  background: var(--surface);
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 700;
-}
-
 .pill--on {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent-strong);
-}
-
-.pill--block {
-  justify-content: center;
-  width: 100%;
 }
 
 /* ---------- Pin list ---------- */
@@ -4286,10 +4048,6 @@ input.timeline__time:focus {
   border-bottom: 1px solid var(--border);
   background: transparent;
   text-align: left;
-}
-
-.pin-list--compact .pin-row {
-  min-height: 48px;
 }
 
 .pin-row--on {
@@ -4480,37 +4238,6 @@ input.timeline__time:focus {
   background: var(--accent);
 }
 
-.day-row__badge {
-  margin-left: 6px;
-  vertical-align: 1px;
-}
-
-/* Plans and route-in */
-
-.check-btn {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 2px solid var(--border);
-  border-radius: 50%;
-  background: var(--surface);
-  color: transparent;
-}
-
-.check-btn.is-on {
-  border-color: var(--sage);
-  background: var(--sage);
-  color: var(--on-accent);
-}
-
-.timeline__item--done .timeline__name {
-  color: var(--muted);
-  text-decoration: line-through;
-}
-
 .route-in {
   display: flex;
   flex-direction: column;
@@ -4519,24 +4246,6 @@ input.timeline__time:focus {
   border: 1.5px solid var(--accent);
   border-radius: var(--radius);
   background: var(--accent-soft);
-}
-
-.route-in__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.diary-add {
-  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-}
-
-.pin-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 260px;
-  overflow-y: auto;
 }
 
 /* ---------- Profile (popup from the top-right button) ---------- */
