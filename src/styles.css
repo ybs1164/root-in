@@ -25,6 +25,8 @@
   --pin-shadow: 0 2px 3px rgba(27, 36, 64, 0.22);
   /* Boarding-pass tear line on the pin card. */
   --perforation: rgba(27, 36, 64, 0.22);
+  /* The orange arrow between the ticket's two places. */
+  --ticket-arrow: #f08a2b;
   --mask-show: #fff; /* SVG masks: white = fully shown (not a colour anyone sees) */
   --mask-hide: #000; /* …and black = hidden (the eraser's rub) */
   /* 꾸미기: fixed ink colours (not themed), the tool sheet and the palette rainbow. */
@@ -3687,46 +3689,79 @@ input.timeline__time:focus {
   rotate: 45deg;
 }
 
-/* Pin card: (icon) name (pen) / (⋯) … (bin). */
-.pin-card__top {
+/* Pin card: a boarding pass. Left, the place: SEOUL → SEONGSU (from its
+   address), its name, its one-line memo, the pen. Right of the tear line, the
+   stub: GROUP, the category glyph, the bin. */
+.app .place-card.place-card--pin.pin-card {
   display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.pin-card__icon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
+  width: min(312px, calc(100vw - 24px));
   padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--pin, var(--surface-2));
-  color: var(--on-accent);
-  line-height: 1;
 }
 
-.pin-card__icon .pin-glyph,
-.pin-card__icon-opt .pin-glyph {
-  width: 24px;
-  height: 24px;
+.pin-card__main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 14px 14px 18px;
+}
+
+.pin-card__route {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 21px;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pin-card__arrow {
+  color: var(--ticket-arrow);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 15px;
 }
 
 .pin-card__name {
-  flex: 1;
-  min-width: 0;
+  margin-top: 2px;
   overflow: hidden;
-  font-size: 17px;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.pin-card__name-input {
-  flex: 1;
+.pin-card__memo {
+  min-height: 1.4em;
+  margin: 0;
+  /* Clear of the pen in the bottom-right corner. */
+  padding-right: 34px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pin-card__memo.is-empty {
+  letter-spacing: 0.12em;
+}
+
+.pin-card__name-input,
+.pin-card__memo-input {
+  width: 100%;
   min-width: 0;
-  height: 40px;
+  height: 36px;
   padding: 0 10px;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -3734,53 +3769,89 @@ input.timeline__time:focus {
   color: var(--text);
   font: inherit;
   font-size: 16px; /* no iOS zoom-in */
+}
+
+.pin-card__name-input {
+  margin-top: 4px;
   font-weight: 700;
 }
 
-.pin-card__tool {
+.pin-card__memo-input {
+  width: calc(100% - 34px);
+  margin-top: 4px;
+}
+
+.pin-card__pen {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
   color: var(--muted);
 }
 
-.pin-card .chip-row {
-  margin-top: 10px;
+.pin-card.is-editing .pin-card__pen {
+  color: var(--accent);
 }
 
-.pin-card__details {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 6px 12px;
+/* The stub, past the tear line. */
+.pin-card__stub {
+  flex: none;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  margin: 10px 0 0;
-  font-size: 14px;
+  justify-content: space-between;
+  gap: 2px;
+  width: 78px;
+  padding: 14px 0 2px;
+  border-left: 1.5px dashed var(--perforation);
 }
 
-.pin-card__details dt {
+.pin-card__group {
+  color: var(--muted);
+  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  line-height: 1;
+}
+
+/* The category as on the map: its glyph alone, in its colour. */
+.pin-card__category {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--pin, var(--muted));
+}
+
+.pin-card__category .pin-glyph {
+  width: 34px;
+  height: 34px;
+}
+
+/* Editing: it is a button now, so it says so. */
+.pin-card__category.is-editable {
+  background: color-mix(in srgb, var(--pin) 14%, transparent);
+  outline: 1.5px dashed var(--pin);
+  outline-offset: 2px;
+}
+
+.pin-card__bin {
   color: var(--muted);
 }
 
-.pin-card__details dd {
-  margin: 0;
-  min-width: 0;
-  color: var(--text);
+.pin-card__icon-opt .pin-glyph {
+  width: 24px;
+  height: 24px;
 }
 
-.pin-card__details .place-card__memo {
-  margin: 0;
-}
-
-.pin-card__link {
-  grid-column: 1 / -1;
-}
-
-.pin-card__link a {
-  color: var(--accent-strong);
-  font-weight: 600;
-}
-
-/* The icon picker pops up above the card (the folder tabs' bubble, pinned to
-   the card's left edge instead of a tab). Each icon wears its colour. */
+/* The category picker pops up above the card (the folder tabs' bubble,
+   pinned to the card's right edge, over the stub). Each icon wears its colour. */
 .pin-card__icons {
-  left: 0;
+  right: 0;
+  left: auto;
   bottom: calc(100% + 10px);
 }
 
@@ -3798,17 +3869,6 @@ input.timeline__time:focus {
   box-shadow:
     0 0 0 2px var(--surface),
     0 0 0 4px var(--accent);
-}
-
-/* ⋯ on the left, the bin at the bottom right. */
-.pin-card__bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 8px;
-  padding-top: 4px;
-  /* 여행: the boarding pass's tear line. */
-  border-top: 1.5px dashed var(--perforation);
 }
 
 @keyframes pin-card-in {
