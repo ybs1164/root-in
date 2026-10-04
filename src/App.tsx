@@ -950,7 +950,6 @@ export default function App() {
       {/* 공유 for the route on show: makes its card and opens the 꾸미기 screen on it. */}
       {shownRoute && !buildPins && !editRoute && routeTrayShown && onPinHome && (
         <ShareTagButton
-          key={`edit-${shownRoute.id}`}
           light
           className="share-tag--edit"
           label="루트 수정"
@@ -960,7 +959,6 @@ export default function App() {
       )}
       {shownRoute && !buildPins && !editRoute && routeTrayShown && onPinHome && (
         <ShareTagButton
-          key={shownRoute.id}
           className="share-tag--route"
           label={`${shownRoute.title} 공유`}
           onClick={() => {

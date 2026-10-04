@@ -2997,7 +2997,9 @@ button:disabled {
 .route-create__pick.route-create__pick {
   position: absolute;
   left: 16px;
-  bottom: 100%;
+  /* Standing on the sheet's ink rule (3px, above its padding box) like the
+     folder sheet's tabs, not in front of it. */
+  bottom: calc(100% + 3px);
 }
 
 .route-edit__folder,
