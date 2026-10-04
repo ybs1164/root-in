@@ -1918,7 +1918,7 @@ button:disabled {
   position: relative;
   display: block;
   width: 60px;
-  height: 92px;
+  height: 76px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -1943,7 +1943,7 @@ button:disabled {
 .share-tag__icon {
   position: absolute;
   left: 50%;
-  top: 46px;
+  top: 47px;
   translate: -50% -50%;
 }
 
