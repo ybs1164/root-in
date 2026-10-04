@@ -25,6 +25,8 @@
   --pin-shadow: 0 2px 3px rgba(27, 36, 64, 0.22);
   /* Boarding-pass tear line on the pin card. */
   --perforation: rgba(27, 36, 64, 0.22);
+  /* drop-shadow() for the ticket-shaped tab bar (a box-shadow would be cut by its notches). */
+  --ticket-shadow: 0 6px 12px rgba(27, 36, 64, 0.14);
   /* The orange arrow between the ticket's two places. */
   --ticket-arrow: #f08a2b;
   --mask-show: #fff; /* SVG masks: white = fully shown (not a colour anyone sees) */
@@ -106,6 +108,7 @@
     --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.45);
     --backdrop: rgba(0, 0, 0, 0.6);
     --perforation: rgba(232, 237, 247, 0.22);
+    --ticket-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
     --map-road: #141c2e;
     --map-block: #24304a;
   }
@@ -224,6 +227,7 @@
 :root[data-theme='night'] {
   color-scheme: dark;
   --perforation: rgba(243, 235, 229, 0.22);
+  --ticket-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
   --bg: #1b1715;
   --surface: #25201d;
   --surface-2: #2f2926;
@@ -4013,73 +4017,71 @@ input.timeline__time:focus {
   height: var(--bar-h);
 }
 
-/* Round, icon-only. The current screen's button grows, the others shrink. */
+/* One boarding-pass ticket holding both tabs, icon only: a dashed tear line
+   between them with a notch top and bottom, and the current screen's half
+   filled with the accent. The shadow sits on a wrapper because the notches
+   are a mask, which would cut a box-shadow off with them. */
+.bottom-bar__ticket {
+  filter: drop-shadow(var(--ticket-shadow));
+}
+
+.bottom-bar__stub {
+  display: flex;
+  height: 54px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--surface);
+  -webkit-mask:
+    radial-gradient(circle 7px at 50% 0, transparent 98%, black) top / 100% 51% no-repeat,
+    radial-gradient(circle 7px at 50% 100%, transparent 98%, black) bottom / 100% 51% no-repeat;
+  mask:
+    radial-gradient(circle 7px at 50% 0, transparent 98%, black) top / 100% 51% no-repeat,
+    radial-gradient(circle 7px at 50% 100%, transparent 98%, black) bottom / 100% 51% no-repeat;
+  pointer-events: auto;
+}
+
 .bottom-bar__btn {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 66px;
+  height: 100%;
   padding: 0;
   border: 0;
-  border-radius: 50%;
-  background: var(--surface);
+  border-radius: 0;
+  background: transparent;
   color: var(--muted);
-  box-shadow: var(--shadow-sm);
-  pointer-events: auto;
-  transition: width 0.25s ease, height 0.25s ease, transform 0.15s ease;
+}
+
+.bottom-bar__btn + .bottom-bar__btn {
+  border-left: 1.5px dashed var(--perforation);
 }
 
 .bottom-bar__btn svg {
-  width: 20px;
-  height: 20px;
-  transition: width 0.25s ease, height 0.25s ease;
+  width: 22px;
+  height: 22px;
+  transition: transform 0.15s ease;
 }
 
 .bottom-bar__btn.is-on {
-  width: 58px;
-  height: 58px;
-  /* The current tab's button carries the accent colour, whichever it is. */
+  /* The current tab's half carries the accent colour, whichever it is. */
   background: var(--accent);
   color: var(--on-accent);
 }
 
-.bottom-bar__btn.is-on svg {
-  width: 26px;
-  height: 26px;
-}
-
-/* The pin is the app's main action, so it grows a little more than the others. */
-.bottom-bar__btn--pin.is-on {
-  width: 66px;
-  height: 66px;
-}
-
-.bottom-bar__btn--pin.is-on svg {
-  width: 30px;
-  height: 30px;
-}
-
-.bottom-bar__btn:active {
-  transform: scale(0.94);
-}
-
-.bottom-bar__slot {
-  position: relative;
-  display: grid;
-  place-items: center;
+.bottom-bar__btn:active svg {
+  transform: scale(0.88);
 }
 
 .calendar-today text {
   font-family: inherit;
 }
 
-/* Pin-drop mode: same colours, the pin tilts as before. */
-.bottom-bar__btn.is-pinning {
+/* Pin-drop mode: the pin tilts as before. */
+.bottom-bar__btn.is-pinning svg {
   transform: rotate(-12deg);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bottom-bar__btn,
   .bottom-bar__btn svg {
     transition: none;
   }
