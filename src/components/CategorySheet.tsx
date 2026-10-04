@@ -98,6 +98,7 @@ export default function CategorySheet({
           onMove={onMove}
           onDrop={onDrop}
           onDelete={onDelete}
+          onStartEditing={() => setEditing(true)}
           onPickPin={(id) => {
             dialogRef.current?.close();
             onPickPin(id);

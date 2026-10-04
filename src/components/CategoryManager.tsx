@@ -20,6 +20,8 @@ interface CategoryManagerProps {
   onDelete: (id: string) => void;
   /** A pin picked from a category's list: as if it were tapped on the map. */
   onPickPin: (id: string) => void;
+  /** A long press on a row out of 편집 상태 turns it on. */
+  onStartEditing: () => void;
 }
 
 /** Hold this long without moving to lift a row (moving sooner scrolls the list). */
@@ -39,7 +41,8 @@ interface Drag {
  * 핀 카테고리 (CategorySheet). Out of 편집 상태 a row opens the names of
  * its pins (tap one to see it on the map); in it, a row shows a drag handle
  * on its left and ✎ 🗑 where its count was; ✎ edits it, and the handle (or a
- * long press anywhere on the row) lifts it to drag.
+ * long press anywhere on the row) lifts it to drag. A long press on a row
+ * out of 편집 상태 turns 편집 상태 on with that row picked and lifted.
  */
 export default function CategoryManager({
   categories,
@@ -51,6 +54,7 @@ export default function CategoryManager({
   onDrop,
   onDelete,
   onPickPin,
+  onStartEditing,
 }: CategoryManagerProps) {
   const [open, setOpen] = useState<string | null>(null);
   // The category whose bin was tapped, waiting on the confirm.
@@ -58,19 +62,30 @@ export default function CategoryManager({
   const [drag, setDrag] = useState<Drag | null>(null);
   const dragRef = useRef(drag);
   dragRef.current = drag;
-  const hold = useRef<{ timer: number; id: string; x: number; y: number; el: HTMLElement; pointerId: number } | null>(null);
+  // The row a long press brought into 편집 상태 with: shown picked until the
+  // next press or until 편집 상태 ends.
+  const [picked, setPicked] = useState<string | null>(null);
+  const hold = useRef<{ timer: number; id: string; x: number; y: number; li: HTMLElement | null } | null>(null);
+  // Window listeners for the press in progress (a hold, then maybe a drag).
+  // On the window, not the row: a long press out of 편집 상태 swaps the
+  // row's element for the editing one, which would drop a pointer capture.
+  const unlisten = useRef<(() => void) | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
 
-  useEffect(() => setOpen(null), [editing]);
-  useEffect(() => () => cancelHold(), []);
+  useEffect(() => {
+    setOpen(null);
+    if (!editing) setPicked(null);
+  }, [editing]);
+  useEffect(() => () => endPress(), []);
 
   // Once a row is lifted the finger drags it, not the list: stop the
   // browser from taking the touch for a scroll (which would cancel it).
+  // While only held, the list can still scroll (moving cancels the hold).
   useEffect(() => {
     const list = listRef.current;
     if (!list) return;
     const stop = (event: TouchEvent) => {
-      if (dragRef.current || hold.current) event.preventDefault();
+      if (dragRef.current) event.preventDefault();
     };
     list.addEventListener('touchmove', stop, { passive: false });
     return () => list.removeEventListener('touchmove', stop);
@@ -78,59 +93,86 @@ export default function CategoryManager({
 
   const rows = orderedCategories(categories);
   const indexOf = (id: string) => rows.findIndex((c) => c.id === id);
+  const latest = useRef({ rows, indexOf, onDrop });
+  latest.current = { rows, indexOf, onDrop };
 
-  const cancelHold = () => {
+  const endPress = () => {
     if (hold.current) window.clearTimeout(hold.current.timer);
     hold.current = null;
+    unlisten.current?.();
+    unlisten.current = null;
   };
 
-  const lift = (el: HTMLElement, pointerId: number, id: string, y: number) => {
-    try {
-      el.setPointerCapture(pointerId);
-    } catch {
-      // The pointer may already be gone; the drag then ends on the next up.
-    }
-    setDrag({ id, startY: y, dy: 0, to: indexOf(id), rowH: el.closest('li')?.offsetHeight ?? 52 });
+  const lift = (id: string, y: number, li: HTMLElement | null) => {
+    hold.current = null;
+    setDrag({ id, startY: y, dy: 0, to: latest.current.indexOf(id), rowH: li?.offsetHeight ?? 52 });
   };
 
-  // The handle lifts the row at once; anywhere else on the row needs a hold
-  // (moving sooner scrolls the list).
+  const onPressMove = (event: globalThis.PointerEvent) => {
+    const h = hold.current;
+    if (h && Math.hypot(event.clientX - h.x, event.clientY - h.y) > HOLD_SLOP) return endPress();
+    const d = dragRef.current;
+    if (!d) return;
+    const { rows: list, indexOf: at } = latest.current;
+    const dy = event.clientY - d.startY;
+    setDrag({ ...d, dy, to: Math.max(0, Math.min(list.length - 1, at(d.id) + Math.round(dy / d.rowH))) });
+  };
+
+  const onPressUp = () => {
+    endPress();
+    const d = dragRef.current;
+    if (!d) return;
+    const { indexOf: at, onDrop: drop } = latest.current;
+    if (d.to !== at(d.id)) drop(d.id, d.to);
+    setDrag(null);
+  };
+
+  const onPressCancel = () => {
+    endPress();
+    setDrag(null);
+  };
+
+  const listen = () => {
+    unlisten.current?.();
+    window.addEventListener('pointermove', onPressMove);
+    window.addEventListener('pointerup', onPressUp);
+    window.addEventListener('pointercancel', onPressCancel);
+    unlisten.current = () => {
+      window.removeEventListener('pointermove', onPressMove);
+      window.removeEventListener('pointerup', onPressUp);
+      window.removeEventListener('pointercancel', onPressCancel);
+    };
+  };
+
+  // The handle lifts the row at once.
   const onHandleDown = (event: PointerEvent<HTMLElement>, id: string) => {
     if (event.button !== 0) return;
     event.stopPropagation();
-    cancelHold();
-    lift(event.currentTarget.closest<HTMLElement>('.cat-item__head') ?? event.currentTarget, event.pointerId, id, event.clientY);
+    endPress();
+    setPicked(null);
+    listen();
+    lift(id, event.clientY, event.currentTarget.closest('li'));
   };
 
+  // Anywhere else on a row, a hold lifts it (moving sooner scrolls the list).
+  // Out of 편집 상태 the hold also turns 편집 상태 on, that row picked and
+  // still under the finger, so it can be dragged straight away.
   const onRowDown = (event: PointerEvent<HTMLElement>, id: string) => {
-    if (!editing || event.button !== 0) return;
-    cancelHold();
-    const el = event.currentTarget;
-    const pointerId = event.pointerId;
+    if (event.button !== 0) return;
+    endPress();
+    setPicked(null);
+    const li = event.currentTarget.closest('li');
     const timer = window.setTimeout(() => {
       const h = hold.current;
-      hold.current = null;
-      if (h) lift(el, pointerId, id, h.y);
+      if (!h) return;
+      if (!editing) {
+        onStartEditing();
+        setPicked(id);
+      }
+      lift(id, h.y, h.li);
     }, HOLD_MS);
-    hold.current = { timer, id, x: event.clientX, y: event.clientY, el, pointerId };
-  };
-
-  const onRowMove = (event: PointerEvent<HTMLElement>) => {
-    const h = hold.current;
-    if (h && Math.hypot(event.clientX - h.x, event.clientY - h.y) > HOLD_SLOP) cancelHold();
-    const d = dragRef.current;
-    if (!d) return;
-    const dy = event.clientY - d.startY;
-    const from = indexOf(d.id);
-    setDrag({ ...d, dy, to: Math.max(0, Math.min(rows.length - 1, from + Math.round(dy / d.rowH))) });
-  };
-
-  const onRowUp = () => {
-    cancelHold();
-    const d = dragRef.current;
-    if (!d) return;
-    if (d.to !== indexOf(d.id)) onDrop(d.id, d.to);
-    setDrag(null);
+    hold.current = { timer, id, x: event.clientX, y: event.clientY, li };
+    listen();
   };
 
   // Rows the dragged one passes step aside; it follows the finger.
@@ -209,19 +251,13 @@ export default function CategoryManager({
           return (
             <li
               key={category.id}
-              className={`cat-item ${lifted ? 'is-dragged' : ''}`}
+              className={`cat-item ${lifted ? 'is-dragged' : ''} ${picked === category.id ? 'is-picked' : ''}`}
               style={offset ? { transform: `translateY(${offset}px)` } : undefined}
             >
               {editing ? (
                 <div
                   className="cat-item__head"
                   onPointerDown={(e) => onRowDown(e, category.id)}
-                  onPointerMove={onRowMove}
-                  onPointerUp={onRowUp}
-                  onPointerCancel={() => {
-                    cancelHold();
-                    setDrag(null);
-                  }}
                   onContextMenu={(e) => e.preventDefault()}
                 >
                   {/* Far left: the drag handle (the row can be dragged). */}
@@ -257,7 +293,13 @@ export default function CategoryManager({
                   </span>
                 </div>
               ) : (
-                <button className="cat-item__head" aria-expanded={expanded} onClick={() => setOpen(expanded ? null : category.id)}>
+                <button
+                  className="cat-item__head"
+                  aria-expanded={expanded}
+                  onPointerDown={(e) => onRowDown(e, category.id)}
+                  onContextMenu={(e) => e.preventDefault()}
+                  onClick={() => setOpen(expanded ? null : category.id)}
+                >
                   {badge(String(style.color), style.icon)}
                   <span className="cat-item__name">{category.name}</span>
                   <span className="cat-item__count">{countLabel(category.id)}</span>

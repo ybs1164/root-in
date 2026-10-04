@@ -4583,8 +4583,8 @@ button:disabled {
   margin-left: auto;
 }
 
-/* Rows held to drag: no text selection or iOS callout. */
-.cat-manager__list.is-editing .cat-item__head {
+/* Rows are held to drag (and, out of 편집 상태, to start it): no text selection or iOS callout. */
+.cat-manager__list .cat-item__head {
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -4593,6 +4593,11 @@ button:disabled {
 .cat-manager__list.is-sorting .cat-item {
   position: relative;
   transition: transform 0.18s ease;
+}
+
+/* The row a long press brought 편집 상태 on with. */
+.cat-item.is-picked {
+  background: var(--accent-soft);
 }
 
 /* The lifted row follows the finger, over the rest. */
