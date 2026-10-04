@@ -3671,6 +3671,12 @@ button:disabled {
   color: var(--on-accent);
 }
 
+/* ↓ under the categories: the next five. */
+.pin-rail__more {
+  color: var(--muted);
+  box-shadow: var(--shadow-sm);
+}
+
 /* + at the foot of the list: 핀 카테고리. */
 .pin-rail__add {
   color: var(--muted);

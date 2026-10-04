@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isAllPicked, pinRailNext, togglePicked } from './pinRail';
+import { isAllPicked, pinRailNext, railPage, railPageCount, togglePicked } from './pinRail';
 
 describe('pin rail', () => {
   it('opens 핀 or 경로 from the menu', () => {
@@ -32,5 +32,16 @@ describe('pin rail', () => {
     expect(isAllPicked(togglePicked(one, 'cafe'), ids)).toBe(true);
     // A picked category since deleted doesn't count.
     expect(isAllPicked(new Set(['gone']), ids)).toBe(true);
+  });
+
+  it('shows the categories five at a time; ↓ past the last set goes back to the first', () => {
+    const seven = ['none', 'cafe', 'food', 'bar', 'photo', 'shop', 'togo'];
+    expect(railPageCount(seven.length)).toBe(2);
+    expect(railPage(seven, 0)).toEqual(['none', 'cafe', 'food', 'bar', 'photo']);
+    expect(railPage(seven, 1)).toEqual(['shop', 'togo']);
+    expect(railPage(seven, 2)).toEqual(railPage(seven, 0));
+    // Five or fewer: one set, so no ↓.
+    expect(railPageCount(5)).toBe(1);
+    expect(railPageCount(0)).toBe(1);
   });
 });

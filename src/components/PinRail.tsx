@@ -1,7 +1,7 @@
-import { MapPin, Plus, Route } from 'lucide-react';
+import { ChevronDown, MapPin, Plus, Route } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { categoriesWithUncategorized, categoryStyle, UNCATEGORIZED } from '../domain/pin';
-import { isAllPicked, type PinRailEntry, type PinRailMode } from '../domain/pinRail';
+import { isAllPicked, railPage, railPageCount, type PinRailEntry, type PinRailMode } from '../domain/pinRail';
 import type { PinCategory } from '../types/pin';
 import PinGlyph from './PinGlyph';
 
@@ -46,6 +46,14 @@ export default function PinRail({ mode, onAction, categories, counts, picked, on
   // The category list trails the mode so it can play out before unmounting.
   const listOpen = mode === 'pins';
   const [listShown, setListShown] = useState(listOpen);
+  // Which set of five categories is out; each opening starts from the first.
+  const [page, setPage] = useState(0);
+  useEffect(() => {
+    if (listOpen) setPage(0);
+  }, [listOpen]);
+  const all = categoriesWithUncategorized(categories);
+  const pages = railPageCount(all.length);
+  const shown = railPage(all, page);
   useEffect(() => {
     if (listOpen) return setListShown(true);
     const t = window.setTimeout(() => setListShown(false), OUT_MS);
@@ -88,7 +96,7 @@ export default function PinRail({ mode, onAction, categories, counts, picked, on
       {listShown && (
         <ul className="pin-rail__list" aria-label="내 핀">
           {/* ALL first: every pin (on whenever no category is picked; never together with one). */}
-          <li className={`pin-rail__item ${listOpen ? '' : 'is-leaving'}`} style={stagger(0)}>
+          <li key="all" className={`pin-rail__item ${listOpen ? '' : 'is-leaving'}`} style={stagger(0)}>
             <button
               className={`pin-rail__btn pin-rail__all ${allOn ? 'is-on' : ''}`}
               aria-label="모든 핀"
@@ -98,8 +106,8 @@ export default function PinRail({ mode, onAction, categories, counts, picked, on
               ALL
             </button>
           </li>
-          {/* Then 미분류 (always there, right under ALL), then the categories. */}
-          {categoriesWithUncategorized(categories).map((category, i) => {
+          {/* Then 미분류 (always there, right under ALL), then the categories — five at a time. */}
+          {shown.map((category, i) => {
             const style = categoryStyle(categories, category.id);
             const on = picked.has(category.id);
             return (
@@ -116,8 +124,20 @@ export default function PinRail({ mode, onAction, categories, counts, picked, on
               </li>
             );
           })}
+          {/* More than five: ↓ brings the next set (the last set's ↓ goes back to the first). */}
+          {pages > 1 && (
+            <li key="more" className={`pin-rail__item ${listOpen ? '' : 'is-leaving'}`} style={stagger(shown.length + 1)}>
+              <button
+                className="pin-rail__btn pin-rail__more"
+                aria-label={`다음 카테고리 (${(page % pages) + 1}/${pages})`}
+                onClick={() => setPage((p) => (p + 1) % pages)}
+              >
+                <ChevronDown aria-hidden />
+              </button>
+            </li>
+          )}
           {/* Last: + opens 핀 카테고리. */}
-          <li className={`pin-rail__item ${listOpen ? '' : 'is-leaving'}`} style={stagger(categories.length + 2)}>
+          <li key="add" className={`pin-rail__item ${listOpen ? '' : 'is-leaving'}`} style={stagger(shown.length + 2)}>
             <button className="pin-rail__btn pin-rail__add" aria-label="핀 카테고리 편집" onClick={onCategories}>
               <Plus aria-hidden />
             </button>
