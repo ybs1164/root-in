@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addDays } from './calendar';
-import { classifyPress, daySwipeTarget, dayTitle, EDGE_STYLES, edgeKey, latestPingIndex, layoutPings, pingKey, pinchOutcome, pinchProgress, pingsForDate, SAMPLE_TODAY_PINGS } from './dayPings';
+import { classifyPress, daySwipeTarget, dayTitle, EDGE_STYLES, edgeKey, latestPingIndex, layoutPings, pingKey, pinchOutcome, pinchProgress, pingsForDate, SAMPLE_TODAY_PINGS, pingsLandedMs } from './dayPings';
 
 describe('calendar day screen', () => {
   it('titles today as TODAY and other days as DAY <n>', () => {
@@ -9,12 +9,13 @@ describe('calendar day screen', () => {
     expect(dayTitle('2026-10-05', '2026-09-30')).toBe('DAY 5');
   });
 
-  it('only today and yesterday have (temporary test) pings; other days are empty', () => {
-    expect(pingsForDate('2026-09-30', '2026-09-30')).toBe(SAMPLE_TODAY_PINGS);
+  it('pings belong to their date: the (temporary test) places stay put as days pass', () => {
+    expect(pingsForDate('2026-09-30')).toBe(SAMPLE_TODAY_PINGS);
     expect(SAMPLE_TODAY_PINGS).toHaveLength(3);
-    expect(pingsForDate('2026-09-29', '2026-09-30')).toHaveLength(4);
-    expect(pingsForDate('2026-09-28', '2026-09-30')).toEqual([]);
-    expect(pingsForDate('2026-10-01', '2026-09-30')).toEqual([]);
+    expect(pingsForDate('2026-09-29')).toHaveLength(4);
+    expect(pingsForDate('2026-09-28')).toEqual([]);
+    // The next day starts empty; 9/30 keeps its places.
+    expect(pingsForDate('2026-10-01')).toEqual([]);
   });
 
   it('pages days by swiping: left-to-right goes back, right-to-left goes forward except on TODAY', () => {
@@ -98,5 +99,12 @@ describe('calendar day screen', () => {
     expect(edgeKey('2026-09-30', a, b)).toBe('2026-09-30|10:30|성수연방>13:00|서울숲');
     expect(edgeKey('2026-09-30', b, a)).not.toBe(edgeKey('2026-09-30', a, b));
     expect(EDGE_STYLES.map((e) => e.style)).toEqual(['solid', 'dashed', 'dotted', 'bold']);
+  });
+
+  it('knows when a day’s pins and lines have landed, for the decorations to follow', () => {
+    expect(pingsLandedMs(0)).toBe(0);
+    expect(pingsLandedMs(1)).toBe(570); // one pin, no line
+    expect(pingsLandedMs(3)).toBe(1050); // the lines finish last
+    expect(pingsLandedMs(8)).toBe(120 + 7 * 110 + 450); // many pins: the last drop
   });
 });

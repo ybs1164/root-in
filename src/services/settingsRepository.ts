@@ -17,6 +17,7 @@ export function loadSettings(): Settings {
       recentCategoryIds: Array.isArray(parsed.recentCategoryIds)
         ? parsed.recentCategoryIds.filter((id): id is string => typeof id === 'string').slice(0, MAX_RECENT)
         : [],
+      // An app-wide `theme` used to live here; themes are per calendar day now.
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -36,7 +37,7 @@ export function withRecentCategory(settings: Settings, categoryId: string): Sett
   return { ...settings, recentCategoryIds: recent };
 }
 
-/** Removes every app key (settings → 데이터 초기화). */
+/** Removes every app key (프로필 → 탈퇴). */
 export function clearAppData(): void {
   try {
     const keys: string[] = [];

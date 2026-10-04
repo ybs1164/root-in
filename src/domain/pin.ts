@@ -16,6 +16,8 @@ export const PIN_LIMITS = {
   maxCategories: 30,
   categoryName: 12,
   memo: 120,
+  /** A pin's place name, as renamed from its card. */
+  name: 40,
 } as const;
 
 /** Pins whose category was deleted land here; it is never stored. */
@@ -180,6 +182,19 @@ export function filterPins(pins: Pin[], categories: PinCategory[], filter: strin
   return pins
     .filter((p) => !family || family.has(p.categoryId))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+/**
+ * The map rail's filter: any number of categories picked at once, each
+ * bringing its sub-categories. Nothing picked shows every pin.
+ */
+export function filterPinsByCategories(pins: Pin[], categories: PinCategory[], picked: ReadonlySet<string>): Pin[] {
+  // Only categories that still exist count: none of those picked is ALL, every pin.
+  const live = [...picked].filter((id) => categories.some((c) => c.id === id));
+  if (live.length === 0) return filterPins(pins, categories, null);
+  const shown = new Set<string>();
+  live.forEach((id) => categoryFamily(categories, id).forEach((c) => shown.add(c)));
+  return filterPins(pins, categories, null).filter((p) => shown.has(p.categoryId));
 }
 
 // ----- Pin sets (sharing) -----

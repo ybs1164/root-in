@@ -3,35 +3,26 @@ import { bottomBarAction, calendarAgain, homeSwipeDirection, showsPage, swipeCom
 
 describe('bottom-bar tabs', () => {
   it('incoming #share= / #diary= / #pins= links open the matching tab', () => {
-    expect(tabForIncoming('day', 'pins')).toBe('calendar');
-    expect(tabForIncoming('pins', 'calendar')).toBe('pins');
-    expect(tabForIncoming('course', 'calendar')).toBe('pins');
-  });
-
-  it('a course opened from the 추천 feed stays on that tab', () => {
-    expect(tabForIncoming('course', 'influencer')).toBe('influencer');
-    expect(tabForIncoming('pins', 'influencer')).toBe('influencer');
+    expect(tabForIncoming('day')).toBe('calendar');
+    expect(tabForIncoming('pins')).toBe('pins');
+    expect(tabForIncoming('course')).toBe('pins');
   });
 
   it('every bottom-bar button switches to its screen; tapped again, pin drops a pin and calendar flips TODAY/month', () => {
     expect(bottomBarAction('calendar', 'pins')).toBe('switch');
-    expect(bottomBarAction('pins', 'influencer')).toBe('switch');
+    expect(bottomBarAction('pins', 'calendar')).toBe('switch');
     expect(bottomBarAction('pins', 'pins')).toBe('pin');
     expect(bottomBarAction('calendar', 'calendar')).toBe('calendar');
-    expect(bottomBarAction('influencer', 'influencer')).toBe('none');
   });
 
-  it('달력 and 추천 are full screens; the map shows through only when it is needed', () => {
+  it('달력 is a full screen; the map shows through only when it is needed', () => {
     expect(showsPage('calendar', false)).toBe(true);
-    expect(showsPage('influencer', false)).toBe(true);
     expect(showsPage('pins', false)).toBe(false);
     expect(showsPage('calendar', true)).toBe(false);
-    expect(showsPage('influencer', true)).toBe(false);
   });
 
-  it('달력 slides off to the left and 추천 to the right to uncover the map', () => {
+  it('달력 slides off to the left to uncover the map', () => {
     expect(homeSwipeDirection('calendar')).toBe(-1);
-    expect(homeSwipeDirection('influencer')).toBe(1);
     expect(homeSwipeDirection('pins')).toBe(0);
   });
 
@@ -44,10 +35,8 @@ describe('bottom-bar tabs', () => {
     expect(swipeCommits(1, 20, 375, 2)).toBe(false); // too short even if fast
   });
 
-  it('calendar button again: a day screen opens the 공유/월 달력 menu, the month goes back to TODAY', () => {
-    expect(calendarAgain('day', false)).toBe('open-menu');
-    expect(calendarAgain('day', true)).toBe('close-menu');
-    expect(calendarAgain('month', false)).toBe('today');
-    expect(calendarAgain('month', true)).toBe('close-menu');
+  it('calendar button again: a day screen goes straight to the month, the month back to TODAY', () => {
+    expect(calendarAgain('day')).toBe('month');
+    expect(calendarAgain('month')).toBe('today');
   });
 });

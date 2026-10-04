@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import {
   classifyPress,
   EDGE_STYLES,
@@ -41,6 +41,8 @@ interface DayPingsProps {
   onTap: (ping: DayPing) => void;
   /** False while a pinch or a day swipe is running, so its fingers don't count as presses. */
   pressable: () => boolean;
+  /** Drawn inside the same box, above the pins (stickers and pen strokes). */
+  children?: ReactNode;
 }
 
 /** What a press is on: a ping, or the line leaving ping `index` for the next one. */
@@ -72,7 +74,7 @@ function EdgeSample({ style }: { style: EdgeStyle }) {
  * again. Long-press a ping to change its shape, or a line to change its
  * style; a short tap on a ping is reported through `onTap`.
  */
-export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, onTap, pressable }: DayPingsProps) {
+export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, onTap, pressable, children }: DayPingsProps) {
   const latest = latestPingIndex(pings);
   const points = layoutPings(pings.map((p) => p.center));
   const maskId = `pings-reveal-${useId().replace(/:/g, '')}`;
@@ -221,6 +223,8 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
           </div>
         );
       })}
+
+      {children}
 
       {picking && pickerAt && (
         <>

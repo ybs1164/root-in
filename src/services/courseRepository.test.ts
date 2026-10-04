@@ -18,6 +18,12 @@ describe('LocalCourseRepository', () => {
     expect(await new LocalCourseRepository().listByUser('me')).toEqual([saved]);
   });
 
+  it('keeps a decorative icon from the list, and drops anything else', async () => {
+    const repo = new LocalCourseRepository();
+    expect((await repo.save('me', draft({ icon: '🌸' }))).icon).toBe('🌸');
+    expect((await repo.save('me', draft({ icon: '<b>' }))).icon).toBeUndefined();
+  });
+
   it('updates in place when the draft has an id owned by the user', async () => {
     const repo = new LocalCourseRepository();
     const first = await repo.save('me', draft());

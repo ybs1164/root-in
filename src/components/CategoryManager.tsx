@@ -21,7 +21,7 @@ const PROBLEMS: Record<CategoryProblem, string> = {
 
 const ICON_NAMES = Object.keys(PIN_ICONS) as PinIcon[];
 
-/** Settings → 핀 카테고리. Up/down buttons instead of drag (M1 rule). */
+/** 핀 카테고리 (CategorySheet). Up/down buttons instead of drag (M1 rule). */
 export default function CategoryManager({ categories, pinCounts, onCreate, onEdit, onMove, onDelete }: CategoryManagerProps) {
   const [open, setOpen] = useState<string | null>(null);
   const [newName, setNewName] = useState('');

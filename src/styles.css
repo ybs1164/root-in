@@ -22,11 +22,34 @@
   --shadow: 0 10px 30px rgba(47, 38, 34, 0.16);
   --shadow-sm: 0 2px 10px rgba(47, 38, 34, 0.12);
   --pin-shadow: 0 2px 3px rgba(47, 38, 34, 0.25);
-  --mac-close: #ff5f57; /* macOS window close light */
-  --mac-light-edge: rgba(0, 0, 0, 0.12);
   --mask-show: #fff; /* SVG masks: white = fully shown (not a colour anyone sees) */
+  --mask-hide: #000; /* …and black = hidden (the eraser's rub) */
+  /* 꾸미기: fixed ink colours (not themed), the tool sheet and the palette rainbow. */
+  --ink-black: #151515;
+  --ink-white: #ffffff;
+  --tray-bg: rgba(14, 14, 14, 0.74);
+  --tray-fg: #ffffff;
+  --tray-dim: rgba(255, 255, 255, 0.55);
+  --tray-line: rgba(255, 255, 255, 0.16);
+  --tray-hi: rgba(255, 255, 255, 0.16);
+  --rainbow-1: #ff4d4d;
+  --rainbow-2: #ffb020;
+  --rainbow-3: #ffe14d;
+  --rainbow-4: #3ed17b;
+  --rainbow-5: #3aa0ff;
+  --rainbow-6: #8a5cff;
+  --rainbow-7: #ff4dd2;
+  /* The colour wheel's hues, every 60°, and its shade for brightness. */
+  --hue-0: #ff0000;
+  --hue-60: #ffff00;
+  --hue-120: #00ff00;
+  --hue-180: #00ffff;
+  --hue-240: #0000ff;
+  --hue-300: #ff00ff;
+  --hue-shade: #000000;
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
   --backdrop: rgba(0, 0, 0, 0.4);
+  --step-arrow: #c9c1ba; /* the < > beside a route's name: light grey, no button behind */
 }
 
 /* Layout tokens and the pin palette (same in light and dark: a pin keeps
@@ -93,6 +116,143 @@
     --map-road: #3a434d;
     --map-road-major: #5f7894;
   }
+}
+
+:root {
+  /* Theme swatches in the 꾸미기 → 테마 tray: each theme's background and accent. */
+  --swatch-default-bg: #fbf6f0;
+  --swatch-default-accent: #e0664f;
+  --swatch-night-bg: #1b1715;
+  --swatch-night-accent: #f07a62;
+  --swatch-mint-bg: #e6f4ee;
+  --swatch-mint-accent: #2f9e7a;
+  --swatch-lavender-bg: #efeafb;
+  --swatch-lavender-accent: #7c5cc4;
+  --swatch-sky-bg: #e6f0fb;
+  --swatch-sky-accent: #3f7fc4;
+  --swatch-mono-bg: #efefee;
+  --swatch-mono-accent: #2b2b2b;
+  --swatch-lovely-bg: #fdeef4;
+  --swatch-lovely-accent: #e8609a;
+  --swatch-love-bg: #fdecec;
+  --swatch-love-accent: #d7263d;
+}
+
+/* Themes (꾸미기 → 테마), set on <html data-theme>. They win over the
+   system dark mode: a light theme stays light, 밤 is dark everywhere. */
+:root[data-theme='mint'],
+:root[data-theme='lovely'],
+:root[data-theme='love'],
+:root[data-theme='lavender'],
+:root[data-theme='sky'],
+:root[data-theme='mono'] {
+  color-scheme: light;
+  --text: #2f2622;
+  --muted: #8b7d74;
+  --border: rgba(47, 38, 34, 0.1);
+  --on-accent: #ffffff;
+  --sage: #4f9a72;
+  --sage-soft: #e1f1e7;
+  --sky: #3f7fc4;
+  --sky-soft: #e2eefa;
+  --on-sky: #ffffff;
+  --amber: #b7791f;
+  --amber-soft: #fbefd9;
+  --danger: #d14b4b;
+  --shadow: 0 10px 30px rgba(47, 38, 34, 0.16);
+  --shadow-sm: 0 2px 10px rgba(47, 38, 34, 0.12);
+  --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
+  --backdrop: rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme='mint'] {
+  --bg: #eef7f3;
+  --surface: #f8fcfa;
+  --surface-2: #e2f1ea;
+  --accent: #2f9e7a;
+  --accent-strong: #23805f;
+  --accent-soft: #d5efe4;
+  --route: #2f9e7a;
+}
+
+:root[data-theme='lavender'] {
+  --bg: #f4f1fb;
+  --surface: #fbfaff;
+  --surface-2: #ebe5f7;
+  --accent: #7c5cc4;
+  --accent-strong: #6446a8;
+  --accent-soft: #e6ddf8;
+  --route: #7c5cc4;
+}
+
+:root[data-theme='lovely'] {
+  --bg: #fdf1f6;
+  --surface: #fff9fb;
+  --surface-2: #fbe3ee;
+  --accent: #e8609a;
+  --accent-strong: #cc4580;
+  --accent-soft: #fbdbe9;
+  --route: #e8609a;
+}
+
+:root[data-theme='love'] {
+  --bg: #fdf0f0;
+  --surface: #fffafa;
+  --surface-2: #fbe1e1;
+  --accent: #d7263d;
+  --accent-strong: #b01a2f;
+  --accent-soft: #f9d6da;
+  --route: #d7263d;
+}
+
+:root[data-theme='sky'] {
+  --bg: #eef5fc;
+  --surface: #f8fbff;
+  --surface-2: #e1edf9;
+  --accent: #3f7fc4;
+  --accent-strong: #2f67a6;
+  --accent-soft: #dce9f8;
+  --route: #3f7fc4;
+  --sky: #2f67a6;
+}
+
+:root[data-theme='mono'] {
+  --bg: #f5f5f4;
+  --surface: #ffffff;
+  --surface-2: #ebebea;
+  --text: #1f1f1f;
+  --muted: #7a7a7a;
+  --accent: #2b2b2b;
+  --accent-strong: #000000;
+  --accent-soft: #e2e2e2;
+  --route: #2b2b2b;
+}
+
+:root[data-theme='night'] {
+  color-scheme: dark;
+  --bg: #1b1715;
+  --surface: #25201d;
+  --surface-2: #2f2926;
+  --text: #f3ebe5;
+  --muted: #a8998f;
+  --border: rgba(243, 235, 229, 0.12);
+  --accent: #f07a62;
+  --accent-strong: #ff8d76;
+  --accent-soft: #4a2a23;
+  --on-accent: #1b1715;
+  --route: #f07a62;
+  --sage: #7cc39b;
+  --sage-soft: #23382c;
+  --sky: #7fb1e6;
+  --sky-soft: #1f3044;
+  --on-sky: #10161d;
+  --amber: #e3b25e;
+  --amber-soft: #3d3020;
+  --danger: #ff7b7b;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
+  --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.45);
+  --backdrop: rgba(0, 0, 0, 0.6);
 }
 
 * {
@@ -222,6 +382,11 @@ button:disabled {
   outline: none;
 }
 
+.search__icon {
+  color: var(--muted);
+  cursor: text;
+}
+
 .search__bar input::-webkit-search-cancel-button {
   display: none;
 }
@@ -307,7 +472,8 @@ button:disabled {
   width: 32px;
   height: 32px;
   padding: 0;
-  border: 3px solid var(--surface);
+  /* No white ring: a flat dot of colour (the shadow keeps it off the map). */
+  border: 0;
   border-radius: 50%;
   background: var(--accent);
   color: var(--on-accent);
@@ -1022,6 +1188,768 @@ button:disabled {
   text-align: center;
 }
 
+/* ---------- 꾸미기 (calendar day): stickers, pen, theme ---------- */
+
+/* While a tool's tray is up, the tab buttons slide away under it. */
+.bottom-bar-wrap.is-away {
+  translate: 0 120%;
+  opacity: 0;
+  /* Gone once it has slid away: an invisible layer left at the bottom edge
+     can still show on phones as a smear when colours change under it. */
+  visibility: hidden;
+  transition:
+    translate 0.22s ease,
+    opacity 0.18s ease,
+    visibility 0s 0.22s;
+}
+
+.decor-rail {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.decor-rail__btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  /* Same round white buttons as the tab bar; the one in use only changes colour. */
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: var(--shadow-sm);
+  transition: color 0.15s ease;
+}
+
+.decor-rail__btn.is-on {
+  color: var(--accent);
+}
+
+/* 공유 isn't a tool: set a little apart, filled with the accent colour. */
+.decor-rail__share {
+  margin-top: 8px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* The drawing box measures stickers (cqw) so they scale with it. */
+.pings {
+  container-type: inline-size;
+}
+
+.decor {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  /* A day's stickers and ink come down gently onto the drawing once its
+     pins have dropped (the delay is set inline). */
+  animation: decor-settle 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@keyframes decor-settle {
+  from {
+    opacity: 0;
+    translate: 0 -22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .decor {
+    animation: none;
+  }
+}
+
+.decor--pen,
+.decor--sticker,
+.decor--text {
+  pointer-events: auto;
+  touch-action: none;
+  /* Where drawing and stickers go; touching outside it puts the tool away. */
+  border-radius: 16px;
+  outline: 2px dashed var(--border);
+  outline-offset: 6px;
+}
+
+.decor--pen,
+.decor--sticker.is-armed {
+  cursor: crosshair;
+}
+
+.decor__ink {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.decor__ink path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.decor__sticker {
+  position: absolute;
+  line-height: 1;
+  translate: -50% -50%;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.decor--sticker .decor__sticker {
+  pointer-events: auto;
+  touch-action: none;
+  cursor: grab;
+}
+
+.decor__sticker.is-selected {
+  border-radius: 10px;
+  outline: 2px dashed var(--accent);
+  outline-offset: 4px;
+}
+
+.decor__trash {
+  /* Just under the drawing, outside it; the tool sheet goes down while a
+     piece is dragged so it's in view. */
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 18px);
+  z-index: 3; /* over the pieces, even the one being dragged onto it */
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--muted);
+  translate: -50% 0;
+  pointer-events: none;
+  animation: trash-in 0.18s ease-out both;
+  transition:
+    scale 0.15s,
+    background-color 0.15s,
+    color 0.15s;
+}
+
+@keyframes trash-in {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+
+.decor__trash.is-over {
+  background: var(--danger);
+  color: var(--on-accent);
+  scale: 1.25;
+}
+
+/* A piece being dragged goes over the others; over the trash it fades, about to go. */
+.decor__sticker.is-lifted,
+.decor__text.is-lifted {
+  z-index: 2;
+}
+
+.decor__sticker.is-doomed,
+.decor__text.is-doomed {
+  opacity: 0.45;
+}
+
+/* Text boxes: centred on their spot, lines only where Enter was pressed. */
+.decor__text {
+  position: absolute;
+  translate: -50% -50%;
+  white-space: pre;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.decor--text {
+  cursor: text;
+}
+
+.decor--text .decor__text {
+  pointer-events: auto;
+  touch-action: none;
+  cursor: grab;
+}
+
+.decor__text.is-selected,
+.decor__text.is-typing {
+  border-radius: 6px;
+  outline: 2px dashed var(--accent);
+  outline-offset: 4px;
+}
+
+.decor__text.is-typing {
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* While typing: a hidden copy of the text sizes the box and the field lies
+   over it, so the box grows with the text and looks just like it. */
+.decor__text-field {
+  position: relative;
+  display: inline-block;
+  vertical-align: top;
+}
+
+.decor__text-sizer {
+  display: block;
+  min-width: 1ch;
+  visibility: hidden;
+  white-space: pre;
+}
+
+.decor__text-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  overflow: hidden;
+  resize: none;
+  background: transparent;
+  color: inherit;
+  caret-color: var(--accent);
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  text-align: inherit;
+  text-decoration: inherit;
+  white-space: pre;
+}
+
+.decor-tray {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 13;
+  display: flex;
+  flex-direction: column;
+  max-height: 25dvh;
+  padding: 6px 16px calc(var(--safe-bottom) + 12px);
+  border-radius: 20px 20px 0 0;
+  background: var(--tray-bg);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  backdrop-filter: blur(18px) saturate(1.4);
+  color: var(--tray-fg);
+  animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+@keyframes tray-up {
+  from {
+    translate: 0 100%;
+  }
+}
+
+/* A piece being dragged: the sheet steps down out of the way of the trash
+   under the drawing (transform, so it doesn't fight the translate animations). */
+.decor-tray {
+  transition: transform 0.2s ease;
+}
+
+.decor-tray.is-away {
+  transform: translateY(100%);
+  pointer-events: none;
+}
+
+/* Switching tools: this sheet goes down, then the next one comes up. */
+.decor-tray.is-leaving {
+  animation: tray-down 0.17s ease-in forwards;
+  pointer-events: none;
+}
+
+@keyframes tray-down {
+  to {
+    translate: 0 100%;
+  }
+}
+
+.decor-tray__grip {
+  flex: none;
+  align-self: center;
+  width: 36px;
+  height: 4px;
+  margin-bottom: 8px;
+  border-radius: 2px;
+  background: var(--tray-line);
+}
+
+.decor-tray button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+/* No double-tap handling on the tool buttons: taps land straight away. */
+.decor-tray button,
+.decor-rail__btn {
+  touch-action: manipulation;
+}
+
+/* Stickers: a grid that scrolls up and down. */
+.decor-tray__stickers {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  gap: 2px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.decor-tray__sticker {
+  display: grid;
+  place-items: center;
+  height: 48px;
+  padding: 0;
+  border-radius: 12px;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.decor-tray__sticker.is-on {
+  background: var(--tray-hi);
+}
+
+/* Pen: two rows, no scrolling. Tools and width on top, colours below. */
+.decor-tray__pen {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.decor-tray__row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+/* Seven buttons and a divider share the top row: they give a little on
+   narrow phones rather than scroll (still ≥ 36px wide, 44px tall). */
+.decor-tray__row .decor-tray__tool,
+.decor-tray__row .decor-tray__width {
+  flex: 0 1 44px;
+  min-width: 36px;
+  width: auto;
+}
+
+.decor-tray__tool,
+.decor-tray__width,
+.decor-tray__color,
+.decor-tray__palette {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 12px;
+}
+
+.decor-tray__tool {
+  color: var(--tray-dim);
+}
+
+.decor-tray__tool.is-on {
+  background: var(--tray-hi);
+  color: var(--tray-fg);
+}
+
+.decor-tray__width span {
+  border-radius: 50%;
+  background: var(--tray-dim);
+}
+
+.decor-tray__width.is-on span {
+  background: var(--tray-fg);
+}
+
+.decor-tray__sep {
+  flex: none;
+  width: 1px;
+  height: 26px;
+  margin: 0 4px;
+  background: var(--tray-line);
+}
+
+.decor-tray__color span,
+.decor-tray__palette span {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.decor-tray__color span {
+  background: currentColor;
+  box-shadow: inset 0 0 0 1px var(--tray-line);
+}
+
+.decor-tray__color.is-on span {
+  box-shadow:
+    0 0 0 3px var(--tray-bg),
+    0 0 0 5px var(--tray-fg);
+}
+
+.decor-tray__palette span {
+  background: conic-gradient(
+    var(--rainbow-1),
+    var(--rainbow-2),
+    var(--rainbow-3),
+    var(--rainbow-4),
+    var(--rainbow-5),
+    var(--rainbow-6),
+    var(--rainbow-7),
+    var(--rainbow-1)
+  );
+}
+
+/* Undo, redo and clear-all end the colour row. Eight buttons share it, so
+   like the top row they give a little on narrow phones (still ≥ 36px). */
+.decor-tray__row .decor-tray__color,
+.decor-tray__row .decor-tray__palette,
+.decor-tray__row .decor-tray__undo {
+  flex: 0 1 44px;
+  min-width: 36px;
+}
+
+.decor-tray__undo {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 12px;
+}
+
+.decor-tray__undo:disabled {
+  color: var(--tray-dim);
+  opacity: 0.5;
+}
+
+.decor-tray__palette.is-on {
+  background: var(--tray-hi);
+}
+
+/* Palette: floats above the sheet, same dark glass. */
+.color-picker {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 14px;
+  border-radius: 20px;
+  background: var(--tray-bg);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  backdrop-filter: blur(18px) saturate(1.4);
+  translate: -50% 0;
+  animation: picker-in 0.18s ease both;
+}
+
+@keyframes picker-in {
+  from {
+    opacity: 0;
+    scale: 0.94;
+  }
+}
+
+.color-picker__wheel {
+  position: relative;
+  flex: none;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side, var(--ink-white), transparent),
+    conic-gradient(var(--hue-0), var(--hue-60), var(--hue-120), var(--hue-180), var(--hue-240), var(--hue-300), var(--hue-0));
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.color-picker__shade {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--hue-shade);
+  pointer-events: none;
+}
+
+.color-picker__marker {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 3px var(--ink-white),
+    0 1px 6px 3px var(--backdrop);
+  translate: -50% -50%;
+  pointer-events: none;
+}
+
+.color-picker__side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 132px;
+}
+
+.color-picker__value {
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.color-picker__value::-webkit-slider-runnable-track {
+  height: 14px;
+  border-radius: 7px;
+  background: linear-gradient(to right, var(--hue-shade), var(--picker-top));
+  box-shadow: inset 0 0 0 1px var(--tray-line);
+}
+
+.color-picker__value::-moz-range-track {
+  height: 14px;
+  border-radius: 7px;
+  background: linear-gradient(to right, var(--hue-shade), var(--picker-top));
+}
+
+.color-picker__value::-webkit-slider-thumb {
+  width: 24px;
+  height: 24px;
+  margin-top: -5px;
+  border: 3px solid var(--ink-white);
+  border-radius: 50%;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.color-picker__value::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--ink-white);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.color-picker__code {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 10px;
+  border-radius: 12px;
+  background: var(--tray-hi);
+}
+
+.color-picker__chip {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px var(--tray-line);
+}
+
+.color-picker__code input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--tray-fg);
+  font: inherit;
+  font-size: 16px; /* no iOS zoom-in */
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  outline: none;
+}
+
+/* Themes: rectangle cards that scroll sideways. */
+/* Text: three rows (fonts; effects and alignment; colours), a little closer together. */
+.decor-tray--text {
+  max-height: 30dvh;
+}
+
+.decor-tray__text {
+  gap: 4px;
+}
+
+.decor-tray__font {
+  flex: 0 1 auto;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 8px;
+  border-radius: 12px;
+  color: var(--tray-dim);
+  font-size: 17px;
+  white-space: nowrap;
+}
+
+.decor-tray__font.is-on {
+  background: var(--tray-hi);
+  color: var(--tray-fg);
+}
+
+.decor-tray--theme {
+  /* Themes get a taller sheet than the other tools: the cards are the point. */
+  max-height: 30dvh;
+  /* The grip's own margin is room the cards can use. */
+  padding-top: 4px;
+}
+
+.decor-tray__themes {
+  display: flex;
+  gap: 28px;
+  min-height: 0;
+  overflow-x: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  /* Room for the selected card's ring, which the scroller would clip. */
+  padding: 6px 6px 2px;
+  margin: -6px -6px 0;
+}
+
+.decor-tray__themes::-webkit-scrollbar,
+.decor-tray__stickers::-webkit-scrollbar {
+  display: none;
+}
+
+.decor-tray__theme {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  color: var(--tray-dim);
+  font-size: 12px;
+  line-height: 14px;
+  font-weight: 700;
+}
+
+.decor-tray__theme.is-on {
+  color: var(--tray-fg);
+}
+
+/* A little screen: the theme's background, a pin and an accent bar. */
+.theme-card {
+  position: relative;
+  display: block;
+  /* As big as the theme sheet allows (label and padding take ~54px). */
+  height: min(132px, calc(30dvh - 54px));
+  aspect-ratio: 10 / 13;
+  border-radius: 14px;
+  background: var(--card-bg);
+  box-shadow: inset 0 0 0 1px var(--tray-line);
+}
+
+.theme-card__pin {
+  position: absolute;
+  top: 19%;
+  left: 50%;
+  width: 32%;
+  height: auto;
+  translate: -50% 0;
+  fill: var(--card-accent);
+}
+
+.theme-card__pin circle {
+  fill: var(--card-bg);
+}
+
+.theme-card i {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  bottom: 13%;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--card-accent);
+}
+
+.decor-tray__theme.is-on .theme-card {
+  box-shadow:
+    0 0 0 2px var(--tray-bg),
+    0 0 0 4px var(--tray-fg);
+}
+
+.pattern-card {
+  --card-bg: var(--surface);
+  overflow: hidden;
+}
+
+/* Stronger in the small card, so the pattern reads at a glance. */
+.pattern-card .day-pattern {
+  z-index: 0;
+  opacity: 0.45;
+}
+
+.theme-card--default { --card-bg: var(--swatch-default-bg); --card-accent: var(--swatch-default-accent); }
+.theme-card--night { --card-bg: var(--swatch-night-bg); --card-accent: var(--swatch-night-accent); }
+.theme-card--mint { --card-bg: var(--swatch-mint-bg); --card-accent: var(--swatch-mint-accent); }
+.theme-card--lavender { --card-bg: var(--swatch-lavender-bg); --card-accent: var(--swatch-lavender-accent); }
+.theme-card--sky { --card-bg: var(--swatch-sky-bg); --card-accent: var(--swatch-sky-accent); }
+.theme-card--lovely { --card-bg: var(--swatch-lovely-bg); --card-accent: var(--swatch-lovely-accent); }
+.theme-card--love { --card-bg: var(--swatch-love-bg); --card-accent: var(--swatch-love-accent); }
+.theme-card--mono { --card-bg: var(--swatch-mono-bg); --card-accent: var(--swatch-mono-accent); }
+
+/* Eraser masks: keep everything, except where the eraser rubbed. */
+.decor__mask-keep {
+  fill: var(--mask-show);
+}
+
+.decor__mask-rub {
+  fill: none;
+  stroke: var(--mask-hide);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.decor--pen.is-erasing {
+  cursor: cell;
+}
+
+.decor__hl {
+  opacity: 0.35;
+}
+
+.decor__neon-core {
+  stroke: var(--ink-white);
+  opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .decor-tray,
+  .decor-tray.is-leaving {
+    animation: none;
+  }
+}
+
 /* ---------- macOS-style popup window ---------- */
 
 .mac-window {
@@ -1057,63 +1985,6 @@ button:disabled {
     opacity: 0;
     scale: 0.94;
   }
-}
-
-.mac-window__bar {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  height: 40px;
-  padding: 0 14px;
-  border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface-2) 85%, transparent);
-}
-
-/* Mirrors the lights' width on the right so the title stays centred. */
-.mac-window__bar::after {
-  content: '';
-  width: 52px;
-}
-
-.mac-window__lights {
-  display: flex;
-  gap: 8px;
-  width: 52px;
-}
-
-.mac-window__light {
-  position: relative;
-  width: 12px;
-  height: 12px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  box-shadow: inset 0 0 0 0.5px var(--mac-light-edge);
-}
-
-.mac-window__light--close {
-  background: var(--mac-close);
-}
-
-/* The dot stays 12px; the touch target around it is 44px. */
-.mac-window__light--close::after {
-  content: '';
-  position: absolute;
-  inset: -16px;
-}
-
-.mac-window__title {
-  margin: 0;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .mac-window__body {
@@ -1153,11 +2024,9 @@ button:disabled {
 .day-share__actions {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(48px, 1fr);
-  gap: 0;
-  /* Six buttons fit a 375px phone; narrower ones scroll sideways instead of squashing. */
-  overflow-x: auto;
-  scrollbar-width: none;
+  grid-auto-columns: 52px;
+  justify-content: center;
+  gap: 20px;
 }
 
 .day-share__action {
@@ -1464,8 +2333,1574 @@ input.timeline__time:focus {
   transition: transform 0.25s ease;
 }
 
+/* Pin map, bottom-right: + opens 핀 카테고리, level with the bottom tab buttons. */
+.corner-btn--bottom {
+  top: auto;
+  bottom: calc(var(--safe-bottom) + 6px + (var(--bar-h) - 44px) / 2);
+  right: 16px; /* centred under the 52px profile button */
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--muted);
+}
+
 .app--searching .corner-btn {
   transform: translateX(calc(100% + 24px));
+}
+
+/* Pin screen: round buttons stacked under ⚙ (핀 · 경로, then 핀's category list). */
+.pin-rail {
+  position: absolute;
+  top: calc(12px + var(--safe-top) + 52px + 12px);
+  right: 14px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Long category lists scroll above the bottom buttons. */
+  max-height: calc(100dvh - var(--safe-top) - 76px - var(--bar-h) - var(--safe-bottom) - 24px);
+}
+
+.pin-rail__btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+}
+
+/* The open entry wears the accent colour. */
+.pin-rail__btn.is-on:not(.pin-rail__pin) {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Each entry's slot carries the gap below it, so collapsing one closes the space too. */
+.pin-rail__slot {
+  flex: none;
+  height: 58px;
+  transition:
+    height 0.22s ease,
+    opacity 0.16s ease;
+}
+
+.pin-rail__slot .pin-rail__btn {
+  transition:
+    transform 0.22s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.pin-rail__btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* 경로 폴더: a white sheet rising in the tab buttons' place, with index tabs
+   on its top edge like a file folder's. The open tab matches the sheet so it
+   reads as the front folder; the others are beige. Solid on purpose: a
+   see-through sheet let the map's pins show through it and between tabs. */
+.route-folders {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 13;
+  display: flex;
+  flex-direction: column;
+  /* Up to about the middle of the screen, the rail and search bar stay clear above. */
+  height: 44dvh;
+  color: var(--text);
+  animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.route-folders {
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+/* A route on show: the sheet sinks so only its tabs and the route's row stay
+   up (App's FOLDER_LOWERED_PX), leaving the map to the route. */
+.route-folders.is-lowered {
+  transform: translateY(calc(100% - 190px));
+}
+
+/* The route on show has a description under its name: its two lines too (App's FOLDER_NOTE_PX). */
+.route-folders.is-lowered.has-note {
+  transform: translateY(calc(100% - 232px));
+}
+
+/* Room to scroll any route, even the last, up to the top of the strip. */
+.route-folders.is-lowered .route-folders__body {
+  padding-bottom: 60dvh;
+}
+
+.route-folders.is-leaving {
+  animation: tray-down 0.17s ease-in forwards;
+  pointer-events: none;
+}
+
+.route-folders__tabs {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  /* Headroom for a tab's ✕ and its lift (the row scrolls, so it clips). */
+  padding: 18px 12px 0;
+  touch-action: pan-x;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.route-folders__tab {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 52px;
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 14px 14px 0 0;
+  background: var(--surface-2);
+  /* A hairline inside the tab (nothing spills out behind the row). */
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.route-folders__tab {
+  /* A long press lifts the tab; no text selection or callout on the way. */
+  -webkit-touch-callout: none;
+  user-select: none;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.route-folders__tab.is-lifted {
+  position: relative;
+  z-index: 1;
+  transform: translateY(-4px) scale(1.1);
+  box-shadow: var(--shadow-sm);
+}
+
+/* A route held over a folder tab: that tab rises to take it. */
+.route-folders__tab.is-drop {
+  position: relative;
+  z-index: 1;
+  background: var(--accent-soft);
+  transform: translateY(-4px) scale(1.12);
+  transition: transform 0.12s ease;
+}
+
+.route-folders__tabwrap {
+  position: relative;
+  flex: none;
+  display: flex;
+}
+
+/* Shown after a long press that didn't move the tab. */
+.route-folders__x {
+  position: absolute;
+  top: -14px;
+  right: -10px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--danger);
+  color: var(--on-accent);
+  animation: picker-in 0.16s ease both;
+}
+
+/* A bigger touch target than the badge looks, but kept off the tab's
+   middle: a plain tap shows the ✕ and a second one there opens the icons. */
+.route-folders__x::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+
+.route-folders__tab.is-on {
+  box-shadow: none;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.route-folders__icon {
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.route-folders__tab--add {
+  /* Always last, also while a dragged folder's tabs are re-ordered with `order`. */
+  order: 1000;
+  min-width: 48px;
+  padding: 0;
+}
+
+.route-folders__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 10px 16px calc(var(--safe-bottom) + 14px);
+  background: var(--surface);
+}
+
+/* + : make a new route from pins. Top-right inside the folder, on its own
+   line above the routes (it scrolls with them). */
+/* ✓ (다중 선택) and + on their own line at the top right; the routes start
+   just below (tucked up a little). */
+.route-folders__head {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  margin: -4px 0 -10px;
+}
+
+.route-folders__new {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  /* Just a grey +, no circle. */
+  background: none;
+  color: var(--muted);
+}
+
+.route-folders__new:active {
+  background: var(--surface-2);
+}
+
+/* 다중 선택 on: the ✓ in the accent colour. */
+.route-folders__select.is-on {
+  color: var(--accent);
+}
+
+/* 다중 선택: each row's checkbox, left of its name. (Doubled class: the
+   rows' grey small-text rule for spans would otherwise win.) */
+.route-row__check.route-row__check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--border);
+  color: var(--on-accent);
+}
+
+.route-row__check.route-row__check.is-on {
+  background: var(--accent);
+  box-shadow: none;
+}
+
+/* 다중 선택: room under the list so the last route can scroll clear of the trash. */
+.route-folders__body.is-selecting {
+  padding-bottom: 84px;
+}
+
+/* 다중 선택: the trash at the sheet's bottom right (tap, or drop routes on it). */
+.route-folders__trash {
+  position: absolute;
+  right: 16px;
+  bottom: calc(var(--safe-bottom) + 16px);
+  z-index: 6; /* over the carried routes' copy, so it shows they're about to go */
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--danger);
+  animation: picker-in 0.18s ease both;
+  transition:
+    scale 0.12s ease,
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.route-folders__trash:disabled {
+  color: var(--muted);
+}
+
+.route-folders__trash.is-over {
+  background: var(--danger);
+  color: var(--on-accent);
+  scale: 1.2;
+}
+
+/* Several routes carried at once: their count on the floating copy. */
+.route-row--ghost__count.route-row--ghost__count {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  margin-left: auto;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* Making a route from pins: the folder sheet is down. Lines join the chosen
+   pins (drawn over the map from the markers' positions; the dashed one
+   follows a finger mid-stroke), and ✓ sits at the bottom right. */
+.stop-lines {
+  position: fixed;
+  inset: 0;
+  /* Over the map but under its markers (pins z 1, numbered stops z 2), so
+     the numbers stay readable on top of the lines. */
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.stop-lines polyline,
+.stop-lines line,
+.stop-lines__seg {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* A saved route's line styles (long-press a line), in screen px. */
+.stop-lines__seg--dashed {
+  stroke-dasharray: 12 8;
+  stroke-linecap: butt;
+}
+
+.stop-lines__seg--dotted {
+  stroke-width: 5;
+  stroke-dasharray: 0.01 11;
+}
+
+.stop-lines__seg--bold {
+  stroke-width: 8;
+}
+
+/* A stop given a shape: drawn here, its numbered marker hidden but still
+   there to be tapped or long-pressed. */
+/* A route playing in: stops wait hidden, then drop onto the map in turn.
+   Only translate/opacity animate: the map positions markers with transform.
+   (!important for the wait: MapLibre writes an inline opacity.) */
+.map-marker[data-hidden],
+.stop-shape[data-hidden] {
+  opacity: 0 !important;
+}
+
+/* MapLibre fades its markers' opacity (0.2s): a stop hidden for its turn,
+   or swapped for a shape, would linger as a fading number. */
+.map-marker[data-stop] {
+  transition: none;
+}
+
+/* …and its stops stay out of sight until then, from the very first frame
+   (before StopLines gets to flag them). */
+.app--route-arriving .map-marker[data-stop],
+.app--route-arriving .stop-shape {
+  opacity: 0 !important;
+}
+
+/* A route on show: once the map has glided over, the pins drift up a touch
+   as they fade away, before its stops drop in (App's PINS_FADE_MS).
+   `translate`, not transform: the map positions markers with transform. */
+.app--pins-away .map-marker--pin {
+  opacity: 0 !important;
+  translate: 0 -6px;
+  pointer-events: none;
+  transition:
+    opacity 0.25s ease-out,
+    translate 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app--pins-away .map-marker--pin {
+    translate: none;
+  }
+}
+
+.map-marker[data-drop],
+.stop-shape[data-drop] svg {
+  animation: stop-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+@keyframes stop-drop {
+  from {
+    opacity: 0;
+    translate: 0 -36px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-marker[data-drop],
+  .stop-shape[data-drop] svg {
+    animation: none;
+  }
+}
+
+.map-marker[data-shape] {
+  /* !important: MapLibre writes an inline opacity on its markers. */
+  opacity: 0 !important;
+}
+
+.stop-shape {
+  position: fixed;
+  left: 0;
+  top: 0;
+  /* Above the map's pins (z 1, painted earlier), so nearby pins don't cover it. */
+  z-index: 1;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.stop-shape svg {
+  position: absolute;
+  left: -15px;
+  top: -15px;
+  width: 30px;
+  height: 30px;
+  fill: var(--accent);
+  filter: drop-shadow(0 1px 2px var(--backdrop));
+}
+
+/* A pin stands on its point, like the calendar's. */
+.stop-shape--pin svg {
+  top: -30px;
+}
+
+.stop-shape .ping__hole {
+  fill: var(--surface);
+}
+
+.stop-shape--dot svg {
+  left: -9px;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+}
+
+/* The route on show, named big at the top of the map like a day's "TODAY",
+   with a small pen at its bottom right. Clear of the ⚙ rail on the right. */
+.route-title {
+  position: fixed;
+  /* Below the ⚙ rail's two buttons, so it can use the full width. */
+  top: calc(var(--safe-top) + 196px);
+  /* Edge to edge (20px in), the name and pen centred in it: a box set from
+     the middle (left 50%) only gets half the screen to size itself in, and a
+     long name wrapped far too early. */
+  left: 20px;
+  right: 20px;
+  z-index: 14;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.route-title > * {
+  pointer-events: auto;
+}
+
+/* The route's icon, centred over the name (the pen beside the name, 16px
+   plus the 8px gap, would pull a plain 50% off centre). */
+.route-title__icon {
+  position: absolute;
+  bottom: calc(100% + 16px);
+  left: calc(50% - 12px);
+  font-size: 34px;
+  line-height: 1;
+  translate: -50% 0;
+  pointer-events: none;
+}
+
+/* No pen beside the name (editing the route): the name alone is the centre. */
+.route-title--no-pen .route-title__icon {
+  left: 50%;
+}
+
+.route-title__name {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+  text-align: center;
+  /* Wider than the screen: on to the next line, between words where it
+     can, mid-word only for a word that won't fit on a line by itself. */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  /* Readable over the map's colours. */
+  text-shadow:
+    0 0 6px var(--surface),
+    0 0 2px var(--surface);
+}
+
+.route-title__field {
+  /* A hidden copy of the text sizes the field and the input lies over it,
+     so the field is exactly as wide as the name: editing changes only the text. */
+  position: relative;
+  display: inline-block;
+}
+
+.route-title__sizer {
+  display: block;
+  min-width: 1ch;
+  overflow: hidden;
+  visibility: hidden;
+  white-space: pre-wrap; /* wraps where the shown name would */
+}
+
+.route-title__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  resize: none;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+  word-break: inherit;
+  overflow-wrap: inherit;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  caret-color: var(--accent);
+  text-align: center;
+  text-shadow: inherit;
+}
+
+.route-title__pen {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-bottom: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+}
+
+/* Small to look at, a fair size to hit. */
+.route-title__pen::after {
+  content: '';
+  position: absolute;
+  inset: -14px;
+}
+
+.route-title__pen[aria-pressed='true'] {
+  color: var(--accent);
+}
+
+/* < > stepping to the route above / below in the open tab: bare light-grey
+   chevrons at the screen's edges, level with the middle of the screen. The
+   button is bigger than the chevron so it's easy to hit from the edge. */
+.route-step {
+  position: fixed;
+  top: 50%;
+  z-index: 14;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 104px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--step-arrow);
+  translate: 0 -50%;
+}
+
+.route-step--prev {
+  left: 0;
+}
+
+.route-step--next {
+  right: 0;
+}
+
+/* The same < > beside a calendar day, paging days: level with the pings'
+   drawing rather than the screen's middle, below the 꾸미기 rail on the right. */
+.route-step.day-step {
+  top: calc(50% + 60px);
+}
+
+/* Paging names like the calendar pages days: the new one comes in from the
+   arrow's side (--slide 1 = right) while the old one leaves the other way. */
+.route-title--in {
+  animation: route-title-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.route-title--out,
+.route-title--out > * {
+  pointer-events: none;
+  animation: route-title-out 260ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes route-title-in {
+  from {
+    transform: translateX(calc(var(--slide) * 100vw));
+  }
+}
+
+@keyframes route-title-out {
+  to {
+    transform: translateX(calc(var(--slide) * 100vw));
+  }
+}
+
+/* Long-press picker for a route on the map: above the finger, on screen. */
+.ping-picker.route-style-picker {
+  position: fixed;
+  z-index: 25;
+  left: clamp(130px, var(--x), calc(100% - 130px));
+  top: var(--y);
+  transform: translate(-50%, calc(-100% - 28px));
+}
+
+.route-style-picker__num {
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.route-build__trail {
+  stroke-dasharray: 2 8;
+  opacity: 0.7;
+}
+
+/* Editing a saved route: its sheet comes up in the folder sheet's place.
+   ✓ at the top left, the description, a rule, then the stops in order. */
+.route-edit {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 13;
+  display: flex;
+  flex-direction: column;
+  height: 44dvh;
+  border-radius: 20px 20px 0 0;
+  background: var(--surface);
+  box-shadow: var(--shadow-up);
+  color: var(--text);
+  animation: tray-up 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.route-edit__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* the icon at the left, ✓ at the right */
+  padding: 12px 12px 0;
+}
+
+.route-edit__icon-box {
+  position: relative;
+}
+
+.route-edit__icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.route-edit__icon[aria-expanded='true'] {
+  background: var(--accent-soft);
+}
+
+/* The icon grid pops up above the button, over the map, like a folder tab's. */
+.route-edit__icons.folder-picker {
+  left: 0;
+}
+
+.route-edit__done {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.route-edit__done:disabled {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.route-edit__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 16px calc(var(--safe-bottom) + 16px);
+}
+
+.route-edit__note {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 10px;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* no iOS zoom on focus */
+  line-height: 1.4;
+}
+
+.route-edit__note::placeholder {
+  color: var(--muted);
+}
+
+.route-edit__note:focus {
+  background: var(--surface-2);
+}
+
+.route-edit__rule {
+  margin: 8px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.route-edit__stops {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.route-edit__stop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding-left: 4px;
+  border-radius: 12px;
+  background: var(--surface);
+  transition: transform 0.18s ease;
+}
+
+/* The row under the finger follows it straight away, lifted over the others. */
+.route-edit__stop.is-dragged {
+  position: relative;
+  z-index: 1;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm);
+  transition: none;
+}
+
+.route-edit__num {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--route);
+  color: var(--on-accent);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* Tapping the number takes the stop out: 28px to see, 44px to hit. */
+.route-edit__num::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.route-edit__num:disabled {
+  opacity: 1; /* mid-drag it's only not tappable; it looks the same */
+}
+
+.route-edit__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-edit__grip {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: grab;
+  touch-action: none;
+}
+
+.route-edit__stops.is-sorting .route-edit__grip {
+  cursor: grabbing;
+}
+
+.route-edit__hint {
+  margin: 12px 4px 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Editing: the pins that stepped aside for the route drop back in to be picked. */
+.app--route-editing .map-marker--pin {
+  animation: stop-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+/* Making or editing a route: pins already stops of it are hidden, their
+   numbers stand in for them. !important beats the drop animation's opacity
+   (and MapLibre's inline one); hidden, they aren't found under a finger either. */
+.map-marker--pin[data-in-route] {
+  visibility: hidden;
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app--route-editing .map-marker--pin {
+    animation: none;
+  }
+}
+
+/* Editing: the name is tapped to rename it. */
+.route-title__name.is-renamable {
+  cursor: text;
+}
+
+/* Making a route: what to do, in a dark see-through bar at the top
+   (under the search bar, clear of the ⚙ rail). */
+.route-build__hint {
+  position: fixed;
+  top: calc(var(--safe-top) + 80px);
+  left: 50%;
+  z-index: 14;
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  white-space: nowrap; /* one line; at 13px it stays clear of the rail on a 375px phone */
+  background: var(--tray-bg);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: var(--tray-fg);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  translate: -50% 0;
+  pointer-events: none;
+  animation: picker-in 0.2s ease both;
+}
+
+/* Making a route, two stops in: its sheet rises from the bottom.
+     [folder] [name ✎]
+     [icon] [description]      [생성] */
+.route-create {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 13;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* A clear margin under the fields, so they sit a little higher up. */
+  padding: 16px 16px calc(var(--safe-bottom) + 76px);
+  border-radius: 20px 20px 0 0;
+  background: var(--surface);
+  box-shadow: var(--shadow-up);
+  animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+/* Down to one stop: it goes back down (the build layer keeps it mounted for this). */
+.route-create.is-leaving {
+  animation: tray-down 0.2s ease-in forwards;
+  pointer-events: none;
+}
+
+.route-create__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.route-create__pick {
+  position: relative;
+  flex: none;
+}
+
+/* Folder and icon: blank to start with (미분류, no icon). */
+.route-create__btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.route-create__btn[aria-expanded='true'] {
+  background: var(--accent-soft);
+}
+
+/* Their grids pop up above the button, over the map. */
+.route-create__grid.folder-picker {
+  left: 0;
+}
+
+.route-create__name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.route-create__name input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+/* A faint grey pen: the name is there to be changed. */
+.route-create__pen {
+  flex: none;
+  color: var(--muted);
+  opacity: 0.5;
+}
+
+/* The description: a box five lines tall, its icon button in the top-left corner. */
+.route-create__row--note {
+  align-items: flex-end;
+}
+
+.route-create__note-box {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.route-create__btn--icon {
+  background: var(--surface);
+}
+
+.route-create__note {
+  flex: 1;
+  min-width: 0;
+  /* Five lines and its padding. */
+  min-height: calc(5 * 1.4em + 16px);
+  padding: 8px 6px;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* no iOS zoom-in */
+  line-height: 1.4;
+}
+
+.route-create__note::placeholder,
+.route-create__name input::placeholder {
+  color: var(--muted);
+}
+
+.route-create__go {
+  flex: none;
+  height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.route-folders__empty {
+  margin: 18px 0;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* Delete confirm (a native modal <dialog>, so it sits in the top layer). */
+.confirm-dialog {
+  width: min(300px, calc(100vw - 48px));
+  padding: 22px 18px 16px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  text-align: center;
+}
+
+.confirm-dialog::backdrop {
+  background: var(--backdrop);
+}
+
+.confirm-dialog p {
+  margin: 0 0 18px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.confirm-dialog__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.btn--danger {
+  background: var(--danger);
+  color: var(--on-accent);
+}
+
+/* The open folder's icon picker: a bubble popping up above its tab (like a
+   ping's shape picker), kept on screen. Tapping anywhere else closes it. */
+.folder-picker {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: clamp(12px, calc(var(--x) - 149px), calc(100% - 310px));
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(6, 44px);
+  gap: 4px;
+  width: max-content;
+  padding: 8px;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  animation: picker-in 0.18s ease both;
+}
+
+.folder-picker__opt {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.folder-picker__opt.is-on {
+  background: var(--accent-soft);
+}
+
+.route-folders__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.route-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.route-row:last-child {
+  border-bottom: 0;
+}
+
+/* Rows slide out of the way of a route being dragged among them. */
+.route-folders__body.is-sorting .route-row {
+  transition: transform 0.18s ease;
+}
+
+/* Its own place is left empty while it's carried (the others slide over it). */
+.route-row.is-lifted {
+  visibility: hidden;
+}
+
+/* The carried route: a copy over the sheet that follows the finger. */
+.route-row--ghost {
+  position: absolute;
+  z-index: 5;
+  padding: 0 12px;
+  border-radius: 14px;
+  border-bottom: 0;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+}
+
+.route-row--ghost .route-row__main {
+  height: 100%;
+}
+
+/* Over a folder tab: small, about to be filed. */
+.route-row--ghost.is-over-tab {
+  opacity: 0.85;
+  scale: 0.8;
+  transition: scale 0.12s ease;
+}
+
+.route-row__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 56px;
+  padding: 8px 4px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  text-align: left;
+}
+
+.route-row__main {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.route-row__folder {
+  flex: none;
+  display: grid;
+  place-items: center;
+  margin-left: auto; /* right end of the title line */
+  padding-left: 8px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.route-row__icon {
+  flex: none;
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* The open route's tools, small, under its name at the right. */
+.route-row__tools {
+  flex-basis: 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  margin-top: -8px;
+  padding-bottom: 4px;
+}
+
+/* Under the open route's name; two lines at most, so the lowered sheet's
+   strip still shows the route's tools. */
+.route-row__note {
+  flex-basis: 100%;
+  display: -webkit-box;
+  /* Room below as margin: padding would show a sliver of a clamped third line. */
+  margin: -10px 4px 10px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* In line with the name, past the icon (20px + the 8px gap). */
+.route-row__note.has-icon {
+  margin-left: 32px;
+}
+
+.route-row__tool {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
+}
+
+.route-row__tool:active {
+  background: var(--surface-2);
+}
+
+.route-row__tool--danger {
+  color: var(--danger);
+}
+
+.route-row__main strong {
+  overflow: hidden;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-row__main span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* The route drawn on the map. */
+.route-row.is-shown .route-row__main strong {
+  color: var(--accent-strong);
+}
+
+.route-row__file {
+  color: var(--muted);
+}
+
+.route-row__file:not(:disabled):active {
+  background: var(--surface-2);
+}
+
+.route-row__chooser {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 0 10px;
+}
+
+.route-row__to {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: none;
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.route-row__in {
+  display: inline-flex;
+  vertical-align: -2px;
+}
+
+.route-row__to.is-on {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+/* A pin's card stands just above the pin, which tapping it pans to the middle
+   of the map (the map fills the screen, so that is the screen's middle). The
+   tail points down at the pin. Placed after the generic bottom positions so
+   it wins on every width. */
+.app .place-card.place-card--pin {
+  /* Half the selected pin's height plus a gap. */
+  bottom: calc(50% + 32px);
+  left: 50%;
+  right: auto;
+  width: min(270px, calc(100vw - 24px));
+  translate: -50% 0;
+  /* Above the ⚙ rail: opened up (details, icons) it can grow into it. */
+  z-index: 21;
+  animation: pin-card-in 0.18s ease both;
+}
+
+.app .place-card.place-card--pin::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  width: 16px;
+  height: 16px;
+  background: var(--surface);
+  translate: -50% 0;
+  rotate: 45deg;
+}
+
+/* Pin card: (icon) name (pen) / (⋯) … (bin). */
+.pin-card__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pin-card__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--pin, var(--surface-2));
+  font-size: 22px;
+  line-height: 1;
+}
+
+.pin-card__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pin-card__name-input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* no iOS zoom-in */
+  font-weight: 700;
+}
+
+.pin-card__tool {
+  color: var(--muted);
+}
+
+.pin-card .chip-row {
+  margin-top: 10px;
+}
+
+.pin-card__details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  align-items: center;
+  margin: 10px 0 0;
+  font-size: 14px;
+}
+
+.pin-card__details dt {
+  color: var(--muted);
+}
+
+.pin-card__details dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--text);
+}
+
+.pin-card__details .place-card__memo {
+  margin: 0;
+}
+
+.pin-card__link {
+  grid-column: 1 / -1;
+}
+
+.pin-card__link a {
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
+/* The icon picker pops up above the card (the folder tabs' bubble, pinned to
+   the card's left edge instead of a tab). Each icon wears its colour. */
+.pin-card__icons {
+  left: 0;
+  bottom: calc(100% + 10px);
+}
+
+.pin-card__icon-opt {
+  border-radius: 50%;
+  background: var(--pin, var(--surface-2));
+  font-size: 22px;
+}
+
+/* The current one keeps its colour (the folder bubble would tint it) and gets a ring. */
+.pin-card__icons .pin-card__icon-opt.is-on {
+  background: var(--pin, var(--surface-2));
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--accent);
+}
+
+/* ⋯ on the left, the bin at the bottom right. */
+.pin-card__bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+@keyframes pin-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-folders,
+  .route-folders.is-leaving {
+    animation-duration: 0.01s;
+  }
+}
+
+/* Category buttons drop out of 핀 one after another… */
+.pin-rail__item {
+  animation: pin-rail-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+  animation-delay: calc(var(--i, 0) * 30ms);
+}
+
+/* …and tuck back up into it together (PinRail's OUT_MS waits for this). */
+.pin-rail__item.is-leaving {
+  animation: pin-rail-out 0.16s ease-in both;
+  pointer-events: none;
+}
+
+@keyframes pin-rail-in {
+  from {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.4);
+  }
+}
+
+@keyframes pin-rail-out {
+  to {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-rail__item,
+  .pin-rail__item.is-leaving {
+    animation-duration: 0.01s;
+    animation-delay: 0s;
+  }
+
+  .pin-rail__slot,
+  .pin-rail__slot .pin-rail__btn {
+    transition: none;
+  }
+}
+
+.pin-rail__list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-height: 0;
+  /* Room for the buttons' shadows inside the scroll box, without moving them. */
+  margin: -4px -12px 0;
+  padding: 4px 12px 12px;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.pin-rail__pin {
+  font-size: 21px;
+  /* A tighter shadow than the other buttons: the scroll box would clip a wide one. */
+  box-shadow:
+    inset 0 0 0 3px var(--pin, var(--surface-2)),
+    var(--shadow-sm);
+}
+
+/* ALL: every pin. Text in a white button; on, the accent colour like 핀 · 경로. */
+.pin-rail__all {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  /* The tighter shadow of the category buttons (inside the scroll box). */
+  box-shadow: var(--shadow-sm);
+}
+
+.pin-rail__all.is-on {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Picked: filled with the category colour. */
+.pin-rail__pin.is-on {
+  background: var(--pin, var(--surface-2));
 }
 
 .bottom-bar-wrap {
@@ -1474,6 +3909,9 @@ input.timeline__time:focus {
   right: 0;
   bottom: 0;
   z-index: 12;
+  transition:
+    translate 0.22s ease,
+    opacity 0.18s ease;
   /* A little lift so the big pin button clears the screen edge. */
   padding-bottom: calc(var(--safe-bottom) + 6px);
   /* No bar: only the round buttons take touches. */
@@ -1513,16 +3951,14 @@ input.timeline__time:focus {
 .bottom-bar__btn.is-on {
   width: 58px;
   height: 58px;
+  /* The current tab's button carries the accent colour, whichever it is. */
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .bottom-bar__btn.is-on svg {
   width: 26px;
   height: 26px;
-}
-
-.bottom-bar__btn--pin {
-  background: var(--accent);
-  color: var(--on-accent);
 }
 
 /* The pin is the app's main action, so it grows a little more than the others. */
@@ -1540,7 +3976,6 @@ input.timeline__time:focus {
   transform: scale(0.94);
 }
 
-/* Each button sits in a slot so the calendar's menu can stack above it. */
 .bottom-bar__slot {
   position: relative;
   display: grid;
@@ -1549,81 +3984,6 @@ input.timeline__time:focus {
 
 .calendar-today text {
   font-family: inherit;
-}
-
-/* The calendar button's menu: two round buttons on an arc above it
-   (월 달력 up-left, 공유 up-right). Each grows out of the button's centre to
-   its spot (--dx/--dy, set inline) and shrinks back into it on close. */
-.bottom-bar__dial {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 0;
-  height: 0;
-}
-
-.bottom-bar__dial-btn {
-  position: absolute;
-  left: -24px;
-  top: -24px;
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--muted);
-  box-shadow: var(--shadow);
-  pointer-events: auto; /* the bar's wrapper lets touches through; its buttons opt back in */
-  translate: var(--dx) var(--dy);
-  animation: dial-in 0.26s cubic-bezier(0.3, 1.3, 0.5, 1) both;
-}
-
-.bottom-bar__dial-btn + .bottom-bar__dial-btn {
-  animation-delay: 40ms;
-}
-
-.bottom-bar__dial-btn svg {
-  width: 22px;
-  height: 22px;
-}
-
-.bottom-bar__dial-btn:active {
-  background: var(--surface-2);
-}
-
-.bottom-bar__dial.is-closing {
-  pointer-events: none;
-}
-
-.bottom-bar__dial.is-closing .bottom-bar__dial-btn {
-  animation: dial-out 0.17s ease-in both;
-  animation-delay: 0s; /* both at once, within the time the menu stays mounted */
-}
-
-@keyframes dial-in {
-  from {
-    opacity: 0;
-    translate: 0 0;
-    scale: 0.2;
-  }
-}
-
-@keyframes dial-out {
-  to {
-    opacity: 0;
-    translate: 0 0;
-    scale: 0.2;
-  }
-}
-
-/* Tapping anywhere else closes the menu. */
-.bottom-bar__scrim {
-  position: fixed;
-  inset: 0;
-  pointer-events: auto;
 }
 
 /* Pin-drop mode: same colours, the pin tilts as before. */
@@ -1635,11 +3995,6 @@ input.timeline__time:focus {
   .bottom-bar__btn,
   .bottom-bar__btn svg {
     transition: none;
-  }
-
-  .bottom-bar__dial-btn,
-  .bottom-bar__dial.is-closing .bottom-bar__dial-btn {
-    animation: none;
   }
 }
 
@@ -1654,7 +4009,6 @@ input.timeline__time:focus {
   z-index: 1;
   width: 34px;
   height: 34px;
-  border-width: 2px;
   background: var(--pin);
   font-size: 17px;
   line-height: 1;
@@ -2061,20 +4415,224 @@ input.timeline__time:focus {
   overflow-y: auto;
 }
 
-/* ---------- Settings ---------- */
+/* ---------- Profile (popup from the top-right button) ---------- */
 
-.settings__section {
+/* The photo fills the round profile buttons. */
+.profile-avatar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* The profile buttons are the popup's round avatar itself, just smaller. */
+.corner-btn--profile,
+.page__profile {
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.page__profile {
+  width: 40px;
+  height: 40px;
+  margin: 2px;
+}
+
+.profile-sheet {
+  width: min(320px, calc(100vw - 48px));
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+}
+
+.profile-sheet[open] {
+  animation: mac-open 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+}
+
+.profile-sheet::backdrop {
+  background: var(--backdrop);
+}
+
+.profile {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: stretch;
+  gap: 4px;
+  padding: 28px 18px 18px;
+  text-align: center;
 }
 
-.settings__section h3 {
-  margin: 8px 0 0;
-  font-size: 15px;
+.profile__photo {
+  position: relative;
+  align-self: center;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 10px;
 }
 
-.settings .share-sheet__body {
+.profile__avatar {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--muted);
+  overflow: hidden;
+}
+
+/* Overlapping the photo's lower right. */
+.profile__photo-pen {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.profile__photo-pen svg {
+  box-sizing: content-box;
+  padding: 7px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Text in the middle column, its pen low in the right one, so the text stays centred. */
+.profile__line {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+}
+
+.profile__text,
+.profile__edit {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.profile__text.is-empty {
+  color: var(--muted);
+}
+
+.profile__edit input {
+  width: 11em;
+  min-width: 0;
+  padding: 2px 4px;
+  border: 0;
+  border-bottom: 1.5px solid var(--accent);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: max(16px, 1em);
+  text-align: center;
+  outline: none;
+}
+
+.profile__pen {
+  justify-self: start;
+  display: grid;
+  place-items: end start;
+  width: 44px;
+  height: 44px;
+  margin-bottom: -10px;
+  padding: 0 0 14px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+
+.profile__nick {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.profile__handle {
+  font-size: 16px;
+  color: var(--muted);
+}
+
+.profile__handle .profile__text,
+.profile__handle .profile__edit {
+  color: var(--muted);
+}
+
+.profile__hint,
+.profile__note {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.profile__hint.is-refused {
+  color: var(--danger);
+}
+
+/* 계정 정보 toggle: a quiet row; the chevron turns when open. */
+.profile__account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  margin-top: 18px;
+  padding: 0 4px;
+  border: 0;
+  border-top: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.profile__account svg {
+  transition: rotate 0.2s ease;
+}
+
+.profile__account.is-open svg {
+  rotate: 180deg;
+}
+
+.profile__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 4px;
+  animation: profile-account-in 0.18s ease both;
+}
+
+@keyframes profile-account-in {
+  from {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+}
+
+.profile__leave {
+  color: var(--danger);
+}
+
+.category-sheet[open] {
+  animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+.category-sheet .share-sheet__body {
   max-height: 88dvh;
   overflow-y: auto;
 }
@@ -2191,95 +4749,13 @@ input.timeline__time:focus {
   border-color: var(--accent);
 }
 
-.settings__danger {
-  color: var(--danger);
-}
-
-/* ---------- 추천 feed ---------- */
-
-.curator-row {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.curator {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  width: 76px;
-  padding: 4px 0;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.curator__avatar {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  border: 3px solid var(--border);
-  border-radius: 50%;
-  background: var(--surface-2);
-  font-size: 26px;
-}
-
-.curator.is-on {
-  color: var(--text);
-}
-
-.curator.is-on .curator__avatar {
-  border-color: var(--accent);
-}
-
-.curator__name {
-  max-width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.feed__bio {
-  margin: 0;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.feed-card {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--muted);
-  text-align: left;
-}
-
-.feed-card__main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  color: var(--text);
-}
-
 /* MapLibre fallback: keep attribution clear of the sheet on phones. */
 .maplibregl-ctrl-bottom-right,
 .maplibregl-ctrl-bottom-left {
   bottom: calc(var(--sheet-peek) + var(--bar-h) + var(--safe-bottom));
 }
 
-/* ---------- Tab pages (달력 · 추천): full screens, no map ---------- */
+/* ---------- Tab pages (달력): full screens, no map ---------- */
 
 .page {
   position: absolute;
@@ -2395,6 +4871,45 @@ input.timeline__time:focus {
   flex-direction: column;
   align-items: center;
   padding: 36px 24px 0;
+}
+
+/* 꾸미기 → background pattern (DayPattern), faint, across the whole page
+   behind everything on it (a negative z-index inside .page's stacking context
+   paints over the page's background but under its content). */
+.day-pattern {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  opacity: 0.22; /* PATTERN_ALPHA in lib/dayPatterns.ts, for the share image */
+  pointer-events: none;
+}
+
+.day-pattern__mark {
+  fill: var(--accent);
+}
+
+.day-pattern__line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-linecap: round;
+}
+
+.day-pattern__flow {
+  animation: pattern-flow linear infinite;
+}
+
+@keyframes pattern-flow {
+  to {
+    transform: translate(var(--flow-x), var(--flow-y));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .day-pattern__flow {
+    animation: none;
+  }
 }
 
 .cal-day--neighbor {
@@ -2802,6 +5317,10 @@ input.timeline__time:focus {
     transform: none;
   }
 
+  .pin-rail {
+    top: calc(24px + 52px + 12px);
+  }
+
   .drop-tray {
     left: 424px;
     right: auto;
@@ -2821,5 +5340,16 @@ input.timeline__time:focus {
   .share-sheet {
     margin: auto;
     border-radius: 22px;
+  }
+
+  /* Still rises from the bottom edge on wide screens. */
+  .category-sheet {
+    margin: auto auto 0;
+    border-radius: 22px 22px 0 0;
+  }
+
+  .corner-btn--bottom {
+    top: auto;
+    bottom: calc(12px + (var(--bar-h) - 44px) / 2);
   }
 }

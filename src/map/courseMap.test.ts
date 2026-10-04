@@ -21,7 +21,7 @@ describe('map long-press', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  it('long-press / right-click on the map starts a pin at that point (also closes M1 1.3)', () => {
+  it('long-press on the map starts a pin at that point (also closes M1 1.3)', () => {
     const el = fakeContainer();
     const onPress = vi.fn();
     const detach = attachLongPress(el as unknown as HTMLElement, onPress);
@@ -34,10 +34,10 @@ describe('map long-press', () => {
     el.fire('contextmenu', { clientX: 110, clientY: 220, preventDefault: () => {} });
     expect(onPress).toHaveBeenCalledTimes(1);
 
-    // …but a mouse right-click (no recent touch) counts.
+    // …and so is a right-click / two-finger click: it no longer starts a pin.
     vi.advanceTimersByTime(2000);
     el.fire('contextmenu', { clientX: 60, clientY: 70, preventDefault: () => {} });
-    expect(onPress).toHaveBeenLastCalledWith(50, 50);
+    expect(onPress).toHaveBeenCalledTimes(1);
 
     detach();
     expect(el.handlers.size).toBe(0);

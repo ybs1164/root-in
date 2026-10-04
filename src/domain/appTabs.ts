@@ -1,5 +1,5 @@
 /** Bottom-bar tabs, one round button each. */
-export type AppTab = 'calendar' | 'pins' | 'influencer';
+export type AppTab = 'calendar' | 'pins';
 
 /**
  * What a bottom-bar tap does. Every button switches to its screen. Tapped
@@ -14,21 +14,20 @@ export function bottomBarAction(target: AppTab, current: AppTab): 'switch' | 'pi
 }
 
 /**
- * The calendar button tapped again on the calendar. From the month it goes
- * back to TODAY; on a day screen it opens (or closes) the little menu above
- * the button: 공유 and 월 달력.
+ * The calendar button tapped again on the calendar: a day screen zooms out
+ * to the month, and the month goes back to TODAY. (공유 lives on the day's
+ * 꾸미기 rail.)
  */
-export function calendarAgain(mode: 'day' | 'month', menuOpen: boolean): 'today' | 'open-menu' | 'close-menu' {
-  if (menuOpen) return 'close-menu';
-  return mode === 'month' ? 'today' : 'open-menu';
+export function calendarAgain(mode: 'day' | 'month'): 'today' | 'month' {
+  return mode === 'month' ? 'today' : 'month';
 }
 
 /** Titles of the tabs that are their own full screens (not a sheet over the map). */
-export const PAGE_TITLES: Partial<Record<AppTab, string>> = { calendar: '달력', influencer: '추천' };
+export const PAGE_TITLES: Partial<Record<AppTab, string>> = { calendar: '달력' };
 
 /**
- * 달력 and 추천 are separate screens, like Instagram's or KakaoTalk's tabs;
- * only 핀 is the map. A tab page steps aside while the map itself is
+ * 달력 is a separate screen, like Instagram's or KakaoTalk's tabs; only
+ * 핀 is the map. A tab page steps aside while the map itself is
  * needed: an opened course or pin set, a search, or a place being added.
  */
 export function showsPage(tab: AppTab, mapNeeded: boolean): boolean {
@@ -37,12 +36,11 @@ export function showsPage(tab: AppTab, mapNeeded: boolean): boolean {
 
 /**
  * Pages slide off toward the side their button sits on to uncover the map:
- * 달력 (left button) goes left on a right-to-left swipe, 추천 (right button)
- * goes right on a left-to-right one. -1 = left, 1 = right, 0 = no swipe.
+ * 달력 (left button) goes left on a right-to-left swipe. -1 = left,
+ * 1 = right, 0 = no swipe.
  */
 export function homeSwipeDirection(tab: AppTab): -1 | 0 | 1 {
   if (tab === 'calendar') return -1;
-  if (tab === 'influencer') return 1;
   return 0;
 }
 
@@ -66,12 +64,9 @@ export function swipeCommits(dir: -1 | 1, dx: number, width: number, velocity: n
 export type IncomingKind = 'course' | 'day' | 'pins';
 
 /**
- * Where an opened link lands. A course opened from the 추천 tab stays
- * there (closing it returns to the feed); links from outside land where
- * that kind of thing lives.
+ * Where an opened link lands: where that kind of thing lives.
  */
-export function tabForIncoming(kind: IncomingKind, current: AppTab): AppTab {
+export function tabForIncoming(kind: IncomingKind): AppTab {
   if (kind === 'day') return 'calendar';
-  if (current === 'influencer') return 'influencer';
   return 'pins';
 }
