@@ -1,4 +1,4 @@
-import { Check, GripVertical, Inbox } from 'lucide-react';
+import { Check, GripVertical, Inbox, Trash2 } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from 'react';
 import { COURSE_LIMITS } from '../domain/course';
 import { ROUTE_NOTE_MAX } from '../domain/routeBuild';
@@ -19,6 +19,8 @@ interface RouteEditTrayProps {
   /** The folder the route goes in on ✓ (null = 미분류). */
   folder: string | null;
   onFolder: (folder: string | null) => void;
+  /** The trash at the sheet's bottom right: deletes the whole route (the app asks first). */
+  onDelete: () => void;
 }
 
 /**
@@ -28,7 +30,7 @@ interface RouteEditTrayProps {
  * in order — drag one by its handle to put it somewhere else in the route.
  * Stops are added and taken out on the map, as when making a route.
  */
-export default function RouteEditTray({ stops, note, onNote, onMove, onRemove, onDone, folders, folder, onFolder }: RouteEditTrayProps) {
+export default function RouteEditTray({ stops, note, onNote, onMove, onRemove, onDone, folders, folder, onFolder, onDelete }: RouteEditTrayProps) {
   // The folder grid, open above the folder button; a tap anywhere else closes it.
   const [pickingFolder, setPickingFolder] = useState(false);
   const folderBox = useRef<HTMLDivElement | null>(null);
@@ -180,6 +182,10 @@ export default function RouteEditTray({ stops, note, onNote, onMove, onRemove, o
         </ol>
         {stops.length < COURSE_LIMITS.minStops && <p className="route-edit__hint">지도에서 핀을 눌러 {COURSE_LIMITS.minStops}곳 이상 골라 주세요.</p>}
       </div>
+      {/* Deleting the whole route, at the bottom right like the folder sheet's 다중 선택 trash. */}
+      <button className="route-edit__trash" aria-label="루트 삭제" onClick={onDelete}>
+        <Trash2 size={22} aria-hidden />
+      </button>
     </section>
   );
 }

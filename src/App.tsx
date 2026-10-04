@@ -722,6 +722,17 @@ export default function App() {
     if (shownRoute) editRouteNow(shownRoute);
   };
 
+  // 루트 수정's trash asks first, then the route goes (and editing with it).
+  const [routeDeleting, setRouteDeleting] = useState<string | null>(null);
+  const deleteRoutes = async (cs: Course[]) => {
+    if (cs.some((c) => c.id === shownRouteId)) {
+      setEditing(null);
+      setShownRouteId(null);
+    }
+    routeFolders.setFolders((f) => cs.reduce((acc, c) => moveRoute(acc, c.id, null), f));
+    for (const c of cs) await course.remove(c.id);
+  };
+
   // 핀 삭제 asks first; a pin some route stops at can't go until it's taken out of them.
   const [pinDeleting, setPinDeleting] = useState<Pin | null>(null);
   const routesWithPin = (pin: Pin) => course.courses.filter((c) => c.stops.some((s) => s.place.id === pin.place.id));
@@ -907,11 +918,7 @@ export default function App() {
           tab={routeTab}
           onTab={setRouteTab}
           onNewRoute={startBuilding}
-          onDeleteRoutes={async (cs) => {
-            if (cs.some((c) => c.id === shownRouteId)) setShownRouteId(null);
-            routeFolders.setFolders((f) => cs.reduce((acc, c) => moveRoute(acc, c.id, null), f));
-            for (const c of cs) await course.remove(c.id);
-          }}
+          onDeleteRoutes={deleteRoutes}
         />
       )}
 
@@ -1057,6 +1064,7 @@ export default function App() {
             folder={editRoute.folder}
             onFolder={(folder) => setEditing((e) => (e ? { ...e, folder } : e))}
             onDone={saveEdit}
+            onDelete={() => setRouteDeleting(editRoute.id)}
           />
         </>
       )}
@@ -1136,14 +1144,33 @@ export default function App() {
         />
       </div>
 
+      {routeDeleting && course.courses.some((c) => c.id === routeDeleting) && (
+        <ConfirmDialog
+          label="루트 삭제"
+          message={`'${course.courses.find((c) => c.id === routeDeleting)?.title || '이름 없는 경로'}' 루트를 삭제합니다.`}
+          detail="삭제한 루트는 복구할 수 없어요."
+          onConfirm={() => void deleteRoutes(course.courses.filter((c) => c.id === routeDeleting))}
+          onClose={() => setRouteDeleting(null)}
+        />
+      )}
+
       {pinDeleting &&
         (routesWithPin(pinDeleting).length > 0 ? (
           <ConfirmDialog
             label="장소 삭제 불가"
-            message="이 장소는 루트에 들어가 있는 장소예요."
-            detail={`소속 루트: ${routesWithPin(pinDeleting)
-              .map((c) => `'${c.title}'`)
-              .join('  ')}\n먼저 해당하는 루트에서 장소를 제거해 주세요.`}
+            message="이 장소는 루트에 들어 있는 장소예요."
+            detail={
+              <>
+                소속 루트:{' '}
+                {routesWithPin(pinDeleting).map((c, i) => (
+                  <span key={c.id}>
+                    {i > 0 && '  '}
+                    <b className="confirm-dialog__em">'{c.title}'</b>
+                  </span>
+                ))}
+                {'\n'}먼저 해당하는 루트에서 장소를 제거해 주세요.
+              </>
+            }
             confirmLabel="루트 편집"
             tone="action"
             // The first route named: straight into editing it.

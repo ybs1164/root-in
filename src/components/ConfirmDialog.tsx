@@ -1,12 +1,12 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 
 interface ConfirmDialogProps {
   /** Read out for the dialog (it shows no title). */
   label: string;
   message: string;
-  /** Quieter lines under the message (its line breaks are kept). */
-  detail?: string;
+  /** Quieter lines under the message (a string's line breaks are kept; markup can pick words out). */
+  detail?: ReactNode;
   /** The confirm half's word (확인 unless given)… */
   confirmLabel?: string;
   /** …and whether it's red (deleting, the default) or the accent (going somewhere). */

@@ -3103,6 +3103,24 @@ button:disabled {
   color: var(--on-accent);
 }
 
+/* The route's own trash at the sheet's bottom right (the same round button as 다중 선택's). */
+.route-edit__trash {
+  position: absolute;
+  right: 16px;
+  bottom: calc(var(--safe-bottom) + 16px);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--danger);
+}
+
 .route-edit__done:disabled {
   background: var(--surface-2);
   color: var(--muted);
@@ -3113,8 +3131,8 @@ button:disabled {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  /* The description starts at the top, in from the edges like the stops under it. */
-  padding: 14px 16px calc(var(--safe-bottom) + 16px);
+  /* The description starts at the top, in from the edges like the stops under it; room at the bottom so the trash never covers the last stop. */
+  padding: 14px 16px calc(var(--safe-bottom) + 84px);
 }
 
 .route-edit__note {
@@ -3445,6 +3463,12 @@ button:disabled {
   color: var(--muted);
   font-size: 15px;
   white-space: pre-line;
+}
+
+/* A word picked out in the quieter lines (a route's name): the accent, bold. */
+.confirm-dialog__em {
+  color: var(--accent);
+  font-weight: 700;
 }
 
 .btn--danger {
