@@ -1,13 +1,15 @@
 import { clamp01, type DayDecor } from '../domain/decor';
 import { cardToScene, DRAWING_BOX, FRONT_CARD, SCENE } from '../domain/polaroid';
-import { dayDecorKey, isDecorKey } from '../domain/shareSubject';
-import { compactDecor, isBlankDecor, loadDays, readDecor } from './dayRepository';
+import { isDecorKey } from '../domain/shareSubject';
+import { compactDecor, isBlankDecor, readDecor } from './dayRepository';
 
 /**
  * 꾸미기 on share cards: stickers, pen strokes, text boxes, theme and
  * background pattern, per card (`day:<date>` or `route:<course id>`), so a
  * card opened again looks the way it was left. Pieces are in scene
- * fractions (the whole share image, two polaroids and the backdrop).
+ * fractions (the whole share image, two polaroids and the backdrop). A
+ * day's own 꾸미기 stays with the day (goodroot:days:v1) and goes into the
+ * card's photo when it's shared.
  */
 const KEY = 'goodroot:decor:v2';
 /** v1: pieces in the front card's drawing box (a square). */
@@ -16,8 +18,7 @@ const V1_KEY = 'goodroot:decor:v1';
 export type DecorStore = Record<string, DayDecor>;
 
 /**
- * Moves pieces laid out in the drawing box (v1, and calendar days before
- * that) to where that box now lies on the scene: on the front card, turned
+ * Moves pieces laid out in the drawing box (v1) to where that box now lies on the scene: on the front card, turned
  * with it. Sizes keep their size on screen; pen widths are fixed steps and
  * stay as they were.
  */
@@ -59,14 +60,16 @@ function readStore(raw: string): DecorStore {
   return out;
 }
 
-/** What came before v2: v1 cards, or else the decorations calendar days kept (goodroot:days:v1). */
+/**
+ * What came before v2: v1 route cards, in the drawing box. (v1's day cards
+ * were copies of the days' own 꾸미기, which the photo shows now.)
+ */
 function legacy(): DecorStore {
   const v1 = window.localStorage.getItem(V1_KEY);
-  const old: DecorStore = {};
-  if (v1 !== null) Object.assign(old, readStore(v1));
-  else for (const [date, d] of Object.entries(loadDays().decor)) old[dayDecorKey(date)] = d;
+  const old: DecorStore = v1 === null ? {} : readStore(v1);
   const out: DecorStore = {};
   for (const [key, d] of Object.entries(old)) {
+    if (!key.startsWith('route:')) continue;
     // Read back through the checks: moved pieces get the usual limits (sizes) too.
     const moved = readDecor(boxToScene(d));
     if (moved) out[key] = moved;

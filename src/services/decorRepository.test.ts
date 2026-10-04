@@ -6,17 +6,14 @@ import { boxToScene, loadDecor, saveDecor } from './decorRepository';
 describe('share card decorations', () => {
   beforeEach(() => localStorage.clear());
 
-  it('take over what calendar days had before (goodroot:days:v1), once', () => {
+  it('leave a day’s own 꾸미기 with the day (it goes into the photo when shared)', () => {
     saveDays({
       decor: { '2026-09-29': { stickers: [{ id: 's1', emoji: '⭐', x: 0.2, y: 0.3, size: 0.2 }], strokes: [], theme: 'mint' } },
       shapes: {},
       edges: {},
     });
-    const store = loadDecor();
-    expect(Object.keys(store)).toEqual(['day:2026-09-29']);
-    expect(store['day:2026-09-29'].theme).toBe('mint');
-    // Saved under the new key, the old day rows aren't read again.
-    saveDecor({});
+    // …and v1's day cards were copies of it: not moved again.
+    localStorage.setItem('goodroot:decor:v1', JSON.stringify({ 'day:2026-09-29': { stickers: [{ id: 's1', emoji: '⭐', x: 0.2, y: 0.3, size: 0.2 }], strokes: [] } }));
     expect(loadDecor()).toEqual({});
   });
 

@@ -14,8 +14,10 @@ export interface ShareImageInput {
   edges: EdgeStyle[];
   /** Stickers, pen strokes, text boxes, theme and pattern; pieces in scene fractions (0..1 of its width / height). */
   decor?: DayDecor;
-  /** Leave the stickers, strokes and text boxes off (the 꾸미기 screen lays its own over the image). */
+  /** Leave the card's stickers, strokes and text boxes off (the 꾸미기 screen lays its own over the image). */
   withoutPieces?: boolean;
+  /** A day's own pieces from its day screen, in the drawing box: drawn into the photo, turned with the card. */
+  photo?: DayDecor;
 }
 
 const W = SCENE.w;
@@ -60,14 +62,16 @@ const DASHES: Record<EdgeStyle, { width: number; dash: number[]; cap: CanvasLine
  * Drawn from the data rather than screenshotting the DOM: sharp at any
  * size, and no capture library needed.
  */
-export async function renderShareImage({ title, pings, marks, edges, decor, withoutPieces }: ShareImageInput): Promise<string> {
+export async function renderShareImage({ title, pings, marks, edges, decor, withoutPieces, photo }: ShareImageInput): Promise<string> {
   await document.fonts?.ready;
   // Web fonts load only once something shows them; make sure the strip's
   // hand and the text boxes' fonts are in before drawing (one that won't
   // load falls back).
   await Promise.all([
     document.fonts?.load(`110px ${HAND_FONT}`, title).catch(() => undefined),
-    ...(withoutPieces ? [] : (decor?.texts ?? [])).map((t) => document.fonts?.load(textFont(t, 40), t.text).catch(() => undefined)),
+    ...[...(withoutPieces ? [] : (decor?.texts ?? [])), ...(photo?.texts ?? [])].map((t) =>
+      document.fonts?.load(textFont(t, 40), t.text).catch(() => undefined),
+    ),
   ]);
   const c = tokens();
   const canvas = document.createElement('canvas');
@@ -95,6 +99,8 @@ export async function renderShareImage({ title, pings, marks, edges, decor, with
     ctx.fillStyle = c.photo;
     ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
     drawStops(ctx, c, pings, marks, edges);
+    // The day's own pieces stay inside the photo, as they sat on the day.
+    if (photo) drawDecor(ctx, photo, c.font, BOX_FRAME);
     ctx.restore();
     ctx.fillStyle = c.cardInk;
     ctx.textAlign = 'center';
@@ -103,7 +109,7 @@ export async function renderShareImage({ title, pings, marks, edges, decor, with
     ctx.fillText(title, POLAROID.w / 2, STRIP.y + STRIP.h * 0.48, PHOTO.w);
   });
 
-  if (decor && !withoutPieces) drawDecor(ctx, decor, c.font);
+  if (decor && !withoutPieces) drawDecor(ctx, decor, c.font, SCENE_FRAME);
   return canvas.toDataURL('image/png');
 }
 
@@ -216,19 +222,33 @@ const textFont = (t: PlacedText, sizePx: number) =>
   `${t.italic ? 'italic ' : ''}${textWeight(t)} ${sizePx}px ${textFamily(t.font)}`;
 
 /**
- * Pen strokes, then stickers, then text boxes, over the whole scene: places
- * are fractions of its width and height, sizes fractions of its width (as
- * the 꾸미기 layer lays them out).
+ * Where a set of pieces lies, in the pixels of what it's drawn on (`canvas`):
+ * places are fractions of the box's width and height, sizes of its width,
+ * as the 꾸미기 layer lays them out.
  */
-function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, font: string) {
+interface PieceFrame {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  canvas: { w: number; h: number };
+}
+
+/** The card's own pieces: the whole scene. */
+const SCENE_FRAME: PieceFrame = { x: 0, y: 0, w: W, h: H, canvas: { w: W, h: H } };
+/** A day's pieces: its drawing box, in the card's pixels. */
+const BOX_FRAME: PieceFrame = { x: BOX.x, y: BOX.y, w: BOX.size, h: BOX.size, canvas: { w: POLAROID.w, h: POLAROID.h } };
+
+/** Pen strokes, then stickers, then text boxes, laid out in `frame`. */
+function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, font: string, frame: PieceFrame) {
   const css = getComputedStyle(document.documentElement);
-  const px = (v: number) => v * W;
-  const at = (x: number, y: number): [number, number] => [x * W, y * H];
+  const px = (v: number) => v * frame.w;
+  const at = (x: number, y: number): [number, number] => [frame.x + x * frame.w, frame.y + y * frame.h];
   // Ink goes on its own layer so eraser passes (destination-out) cut only
   // ink drawn before them, never the pings or the page underneath.
   const layer = document.createElement('canvas');
-  layer.width = W;
-  layer.height = H;
+  layer.width = frame.canvas.w;
+  layer.height = frame.canvas.h;
   const ink = layer.getContext('2d')!;
   ink.lineCap = 'round';
   ink.lineJoin = 'round';

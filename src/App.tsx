@@ -1,4 +1,5 @@
-import type { ThemeId } from './domain/decor';
+import type { PatternId, ThemeId } from './domain/decor';
+import DayPattern from './components/DayPattern';
 import ShareStudio from './components/ShareStudio';
 import ShareTagButton from './components/ShareTagButton';
 import { routeSubject, type ShareSubject } from './domain/shareSubject';
@@ -80,11 +81,17 @@ export default function App() {
 
   const { settings, update: updateSettings } = useSettings();
 
-  // Themes belong to share cards: the 꾸미기 screen reports its card's, and
-  // it lives on <html data-theme>, where styles.css swaps the tokens.
-  const [dayTheme, setDayTheme] = useState<ThemeId>('default');
+  // Themes belong to calendar days (the day on screen reports its own) and
+  // to share cards (the 꾸미기 screen reports its card's, over the day's while
+  // it's up); the one showing lives on <html data-theme>, where styles.css
+  // swaps the tokens.
+  const [calendarTheme, setDayTheme] = useState<ThemeId>('default');
+  // …and so do background patterns, drawn across the calendar page.
+  const [dayPattern, setDayPattern] = useState<PatternId>('none');
   // The card on the 꾸미기 screen (a calendar day's or a route's), while it's up.
   const [studio, setStudio] = useState<ShareSubject | null>(null);
+  const [studioTheme, setStudioTheme] = useState<ThemeId>('default');
+  const dayTheme = studio ? studioTheme : calendarTheme;
   useEffect(() => {
     const root = document.documentElement;
     if (dayTheme === 'default') delete root.dataset.theme;
@@ -126,6 +133,8 @@ export default function App() {
   // The calendar page: its zoom level (reported by CalendarZoom), and the
   // calendar button's commands sent down to it.
   const [calendarMode, setCalendarMode] = useState<'day' | 'month'>('day');
+  // A 꾸미기 tool is out on the calendar: the tab buttons step aside for its tray.
+  const [decorating, setDecorating] = useState(false);
   const [calendarCommand, setCalendarCommand] = useState<CalendarCommand | null>(null);
   const sendCalendar = (type: CalendarCommand['type']) => {
     setCalendarCommand((prev) => ({ type, seq: (prev?.seq ?? 0) + 1 }));
@@ -827,10 +836,10 @@ export default function App() {
   const calendarZoom = tab === 'calendar';
   const onPage = showsPage(tab, Boolean(sharedCourse || sharedPins || searchOpen || preview));
   // Swiping 달력 left slides the page off and uncovers the map (핀).
-  const swipe = usePageSwipe(onPage && !studio ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
+  const swipe = usePageSwipe(onPage && !decorating && !studio ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
 
-  // The tab buttons step aside for the 경로 폴더 (and under the 꾸미기 screen).
-  const barAway = routeMode || !!studio;
+  // The tab buttons step aside for a 꾸미기 tool's tray, for the 경로 폴더, and under the 꾸미기 screen.
+  const barAway = (decorating && calendarZoom && onPage) || routeMode || !!studio;
   // 공유 before 집 is set (it's required) opens the profile on 개인 정보 instead.
   const needHome = () => {
     setPrivacyNotice('공유하려면 집 주소를 먼저 입력하세요.');
@@ -1063,6 +1072,7 @@ export default function App() {
 
       {onPage ? (
         <section className="page" aria-label={PAGE_TITLES[tab]} style={swipe.style} {...swipe.handlers}>
+          {calendarZoom && <DayPattern pattern={dayPattern} />}
           <header className="page__head">
             {/* The calendar's own TODAY / DAY n heading takes the stage. */}
             <h1 className={calendarZoom ? 'sr-only' : ''}>{PAGE_TITLES[tab]}</h1>
@@ -1076,6 +1086,9 @@ export default function App() {
               excluded={privacy.excluded}
               onNeedHome={needHome}
               onShare={setStudio}
+              onDecorating={setDecorating}
+              onDayTheme={setDayTheme}
+              onDayPattern={setDayPattern}
               onMode={setCalendarMode}
             />
           ) : (
@@ -1107,7 +1120,7 @@ export default function App() {
         />
       </div>
 
-      {studio && <ShareStudio key={studio.key} subject={studio} onTheme={setDayTheme} onClose={() => setStudio(null)} />}
+      {studio && <ShareStudio key={studio.key} subject={studio} onTheme={setStudioTheme} onClose={() => setStudio(null)} />}
 
       {profileOpen && (
         <ProfileSheet

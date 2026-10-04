@@ -25,10 +25,9 @@ import type { EdgeStyle, PingShape } from '../domain/dayPings';
 
 /**
  * What a calendar day has been made into, kept per date so any day opened
- * later looks the way it was left: the shapes and line styles chosen for its
- * pings. (Its stickers, strokes, text, theme and pattern used to live here
- * too; they belong to the share card now, in decorRepository, which takes
- * them over once and leaves `decor` here as it was.)
+ * later looks the way it was left: stickers, pen strokes, text boxes, the day's theme
+ * and background pattern,
+ * and the shapes and line styles chosen for its pings.
  */
 const DAYS_KEY = 'goodroot:days:v1';
 

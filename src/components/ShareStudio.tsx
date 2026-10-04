@@ -38,13 +38,19 @@ interface ShareStudioProps {
  * 꾸미기: a screen of its own for a share card (a calendar day's, or a saved
  * route's). The scene (two polaroids on a backdrop) is drawn once as an
  * image, and the stickers, pen, text, theme and background pattern are laid
- * over all of it here, a little past the cards too; the bottom row
+ * over all of it here, a little past the cards too (a day's own 꾸미기 from
+ * its day screen is already in the photo); the bottom row
  * saves the finished card, copies its link or hands it to an SNS app.
  * Decorations are kept per card, so it opens again the way it was left.
  */
 export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioProps) {
   const { key } = subject;
-  const [store, setStore] = useState<DecorStore>(loadDecor);
+  // Opened from a day, the card takes on the day's theme and pattern (they can still be changed here).
+  const [store, setStore] = useState<DecorStore>(() => {
+    const loaded = loadDecor();
+    const { look } = subject;
+    return look ? { ...loaded, [key]: { ...(loaded[key] ?? EMPTY_DECOR), theme: look.theme, pattern: look.pattern } } : loaded;
+  });
   const loaded = useRef(true);
   useEffect(() => {
     if (loaded.current) {
@@ -82,7 +88,7 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
   // The page wears the card's theme while this screen is up (the image
   // reads its colours from it). Put on here before the card is drawn, rather
   // than waiting for the app's own pass; the app is told too, for the
-  // browser bars and for going back to the default when this closes.
+  // browser bars, and puts back the screen underneath's theme on closing.
   const theme = decor.theme ?? 'default';
   useLayoutEffect(() => {
     const root = document.documentElement;
@@ -90,7 +96,6 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
     else root.dataset.theme = theme;
     onTheme(theme);
   }, [theme]);
-  useEffect(() => () => onTheme('default'), []);
 
   // The card without its pieces (those are laid over it live), drawn again
   // when its theme or pattern changes.

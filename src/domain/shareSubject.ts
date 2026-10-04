@@ -1,4 +1,5 @@
 import type { Course } from '../types/course';
+import type { DayDecor, PatternId, ThemeId } from './decor';
 import type { DayPing, EdgeStyle, PingShape } from './dayPings';
 import { withoutExcluded, type ExcludedPlace } from './privacy';
 
@@ -23,6 +24,13 @@ export interface ShareSubject {
   edges: EdgeStyle[];
   /** Stops left out for sitting on a 제외 주소. */
   removed: number;
+  /**
+   * A day's own 꾸미기 from its day screen (stickers, strokes, text boxes, in
+   * its drawing box): drawn into the photo, under the card's own pieces.
+   */
+  photo?: DayDecor;
+  /** The day's theme and pattern, which the card takes on each time it's opened from the day. */
+  look?: { theme?: ThemeId; pattern?: PatternId };
 }
 
 export const dayDecorKey = (date: string) => `day:${date}`;
@@ -49,6 +57,7 @@ export function daySubject(
   shapeOf: (ping: DayPing) => PingShape,
   edgeStyleOf: (from: DayPing, to: DayPing) => EdgeStyle,
   excluded: ExcludedPlace[],
+  decor?: DayDecor,
 ): ShareSubject {
   const cut = withoutExcluded(pings.map((ping, index) => ({ ping, index })), (k) => k.ping, excluded);
   const kept = cut.kept.map((k) => k.index);
@@ -60,6 +69,12 @@ export function daySubject(
     marks: cut.kept.map((k) => shapeOf(k.ping)),
     edges: keptEdges(kept, (i) => edgeStyleOf(pings[i], pings[i + 1])),
     removed: cut.removed,
+    ...(decor
+      ? {
+          photo: { stickers: decor.stickers, strokes: decor.strokes, ...(decor.texts ? { texts: decor.texts } : {}) },
+          look: { theme: decor.theme, pattern: decor.pattern },
+        }
+      : {}),
   };
 }
 
