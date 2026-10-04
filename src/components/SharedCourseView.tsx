@@ -5,12 +5,11 @@ interface SharedCourseViewProps {
   course: SharedCourse;
   saved: boolean;
   onSave: () => void;
-  onEditCopy: () => void;
   onClose: () => void;
   onFocusStop: (index: number) => void;
 }
 
-export default function SharedCourseView({ course, saved, onSave, onEditCopy, onClose, onFocusStop }: SharedCourseViewProps) {
+export default function SharedCourseView({ course, saved, onSave, onClose, onFocusStop }: SharedCourseViewProps) {
   return (
     <div className="shared">
       <p className="shared__from">
@@ -28,9 +27,6 @@ export default function SharedCourseView({ course, saved, onSave, onEditCopy, on
       <div className="action-bar">
         <button className="btn btn--ghost" onClick={onClose}>
           닫기
-        </button>
-        <button className="btn btn--secondary" onClick={onEditCopy}>
-          수정해서 쓰기
         </button>
         <button className="btn btn--primary" onClick={onSave} disabled={saved}>
           {saved ? '저장됨 ✓' : '내 코스에 저장'}

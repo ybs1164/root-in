@@ -23,6 +23,8 @@ export type PinIcon = keyof typeof PIN_ICONS;
 /** Index into the fixed `--pin-1 … --pin-8` palette (independent of the design theme). */
 export type PinColor = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 export const PIN_COLORS: PinColor[] = [1, 2, 3, 4, 5, 6, 7, 8];
+/** What a pin is drawn in: a palette colour, or 0 for 미분류 (`--pin-0`, the theme's accent). */
+export type PinTint = PinColor | 0;
 
 export interface PinCategory {
   id: string;

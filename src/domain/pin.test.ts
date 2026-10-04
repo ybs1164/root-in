@@ -5,6 +5,7 @@ import {
   addCategory,
   buildPinSet,
   categoryPath,
+  categoriesWithUncategorized,
   categoryStyle,
   DEFAULT_CATEGORIES,
   filterPins,
@@ -69,13 +70,13 @@ describe('pins', () => {
     expect(order.slice(0, 2)).toEqual(['cafe', 'dessert']);
   });
 
-  it('deleting a category moves its pins to 미분류 (sub-category → parent) instead of deleting them', () => {
+  it('deleting a category moves its pins to 미분류 instead of deleting them', () => {
     const categories = withDessert();
     const pins = [pin(onionSeongsu, 'dessert'), pin(seoulForest, 'cafe'), pin(nogariAlley, 'bar')];
 
     const subRemoved = removeCategory(categories, pins, 'dessert');
     expect(subRemoved.categories.some((c) => c.id === 'dessert')).toBe(false);
-    expect(subRemoved.pins.map((p) => p.categoryId)).toEqual(['cafe', 'cafe', 'bar']);
+    expect(subRemoved.pins.map((p) => p.categoryId)).toEqual([UNCATEGORIZED.id, 'cafe', 'bar']);
 
     const parentRemoved = removeCategory(categories, pins, 'cafe');
     expect(parentRemoved.categories.some((c) => c.id === 'cafe' || c.id === 'dessert')).toBe(false);
@@ -105,6 +106,16 @@ describe('pins', () => {
     expect(filterPinsByCategories(pins, categories, new Set())).toHaveLength(3);
     // Picked but since deleted: as good as none picked (ALL), not an empty map.
     expect(filterPinsByCategories(pins, categories, new Set(['gone']))).toHaveLength(3);
+  });
+
+  it('미분류 is the plain pin in the accent, first in every list, and filters to pins with no live category', () => {
+    const categories = withDessert();
+    expect(categoryStyle(categories, UNCATEGORIZED.id)).toEqual({ icon: 'pin', color: 0 });
+    expect(categoryStyle(categories, 'gone')).toEqual({ icon: 'pin', color: 0 });
+    expect(categoriesWithUncategorized(categories)[0].category.id).toBe(UNCATEGORIZED.id);
+    const pins = [pin(onionSeongsu, UNCATEGORIZED.id), pin(seoulForest, 'gone'), pin(nogariAlley, 'bar')];
+    expect(filterPinsByCategories(pins, categories, new Set([UNCATEGORIZED.id])).map((p) => p.place.name).sort()).toEqual(['서울숲', '어니언 성수']);
+    expect(filterPinsByCategories(pins, categories, new Set([UNCATEGORIZED.id, 'bar']))).toHaveLength(3);
   });
 
   it('a pin set carries only the used categories, parents first', () => {

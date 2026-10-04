@@ -217,7 +217,7 @@ export class MapLibreCourseMap implements CourseMap {
   setPreview(place: PlaceRef | null): void {
     this.previewMarker?.remove();
     this.previewMarker = place
-      ? new maplibregl.Marker({ element: createMarkerElement('＋', 'preview') }).setLngLat(place.center).addTo(this.map)
+      ? new maplibregl.Marker({ element: createMarkerElement('', 'preview') }).setLngLat(place.center).addTo(this.map)
       : null;
   }
 

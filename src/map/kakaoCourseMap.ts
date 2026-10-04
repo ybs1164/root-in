@@ -175,7 +175,7 @@ export class KakaoCourseMap implements CourseMap {
     this.preview = place
       ? new this.maps.CustomOverlay({
           position: this.latLng(place.center),
-          content: createMarkerElement('＋', 'preview'),
+          content: createMarkerElement('', 'preview'),
           yAnchor: 0.5,
           zIndex: 3,
           map: this.map,

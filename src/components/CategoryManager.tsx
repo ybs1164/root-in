@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useState, type CSSProperties } from 'react';
-import { categoryStyle, orderedCategories, PIN_LIMITS, type CategoryProblem, type NewCategoryInput } from '../domain/pin';
+import { categoryStyle, orderedCategories, PIN_LIMITS, UNCATEGORIZED, type CategoryProblem, type NewCategoryInput } from '../domain/pin';
 import { PIN_COLORS, PIN_ICONS, type PinCategory, type PinIcon } from '../types/pin';
 import ConfirmDialog from './ConfirmDialog';
 import PinGlyph from './PinGlyph';
@@ -41,6 +41,16 @@ export default function CategoryManager({ categories, pinCounts, onCreate, onEdi
   return (
     <div className="cat-manager">
       <ul className="cat-manager__list">
+        {/* 미분류 always comes first and can't be edited or deleted: where pins go when their category does. */}
+        <li className="cat-item cat-item--fixed">
+          <div className="cat-item__head">
+            <span className="pin-badge" style={{ '--pin': 'var(--pin-0)' } as CSSProperties} aria-hidden>
+              <PinGlyph icon="pin" />
+            </span>
+            <span className="cat-item__name">{UNCATEGORIZED.name}</span>
+            <span className="cat-item__count">{pinCounts.get(UNCATEGORIZED.id) ? `${pinCounts.get(UNCATEGORIZED.id)}곳` : ''}</span>
+          </div>
+        </li>
         {orderedCategories(categories).map(({ category, depth }) => {
           const style = categoryStyle(categories, category.id);
           const expanded = open === category.id;
@@ -145,7 +155,7 @@ export default function CategoryManager({ categories, pinCounts, onCreate, onEdi
         <ConfirmDialog
           label="카테고리 삭제"
           message={`'${deleting.name}' 카테고리를 삭제합니다.`}
-          detail={deleting.parentId ? '핀은 상위 카테고리로 옮겨져요.' : '세부 카테고리도 함께 지워지고, 핀은 미분류로 옮겨져요.'}
+          detail={deleting.parentId ? '이 카테고리의 핀은 미분류로 옮겨져요.' : '세부 카테고리도 함께 지워지고, 핀은 모두 미분류로 옮겨져요.'}
           onConfirm={() => onDelete(deleting.id)}
           onClose={() => setDeleting(null)}
         />

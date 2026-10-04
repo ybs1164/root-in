@@ -1,7 +1,7 @@
 import { Check, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { addressRoute } from '../domain/addressRoute';
-import { categoryPath, categoryStyle, orderedCategories, PIN_LIMITS } from '../domain/pin';
+import { categoriesWithUncategorized, categoryPath, categoryStyle, PIN_LIMITS } from '../domain/pin';
 import type { Pin, PinCategory } from '../types/pin';
 import PinGlyph from './PinGlyph';
 
@@ -84,7 +84,7 @@ export default function PinCard({ pin, categories, onRecategorize, onRename, onM
     >
       {picking && (
         <div className="folder-picker pin-card__icons" role="dialog" aria-label="카테고리 바꾸기">
-          {orderedCategories(categories).map(({ category }) => {
+          {categoriesWithUncategorized(categories).map(({ category }) => {
             const s = categoryStyle(categories, category.id);
             const on = category.id === pin.categoryId;
             return (
