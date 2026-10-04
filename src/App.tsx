@@ -194,8 +194,8 @@ export default function App() {
   }, [routeShowing]);
   // A route put on show takes the map in turns: it glides over with the pins
   // still there, and the moment the glide ends the pins fade away and the
-  // route's own stops drop in. Switching straight to another route keeps the
-  // pins gone.
+  // route's own stops drop in. Stepping to another route (< >) plays the
+  // same again: the pins come back while the map glides over, then go.
   const [pinsAway, setPinsAway] = useState<'no' | 'fading' | 'gone'>('no');
   // Only 'gone' changes the markers: re-making them mid-fade would cut the fade short.
   const pinsGone = pinsAway === 'gone';
@@ -208,8 +208,8 @@ export default function App() {
       setLandedRoute(null);
       return setPinsAway('no');
     }
-    if (!routeLanded) return;
-    setPinsAway((p) => (p === 'gone' ? p : 'fading'));
+    if (!routeLanded) return setPinsAway('no');
+    setPinsAway('fading');
     const fade = window.setTimeout(() => setPinsAway('gone'), PINS_FADE_MS);
     return () => window.clearTimeout(fade);
   }, [shownRouteKey, routeLanded]);
