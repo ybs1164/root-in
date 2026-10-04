@@ -660,7 +660,6 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
           aria-hidden
         >
           <div className="route-row__main">
-            {draggedRoute.icon && <span className="route-row__icon">{draggedRoute.icon}</span>}
             <strong>{draggedRoute.title || '이름 없는 경로'}</strong>
             {/* Several carried at once: how many. */}
             {rowDrag.ids.length > 1 && <span className="route-row--ghost__count">{rowDrag.ids.length}</span>}
@@ -734,11 +733,6 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
                         {selected.has(c.id) && <Check size={14} strokeWidth={3} />}
                       </span>
                     )}
-                    {c.icon && (
-                      <span className="route-row__icon" aria-hidden>
-                        {c.icon}
-                      </span>
-                    )}
                     <strong>{c.title || '이름 없는 경로'}</strong>
                     {/* Its folder, at the right end of its line; a route in none shows nothing. */}
                     {filed && (
@@ -748,7 +742,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
                     )}
                   </button>
                   {/* The open route's description, small and grey under its name. */}
-                  {shown && c.note && <p className={`route-row__note ${c.icon ? 'has-icon' : ''}`}>{c.note}</p>}
+                  {shown && c.note && <p className="route-row__note">{c.note}</p>}
                   {/* The open route's tools: small, at its bottom right. */}
                   {shown && (
                     <div className="route-row__tools">

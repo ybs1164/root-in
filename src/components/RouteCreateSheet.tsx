@@ -2,13 +2,11 @@ import { Pencil } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ROUTE_NOTE_MAX, ROUTE_TITLE_MAX } from '../domain/routeBuild';
 import type { RouteFolder } from '../domain/routeFolders';
-import { RouteIconFace, RouteIconOptions } from './RouteIconOptions';
 
 /** What the sheet holds so far; kept by the build layer so it survives the sheet going down and up. */
 export interface RouteCreateDraft {
   title: string;
   note: string;
-  icon?: string;
   /** null = 미분류. */
   folder: string | null;
 }
@@ -28,17 +26,18 @@ interface RouteCreateSheetProps {
  * Making a route: the sheet that rises once it has two stops.
  *
  *   [folder] [name ✎]
- *   [[icon] description (5 lines)] [생성]
+ *   [description (5 lines)] [생성]
  *
- * Folder and icon start blank (미분류, no icon) and each opens a small grid
- * above its button; a tap anywhere else closes it.
+ * The folder starts blank (미분류) and opens a small grid above its button;
+ * a tap anywhere else closes it. A route has no icon of its own: its folder
+ * is the only thing it is filed by.
  */
 export default function RouteCreateSheet({ draft, onDraft, defaultTitle, folders, leaving, onCreate }: RouteCreateSheetProps) {
-  const [picking, setPicking] = useState<'folder' | 'icon' | null>(null);
+  const [picking, setPicking] = useState(false);
   useEffect(() => {
     if (!picking) return;
     const away = (e: PointerEvent) => {
-      if (!(e.target as Element | null)?.closest('.route-create__pick')) setPicking(null);
+      if (!(e.target as Element | null)?.closest('.route-create__pick')) setPicking(false);
     };
     document.addEventListener('pointerdown', away);
     return () => document.removeEventListener('pointerdown', away);
@@ -53,12 +52,12 @@ export default function RouteCreateSheet({ draft, onDraft, defaultTitle, folders
           <button
             className="route-create__btn"
             aria-label={`폴더 ${folder?.name ?? '미분류'}, 바꾸기`}
-            aria-expanded={picking === 'folder'}
-            onClick={() => setPicking(picking === 'folder' ? null : 'folder')}
+            aria-expanded={picking}
+            onClick={() => setPicking(!picking)}
           >
             {folder?.icon}
           </button>
-          {picking === 'folder' && (
+          {picking && (
             <div className="folder-picker route-create__grid" role="group" aria-label="폴더">
               <button
                 className={`folder-picker__opt ${!folder ? 'is-on' : ''}`}
@@ -66,7 +65,7 @@ export default function RouteCreateSheet({ draft, onDraft, defaultTitle, folders
                 aria-pressed={!folder}
                 onClick={() => {
                   onDraft({ ...draft, folder: null });
-                  setPicking(null);
+                  setPicking(false);
                 }}
               />
               {folders.map((f) => (
@@ -77,7 +76,7 @@ export default function RouteCreateSheet({ draft, onDraft, defaultTitle, folders
                   aria-pressed={draft.folder === f.id}
                   onClick={() => {
                     onDraft({ ...draft, folder: f.id });
-                    setPicking(null);
+                    setPicking(false);
                   }}
                 >
                   {f.icon}
@@ -99,29 +98,8 @@ export default function RouteCreateSheet({ draft, onDraft, defaultTitle, folders
         </label>
       </div>
       <div className="route-create__row route-create__row--note">
-        {/* The description box, five lines tall, with the icon in its corner. */}
+        {/* The description box, five lines tall. */}
         <div className="route-create__note-box">
-          <div className="route-create__pick">
-            <button
-              className="route-create__btn route-create__btn--icon"
-              aria-label={`아이콘 ${draft.icon ?? '없음'}, 바꾸기`}
-              aria-expanded={picking === 'icon'}
-              onClick={() => setPicking(picking === 'icon' ? null : 'icon')}
-            >
-              <RouteIconFace icon={draft.icon} />
-            </button>
-            {picking === 'icon' && (
-              <div className="folder-picker route-create__grid" role="group" aria-label="아이콘">
-                <RouteIconOptions
-                  value={draft.icon}
-                  onPick={(icon) => {
-                    onDraft({ ...draft, icon });
-                    setPicking(null);
-                  }}
-                />
-              </div>
-            )}
-          </div>
           <textarea
             className="route-create__note"
             aria-label="설명"

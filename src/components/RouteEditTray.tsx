@@ -1,8 +1,7 @@
 import { Check, GripVertical } from 'lucide-react';
-import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { useRef, useState, type PointerEvent } from 'react';
 import { COURSE_LIMITS } from '../domain/course';
 import { ROUTE_NOTE_MAX } from '../domain/routeBuild';
-import { RouteIconFace, RouteIconOptions } from './RouteIconOptions';
 import type { CourseStop } from '../types/course';
 
 interface RouteEditTrayProps {
@@ -15,29 +14,15 @@ interface RouteEditTrayProps {
   onRemove: (index: number) => void;
   /** ✓: keep the changes and leave editing (needs at least two stops). */
   onDone: () => void;
-  /** The route's icon (by its name in the list and above it on the map); none by default. */
-  icon?: string;
-  onIcon: (icon: string | undefined) => void;
 }
 
 /**
  * The sheet for editing a saved route, up in the folder sheet's place:
- * the route's icon at the top left (tap for the icon grid), ✓ at the right, the route's description (tap to edit), and its stops
+ * ✓ at the top right, the route's description (tap to edit), and its stops
  * in order — drag one by its handle to put it somewhere else in the route.
  * Stops are added and taken out on the map, as when making a route.
  */
-export default function RouteEditTray({ stops, note, onNote, onMove, onRemove, onDone, icon, onIcon }: RouteEditTrayProps) {
-  // The icon grid, open under the icon button; a tap anywhere else closes it.
-  const [pickingIcon, setPickingIcon] = useState(false);
-  const iconBox = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (!pickingIcon) return;
-    const away = (e: globalThis.PointerEvent) => {
-      if (!iconBox.current?.contains(e.target as Node)) setPickingIcon(false);
-    };
-    document.addEventListener('pointerdown', away);
-    return () => document.removeEventListener('pointerdown', away);
-  }, [pickingIcon]);
+export default function RouteEditTray({ stops, note, onNote, onMove, onRemove, onDone }: RouteEditTrayProps) {
   const listEl = useRef<HTMLOListElement | null>(null);
   // The row being dragged, how far, and where it would land.
   const [drag, setDrag] = useState<{ from: number; dy: number; to: number; rowH: number; startY: number } | null>(null);
@@ -77,27 +62,6 @@ export default function RouteEditTray({ stops, note, onNote, onMove, onRemove, o
   return (
     <section className="route-edit" aria-label="루트 수정">
       <div className="route-edit__head">
-        <div ref={iconBox} className="route-edit__icon-box">
-          <button
-            className={`route-edit__icon ${icon ? '' : 'is-empty'}`}
-            aria-label={`대표 아이콘 ${icon ?? '없음'}, 바꾸기`}
-            aria-expanded={pickingIcon}
-            onClick={() => setPickingIcon((v) => !v)}
-          >
-            <RouteIconFace icon={icon} />
-          </button>
-          {pickingIcon && (
-            <div className="route-edit__icons folder-picker" role="group" aria-label="대표 아이콘">
-              <RouteIconOptions
-                value={icon}
-                onPick={(i) => {
-                  onIcon(i);
-                  setPickingIcon(false);
-                }}
-              />
-            </div>
-          )}
-        </div>
         <button
           className="route-edit__done"
           aria-label="수정 완료"

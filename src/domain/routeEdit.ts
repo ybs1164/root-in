@@ -7,7 +7,6 @@ export interface RouteEdit {
   id: string;
   stops: CourseStop[];
   note: string;
-  icon?: string;
   /** Stop shapes and line styles, kept lined up with `stops` as they change. */
   look: RouteLook;
 }

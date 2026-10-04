@@ -692,19 +692,17 @@ export default function App() {
       id: shownRoute.id,
       stops: shownRoute.stops,
       note: shownRoute.note ?? '',
-      icon: shownRoute.icon,
       look: { stopShapes: shownRoute.stopShapes, edgeStyles: shownRoute.edgeStyles },
     });
   };
 
-  // ✓ on the edit sheet: keep the stops with their look, the icon and the description.
+  // ✓ on the edit sheet: keep the stops with their look and the description.
   const saveEdit = async () => {
     if (!editRoute || !shownRoute || editRoute.stops.length < COURSE_LIMITS.minStops) return;
     await course.save({
       ...shownRoute,
       stops: editRoute.stops,
       note: editRoute.note.trim().slice(0, ROUTE_NOTE_MAX) || undefined,
-      icon: editRoute.icon,
       ...cleanRouteLook(editRoute.look, editRoute.stops.length),
     });
     setEditing(null);
@@ -714,11 +712,11 @@ export default function App() {
     setRefit((n) => n + 1);
   };
 
-  const saveBuilt = async (title: string, note: string, icon: string | undefined, folder: string | null) => {
+  const saveBuilt = async (title: string, note: string, folder: string | null) => {
     if (!buildPins || buildPins.length < COURSE_LIMITS.minStops) return;
     const stops = buildPins.map((p) => ({ place: p.place }));
     const look = buildRouteLook(buildPins.map((p) => p.id), buildLook);
-    const saved = await course.save({ title, note: note || undefined, icon, theme: 'etc', travelMode: 'walk', stops, ...look });
+    const saved = await course.save({ title, note: note || undefined, theme: 'etc', travelMode: 'walk', stops, ...look });
     // Into the folder picked on the create sheet (none = 미분류).
     if (folder) routeFolders.setFolders((f) => moveRoute(f, saved.id, folder));
     setBuilding(null);
@@ -968,7 +966,6 @@ export default function App() {
         <RouteTitle
           routeId={shownRoute.id}
           title={shownRoute.title}
-          icon={editRoute ? editRoute.icon : shownRoute.icon}
           onRename={(title) => course.save({ ...shownRoute, title })}
           slideFrom={routeStep?.id === shownRoute.id ? routeStep.from : 0}
           onEdit={startEditing}
@@ -1059,8 +1056,6 @@ export default function App() {
             onNote={(note) => setEditing((e) => (e ? { ...e, note } : e))}
             onMove={(from, to) => editStops((stops) => moveStop(stops, from, to))}
             onRemove={(index) => editStops((stops) => stops.filter((_, i) => i !== index))}
-            icon={editRoute.icon}
-            onIcon={(icon) => setEditing((e) => (e ? { ...e, icon } : e))}
             onDone={saveEdit}
           />
         </>

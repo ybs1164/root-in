@@ -2838,23 +2838,6 @@ input.timeline__time:focus {
   pointer-events: auto;
 }
 
-/* The route's icon, centred over the name (the pen beside the name, 16px
-   plus the 8px gap, would pull a plain 50% off centre). */
-.route-title__icon {
-  position: absolute;
-  bottom: calc(100% + 16px);
-  left: calc(50% - 12px);
-  font-size: 34px;
-  line-height: 1;
-  translate: -50% 0;
-  pointer-events: none;
-}
-
-/* No pen beside the name (editing the route): the name alone is the centre. */
-.route-title--no-pen .route-title__icon {
-  left: 50%;
-}
-
 .route-title__name {
   min-width: 0;
   margin: 0;
@@ -3034,34 +3017,8 @@ input.timeline__time:focus {
   flex: none;
   display: flex;
   align-items: center;
-  justify-content: space-between; /* the icon at the left, ✓ at the right */
+  justify-content: flex-end; /* ✓ at the right */
   padding: 12px 12px 0;
-}
-
-.route-edit__icon-box {
-  position: relative;
-}
-
-.route-edit__icon {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--surface-2);
-  font-size: 24px;
-  line-height: 1;
-}
-
-.route-edit__icon[aria-expanded='true'] {
-  background: var(--accent-soft);
-}
-
-/* The icon grid pops up above the button, over the map, like a folder tab's. */
-.route-edit__icons.folder-picker {
-  left: 0;
 }
 
 .route-edit__done {
@@ -3344,7 +3301,7 @@ input.timeline__time:focus {
   opacity: 0.5;
 }
 
-/* The description: a box five lines tall, its icon button in the top-left corner. */
+/* The description: a box five lines tall. */
 .route-create__row--note {
   align-items: flex-end;
 }
@@ -3358,10 +3315,6 @@ input.timeline__time:focus {
   padding: 6px;
   border-radius: 12px;
   background: var(--surface-2);
-}
-
-.route-create__btn--icon {
-  background: var(--surface);
 }
 
 .route-create__note {
@@ -3553,12 +3506,6 @@ input.timeline__time:focus {
   line-height: 1;
 }
 
-.route-row__icon {
-  flex: none;
-  font-size: 20px;
-  line-height: 1;
-}
-
 /* The open route's tools, small, under its name at the right. */
 .route-row__tools {
   flex-basis: 100%;
@@ -3585,11 +3532,6 @@ input.timeline__time:focus {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
-}
-
-/* In line with the name, past the icon (20px + the 8px gap). */
-.route-row__note.has-icon {
-  margin-left: 32px;
 }
 
 .route-row__tool {

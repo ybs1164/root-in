@@ -18,10 +18,10 @@ describe('LocalCourseRepository', () => {
     expect(await new LocalCourseRepository().listByUser('me')).toEqual([saved]);
   });
 
-  it('keeps a decorative icon from the list, and drops anything else', async () => {
-    const repo = new LocalCourseRepository();
-    expect((await repo.save('me', draft({ icon: '🌸' }))).icon).toBe('🌸');
-    expect((await repo.save('me', draft({ icon: '<b>' }))).icon).toBeUndefined();
+  it('drops the icon routes used to carry (routes are filed by folder only)', async () => {
+    // A route saved before icons were removed, coming back through an edit.
+    const old = { ...draft(), icon: '🌸' } as CourseDraft;
+    expect(await new LocalCourseRepository().save('me', old)).not.toHaveProperty('icon');
   });
 
   it('updates in place when the draft has an id owned by the user', async () => {
