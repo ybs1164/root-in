@@ -113,7 +113,7 @@ export default function PinRail({ mode, onAction, categories, counts, picked, on
             return (
               <li key={category.id} className={`pin-rail__item ${listOpen ? '' : 'is-leaving'}`} style={stagger(i + 1)}>
                 <button
-                  className={`pin-rail__btn pin-rail__pin ${on ? 'is-on' : ''}`}
+                  className={`pin-rail__btn pin-rail__pin ${category.id === UNCATEGORIZED.id ? 'pin-rail__pin--none' : ''} ${on ? 'is-on' : ''}`}
                   style={{ '--pin': `var(--pin-${style.color})` } as CSSProperties}
                   aria-label={`${category.name} ${counts.get(category.id) ?? 0}곳`}
                   aria-pressed={on}

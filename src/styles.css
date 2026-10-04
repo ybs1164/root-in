@@ -3673,9 +3673,13 @@ button:disabled {
   box-shadow: var(--shadow-sm);
 }
 
-.pin-rail__all.is-on {
-  background: var(--accent);
-  color: var(--on-accent);
+/* ALL stays white; on, a blue ring and blue letters (over the rail's filled is-on). */
+.pin-rail__btn.pin-rail__all.is-on {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow:
+    inset 0 0 0 2px var(--accent),
+    var(--shadow-sm);
 }
 
 /* ↓ under the categories: the next five. */
@@ -3697,6 +3701,14 @@ button:disabled {
     inset 0 0 0 2px var(--surface),
     0 0 0 2px var(--pin, var(--surface-2)),
     var(--shadow-sm);
+}
+
+/* 미분류: white, with its glyph in the colour its pings have on the map
+   (the accent, --pin-0) instead of a filled disc. Picked, the same ring. */
+.pin-rail__pin--none,
+.pin-rail__pin--none.is-on {
+  background: var(--surface);
+  color: var(--pin-0);
 }
 
 .bottom-bar-wrap {
