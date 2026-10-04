@@ -268,7 +268,11 @@ body,
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+  /* Tall and condensed throughout, like the TODAY title: Oswald sets Latin
+     and digits, Do Hyeon (which Oswald lacks) the Hangul. */
+  font-family: "Oswald", "Do Hyeon", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+  /* Do Hyeon has one weight; a faked bold smears it, so bold Hangul stays as drawn. */
+  font-synthesis-weight: none;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
