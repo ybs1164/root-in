@@ -1907,6 +1907,13 @@ button:disabled {
   background: var(--surface-2);
 }
 
+.day-share__note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
 .day-share__preview img {
   display: block;
   width: 100%;
@@ -4350,6 +4357,146 @@ button:disabled {
 
 .profile__leave {
   color: var(--danger);
+}
+
+/* 개인 정보 → 제외 주소: places never shared. Left-aligned rows in the stub. */
+.privacy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+  text-align: left;
+  animation: profile-account-in 0.18s ease both;
+}
+
+.privacy__title {
+  margin: 0;
+  font-size: 15px;
+}
+
+.privacy__desc,
+.privacy__status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.privacy__notice {
+  margin: 0;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+/* Long lists scroll inside the popup rather than past the screen. */
+.privacy__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 36dvh;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.privacy__row {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  column-gap: 6px;
+  min-height: 44px;
+  border-bottom: 1px solid var(--border);
+}
+
+.privacy__label {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.privacy__required {
+  color: var(--accent);
+  font-size: 11px;
+  font-style: normal;
+}
+
+/* 집 still empty: the required tag turns red. */
+.privacy__row.is-missing .privacy__required {
+  color: var(--danger);
+}
+
+.privacy__address {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  text-align: left;
+}
+
+.privacy__address span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.privacy__address svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.privacy__address.is-empty span {
+  color: var(--muted);
+}
+
+/* 16px so iOS doesn't zoom in. */
+.privacy__input {
+  min-width: 0;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 16px;
+  outline: none;
+}
+
+.privacy__input,
+.privacy__address {
+  grid-column: 2;
+}
+
+.privacy__remove {
+  grid-column: 3;
+  color: var(--muted);
+}
+
+.privacy__status {
+  grid-column: 2 / -1;
+  margin-top: -6px;
+  padding-bottom: 6px;
+}
+
+.privacy__add {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .category-sheet[open] {

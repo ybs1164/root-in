@@ -1,4 +1,5 @@
 import { defaultTitle } from '../domain/course';
+import { withoutExcluded, type ExcludedPlace } from '../domain/privacy';
 import { defaultDiaryTitle, diaryHeading, formatDiaryDate } from '../domain/diary';
 import type { CourseDraft, SharedCourse } from '../types/course';
 import type { DiaryDraft, SharedDiary } from '../types/diary';
@@ -29,10 +30,24 @@ export interface SharePlan {
 
 const clean = (name: string) => name.trim() || undefined;
 
-export function planShare(target: ShareTarget, sharedBy: string, now: string = new Date().toISOString()): SharePlan {
+const excludedNotice = (removed: number) => (removed > 0 ? `제외 주소에 있는 ${removed}곳은 빠졌어요.` : '');
+
+const joinNotices = (...notices: (string | undefined)[]) => notices.filter(Boolean).join(' ') || undefined;
+
+/**
+ * `excluded` (프로필 → 개인 정보 → 제외 주소): places on those addresses are
+ * taken out before anything is put in the link.
+ */
+export function planShare(
+  target: ShareTarget,
+  sharedBy: string,
+  now: string = new Date().toISOString(),
+  excluded: ExcludedPlace[] = [],
+): SharePlan {
   const by = clean(sharedBy);
   if (target.kind === 'course') {
-    const { draft } = target;
+    const cut = withoutExcluded(target.draft.stops, (s) => s.place, excluded);
+    const draft = { ...target.draft, stops: cut.kept };
     const course: SharedCourse = {
       title: draft.title.trim() || defaultTitle(draft.stops),
       theme: draft.theme,
@@ -46,13 +61,17 @@ export function planShare(target: ShareTarget, sharedBy: string, now: string = n
       heading: '코스 공유',
       title: course.title,
       summary: course.stops.map((s, i) => `${i + 1}. ${s.place.name}`).join('  '),
-      notice: encodeSharedCourse(course).memosTrimmed ? '링크가 너무 길어 장소별 메모는 빠졌어요.' : undefined,
+      notice: joinNotices(
+        excludedNotice(cut.removed),
+        encodeSharedCourse(course).memosTrimmed ? '링크가 너무 길어 장소별 메모는 빠졌어요.' : undefined,
+      ),
       createUrl: () => courseShareService.createShareUrl(course),
       text: (url) => formatCourseShareText(course, url),
     };
   }
   if (target.kind === 'day') {
-    const { draft } = target;
+    const cut = withoutExcluded(target.draft.stops, (s) => s.place, excluded);
+    const draft = { ...target.draft, stops: cut.kept };
     const plan = draft.kind === 'plan';
     const diary: SharedDiary = {
       date: draft.date,
@@ -68,15 +87,20 @@ export function planShare(target: ShareTarget, sharedBy: string, now: string = n
       heading: `${formatDiaryDate(draft.date)} ${plan ? '계획' : '루트'} 공유`,
       title: diaryHeading(diary),
       summary: diary.stops.map((s, i) => `${i + 1}. ${s.time && !plan ? `${s.time} ` : ''}${s.place.name}`).join('  '),
-      notice: encodeSharedDiary(diary).trimmed !== 'none' ? '링크가 길어 메모는 빠졌어요.' : undefined,
+      notice: joinNotices(
+        excludedNotice(cut.removed),
+        encodeSharedDiary(diary).trimmed !== 'none' ? '링크가 길어 메모는 빠졌어요.' : undefined,
+      ),
       createUrl: () => diaryShareService.createShareUrl(diary),
       text: (url) => formatDiaryShareText(diary, url),
     };
   }
-  const set: SharedPinSet = { ...target.set, sharedBy: by, sharedAt: now };
+  const cut = withoutExcluded(target.set.pins, (p) => p.place, excluded);
+  const set: SharedPinSet = { ...target.set, pins: cut.kept, sharedBy: by, sharedAt: now };
   const encoded = encodeSharedPinSet(set);
   const dropped = (target.dropped ?? 0) + encoded.dropped;
   const notices = [
+    excludedNotice(cut.removed),
     dropped > 0 ? `핀은 30개까지만 공유돼요 (${dropped}개 제외).` : '',
     encoded.trimmed === 'memos' ? '링크가 길어 메모는 빠졌어요.' : '',
     encoded.trimmed === 'memos-and-addresses' ? '링크가 길어 메모와 주소는 빠졌어요.' : '',

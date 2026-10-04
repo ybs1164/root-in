@@ -43,6 +43,8 @@ import { createMapStack } from './map/createCourseMap';
 import { pointPlace, type PlaceSearchService } from './services/placeSearch/placeSearchService';
 import { withRecentCategory } from './services/settingsRepository';
 import { loadProfile, saveProfile, type Profile } from './services/profileRepository';
+import { usePrivacy } from './hooks/usePrivacy';
+import { hasHome } from './domain/privacy';
 import type { CourseStop, PlaceRef } from './types/course';
 import type { Pin } from './types/pin';
 
@@ -108,6 +110,8 @@ export default function App() {
     setProfile(next);
     return saveProfile(next);
   };
+  // 공유 before 집 is set opens the profile on 개인 정보 with this line.
+  const [privacyNotice, setPrivacyNotice] = useState<string | null>(null);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [sharedSaved, setSharedSaved] = useState(false);
   const [sharedPinsSaved, setSharedPinsSaved] = useState(false);
@@ -259,6 +263,8 @@ export default function App() {
   }, [sharedPins, sharedCourse, onPinHome, pinning, pins, shownPins, categories, activePinId, shownRoute, isEditing, pinsGone]);
 
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
+  // 제외 주소 are located with the same place search (search failing just leaves the address text to match).
+  const privacy = usePrivacy(async (address) => (await searchService?.search(address))?.[0]?.center ?? null);
 
   // The sheet (and the bottom bar under it) cover part of the map; fit and
   // focus around them. The cap keeps a full sheet from squeezing the map.
@@ -1055,6 +1061,11 @@ export default function App() {
           {calendarZoom ? (
             <CalendarZoom
               command={calendarCommand}
+              excluded={privacy.excluded}
+              onNeedHome={() => {
+                setPrivacyNotice('공유하려면 집 주소를 먼저 입력하세요.');
+                setProfileOpen(true);
+              }}
               onDecorating={setDecorating}
               onDayTheme={setDayTheme}
               onDayPattern={setDayPattern}
@@ -1089,7 +1100,24 @@ export default function App() {
         />
       </div>
 
-      {profileOpen && <ProfileSheet profile={profile} onChange={changeProfile} onClose={() => setProfileOpen(false)} />}
+      {profileOpen && (
+        <ProfileSheet
+          profile={profile}
+          onChange={changeProfile}
+          privacy={{
+            places: privacy.excluded,
+            resolving: privacy.resolving,
+            onAddress: privacy.setAddress,
+            onAdd: privacy.add,
+            onRemove: privacy.remove,
+          }}
+          privacyNotice={hasHome(privacy.excluded) ? null : privacyNotice}
+          onClose={() => {
+            setProfileOpen(false);
+            setPrivacyNotice(null);
+          }}
+        />
+      )}
       {categoriesOpen && (
         <CategorySheet
           onClose={() => setCategoriesOpen(false)}

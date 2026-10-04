@@ -6,7 +6,7 @@ import { decodeSharedPinSet } from './pinShareService';
 import { planShare } from './shareTargets';
 
 const token = (url: string, key: string) => new URLSearchParams(new URL(url).hash.slice(1)).get(key) ?? '';
-const { onionSeongsu, seoulForest } = samplePlaces;
+const { onionSeongsu, seoulForest, nogariAlley } = samplePlaces;
 
 describe('unified share sheet', () => {
   // The link services build URLs from the page location.
@@ -48,4 +48,19 @@ describe('unified share sheet', () => {
     expect(decoded?.kind).toBe('plan');
     expect(decoded?.stops).toEqual([{ place: { id: onionSeongsu.id, name: onionSeongsu.name, center: onionSeongsu.center } }]);
   });
+
+  it('leaves out places on an excluded address (제외 주소) and says so', async () => {
+    const home = { id: 'home', kind: 'home' as const, address: 'x', center: onionSeongsu.center };
+    // A shared course needs two stops, so three go in and one comes out.
+    const stops = [{ place: onionSeongsu }, { place: seoulForest }, { place: nogariAlley }];
+    const course = planShare({ kind: 'course', draft: { title: '', theme: 'date', travelMode: 'walk', stops } }, '', undefined, [home]);
+    expect(course.summary).toBe(`1. ${seoulForest.name}  2. ${nogariAlley.name}`);
+    expect(course.notice).toContain('제외 주소에 있는 1곳은 빠졌어요.');
+    expect(decodeSharedCourse(token(await course.createUrl(), 'share'))?.stops.map((s) => s.place.id)).toEqual([seoulForest.id, nogariAlley.id]);
+
+    const set = { title: 't', categories: [{ name: '카페', icon: 'cafe' as const, color: 1 as const }], pins: stops.map((s) => ({ place: s.place, category: 0 })), sharedAt: '' };
+    const pins = planShare({ kind: 'pins', set }, '', undefined, [home]);
+    expect(decodeSharedPinSet(token(await pins.createUrl(), 'pins'))?.pins.map((p) => p.place.id)).toEqual([seoulForest.id, nogariAlley.id]);
+  });
 });
+

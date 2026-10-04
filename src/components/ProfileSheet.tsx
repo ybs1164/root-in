@@ -6,10 +6,15 @@ import { getDisplayName, setDisplayName } from '../lib/currentUser';
 import type { Profile } from '../services/profileRepository';
 import { clearAppData } from '../services/settingsRepository';
 import { useBackdropTap } from '../hooks/useBackdropTap';
+import PrivacySection from './PrivacySection';
 
 interface ProfileSheetProps {
   profile: Profile;
   onChange: (profile: Profile) => boolean;
+  /** 개인 정보 → 제외 주소 (PrivacySection's props). */
+  privacy: Omit<Parameters<typeof PrivacySection>[0], 'notice'>;
+  /** Opened by 공유 before 집 was set: 개인 정보 starts open, with this line in it. */
+  privacyNotice?: string | null;
   onClose: () => void;
 }
 
@@ -26,13 +31,14 @@ export function ProfileAvatar({ photo, size }: { photo: string | null; size: num
  * 프로필 팝업: centred, no close button — a tap on the empty space around it closes it.
  * Photo, nickname and @id each change in place behind their own small pen.
  */
-export default function ProfileSheet({ profile, onChange, onClose }: ProfileSheetProps) {
+export default function ProfileSheet({ profile, onChange, privacy, privacyNotice, onClose }: ProfileSheetProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const backdrop = useBackdropTap(dialogRef);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [nickname, setNickname] = useState(getDisplayName);
   const [note, setNote] = useState<string | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(!!privacyNotice);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -112,8 +118,19 @@ export default function ProfileSheet({ profile, onChange, onClose }: ProfileShee
         {note && <p className="profile__note">{note}</p>}
       </div>
 
-      {/* Past the tear line: 계정 정보. */}
+      {/* Past the tear line: 개인 정보, then 계정 정보. */}
       <div className="ticket-dialog__stub profile__stub">
+        {/* 개인 정보: 제외 주소 (places never shared), folded away like 계정 정보. */}
+        <button
+          className={`profile__account ${privacyOpen ? 'is-open' : ''}`}
+          aria-expanded={privacyOpen}
+          aria-controls="profile-privacy"
+          onClick={() => setPrivacyOpen((open) => !open)}
+        >
+          개인 정보
+          <ChevronDown size={18} aria-hidden />
+        </button>
+        {privacyOpen && <PrivacySection {...privacy} notice={privacyNotice} />}
         {/* 계정 정보: folded away by default so 로그아웃 · 탈퇴 aren't one stray tap from the profile. */}
         <button
           className={`profile__account ${accountOpen ? 'is-open' : ''}`}

@@ -5,6 +5,8 @@ import { useBackdropTap } from '../hooks/useBackdropTap';
 
 interface DayShareSheetProps extends DayImageInput {
   date: string;
+  /** Pings left out because they sit on a 제외 주소. */
+  removed?: number;
   onClose: () => void;
 }
 
@@ -14,7 +16,7 @@ interface DayShareSheetProps extends DayImageInput {
  * in aria-label): 링크 복사 (which link is still to be decided), 이미지 저장,
  * and SNS 공유 (not wired yet). The two unfinished ones are disabled.
  */
-export default function DayShareSheet({ date, onClose, ...image }: DayShareSheetProps) {
+export default function DayShareSheet({ date, removed = 0, onClose, ...image }: DayShareSheetProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const backdrop = useBackdropTap(dialogRef);
   const [src, setSrc] = useState<string | null>(null);
@@ -48,6 +50,7 @@ export default function DayShareSheet({ date, onClose, ...image }: DayShareSheet
         <div className="day-share__preview">
           {src ? <img src={src} alt={`${image.title}에 다녀온 곳을 잇는 그림`} /> : <span className="hint">이미지 만드는 중…</span>}
         </div>
+        {removed > 0 && <p className="day-share__note">제외 주소에 있는 {removed}곳은 빠졌어요.</p>}
       </div>
 
       {/* Past the tear line: what to do with it. */}
