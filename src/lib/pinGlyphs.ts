@@ -10,10 +10,9 @@ import type { PinIcon } from '../types/pin';
  */
 export const PIN_GLYPHS: Record<PinIcon, string> = {
   cafe:
-    '<path d="M3 10h14v2.5A6.5 6.5 0 0 1 10.5 19h-1A6.5 6.5 0 0 1 3 12.5z"/>' +
-    '<path d="M17 11h1.5a3.5 3.5 0 0 1 0 7h-2.2l.9-2.2h1.3a1.3 1.3 0 0 0 0-2.6H17z"/>' +
-    '<rect x="2" y="20" width="18" height="2" rx="1"/>' +
-    '<path d="M7.5 2.5c-1.3 1.2-1.3 2.3 0 3.5s1.3 2.3 0 3M12 2.5c-1.3 1.2-1.3 2.3 0 3.5s1.3 2.3 0 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+    '<path d="M3 6h14v2.5A6.5 6.5 0 0 1 10.5 15h-1A6.5 6.5 0 0 1 3 8.5z"/>' +
+    '<path d="M17 7h1.5a3.5 3.5 0 0 1 0 7h-2.2l.9-2.2h1.3a1.3 1.3 0 0 0 0-2.6H17z"/>' +
+    '<rect x="2" y="16" width="18" height="2" rx="1"/>',
   food:
     '<path d="M4.5 2h1.2v5h1.1V2H8v5h1.1V2h1.2v6.2a3 3 0 0 1-2 2.83V21a1.2 1.2 0 0 1-2.4 0V11.03a3 3 0 0 1-2-2.83z"/>' +
     '<path d="M17.4 2C19.6 3.6 20.6 6.4 20.6 9.6V14h-2.2v7a1.2 1.2 0 0 1-2.4 0V3.2A1.2 1.2 0 0 1 17.4 2z"/>',
