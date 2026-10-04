@@ -1,6 +1,7 @@
 import { Download, Link, Share2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { downloadDataUrl, renderDayImage, type DayImageInput } from '../lib/dayImage';
+import { useBackdropTap } from '../hooks/useBackdropTap';
 
 interface DayShareSheetProps extends DayImageInput {
   date: string;
@@ -15,6 +16,7 @@ interface DayShareSheetProps extends DayImageInput {
  */
 export default function DayShareSheet({ date, onClose, ...image }: DayShareSheetProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const backdrop = useBackdropTap(dialogRef);
   const [src, setSrc] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,8 +38,10 @@ export default function DayShareSheet({ date, onClose, ...image }: DayShareSheet
       className="day-share ticket-dialog"
       aria-label={`${image.title} 공유`}
       onClose={onClose}
+      onPointerDown={backdrop.onPointerDown}
+      onPointerUp={backdrop.onPointerUp}
       onClick={(event) => {
-        if (event.target === dialogRef.current) onClose();
+        if (backdrop.isBackdropTap(event.target)) onClose();
       }}
     >
       <div className="ticket-dialog__main">

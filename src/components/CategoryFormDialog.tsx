@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { PIN_LIMITS } from '../domain/pin';
 import { PIN_COLORS, PIN_ICONS, type PinColor, type PinIcon } from '../types/pin';
 import PinGlyph from './PinGlyph';
+import { useBackdropTap } from '../hooks/useBackdropTap';
 
 export interface CategoryFormValue {
   name: string;
@@ -28,6 +29,7 @@ const ICON_NAMES = Object.keys(PIN_ICONS) as PinIcon[];
  */
 export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }: CategoryFormDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const backdrop = useBackdropTap(dialogRef);
   const [value, setValue] = useState(initial);
   const [picking, setPicking] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -58,9 +60,11 @@ export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }:
         onClose();
       }}
       onCancel={(event) => event.stopPropagation()}
+      onPointerDown={backdrop.onPointerDown}
+      onPointerUp={backdrop.onPointerUp}
       onClick={(event) => {
         event.stopPropagation();
-        if (event.target === dialogRef.current) dialogRef.current?.close();
+        if (backdrop.isBackdropTap(event.target)) dialogRef.current?.close();
       }}
     >
       <form

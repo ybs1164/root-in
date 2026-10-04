@@ -3124,8 +3124,10 @@ button:disabled {
   visibility: hidden;
 }
 
-/* The half coming away: same paper and notch, it tugs at the tear line,
-   then falls with a turn and fades. */
+/* The half coming away: same paper and notch. It tears from the middle
+   perforation outwards — pinned at its outer top corner, its inner edge
+   comes away first (취소: right → left, 확인: left → right) — then it is
+   flung off sideways, out of the screen. */
 .confirm-dialog__torn {
   position: absolute;
   display: grid;
@@ -3135,48 +3137,60 @@ button:disabled {
   font-size: 16px;
   pointer-events: none;
   --notch: 10px;
-  animation: ticket-tear 0.46s cubic-bezier(0.4, 0, 0.7, 0.4) both;
 }
 
 .confirm-dialog__torn.is-cancel {
   border-radius: 0 0 0 22px;
-  transform-origin: 100% 0;
-  --tear-turn: -14deg;
-  --tear-x: -18px;
+  transform-origin: 0 0;
   -webkit-mask: radial-gradient(circle var(--notch) at 0 0, transparent 98%, black);
   mask: radial-gradient(circle var(--notch) at 0 0, transparent 98%, black);
+  animation: ticket-tear-left 0.52s both;
 }
 
 .confirm-dialog__torn.is-confirm {
   border-radius: 0 0 22px 0;
   background: var(--danger);
   color: var(--on-accent);
-  transform-origin: 0 0;
-  --tear-turn: 14deg;
-  --tear-x: 18px;
+  transform-origin: 100% 0;
   -webkit-mask: radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black);
   mask: radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black);
+  animation: ticket-tear-right 0.52s both;
 }
 
-@keyframes ticket-tear {
+@keyframes ticket-tear-left {
   0% {
     transform: none;
-    opacity: 1;
+    animation-timing-function: cubic-bezier(0.3, 0.6, 0.4, 1);
   }
-  22% {
-    transform: translateY(3px) rotate(calc(var(--tear-turn) * 0.2));
-    opacity: 1;
+  /* The inner (right) edge has come loose; the outer corner still holds. */
+  42% {
+    transform: rotate(10deg);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
   }
   100% {
-    transform: translate(var(--tear-x), 90px) rotate(var(--tear-turn));
-    opacity: 0;
+    transform: translate(-120vw, 40px) rotate(-16deg);
   }
 }
 
-/* What's left fades as the piece falls, then the dialog closes. */
+@keyframes ticket-tear-right {
+  0% {
+    transform: none;
+    animation-timing-function: cubic-bezier(0.3, 0.6, 0.4, 1);
+  }
+  /* The inner (left) edge has come loose; the outer corner still holds. */
+  42% {
+    transform: rotate(-10deg);
+    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
+  }
+  100% {
+    transform: translate(120vw, 40px) rotate(16deg);
+  }
+}
+
+/* What's left fades once the piece is gone, then the dialog closes. */
 .confirm-dialog.is-tearing .ticket-dialog__main,
 .confirm-dialog.is-tearing .ticket-dialog__split > button:not(.is-gone) {
-  animation: ticket-rest-out 0.2s ease 0.26s both;
+  animation: ticket-rest-out 0.18s ease 0.34s both;
 }
 
 @keyframes ticket-rest-out {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
+import { useBackdropTap } from '../hooks/useBackdropTap';
 
 interface ConfirmDialogProps {
   /** Read out for the dialog (it shows no title). */
@@ -13,8 +14,8 @@ interface ConfirmDialogProps {
 
 type Side = 'cancel' | 'confirm';
 
-/** How long the torn-off half takes to fall away (`ticket-tear` in styles.css). */
-const TEAR_MS = 460;
+/** How long the torn-off half takes to come away and fly off (`ticket-tear-left/right` in styles.css). */
+const TEAR_MS = 520;
 
 /**
  * A destructive confirm as a boarding pass (`ticket-dialog`): the message,
@@ -22,10 +23,12 @@ const TEAR_MS = 460;
  * in red. A native modal <dialog>, so it sits in the top layer above any
  * sheet (and its slide-in transform), with Esc and focus handling built in.
  * Mount it to ask; it opens itself. 취소 or 확인 tears its half of the
- * stub off along the perforation, and the dialog closes once it has fallen.
+ * stub off along the perforation (from the middle outwards) and flings it
+ * off sideways; the dialog closes once it has gone.
  */
 export default function ConfirmDialog({ label, message, detail, onConfirm, onClose }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const backdrop = useBackdropTap(dialogRef);
   // The half being torn off, where it sat in the dialog.
   const [torn, setTorn] = useState<{ side: Side; box: CSSProperties } | null>(null);
   const timer = useRef<number | undefined>(undefined);
@@ -68,9 +71,11 @@ export default function ConfirmDialog({ label, message, detail, onConfirm, onClo
         onClose();
       }}
       onCancel={(event) => event.stopPropagation()}
+      onPointerDown={backdrop.onPointerDown}
+      onPointerUp={backdrop.onPointerUp}
       onClick={(event) => {
         event.stopPropagation();
-        if (event.target === dialogRef.current) dialogRef.current?.close();
+        if (backdrop.isBackdropTap(event.target)) dialogRef.current?.close();
       }}
     >
       <p className="ticket-dialog__main">

@@ -5,6 +5,7 @@ import { avatarFromFile } from '../lib/avatarImage';
 import { getDisplayName, setDisplayName } from '../lib/currentUser';
 import type { Profile } from '../services/profileRepository';
 import { clearAppData } from '../services/settingsRepository';
+import { useBackdropTap } from '../hooks/useBackdropTap';
 
 interface ProfileSheetProps {
   profile: Profile;
@@ -27,6 +28,7 @@ export function ProfileAvatar({ photo, size }: { photo: string | null; size: num
  */
 export default function ProfileSheet({ profile, onChange, onClose }: ProfileSheetProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const backdrop = useBackdropTap(dialogRef);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [nickname, setNickname] = useState(getDisplayName);
   const [note, setNote] = useState<string | null>(null);
@@ -50,8 +52,10 @@ export default function ProfileSheet({ profile, onChange, onClose }: ProfileShee
       className="profile-sheet ticket-dialog"
       aria-label="프로필"
       onClose={onClose}
+      onPointerDown={backdrop.onPointerDown}
+      onPointerUp={backdrop.onPointerUp}
       onClick={(event) => {
-        if (event.target === dialogRef.current) onClose();
+        if (backdrop.isBackdropTap(event.target)) onClose();
       }}
     >
       <div className="profile ticket-dialog__main">

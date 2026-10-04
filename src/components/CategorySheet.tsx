@@ -4,6 +4,7 @@ import { PIN_LIMITS, type CategoryProblem, type NewCategoryInput } from '../doma
 import { PIN_COLORS, type Pin, type PinCategory } from '../types/pin';
 import CategoryFormDialog, { type CategoryFormValue } from './CategoryFormDialog';
 import CategoryManager from './CategoryManager';
+import { useBackdropTap } from '../hooks/useBackdropTap';
 
 interface CategorySheetProps {
   categories: PinCategory[];
@@ -48,6 +49,7 @@ export default function CategorySheet({
   onClose,
 }: CategorySheetProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const backdrop = useBackdropTap(dialogRef);
   const [editing, setEditing] = useState(false);
   // The popup on top: a new category, or the one being edited.
   const [form, setForm] = useState<{ mode: 'create' } | { mode: 'edit'; category: PinCategory } | null>(null);
@@ -63,8 +65,10 @@ export default function CategorySheet({
       className="share-sheet category-sheet"
       aria-labelledby="category-sheet-title"
       onClose={onClose}
+      onPointerDown={backdrop.onPointerDown}
+      onPointerUp={backdrop.onPointerUp}
       onClick={(event) => {
-        if (event.target === dialogRef.current) onClose();
+        if (backdrop.isBackdropTap(event.target)) onClose();
       }}
     >
       <div className="share-sheet__body">
