@@ -14,8 +14,8 @@ interface ConfirmDialogProps {
 
 type Side = 'cancel' | 'confirm';
 
-/** How long the torn-off half takes to come away and fly off (`ticket-tear-left/right` in styles.css). */
-const TEAR_MS = 520;
+/** How long the half takes to tear away (`ticket-tear-left/right` in styles.css). */
+const TEAR_MS = 300;
 
 /**
  * A destructive confirm as a boarding pass (`ticket-dialog`): the message,
@@ -23,8 +23,8 @@ const TEAR_MS = 520;
  * in red. A native modal <dialog>, so it sits in the top layer above any
  * sheet (and its slide-in transform), with Esc and focus handling built in.
  * Mount it to ask; it opens itself. 취소 or 확인 tears its half of the
- * stub off along the perforation (from the middle outwards) and flings it
- * off sideways; the dialog closes once it has gone.
+ * stub off along the perforation (from the middle outwards); the dialog
+ * closes as soon as the tear is done.
  */
 export default function ConfirmDialog({ label, message, detail, onConfirm, onClose }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
@@ -61,7 +61,7 @@ export default function ConfirmDialog({ label, message, detail, onConfirm, onClo
   return (
     <dialog
       ref={dialogRef}
-      className={`confirm-dialog ticket-dialog ${torn ? 'is-tearing' : ''}`}
+      className="confirm-dialog ticket-dialog"
       aria-label={label}
       // React passes a dialog's close / cancel up through its component
       // tree: stop them here, or closing this would close a dialog it sits in

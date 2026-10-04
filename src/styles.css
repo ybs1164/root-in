@@ -3126,8 +3126,8 @@ button:disabled {
 
 /* The half coming away: same paper and notch. It tears from the middle
    perforation outwards — pinned at its outer top corner, its inner edge
-   comes away first (취소: right → left, 확인: left → right) — then it is
-   flung off sideways, out of the screen. */
+   comes away (취소: right → left, 확인: left → right) — and that's all:
+   the dialog closes the moment the tear is done. */
 .confirm-dialog__torn {
   position: absolute;
   display: grid;
@@ -3144,7 +3144,7 @@ button:disabled {
   transform-origin: 0 0;
   -webkit-mask: radial-gradient(circle var(--notch) at 0 0, transparent 98%, black);
   mask: radial-gradient(circle var(--notch) at 0 0, transparent 98%, black);
-  animation: ticket-tear-left 0.52s both;
+  animation: ticket-tear-left 0.3s cubic-bezier(0.3, 0.6, 0.4, 1) both;
 }
 
 .confirm-dialog__torn.is-confirm {
@@ -3154,50 +3154,21 @@ button:disabled {
   transform-origin: 100% 0;
   -webkit-mask: radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black);
   mask: radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black);
-  animation: ticket-tear-right 0.52s both;
+  animation: ticket-tear-right 0.3s cubic-bezier(0.3, 0.6, 0.4, 1) both;
 }
 
 @keyframes ticket-tear-left {
-  0% {
-    transform: none;
-    animation-timing-function: cubic-bezier(0.3, 0.6, 0.4, 1);
-  }
-  /* The inner (right) edge has come loose; the outer corner still holds. */
-  42% {
+  to {
     transform: rotate(10deg);
-    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
-  }
-  100% {
-    transform: translate(-120vw, 40px) rotate(-16deg);
   }
 }
 
 @keyframes ticket-tear-right {
-  0% {
-    transform: none;
-    animation-timing-function: cubic-bezier(0.3, 0.6, 0.4, 1);
-  }
-  /* The inner (left) edge has come loose; the outer corner still holds. */
-  42% {
-    transform: rotate(-10deg);
-    animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5);
-  }
-  100% {
-    transform: translate(120vw, 40px) rotate(16deg);
-  }
-}
-
-/* What's left fades once the piece is gone, then the dialog closes. */
-.confirm-dialog.is-tearing .ticket-dialog__main,
-.confirm-dialog.is-tearing .ticket-dialog__split > button:not(.is-gone) {
-  animation: ticket-rest-out 0.18s ease 0.34s both;
-}
-
-@keyframes ticket-rest-out {
   to {
-    opacity: 0;
+    transform: rotate(-10deg);
   }
 }
+
 
 .btn--danger {
   background: var(--danger);
