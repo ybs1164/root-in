@@ -40,6 +40,7 @@ export interface KakaoMapsNamespace {
     strokeColor: string;
     strokeOpacity: number;
     strokeStyle: string;
+    zIndex?: number;
     map?: KakaoMapInstance;
   }) => { setMap(map: KakaoMapInstance | null): void };
   Polygon: new (options: {

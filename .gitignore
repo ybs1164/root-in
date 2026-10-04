@@ -7,3 +7,6 @@ coverage
 .vscode/*
 !.vscode/tasks.json
 ui-shots
+data/korea/
+__pycache__/
+public/korea/

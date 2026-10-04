@@ -1,6 +1,6 @@
 import maplibregl, { type Map as MapLibreMap, type Marker } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import type { DistrictMap } from '../domain/districtMap';
+import type { AreaShapes } from '../domain/adminAreas';
 import type { PlaceRef } from '../types/course';
 import {
   attachLongPress,
@@ -10,9 +10,9 @@ import {
   type CourseMapOptions,
   type MapPadding,
   type PinMarker,
+  ADMIN_ATTRIBUTION,
 } from './courseMap';
 
-// Keyless fallback basemap for development / when the Kakao SDK is unavailable.
 /** A route's glide into view (App waits for its end before playing the route in). */
 const GLIDE_MS = 1000;
 const FOCUS_MS = 500;
@@ -22,18 +22,17 @@ function easeInOutSine(t: number): number {
   return -(Math.cos(Math.PI * t) - 1) / 2;
 }
 
-const STYLE_URL = 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
 const LINE_SOURCE = 'course-line';
 const GUIDE_SOURCE = 'guide-line';
-const DISTRICT_COVER = 'district-cover';
-const DISTRICT_BLOCKS = 'district-blocks';
-// Covers the whole basemap (labels included) in the road color.
+const AREA_COVER = 'area-cover';
+const AREA_OTHERS = 'area-others';
+const AREA_PARTS = 'area-parts';
+// The cover hides the background outside Korea too, like the Kakao cover.
 const WORLD: GeoJSON.Polygon = {
   type: 'Polygon',
   coordinates: [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]]],
 };
 const FOCUS_ZOOM = 15;
-
 export class MapLibreCourseMap implements CourseMap {
   readonly provider = 'maplibre' as const;
   private readonly map: MapLibreMap;
@@ -42,7 +41,7 @@ export class MapLibreCourseMap implements CourseMap {
   private previewMarker: Marker | null = null;
   private pinMarkers: Marker[] = [];
   private guide: [number, number][] = [];
-  private district: DistrictMap | null = null;
+  private areas: AreaShapes | null = null;
   private readonly detachLongPress: () => void;
   /** Set once the style has loaded: the map renders from then on. */
   private ready = false;
@@ -50,7 +49,12 @@ export class MapLibreCourseMap implements CourseMap {
   constructor(container: HTMLElement, private readonly options: CourseMapOptions) {
     this.map = new maplibregl.Map({
       container,
-      style: STYLE_URL,
+      style: {
+        version: 8, sources: {},
+        layers: [{ id: 'background', type: 'background', paint: {
+          'background-color': getComputedStyle(document.documentElement).getPropertyValue('--map-bg').trim() || '#f7f9fc',
+        } }],
+      },
       center: options.center,
       zoom: 12,
       attributionControl: { compact: true },
@@ -61,9 +65,14 @@ export class MapLibreCourseMap implements CourseMap {
     });
     const emitViewport = () => {
       const b = this.map.getBounds();
+      // Turned, the bounds are the box around the rotated screen; report the
+      // pixel width of that box so meters per pixel (and with it the area
+      // gaps, sized in pixels) stay true.
+      const turn = (this.map.getBearing() * Math.PI) / 180;
+      const widthPx = container.clientWidth * Math.abs(Math.cos(turn)) + container.clientHeight * Math.abs(Math.sin(turn));
       options.onViewportChange?.({
         bounds: { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() },
-        widthPx: container.clientWidth,
+        widthPx,
       });
     };
     this.map.on('load', emitViewport);
@@ -74,21 +83,17 @@ export class MapLibreCourseMap implements CourseMap {
     this.map.on('load', () => {
       const token = (name: string, fallback: string) =>
         getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-      // Added first so the guide/course lines draw above the blocks.
-      this.map.addSource(DISTRICT_COVER, { type: 'geojson', data: this.coverData() });
-      this.map.addLayer({
-        id: DISTRICT_COVER,
-        type: 'fill',
-        source: DISTRICT_COVER,
-        paint: { 'fill-color': token('--map-road', '#f7f9fc') },
-      });
-      this.map.addSource(DISTRICT_BLOCKS, { type: 'geojson', data: this.blocksData() });
-      this.map.addLayer({
-        id: DISTRICT_BLOCKS,
-        type: 'fill',
-        source: DISTRICT_BLOCKS,
-        paint: { 'fill-color': token('--map-block', '#dfe6f1'), 'fill-antialias': true },
-      });
+      // Added first so the guide/course lines draw above the areas.
+      const fill = (id: string, color: string) => {
+        this.map.addSource(id, {
+          type: 'geojson', data: this.areaData(id),
+          ...(id === AREA_PARTS ? { attribution: ADMIN_ATTRIBUTION } : {}),
+        });
+        this.map.addLayer({ id, type: 'fill', source: id, paint: { 'fill-color': color } });
+      };
+      fill(AREA_COVER, token('--map-bg', '#f7f9fc'));
+      fill(AREA_OTHERS, token('--map-area-other', '#e1e7f1'));
+      fill(AREA_PARTS, token('--map-area', '#c9d7ee'));
       this.map.addSource(GUIDE_SOURCE, { type: 'geojson', data: this.guideData() });
       this.map.addLayer({
         id: GUIDE_SOURCE,
@@ -129,28 +134,22 @@ export class MapLibreCourseMap implements CourseMap {
     };
   }
 
-  private coverData(): GeoJSON.FeatureCollection {
-    return {
-      type: 'FeatureCollection',
-      features: this.district ? [{ type: 'Feature', properties: {}, geometry: WORLD }] : [],
-    };
+  private areaData(id: string): GeoJSON.FeatureCollection {
+    const areas = this.areas;
+    const polygons = (list: AreaShapes['parts']): GeoJSON.Feature[] =>
+      list.map((rings) => ({ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: rings } }));
+    let features: GeoJSON.Feature[] = [];
+    if (areas && id === AREA_COVER) features = [{ type: 'Feature', properties: {}, geometry: WORLD }];
+    if (areas && id === AREA_OTHERS) features = polygons(areas.others);
+    if (areas && id === AREA_PARTS) features = polygons(areas.parts);
+    return { type: 'FeatureCollection', features };
   }
 
-  private blocksData(): GeoJSON.FeatureCollection {
-    return {
-      type: 'FeatureCollection',
-      features: (this.district?.blocks ?? []).map((block) => ({
-        type: 'Feature',
-        properties: {},
-        geometry: { type: 'Polygon', coordinates: [block.outer, ...block.holes] },
-      })),
-    };
-  }
-
-  setDistrictMap(district: DistrictMap | null): void {
-    this.district = district;
-    (this.map.getSource(DISTRICT_COVER) as maplibregl.GeoJSONSource | undefined)?.setData(this.coverData());
-    (this.map.getSource(DISTRICT_BLOCKS) as maplibregl.GeoJSONSource | undefined)?.setData(this.blocksData());
+  setAreaMap(shapes: AreaShapes | null): void {
+    this.areas = shapes;
+    for (const id of [AREA_COVER, AREA_OTHERS, AREA_PARTS]) {
+      (this.map.getSource(id) as maplibregl.GeoJSONSource | undefined)?.setData(this.areaData(id));
+    }
   }
 
   setPins(pins: PinMarker[]): void {
@@ -255,6 +254,11 @@ export class MapLibreCourseMap implements CourseMap {
 
   centerOn(center: [number, number]): void {
     this.map.easeTo({ center, duration: this.duration(400) });
+  }
+
+  setBearing(bearing: number): void {
+    if (Math.abs(this.map.getBearing() - bearing) < 0.5) return;
+    this.map.easeTo({ bearing, duration: 700 });
   }
 
   getCenter(): [number, number] {

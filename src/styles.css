@@ -79,9 +79,17 @@
   --pin-8: #7f8c8d;
   /* 미분류: the plain pin in whatever the accent is (a day theme included). */
   --pin-0: var(--accent);
-  /* Illustrated block map: roads are the background, blocks sit on top. */
-  --map-road: #f7f9fc;
-  --map-block: #dfe6f1;
+  /* Area map: the focus's sub-areas over whole neighbors, gaps show the
+     background — in the travel theme's pale blue-greys. */
+  --map-bg: #f7f9fc;
+  --map-area: #c9d7ee;
+  --map-area-other: #e1e7f1;
+  /* Base map: land on water, parks on land, roads on top (tier 1 darker). */
+  --map-land: #f5f5f3;
+  --map-water: #94d9ef;
+  --map-park: #c4efd5;
+  --map-road: #d8e0e7;
+  --map-road-major: #8ca6c3;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -112,10 +120,15 @@
     --backdrop: rgba(0, 0, 0, 0.6);
     --perforation: rgba(232, 237, 247, 0.22);
     --ticket-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
-  --dialog-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
     --dialog-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
-    --map-road: #141c2e;
-    --map-block: #24304a;
+    --map-bg: #141c2e;
+    --map-area: #2b3c5c;
+    --map-area-other: #212b42;
+    --map-land: #1f2225;
+    --map-water: #1d4656;
+    --map-park: #22402f;
+    --map-road: #3a434d;
+    --map-road-major: #5f7894;
   }
 }
 
