@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PIN_GLYPHS, pinGlyphSvg } from '../lib/pinGlyphs';
 import { PIN_ICONS, type PinIcon } from '../types/pin';
-import { filterCategoryIcons, PIN_ICON_GROUPS, QUICK_PIN_ICONS } from './categoryIcons';
+import { PIN_ICON_GROUPS, QUICK_PIN_ICONS } from './categoryIcons';
 
 describe('category icon library', () => {
   it('offers the requested five shortcuts and groups every supported icon once', () => {
@@ -19,10 +19,8 @@ describe('category icon library', () => {
     }
   });
 
-  it('filters by Korean names or ids, within the selected group', () => {
-    expect(filterCategoryIcons(' 비행기 ')).toEqual([{ ...PIN_ICON_GROUPS[3], icons: ['plane'] }]);
-    expect(filterCategoryIcons('PLANE', 'transport')[0].icons).toEqual(['plane']);
-    expect(filterCategoryIcons('비행기', 'animals')).toEqual([]);
-    expect(filterCategoryIcons('없는 아이콘')).toEqual([]);
+  it('places the flower in nature, rather than places', () => {
+    expect(PIN_ICON_GROUPS.find((g) => g.id === 'nature')?.icons).toContain('flower');
+    expect(PIN_ICON_GROUPS.find((g) => g.id === 'places')?.icons).not.toContain('flower');
   });
 });

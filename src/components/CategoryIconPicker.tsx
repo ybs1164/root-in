@@ -1,6 +1,6 @@
-import { Search, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { filterCategoryIcons, PIN_ICON_GROUPS } from '../domain/categoryIcons';
+import { PIN_ICON_GROUPS } from '../domain/categoryIcons';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import { PIN_ICONS, type PinIcon } from '../types/pin';
 import PinGlyph from './PinGlyph';
@@ -15,10 +15,9 @@ interface CategoryIconPickerProps {
 export default function CategoryIconPicker({ selected, onSelect, onClose }: CategoryIconPickerProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const backdrop = useBackdropTap(dialogRef);
-  const [query, setQuery] = useState('');
   const [group, setGroup] = useState('all');
   const bodyRef = useRef<HTMLDivElement | null>(null);
-  const groups = filterCategoryIcons(query, group);
+  const groups = PIN_ICON_GROUPS.filter((g) => group === 'all' || g.id === group);
 
   useEffect(() => {
     if (!dialogRef.current?.open) dialogRef.current?.showModal();
@@ -44,16 +43,6 @@ export default function CategoryIconPicker({ selected, onSelect, onClose }: Cate
           <X size={22} aria-hidden />
         </button>
       </header>
-      <label className="category-icon-picker__search">
-        <Search size={18} aria-hidden />
-        <input
-          type="search"
-          aria-label="아이콘 검색"
-          placeholder="아이콘 검색"
-          value={query}
-          onChange={(event) => { setQuery(event.target.value); if (bodyRef.current) bodyRef.current.scrollTop = 0; }}
-        />
-      </label>
       <nav className="category-icon-picker__tabs" aria-label="아이콘 분류">
         {[{ id: 'all', label: '전체' }, ...PIN_ICON_GROUPS].map((g) => (
           <button
@@ -67,7 +56,6 @@ export default function CategoryIconPicker({ selected, onSelect, onClose }: Cate
         ))}
       </nav>
       <div ref={bodyRef} className="category-icon-picker__body">
-        {groups.length === 0 && <p className="category-icon-picker__empty">검색한 아이콘이 없어요.</p>}
         {groups.map((g) => (
           <section key={g.id} aria-label={g.label}>
             <h3>{g.label}</h3>
@@ -79,11 +67,9 @@ export default function CategoryIconPicker({ selected, onSelect, onClose }: Cate
                   className="category-icon-picker__option"
                   aria-label={PIN_ICONS[icon]}
                   aria-pressed={selected === icon}
-                  title={PIN_ICONS[icon]}
                   onClick={() => { onSelect(icon); dialogRef.current?.close(); }}
                 >
                   <span className="category-icon-picker__glyph"><PinGlyph icon={icon} /></span>
-                  <span className="category-icon-picker__name">{PIN_ICONS[icon]}</span>
                 </button>
               ))}
             </div>

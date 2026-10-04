@@ -5137,29 +5137,6 @@ button:disabled {
   font-size: 22px;
 }
 
-.category-icon-picker__search {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 10px;
-  margin: 8px 16px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface-2);
-  color: var(--muted);
-}
-
-.category-icon-picker__search input {
-  width: 100%;
-  min-width: 0;
-  height: 44px;
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  font-size: 16px;
-}
-
 .category-icon-picker__tabs {
   display: flex;
   flex: none;
@@ -5207,7 +5184,7 @@ button:disabled {
 
 .category-icon-picker__option {
   display: flex;
-  min-height: 66px;
+  min-height: 52px;
   padding: 0;
   flex-direction: column;
   align-items: center;
@@ -5237,17 +5214,6 @@ button:disabled {
   color: var(--on-accent);
   outline: 2px solid var(--accent);
   outline-offset: 3px;
-}
-
-.category-icon-picker__name {
-  font-size: 11px;
-  line-height: 1.3;
-}
-
-.category-icon-picker__empty {
-  padding: 24px 0;
-  color: var(--muted);
-  text-align: center;
 }
 
 .cat-form__title {
