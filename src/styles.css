@@ -4446,6 +4446,55 @@ button:disabled {
   padding: 6px 18px;
 }
 
+/* An open toggle with another below it: its own piece of stub, torn off
+   from the next by a tear line (notches at both its top and bottom). */
+.ticket-dialog__stub--mid {
+  border-radius: 0;
+  -webkit-mask:
+    radial-gradient(circle var(--notch) at 0 0, transparent 98%, black) left top / 51% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black) right top / 51% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 0 100%, transparent 98%, black) left bottom / 51% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 100%, transparent 98%, black) right bottom / 51% 51% no-repeat;
+  mask:
+    radial-gradient(circle var(--notch) at 0 0, transparent 98%, black) left top / 51% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black) right top / 51% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 0 100%, transparent 98%, black) left bottom / 51% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 100% 100%, transparent 98%, black) right bottom / 51% 51% no-repeat;
+}
+
+/* 음소거 · 알림 at the popup's top right: bare icons, greyed with a slash when off. */
+.profile {
+  position: relative;
+}
+
+.profile__switches {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 2px;
+}
+
+.profile__switch {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text);
+}
+
+.profile__switch.is-off {
+  color: var(--muted);
+}
+
+.profile__switch:active {
+  background: var(--surface-2);
+}
+
 .profile__stub > * {
   width: 100%;
 }

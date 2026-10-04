@@ -1,4 +1,4 @@
-import { ChevronDown, PenLine, UserRound } from 'lucide-react';
+import { Bell, BellOff, ChevronDown, PenLine, UserRound, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { handleProblem, PROFILE_LIMITS, sanitizeHandleInput } from '../domain/profile';
 import { avatarFromFile } from '../lib/avatarImage';
@@ -11,9 +11,9 @@ import PrivacySection from './PrivacySection';
 interface ProfileSheetProps {
   profile: Profile;
   onChange: (profile: Profile) => boolean;
-  /** 개인 정보 → 제외 주소 (PrivacySection's props). */
+  /** 제외 주소 설정 (PrivacySection's props). */
   privacy: Omit<Parameters<typeof PrivacySection>[0], 'notice'>;
-  /** Opened by 공유 before 집 was set: 개인 정보 starts open, with this line in it. */
+  /** Opened by 공유 before 집 was set: 제외 주소 설정 starts open, with this line in it. */
   privacyNotice?: string | null;
   onClose: () => void;
 }
@@ -52,6 +52,54 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
     setNote(onChange({ ...profile, photo }) ? null : '사진이 너무 커서 저장하지 못했어요.');
   };
 
+  // 제외 주소 설정: places never shared, folded away like 로그아웃·탈퇴.
+  const privacyPart = (
+    <>
+      <button
+        className={`profile__account ${privacyOpen ? 'is-open' : ''}`}
+        aria-expanded={privacyOpen}
+        aria-controls="profile-privacy"
+        onClick={() => setPrivacyOpen((open) => !open)}
+      >
+        제외 주소 설정
+        <ChevronDown size={18} aria-hidden />
+      </button>
+      {privacyOpen && <PrivacySection {...privacy} notice={privacyNotice} />}
+    </>
+  );
+  // 로그아웃·탈퇴: folded away by default so they aren't one stray tap from the profile.
+  const accountPart = (
+    <>
+      <button
+        className={`profile__account ${accountOpen ? 'is-open' : ''}`}
+        aria-expanded={accountOpen}
+        aria-controls="profile-account"
+        onClick={() => setAccountOpen((open) => !open)}
+      >
+        로그아웃·탈퇴
+        <ChevronDown size={18} aria-hidden />
+      </button>
+      {accountOpen && (
+        <div id="profile-account" className="profile__actions">
+          {/* No accounts yet (everything lives on this device), so there's nothing to log out of. */}
+          <button className="btn btn--secondary" disabled>
+            로그아웃
+          </button>
+          <button
+            className="btn btn--ghost profile__leave"
+            onClick={() => {
+              if (!window.confirm('탈퇴하면 이 기기의 프로필·핀·코스·기록이 모두 지워져요. 되돌릴 수 없어요.')) return;
+              clearAppData();
+              window.location.reload();
+            }}
+          >
+            탈퇴
+          </button>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <dialog
       ref={dialogRef}
@@ -65,6 +113,25 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
       }}
     >
       <div className="profile ticket-dialog__main">
+        {/* Top right: 음소거 and 알림, each an icon that flips on / off. */}
+        <div className="profile__switches">
+          <button
+            className={`profile__switch ${profile.sound ? '' : 'is-off'}`}
+            aria-label="음소거"
+            aria-pressed={!profile.sound}
+            onClick={() => onChange({ ...profile, sound: !profile.sound })}
+          >
+            {profile.sound ? <Volume2 size={20} aria-hidden /> : <VolumeX size={20} aria-hidden />}
+          </button>
+          <button
+            className={`profile__switch ${profile.alerts ? '' : 'is-off'}`}
+            aria-label="알림"
+            aria-pressed={profile.alerts}
+            onClick={() => onChange({ ...profile, alerts: !profile.alerts })}
+          >
+            {profile.alerts ? <Bell size={20} aria-hidden /> : <BellOff size={20} aria-hidden />}
+          </button>
+        </div>
         <div className="profile__photo">
           <button className="profile__avatar" aria-label="프로필 사진 바꾸기" onClick={() => fileRef.current?.click()}>
             <ProfileAvatar photo={profile.photo} size={96} />
@@ -118,48 +185,19 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
         {note && <p className="profile__note">{note}</p>}
       </div>
 
-      {/* Past the tear line: 개인 정보, then 계정 정보. */}
-      <div className="ticket-dialog__stub profile__stub">
-        {/* 개인 정보: 제외 주소 (places never shared), folded away like 계정 정보. */}
-        <button
-          className={`profile__account ${privacyOpen ? 'is-open' : ''}`}
-          aria-expanded={privacyOpen}
-          aria-controls="profile-privacy"
-          onClick={() => setPrivacyOpen((open) => !open)}
-        >
-          개인 정보
-          <ChevronDown size={18} aria-hidden />
-        </button>
-        {privacyOpen && <PrivacySection {...privacy} notice={privacyNotice} />}
-        {/* 계정 정보: folded away by default so 로그아웃 · 탈퇴 aren't one stray tap from the profile. */}
-        <button
-          className={`profile__account ${accountOpen ? 'is-open' : ''}`}
-          aria-expanded={accountOpen}
-          aria-controls="profile-account"
-          onClick={() => setAccountOpen((open) => !open)}
-        >
-          계정 정보
-          <ChevronDown size={18} aria-hidden />
-        </button>
-        {accountOpen && (
-          <div id="profile-account" className="profile__actions">
-            {/* No accounts yet (everything lives on this device), so there's nothing to log out of. */}
-            <button className="btn btn--secondary" disabled>
-              로그아웃
-            </button>
-            <button
-              className="btn btn--ghost profile__leave"
-              onClick={() => {
-                if (!window.confirm('탈퇴하면 이 기기의 프로필·핀·코스·기록이 모두 지워져요. 되돌릴 수 없어요.')) return;
-                clearAppData();
-                window.location.reload();
-              }}
-            >
-              탈퇴
-            </button>
-          </div>
-        )}
-      </div>
+      {/* Past the tear line: 제외 주소 설정, then 로그아웃·탈퇴. A toggle that's open
+          with another below it is torn off from it by a tear line of its own. */}
+      {privacyOpen ? (
+        <>
+          <div className="ticket-dialog__stub ticket-dialog__stub--mid profile__stub">{privacyPart}</div>
+          <div className="ticket-dialog__stub profile__stub">{accountPart}</div>
+        </>
+      ) : (
+        <div className="ticket-dialog__stub profile__stub">
+          {privacyPart}
+          {accountPart}
+        </div>
+      )}
     </dialog>
   );
 }

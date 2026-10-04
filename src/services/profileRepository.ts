@@ -9,6 +9,9 @@ export interface Profile {
   handle: string;
   /** Square JPEG data URL, already resized (lib/avatarImage). */
   photo: string | null;
+  /** The popup's top-right switches: 소리 (false = 음소거) and 알림. Both on until switched off. */
+  sound: boolean;
+  alerts: boolean;
 }
 
 function isPhoto(value: unknown): value is string {
@@ -16,7 +19,7 @@ function isPhoto(value: unknown): value is string {
 }
 
 export function loadProfile(): Profile {
-  const fallback: Profile = { handle: defaultHandle(getCurrentUserId()), photo: null };
+  const fallback: Profile = { handle: defaultHandle(getCurrentUserId()), photo: null, sound: true, alerts: true };
   try {
     const raw = window.localStorage.getItem(PROFILE_KEY);
     if (!raw) return fallback;
@@ -24,6 +27,9 @@ export function loadProfile(): Profile {
     return {
       handle: isValidHandle(parsed?.handle) ? parsed.handle : fallback.handle,
       photo: isPhoto(parsed?.photo) ? parsed.photo : null,
+      // Saved before the switches existed (or anything but false): on.
+      sound: parsed?.sound !== false,
+      alerts: parsed?.alerts !== false,
     };
   } catch {
     return fallback;
