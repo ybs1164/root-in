@@ -2815,7 +2815,7 @@ button:disabled {
 .route-title {
   position: fixed;
   /* Below the ⚙ rail's two buttons, so it can use the full width. */
-  top: calc(var(--safe-top) + 196px);
+  top: calc(var(--safe-top) + 172px);
   /* Edge to edge (20px in), the name and pen centred in it: a box set from
      the middle (left 50%) only gets half the screen to size itself in, and a
      long name wrapped far too early. */
