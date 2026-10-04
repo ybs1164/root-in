@@ -30,6 +30,9 @@
   --dialog-shadow: 0 18px 36px rgba(27, 36, 64, 0.28);
   /* The orange arrow between the ticket's two places. */
   --ticket-arrow: #f08a2b;
+  /* The share polaroid's card and its handwriting: white paper in every theme. */
+  --polaroid: #ffffff;
+  --polaroid-ink: #2b2b2b;
   --mask-show: #fff; /* SVG masks: white = fully shown (not a colour anyone sees) */
   --mask-hide: #000; /* …and black = hidden (the eraser's rub) */
   /* 꾸미기: fixed ink colours (not themed), the tool sheet and the palette rainbow. */
@@ -1890,90 +1893,226 @@ button:disabled {
 
 /* ---------- Day share (📅 → 공유) ---------- */
 
-.day-share .ticket-dialog__main {
-  padding: 16px 16px 14px;
-}
+/* ---------- 꾸미기 (share card) ---------- */
 
-.day-share .ticket-dialog__stub {
-  min-height: 72px;
-}
-
-.day-share__preview {
+/* The day screen's 공유, where its 꾸미기 buttons used to be: one round accent button. */
+.day-share-btn {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  z-index: 3;
   display: grid;
   place-items: center;
-  aspect-ratio: 4 / 5;
-  max-height: 52dvh;
-  margin: 0 auto;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: var(--surface-2);
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--shadow-sm);
 }
 
-.day-share__note {
-  margin: 8px 0 0;
+/* 공유 as an upright luggage tag (ShareTagButton). */
+.share-tag {
+  position: relative;
+  display: block;
+  width: 60px;
+  height: 92px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--on-accent);
+  /* drop-shadow follows the tag's outline (and leaves the eyelet clear). */
+  filter: drop-shadow(var(--ticket-shadow));
+  transition: scale 0.12s ease;
+}
+
+.share-tag:active {
+  scale: 0.95;
+}
+
+.share-tag__shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: var(--accent);
+}
+
+.share-tag__icon {
+  position: absolute;
+  left: 50%;
+  top: 46px;
+  translate: -50% -50%;
+}
+
+/* A route on show: the tag stands at the right, just above the lowered
+   folder sheet (190px, or 232px with a description: .route-folders.is-lowered). */
+.share-tag--route {
+  position: absolute;
+  right: 14px;
+  bottom: 204px;
+  z-index: 12;
+  animation: tag-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.share-tag--route.has-note {
+  bottom: 246px;
+}
+
+@keyframes tag-in {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+  }
+}
+
+/* The 꾸미기 screen: the card in the middle, the tools down its right side,
+   the share buttons where the tab bar sits elsewhere. */
+.studio {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: var(--bg);
+  animation: studio-in 0.24s ease-out both;
+}
+
+@keyframes studio-in {
+  from {
+    opacity: 0;
+    translate: 24px 0;
+  }
+}
+
+.studio__back {
+  position: absolute;
+  top: calc(var(--safe-top) + 12px);
+  left: 12px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.studio .decor-rail {
+  top: calc(var(--safe-top) + 12px);
+  right: 12px;
+}
+
+/* Sized so the whole card fits between the buttons, whichever way the screen runs short. */
+.studio__stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--safe-top) + 68px) 64px calc(var(--safe-bottom) + 104px);
+  container-type: size;
+}
+
+.studio__card {
+  position: relative;
+  width: min(100cqw, 100cqh * 1080 / 1682); /* POLAROID in domain/polaroid.ts */
+  border-radius: 3px;
+  background: var(--polaroid);
+  box-shadow: var(--dialog-shadow);
+}
+
+.studio__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.studio__loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* A tool's sheet is up (a quarter of the screen, the theme's 30%): the card
+   shrinks to stay above it. */
+.studio__stage {
+  transition: padding-bottom 0.24s ease;
+}
+
+.studio.is-tooling .studio__stage {
+  padding-bottom: calc(30dvh + 12px);
+}
+
+/* The drawing box on the card (inline from DRAWING_BOX): the pieces scale with it (cqw). */
+.studio__box {
+  position: absolute;
+  container-type: inline-size;
+}
+
+.studio__note {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--safe-bottom) + 80px);
+  margin: 0;
   color: var(--muted);
   font-size: 13px;
   text-align: center;
 }
 
-.day-share__preview img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.day-share__actions {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 52px;
-  justify-content: center;
-  gap: 20px;
-}
-
-.day-share__action {
+.studio__actions {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + 18px);
+  z-index: 3;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 4px 0;
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -0.03em;
-  text-align: center;
-  /* Two-word labels (링크 복사, 이미지 저장) break at the space, never mid-word. */
-  word-break: keep-all;
+  gap: 22px;
+  translate: -50% 0;
+  transition: transform 0.24s ease;
 }
 
-.day-share__action:disabled {
-  color: var(--muted);
-  opacity: 0.55;
+/* A tool's sheet is up: the buttons go down out of its way. */
+.studio__actions.is-away {
+  transform: translateY(calc(100% + 40px));
 }
 
-.day-share__action-dot {
+.studio__action {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
-  background: var(--surface-2);
+  background: var(--surface);
   color: var(--text);
-  font-size: 16px;
-  font-weight: 800;
+  box-shadow: var(--shadow-sm);
 }
 
-.day-share__action-dot--primary {
+.studio__action--primary {
   background: var(--accent);
   color: var(--on-accent);
 }
 
-.day-share__action:not(:disabled):active .day-share__action-dot {
+.studio__action:disabled {
+  color: var(--muted);
+  opacity: 0.55;
+}
+
+.studio__action:not(:disabled):active {
   scale: 0.94;
 }
 

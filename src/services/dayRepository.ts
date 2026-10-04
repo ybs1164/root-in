@@ -25,9 +25,10 @@ import type { EdgeStyle, PingShape } from '../domain/dayPings';
 
 /**
  * What a calendar day has been made into, kept per date so any day opened
- * later looks the way it was left: stickers, pen strokes, text boxes, the day's theme
- * and background pattern,
- * and the shapes and line styles chosen for its pings.
+ * later looks the way it was left: the shapes and line styles chosen for its
+ * pings. (Its stickers, strokes, text, theme and pattern used to live here
+ * too; they belong to the share card now, in decorRepository, which takes
+ * them over once and leaves `decor` here as it was.)
  */
 const DAYS_KEY = 'goodroot:days:v1';
 
@@ -102,7 +103,7 @@ function readText(v: unknown): PlacedText | null {
   };
 }
 
-function readDecor(v: unknown): DayDecor | null {
+export function readDecor(v: unknown): DayDecor | null {
   const d = v as DayDecor;
   if (!d || typeof d !== 'object') return null;
   const strokes = (Array.isArray(d.strokes) ? d.strokes : []).map(readStroke).filter((s): s is Stroke => !!s).slice(-MAX_STROKES);
@@ -154,12 +155,22 @@ export function loadDays(): DayStore {
 // small in storage without looking any different.
 const round = (n: number) => Math.round(n * 1e4) / 1e4;
 
+/** Nothing on it worth a row. */
+export const isBlankDecor = (d: DayDecor): boolean =>
+  !d.strokes.length && !d.stickers.length && !d.texts?.length && !d.theme && !d.pattern;
+
+/** Strokes rounded for storage. */
+export const compactDecor = (d: DayDecor): DayDecor => ({
+  ...d,
+  strokes: d.strokes.map((s) => ({ ...s, points: s.points.map(([x, y]) => [round(x), round(y)] as [number, number]) })),
+});
+
 export function saveDays(store: DayStore): void {
   const decor: Record<string, DayDecor> = {};
   for (const [date, d] of Object.entries(store.decor)) {
     // Days left blank again aren't worth a row.
-    if (!d.strokes.length && !d.stickers.length && !d.texts?.length && !d.theme && !d.pattern) continue;
-    decor[date] = { ...d, strokes: d.strokes.map((s) => ({ ...s, points: s.points.map(([x, y]) => [round(x), round(y)]) })) };
+    if (isBlankDecor(d)) continue;
+    decor[date] = compactDecor(d);
   }
   try {
     window.localStorage.setItem(DAYS_KEY, JSON.stringify({ ...store, decor }));

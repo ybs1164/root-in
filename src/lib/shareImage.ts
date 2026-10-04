@@ -1,35 +1,47 @@
-import { latestPingIndex, layoutPings, type DayPing, type EdgeStyle, type PingShape } from '../domain/dayPings';
+import { latestPingIndex, layoutPings, type DayPing, type EdgeStyle } from '../domain/dayPings';
 import { ERASER_SCALE, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, textWeight, type DayDecor, type PlacedText } from '../domain/decor';
+import { DRAWING_BOX, POLAROID, STRIP } from '../domain/polaroid';
+import type { StopMark } from '../domain/shareSubject';
 import { paintPattern } from './dayPatterns';
 import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
 
-export interface DayImageInput {
+export interface ShareImageInput {
   title: string;
   pings: DayPing[];
-  shapeOf: (ping: DayPing) => PingShape;
-  edgeStyleOf: (from: DayPing, to: DayPing) => EdgeStyle;
-  /** Stickers, pen strokes and text boxes, in the same box coordinates as the pings. */
+  /** How each ping is drawn, by index. */
+  marks: StopMark[];
+  /** `edges[i]` joins `pings[i]` and `pings[i + 1]`. */
+  edges: EdgeStyle[];
+  /** Stickers, pen strokes, text boxes, theme and pattern; in the drawing box's coordinates. */
   decor?: DayDecor;
+  /** Leave the stickers, strokes and text boxes off (the 꾸미기 screen lays its own over the image). */
+  withoutPieces?: boolean;
 }
 
-// 4:5 portrait, the shape most feeds show uncropped.
-const W = 1080;
-const H = 1350;
-const BOX = { x: 110, y: 300, size: 860 };
+const W = POLAROID.w;
+const H = POLAROID.h;
+const PHOTO = POLAROID.photo;
+const BOX = DRAWING_BOX;
 
 /** Colours come from the page's own tokens, so the image matches the app (and its theme). */
 function tokens() {
   const css = getComputedStyle(document.documentElement);
   const get = (name: string) => css.getPropertyValue(name).trim();
   return {
-    bg: get('--surface'),
+    card: get('--polaroid'),
+    cardInk: get('--polaroid-ink'),
+    photo: get('--surface-2'),
     text: get('--text'),
     muted: get('--muted'),
     accent: get('--accent'),
+    onAccent: get('--on-accent'),
     route: get('--route'),
     font: getComputedStyle(document.body).fontFamily,
   };
 }
+
+/** The strip's handwriting, with a fallback if the web font can't load. */
+const HAND_FONT = '"Nanum Pen Script", "Jua", cursive';
 
 const DASHES: Record<EdgeStyle, { width: number; dash: number[]; cap: CanvasLineCap }> = {
   solid: { width: 9, dash: [], cap: 'round' },
@@ -39,44 +51,78 @@ const DASHES: Record<EdgeStyle, { width: number; dash: number[]; cap: CanvasLine
 };
 
 /**
- * Draws a day's pings and lines onto a canvas, the way the day screen shows
- * them (same layout, shapes and line styles), and returns a PNG data URL.
- * Drawn from the data rather than screenshotting the DOM: sharp at any
- * size, and no capture library needed.
+ * Draws a polaroid of a day's pings or a route's stops: the photo (theme
+ * colour and pattern, the lines and stops laid out as the day screen does,
+ * then the 꾸미기 pieces) and the title handwritten on the strip under it.
+ * Returns a PNG data URL. Drawn from the data rather than screenshotting
+ * the DOM: sharp at any size, and no capture library needed.
  */
-export async function renderDayImage({ title, pings, shapeOf, edgeStyleOf, decor }: DayImageInput): Promise<string> {
+export async function renderShareImage({ title, pings, marks, edges, decor, withoutPieces }: ShareImageInput): Promise<string> {
   await document.fonts?.ready;
-  // Text boxes' web fonts load only once something shows them; make sure
-  // they're in before drawing (a font that won't load falls back).
-  await Promise.all(
-    (decor?.texts ?? []).map((t) => document.fonts?.load(textFont(t, 40), t.text).catch(() => undefined)),
-  );
+  // Web fonts load only once something shows them; make sure the strip's
+  // hand and the text boxes' fonts are in before drawing (one that won't
+  // load falls back).
+  await Promise.all([
+    document.fonts?.load(`110px ${HAND_FONT}`, title).catch(() => undefined),
+    ...(withoutPieces ? [] : (decor?.texts ?? [])).map((t) => document.fonts?.load(textFont(t, 40), t.text).catch(() => undefined)),
+  ]);
   const c = tokens();
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d')!;
 
-  ctx.fillStyle = c.bg;
+  ctx.fillStyle = c.card;
   ctx.fillRect(0, 0, W, H);
-  // The day's background pattern, as a still frame even if it flows on screen.
-  if (decor?.pattern) paintPattern(ctx, decor.pattern, { w: W, h: H }, W / 390, c.accent);
 
-  ctx.fillStyle = c.text;
+  // The photo: everything of the day stays inside it.
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
+  ctx.clip();
+  ctx.fillStyle = c.photo;
+  ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
+  // The background pattern, as a still frame even if it flows on screen.
+  if (decor?.pattern) {
+    ctx.save();
+    ctx.translate(PHOTO.x, PHOTO.y);
+    paintPattern(ctx, decor.pattern, { w: PHOTO.w, h: PHOTO.h }, W / 390, c.accent);
+    ctx.restore();
+  }
+  drawStops(ctx, c, pings, marks, edges);
+  if (decor && !withoutPieces) drawDecor(ctx, decor, c.font);
+  ctx.restore();
+
+  // The strip: the title in handwriting, and a faint signature in its corner.
+  ctx.fillStyle = c.cardInk;
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'alphabetic';
-  ctx.font = `800 118px ${c.font}`;
-  ctx.fillText(title, W / 2, 210);
+  ctx.textBaseline = 'middle';
+  ctx.font = `110px ${HAND_FONT}`;
+  ctx.fillText(title, W / 2, STRIP.y + STRIP.h * 0.46, PHOTO.w);
+  // Drawn whole on its own layer first, then faded as one piece, so the
+  // pin's hole stays the card colour instead of a blend.
+  const logo = document.createElement('canvas');
+  logo.width = W;
+  logo.height = H;
+  drawLogo(logo.getContext('2d')!, c, PHOTO.x + PHOTO.w - 80, H - 34, 26);
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  ctx.drawImage(logo, 0, 0);
+  ctx.restore();
 
+  return canvas.toDataURL('image/png');
+}
+
+/** Lines first, then the stops over them, laid out in the drawing box. */
+function drawStops(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, pings: DayPing[], marks: StopMark[], edges: EdgeStyle[]) {
   const points = layoutPings(pings.map((p) => p.center)).map((p) => ({
     x: BOX.x + p.x * BOX.size,
     y: BOX.y + p.y * BOX.size,
   }));
 
-  // Lines first, pins over them.
   ctx.strokeStyle = c.route;
   for (let i = 0; i + 1 < points.length; i++) {
-    const style = DASHES[edgeStyleOf(pings[i], pings[i + 1])];
+    const style = DASHES[edges[i] ?? 'solid'];
     ctx.lineWidth = style.width;
     ctx.lineCap = style.cap;
     ctx.setLineDash(style.dash);
@@ -87,63 +133,67 @@ export async function renderDayImage({ title, pings, shapeOf, edgeStyleOf, decor
   }
   ctx.setLineDash([]);
 
-  const latest = latestPingIndex(pings);
+  // Only a day's pings have times, and the latest of them is drawn bigger.
+  const timed = pings.some((p) => p.time);
+  const latest = timed ? latestPingIndex(pings) : -1;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
   pings.forEach((ping, i) => {
-    const shape = shapeOf(ping);
+    const mark = marks[i] ?? 'pin';
     const k = i === latest ? 1.4 : 1;
-    const box = shapeBox(shape);
-    const h = (shape === 'pin' ? 118 : 84) * k;
-    const scale = h / box.h;
-    const w = box.w * scale;
     const { x, y } = points[i];
-    // Pins stand on their point; the round shapes centre on it.
-    const top = shape === 'pin' ? y - h : y - h / 2;
-
-    ctx.save();
-    ctx.translate(x - w / 2, top);
-    ctx.scale(scale, scale);
-    ctx.translate(-box.x, -box.y);
-    ctx.fillStyle = c.accent;
-    if (shape === 'dot') {
+    let bottom: number;
+    if (mark === 'number') {
+      // A route's plain stop: a flat accent disc with its number, as on the map.
+      const r = 34;
+      ctx.fillStyle = c.accent;
       ctx.beginPath();
-      ctx.arc(12, 12, 8.5, 0, Math.PI * 2);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
+      ctx.fillStyle = c.onAccent;
+      ctx.textBaseline = 'middle';
+      ctx.font = `700 38px ${c.font}`;
+      ctx.fillText(String(i + 1), x, y + 2);
+      ctx.textBaseline = 'alphabetic';
+      bottom = y + r;
     } else {
-      ctx.fill(new Path2D(shape === 'pin' ? PIN_PATH : shape === 'star' ? STAR_PATH : HEART_PATH));
+      const box = shapeBox(mark);
+      const h = (mark === 'pin' ? 118 : 84) * k;
+      const scale = h / box.h;
+      const w = box.w * scale;
+      // Pins stand on their point; the round shapes centre on it.
+      const top = mark === 'pin' ? y - h : y - h / 2;
+      ctx.save();
+      ctx.translate(x - w / 2, top);
+      ctx.scale(scale, scale);
+      ctx.translate(-box.x, -box.y);
+      ctx.fillStyle = c.accent;
+      if (mark === 'dot') {
+        ctx.beginPath();
+        ctx.arc(12, 12, 8.5, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fill(new Path2D(mark === 'pin' ? PIN_PATH : mark === 'star' ? STAR_PATH : HEART_PATH));
+      }
+      if (mark === 'pin') {
+        ctx.fillStyle = c.photo;
+        ctx.beginPath();
+        ctx.arc(12, 10, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+      bottom = mark === 'pin' ? y : y + h / 2;
     }
-    if (shape === 'pin') {
-      ctx.fillStyle = c.bg;
-      ctx.beginPath();
-      ctx.arc(12, 10, 3, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
 
-    const labelTop = shape === 'pin' ? y : y + h / 2;
     ctx.fillStyle = c.text;
     ctx.font = `700 ${Math.round(36 * (k > 1 ? 1.15 : 1))}px ${c.font}`;
-    ctx.fillText(ping.name, x, labelTop + 46);
-    ctx.fillStyle = c.muted;
-    ctx.font = `600 32px ${c.font}`;
-    ctx.fillText(ping.time, x, labelTop + 88);
+    ctx.fillText(ping.name, x, bottom + 46);
+    if (ping.time) {
+      ctx.fillStyle = c.muted;
+      ctx.font = `600 32px ${c.font}`;
+      ctx.fillText(ping.time, x, bottom + 88);
+    }
   });
-
-  if (decor) drawDecor(ctx, decor, c.font);
-
-  // A quiet signature: a bit smaller and see-through so the day stays the
-  // subject. Drawn whole on its own layer first, then faded as one piece, so
-  // the pin's hole stays the background colour instead of a pink blend.
-  const logo = document.createElement('canvas');
-  logo.width = W;
-  logo.height = H;
-  const lctx = logo.getContext('2d')!;
-  drawLogo(lctx, c, W / 2, H - 64, 42);
-  ctx.save();
-  ctx.globalAlpha = 0.5;
-  ctx.drawImage(logo, 0, 0);
-  ctx.restore();
-
-  return canvas.toDataURL('image/png');
 }
 
 /** A text box's canvas font at `sizePx`, like its CSS (DecorLayer). */
@@ -248,7 +298,7 @@ function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, font: string)
 
 /**
  * The root-in wordmark (components/Logo.tsx) drawn centred on (cx, baseline):
- * "root" in text colour, then the pin standing in for the i and "n" in the
+ * "root" in the card's ink, then the pin standing in for the i and "n" in the
  * accent. Proportions follow .logo / .logo__i in styles.css (em = size).
  */
 function drawLogo(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, cx: number, baseline: number, size: number) {
@@ -264,7 +314,7 @@ function drawLogo(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, c
   const pinH = 0.95 * size;
   const x0 = cx - (root + gap + pinW + 0.01 * size + n) / 2;
 
-  ctx.fillStyle = c.text;
+  ctx.fillStyle = c.cardInk;
   ctx.fillText('root', x0, baseline);
 
   // Pin viewBox is 4 1.5 16 21; it fits the 0.72em × 0.95em box by width,
@@ -277,7 +327,7 @@ function drawLogo(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, c
   ctx.translate(-4, -1.5);
   ctx.fillStyle = c.accent;
   ctx.fill(new Path2D(PIN_PATH));
-  ctx.fillStyle = c.bg;
+  ctx.fillStyle = c.card;
   ctx.beginPath();
   ctx.arc(12, 10, 3.2, 0, Math.PI * 2);
   ctx.fill();
@@ -296,4 +346,31 @@ export function downloadDataUrl(url: string, filename: string): void {
   document.body.append(a);
   a.click();
   a.remove();
+}
+
+function dataUrlFile(url: string, filename: string): File {
+  const [head, body] = url.split(',');
+  const type = /data:([^;]+)/.exec(head)?.[1] ?? 'image/png';
+  const bytes = Uint8Array.from(atob(body), (ch) => ch.charCodeAt(0));
+  return new File([bytes], filename, { type });
+}
+
+/** True where the system share sheet can take an image (most phones). */
+export function canShareImage(): boolean {
+  try {
+    const probe = new File([new Uint8Array(1)], 'probe.png', { type: 'image/png' });
+    return typeof navigator.share === 'function' && navigator.canShare?.({ files: [probe] }) === true;
+  } catch {
+    return false;
+  }
+}
+
+/** Hands the image to the system share sheet (every SNS app is in it). False if it couldn't open. */
+export async function shareImage(url: string, filename: string, title: string): Promise<boolean> {
+  try {
+    await navigator.share({ files: [dataUrlFile(url, filename)], title });
+    return true;
+  } catch {
+    return false;
+  }
 }

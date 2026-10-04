@@ -1,5 +1,7 @@
-import type { PatternId, ThemeId } from './domain/decor';
-import DayPattern from './components/DayPattern';
+import type { ThemeId } from './domain/decor';
+import ShareStudio from './components/ShareStudio';
+import ShareTagButton from './components/ShareTagButton';
+import { routeSubject, type ShareSubject } from './domain/shareSubject';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomBar from './components/BottomBar';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
@@ -78,11 +80,11 @@ export default function App() {
 
   const { settings, update: updateSettings } = useSettings();
 
-  // Themes belong to calendar days: the day on screen reports its own, and
+  // Themes belong to share cards: the 꾸미기 screen reports its card's, and
   // it lives on <html data-theme>, where styles.css swaps the tokens.
   const [dayTheme, setDayTheme] = useState<ThemeId>('default');
-  // …and so do background patterns, drawn across the calendar page.
-  const [dayPattern, setDayPattern] = useState<PatternId>('none');
+  // The card on the 꾸미기 screen (a calendar day's or a route's), while it's up.
+  const [studio, setStudio] = useState<ShareSubject | null>(null);
   useEffect(() => {
     const root = document.documentElement;
     if (dayTheme === 'default') delete root.dataset.theme;
@@ -124,8 +126,6 @@ export default function App() {
   // The calendar page: its zoom level (reported by CalendarZoom), and the
   // calendar button's commands sent down to it.
   const [calendarMode, setCalendarMode] = useState<'day' | 'month'>('day');
-  // A 꾸미기 tool is out on the calendar: the tab buttons step aside for its tray.
-  const [decorating, setDecorating] = useState(false);
   const [calendarCommand, setCalendarCommand] = useState<CalendarCommand | null>(null);
   const sendCalendar = (type: CalendarCommand['type']) => {
     setCalendarCommand((prev) => ({ type, seq: (prev?.seq ?? 0) + 1 }));
@@ -827,10 +827,15 @@ export default function App() {
   const calendarZoom = tab === 'calendar';
   const onPage = showsPage(tab, Boolean(sharedCourse || sharedPins || searchOpen || preview));
   // Swiping 달력 left slides the page off and uncovers the map (핀).
-  const swipe = usePageSwipe(onPage && !decorating ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
+  const swipe = usePageSwipe(onPage && !studio ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
 
-  // The tab buttons step aside for a 꾸미기 tool's tray, and for the 경로 폴더.
-  const barAway = (decorating && calendarZoom && onPage) || routeMode;
+  // The tab buttons step aside for the 경로 폴더 (and under the 꾸미기 screen).
+  const barAway = routeMode || !!studio;
+  // 공유 before 집 is set (it's required) opens the profile on 개인 정보 instead.
+  const needHome = () => {
+    setPrivacyNotice('공유하려면 집 주소를 먼저 입력하세요.');
+    setProfileOpen(true);
+  };
 
   return (
     <div className={`app ${searchOpen ? 'app--searching' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''}`}>
@@ -932,6 +937,19 @@ export default function App() {
                 }
               : undefined
           }
+        />
+      )}
+
+      {/* 공유 for the route on show: makes its card and opens the 꾸미기 screen on it. */}
+      {shownRoute && !buildPins && !editRoute && routeTrayShown && onPinHome && (
+        <ShareTagButton
+          key={shownRoute.id}
+          className={`share-tag--route ${shownRoute.note ? 'has-note' : ''}`}
+          label={`${shownRoute.title} 공유`}
+          onClick={() => {
+            if (!hasHome(privacy.excluded)) return needHome();
+            setStudio(routeSubject(shownRoute, privacy.excluded));
+          }}
         />
       )}
 
@@ -1045,7 +1063,6 @@ export default function App() {
 
       {onPage ? (
         <section className="page" aria-label={PAGE_TITLES[tab]} style={swipe.style} {...swipe.handlers}>
-          {calendarZoom && <DayPattern pattern={dayPattern} />}
           <header className="page__head">
             {/* The calendar's own TODAY / DAY n heading takes the stage. */}
             <h1 className={calendarZoom ? 'sr-only' : ''}>{PAGE_TITLES[tab]}</h1>
@@ -1057,13 +1074,8 @@ export default function App() {
             <CalendarZoom
               command={calendarCommand}
               excluded={privacy.excluded}
-              onNeedHome={() => {
-                setPrivacyNotice('공유하려면 집 주소를 먼저 입력하세요.');
-                setProfileOpen(true);
-              }}
-              onDecorating={setDecorating}
-              onDayTheme={setDayTheme}
-              onDayPattern={setDayPattern}
+              onNeedHome={needHome}
+              onShare={setStudio}
               onMode={setCalendarMode}
             />
           ) : (
@@ -1094,6 +1106,8 @@ export default function App() {
           calendarIcon={tab === 'calendar' && calendarZoom && calendarMode === 'day' ? 'month' : 'today'}
         />
       </div>
+
+      {studio && <ShareStudio key={studio.key} subject={studio} onTheme={setDayTheme} onClose={() => setStudio(null)} />}
 
       {profileOpen && (
         <ProfileSheet

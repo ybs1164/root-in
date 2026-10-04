@@ -66,7 +66,8 @@ export function DecorRail({
 }: {
   tool: DecorTool | null;
   onTool: (tool: DecorTool | null) => void;
-  onShare: () => void;
+  /** A 공유 button under the tools, set apart (left out when the screen shares another way). */
+  onShare?: () => void;
 }) {
   return (
     <div className="decor-rail" role="toolbar" aria-label="꾸미기" aria-orientation="vertical">
@@ -81,9 +82,11 @@ export function DecorRail({
           <Icon size={20} aria-hidden />
         </button>
       ))}
-      <button className="decor-rail__btn decor-rail__share" aria-label="공유" onClick={onShare}>
-        <Share size={20} aria-hidden />
-      </button>
+      {onShare && (
+        <button className="decor-rail__btn decor-rail__share" aria-label="공유" onClick={onShare}>
+          <Share size={20} aria-hidden />
+        </button>
+      )}
     </div>
   );
 }
