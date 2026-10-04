@@ -3698,7 +3698,8 @@ input.timeline__time:focus {
    stub: GROUP, the category glyph, the bin. */
 .app .place-card.place-card--pin.pin-card {
   display: flex;
-  width: min(312px, calc(100vw - 24px));
+  /* Long and low, like a real boarding pass. */
+  width: min(344px, calc(100vw - 24px));
   padding: 0;
 }
 
@@ -3709,7 +3710,7 @@ input.timeline__time:focus {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 14px 14px 14px 18px;
+  padding: 16px 18px 16px 24px;
 }
 
 .pin-card__route {
@@ -3746,12 +3747,13 @@ input.timeline__time:focus {
 
 .pin-card__memo {
   min-height: 1.4em;
-  margin: 0;
+  /* A little air between the place and its note. */
+  margin: 8px 0 0;
   /* Clear of the pen in the bottom-right corner. */
   padding-right: 34px;
   overflow: hidden;
   color: var(--muted);
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3790,11 +3792,16 @@ input.timeline__time:focus {
 }
 
 .pin-card__memo-input {
-  width: calc(100% - 34px);
-  min-height: 1.4em;
+  /* 16px keeps iOS from zooming in; scaled to the memo's 14px (and its 1.4
+     line) so editing looks exactly like the text it replaces. */
+  width: calc((100% - 34px) / 0.875);
+  height: 19.6px;
+  margin-top: 8px;
   color: var(--muted);
-  font-size: 16px; /* no iOS zoom-in; the memo text matches it */
-  line-height: 1.4;
+  font-size: 16px;
+  line-height: 19.6px;
+  scale: 0.875;
+  transform-origin: 0 50%;
 }
 
 .pin-card__memo-input::placeholder {
@@ -3804,8 +3811,8 @@ input.timeline__time:focus {
 
 .pin-card__pen {
   position: absolute;
-  right: 2px;
-  bottom: 2px;
+  right: 6px;
+  bottom: 4px;
   color: var(--muted);
 }
 
@@ -3821,8 +3828,8 @@ input.timeline__time:focus {
   align-items: center;
   justify-content: space-between;
   gap: 2px;
-  width: 78px;
-  padding: 14px 0 2px;
+  width: 84px;
+  padding: 16px 0 4px;
   border-left: 1.5px dashed var(--perforation);
 }
 
@@ -3840,6 +3847,8 @@ input.timeline__time:focus {
   place-items: center;
   width: 44px;
   height: 44px;
+  /* A full touch target that only takes 36px of the card's height. */
+  margin: -4px 0;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -3848,8 +3857,8 @@ input.timeline__time:focus {
 }
 
 .pin-card__category .pin-glyph {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
 }
 
 /* Editing: it is a button now, so it says so. */
@@ -3858,6 +3867,7 @@ input.timeline__time:focus {
 }
 
 .pin-card__bin {
+  margin-bottom: -4px;
   color: var(--muted);
 }
 
