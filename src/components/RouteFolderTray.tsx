@@ -680,7 +680,9 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
           // An empty folder of the user's own just stays blank.
           (current === 'all' || current === 'none') && (
             <p className="route-folders__empty">
-              {courses.length === 0 ? '저장한 경로가 없어요. 오른쪽 위 + 로 핀을 이어 만들어 보세요.' : '여기에 있는 경로가 없어요.'}
+              {courses.length === 0 ? (
+                <>저장된 루트가 없어요.<br />드래그해 루트를 만들어 보세요.</>
+              ) : '여기에 있는 경로가 없어요.'}
             </p>
           )
         ) : (
