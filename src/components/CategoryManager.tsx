@@ -165,7 +165,7 @@ export default function CategoryManager({
   };
 
   const badge = (color: string, icon: Parameters<typeof PinGlyph>[0]['icon']) => (
-    <span className="pin-badge" style={{ '--pin': `var(--pin-${color})` } as CSSProperties} aria-hidden>
+    <span className={`pin-badge ${color === '0' ? 'pin-badge--none' : ''}`} style={{ '--pin': `var(--pin-${color})` } as CSSProperties} aria-hidden>
       <PinGlyph icon={icon} />
     </span>
   );
