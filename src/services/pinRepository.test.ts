@@ -13,10 +13,10 @@ const pin = (id: string, userId: string): Pin => ({
 });
 
 describe('pin storage', () => {
-  it('pins and categories persist in goodroot:pins:v1 / goodroot:pin-categories:v1 with default categories on first run', async () => {
+  it('pins and categories persist in goodroot:pins:v1 / goodroot:pin-categories:v2 with default categories on first run', async () => {
     const categories = new LocalPinCategoryRepository();
     expect(await categories.list()).toEqual(DEFAULT_CATEGORIES);
-    expect(JSON.parse(localStorage.getItem('goodroot:pin-categories:v1') ?? '[]')).toHaveLength(DEFAULT_CATEGORIES.length);
+    expect(JSON.parse(localStorage.getItem('goodroot:pin-categories:v2') ?? '[]')).toHaveLength(DEFAULT_CATEGORIES.length);
 
     await categories.saveAll(DEFAULT_CATEGORIES.slice(0, 2));
     expect(await categories.list()).toHaveLength(2);
@@ -33,8 +33,27 @@ describe('pin storage', () => {
 
   it('drops malformed rows instead of failing the list', async () => {
     localStorage.setItem('goodroot:pins:v1', JSON.stringify([pin('ok', 'u1'), { id: 'bad', userId: 'u1' }, null]));
-    localStorage.setItem('goodroot:pin-categories:v1', JSON.stringify([DEFAULT_CATEGORIES[0], { id: 'x', name: 'x', icon: 'rocket', color: 1 }]));
+    localStorage.setItem('goodroot:pin-categories:v2', JSON.stringify([DEFAULT_CATEGORIES[0], { id: 'x', name: 'x', icon: 'rocket', color: 1 }]));
     expect((await new LocalPinRepository().listByUser('u1')).map((p) => p.id)).toEqual(['ok']);
     expect((await new LocalPinCategoryRepository().list()).map((c) => c.id)).toEqual(['cafe']);
+  });
+
+  it('v1 categories move to v2 flat: each sub-category becomes a category of its own, right after its old parent', async () => {
+    localStorage.setItem(
+      'goodroot:pin-categories:v1',
+      JSON.stringify([
+        { id: 'food', name: '맛집', icon: 'food', color: 2, order: 1 },
+        { id: 'cafe', name: '카페', icon: 'cafe', color: 1, order: 0 },
+        { id: 'dessert', name: '디저트', icon: 'pin', color: 5, order: 0, parentId: 'cafe' },
+      ]),
+    );
+    const list = await new LocalPinCategoryRepository().list();
+    expect(list).toEqual([
+      { id: 'cafe', name: '카페', icon: 'cafe', color: 1, order: 0 },
+      // It was drawn with its parent's icon, so it keeps that look.
+      { id: 'dessert', name: '디저트', icon: 'cafe', color: 5, order: 1 },
+      { id: 'food', name: '맛집', icon: 'food', color: 2, order: 2 },
+    ]);
+    expect(JSON.parse(localStorage.getItem('goodroot:pin-categories:v2') ?? '[]')).toEqual(list);
   });
 });

@@ -22,7 +22,7 @@ import { visibleCenter } from './domain/adminAreas';
 import { calendarAgain, homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { COURSE_LIMITS } from './domain/course';
 import type { MapViewport } from './domain/districtMap';
-import { categoryFamily, categoryStyle, filterPinsByCategories, isUncategorized, UNCATEGORIZED } from './domain/pin';
+import { categoryStyle, filterPinsByCategories, isUncategorized, UNCATEGORIZED } from './domain/pin';
 import { pinRailNext, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
 import { PRESS } from './domain/dayPings';
 import { buildRouteLook, EMPTY_BUILD_LOOK, nextRouteName, ROUTE_NOTE_MAX, toggleBuildStop, withBuildEdge, withBuildShape, type BuildLook } from './domain/routeBuild';
@@ -230,12 +230,11 @@ export default function App() {
     if (sharedPins) {
       return sharedPins.pins.map((pin, i) => {
         const category = sharedPins.categories[pin.category];
-        const parent = category?.parent !== undefined ? sharedPins.categories[category.parent] : undefined;
         return {
           id: `shared:${i}`,
           center: pin.place.center,
           name: pin.place.name,
-          icon: parent?.icon ?? category?.icon ?? 'pin',
+          icon: category?.icon ?? 'pin',
           color: category?.color ?? 8,
         };
       });
@@ -775,17 +774,6 @@ export default function App() {
     });
     return counts;
   }, [pins, categories]);
-  // For the rail: sub-categories' pins included, which is what picking one shows.
-  const railCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const c of categories) {
-      let n = 0;
-      categoryFamily(categories, c.id).forEach((id) => (n += pinCounts.get(id) ?? 0));
-      counts.set(c.id, n);
-    }
-    counts.set(UNCATEGORIZED.id, pinCounts.get(UNCATEGORIZED.id) ?? 0);
-    return counts;
-  }, [categories, pinCounts]);
 
   const renderSheet = () => {
     if (sharedCourse) {
@@ -861,7 +849,7 @@ export default function App() {
           mode={railMode}
           onAction={railAction}
           categories={categories}
-          counts={railCounts}
+          counts={pinCounts}
           picked={picked}
           onToggle={(id) => setPicked((prev) => togglePicked(prev, id))}
           onAll={() => setPicked(new Set())}

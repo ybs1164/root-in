@@ -1,6 +1,6 @@
 import { GripVertical, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
-import { categoryStyle, isUncategorized, orderedCategories, placeCategory, UNCATEGORIZED } from '../domain/pin';
+import { categoryStyle, isUncategorized, orderedCategories, UNCATEGORIZED } from '../domain/pin';
 import type { Pin, PinCategory } from '../types/pin';
 import ConfirmDialog from './ConfirmDialog';
 import PinGlyph from './PinGlyph';
@@ -15,7 +15,7 @@ interface CategoryManagerProps {
   onEditCategory: (category: PinCategory) => void;
   /** ↑/↓ on a focused drag handle (the keyboard's way to reorder). */
   onMove: (id: string, direction: -1 | 1) => void;
-  /** A row dragged to `to` among its siblings. */
+  /** A row dragged to `to` in the order. */
   onDrop: (id: string, to: number) => void;
   onDelete: (id: string) => void;
   /** A pin picked from a category's list: as if it were tapped on the map. */
@@ -30,7 +30,7 @@ interface Drag {
   id: string;
   startY: number;
   dy: number;
-  /** Where it would land among its siblings. */
+  /** Where it would land in the order. */
   to: number;
   rowH: number;
 }
@@ -77,34 +77,7 @@ export default function CategoryManager({
   }, []);
 
   const rows = orderedCategories(categories);
-  const oldIndex = new Map(rows.map(({ category }, i) => [category.id, i]));
-
-  // Where every row sits if the dragged one landed at `to`.
-  const layoutAt = (id: string, to: number) =>
-    new Map(orderedCategories(placeCategory(categories, id, to)).map(({ category }, i) => [category.id, i]));
-
-  const siblingCount = (id: string) => {
-    const target = categories.find((c) => c.id === id);
-    return categories.filter((c) => c.parentId === target?.parentId).length;
-  };
-
-  // The spot whose layout puts the dragged row nearest the finger.
-  const nearestSpot = (id: string, dy: number, rowH: number) => {
-    let best = 0;
-    let bestGap = Infinity;
-    for (let to = 0; to < siblingCount(id); to++) {
-      const gap = Math.abs(((layoutAt(id, to).get(id) ?? 0) - (oldIndex.get(id) ?? 0)) * rowH - dy);
-      if (gap < bestGap) [best, bestGap] = [to, gap];
-    }
-    return best;
-  };
-
-  const startSpot = (id: string) => {
-    const target = categories.find((c) => c.id === id);
-    return orderedCategories(categories)
-      .filter(({ category }) => category.parentId === target?.parentId)
-      .findIndex(({ category }) => category.id === id);
-  };
+  const indexOf = (id: string) => rows.findIndex((c) => c.id === id);
 
   const cancelHold = () => {
     if (hold.current) window.clearTimeout(hold.current.timer);
@@ -117,7 +90,7 @@ export default function CategoryManager({
     } catch {
       // The pointer may already be gone; the drag then ends on the next up.
     }
-    setDrag({ id, startY: y, dy: 0, to: startSpot(id), rowH: el.closest('li')?.offsetHeight ?? 52 });
+    setDrag({ id, startY: y, dy: 0, to: indexOf(id), rowH: el.closest('li')?.offsetHeight ?? 52 });
   };
 
   // The handle lifts the row at once; anywhere else on the row needs a hold
@@ -148,23 +121,26 @@ export default function CategoryManager({
     const d = dragRef.current;
     if (!d) return;
     const dy = event.clientY - d.startY;
-    setDrag({ ...d, dy, to: nearestSpot(d.id, dy, d.rowH) });
+    const from = indexOf(d.id);
+    setDrag({ ...d, dy, to: Math.max(0, Math.min(rows.length - 1, from + Math.round(dy / d.rowH))) });
   };
 
   const onRowUp = () => {
     cancelHold();
     const d = dragRef.current;
     if (!d) return;
-    if (d.to !== startSpot(d.id)) onDrop(d.id, d.to);
+    if (d.to !== indexOf(d.id)) onDrop(d.id, d.to);
     setDrag(null);
   };
 
-  // Rows the dragged one passes step aside; it (and its sub-categories) follow the finger.
-  const shift = (category: PinCategory): number => {
+  // Rows the dragged one passes step aside; it follows the finger.
+  const shift = (i: number): number => {
     if (!drag) return 0;
-    if (category.id === drag.id || category.parentId === drag.id) return drag.dy;
-    const next = layoutAt(drag.id, drag.to).get(category.id) ?? 0;
-    return (next - (oldIndex.get(category.id) ?? 0)) * drag.rowH;
+    const from = indexOf(drag.id);
+    if (i === from) return drag.dy;
+    if (from < i && i <= drag.to) return -drag.rowH;
+    if (drag.to <= i && i < from) return drag.rowH;
+    return 0;
   };
 
   const pinsIn = (categoryId: string) =>
@@ -225,15 +201,15 @@ export default function CategoryManager({
           )}
           {uncategorizedOpen && pinList(UNCATEGORIZED.id)}
         </li>
-        {rows.map(({ category, depth }) => {
+        {rows.map((category, i) => {
           const style = categoryStyle(categories, category.id);
           const expanded = open === category.id;
-          const lifted = drag && (drag.id === category.id || category.parentId === drag.id);
-          const offset = shift(category);
+          const lifted = drag?.id === category.id;
+          const offset = shift(i);
           return (
             <li
               key={category.id}
-              className={`cat-item ${depth ? 'cat-item--sub' : ''} ${lifted ? 'is-dragged' : ''}`}
+              className={`cat-item ${lifted ? 'is-dragged' : ''}`}
               style={offset ? { transform: `translateY(${offset}px)` } : undefined}
             >
               {editing ? (
@@ -296,7 +272,7 @@ export default function CategoryManager({
         <ConfirmDialog
           label="카테고리 삭제"
           message={`'${deleting.name}' 카테고리를 삭제합니다.`}
-          detail={deleting.parentId ? '이 카테고리의 핀은 미분류로 옮겨져요.' : '핀은 모두 미분류로 옮겨져요.'}
+          detail="핀은 모두 미분류로 옮겨져요."
           onConfirm={() => onDelete(deleting.id)}
           onClose={() => setDeleting(null)}
         />

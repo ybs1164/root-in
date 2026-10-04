@@ -4365,10 +4365,6 @@ button:disabled {
   border-bottom: 1px solid var(--border);
 }
 
-.cat-item--sub {
-  padding-left: 24px;
-}
-
 .cat-item__head {
   display: flex;
   align-items: center;
@@ -4487,7 +4483,7 @@ button:disabled {
   transition: transform 0.18s ease;
 }
 
-/* The lifted row (and its sub-categories) follows the finger, over the rest. */
+/* The lifted row follows the finger, over the rest. */
 .cat-manager__list.is-sorting .cat-item.is-dragged {
   z-index: 1;
   transition: none;

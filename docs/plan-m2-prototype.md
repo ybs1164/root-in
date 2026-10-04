@@ -91,6 +91,7 @@ interface Pin {
 }
 ```
 - 세부 카테고리는 **2단계까지만** (대분류 > 세부). 세부는 부모의 아이콘을 물려받고 색만 바꿀 수 있다.
+  - **2026-10-04: 세부 카테고리는 없앴다** — 카테고리는 한 단계뿐. 저장소는 `goodroot:pin-categories:v2`(v1의 세부 카테고리는 일반 카테고리로 옮김), 옛 핀셋 링크의 부모 번호는 무시.
 - 기본 카테고리 6개(카페·맛집·술집·사진 명소·쇼핑·가볼 곳), 세부는 비어 있음.
 - 순수 함수 `domain/pin.ts`: `addPin`(같은 place.id 중복 방지 → 카테고리만 갱신), `movePin`, `validateCategory`, `categoryPath`(`카페 › 디저트`), `pinsByCategory`.
 - 한도: 핀 500개, 카테고리 30개 (localStorage 용량 보호).

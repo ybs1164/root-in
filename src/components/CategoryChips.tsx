@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { categoryPath, categoryStyle, orderedCategories } from '../domain/pin';
+import { categoryStyle, orderedCategories } from '../domain/pin';
 import type { PinCategory } from '../types/pin';
 import PinGlyph from './PinGlyph';
 
@@ -14,14 +14,14 @@ interface CategoryChipsProps {
   label: string;
 }
 
-/** One tap = one choice. Sub-categories read as "› 디저트" after their parent. */
+/** One tap = one choice. */
 export default function CategoryChips({ categories, onPick, recent = [], selected, allLabel, label }: CategoryChipsProps) {
   const ordered = orderedCategories(categories);
   const rank = (id: string) => {
     const i = recent.indexOf(id);
     return i === -1 ? Infinity : i;
   };
-  const list = recent.length > 0 ? [...ordered].sort((a, b) => rank(a.category.id) - rank(b.category.id)) : ordered;
+  const list = recent.length > 0 ? [...ordered].sort((a, b) => rank(a.id) - rank(b.id)) : ordered;
 
   return (
     <div className="chip-row cat-chips" role="group" aria-label={label}>
@@ -30,7 +30,7 @@ export default function CategoryChips({ categories, onPick, recent = [], selecte
           {allLabel}
         </button>
       )}
-      {list.map(({ category, depth }) => {
+      {list.map((category) => {
         const style = categoryStyle(categories, category.id);
         const on = selected === category.id;
         return (
@@ -44,7 +44,7 @@ export default function CategoryChips({ categories, onPick, recent = [], selecte
             <span className="cat-chip__dot" aria-hidden>
               <PinGlyph icon={style.icon} />
             </span>
-            {depth === 0 ? category.name : recent.length > 0 ? categoryPath(categories, category.id) : `› ${category.name}`}
+            {category.name}
           </button>
         );
       })}

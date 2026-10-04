@@ -99,7 +99,7 @@ export default function PinRail({ mode, onAction, categories, counts, picked, on
             </button>
           </li>
           {/* Then 미분류 (always there, right under ALL), then the categories. */}
-          {categoriesWithUncategorized(categories).map(({ category }, i) => {
+          {categoriesWithUncategorized(categories).map((category, i) => {
             const style = categoryStyle(categories, category.id);
             const on = picked.has(category.id);
             return (

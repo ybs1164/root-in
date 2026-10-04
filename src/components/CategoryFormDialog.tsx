@@ -12,8 +12,6 @@ export interface CategoryFormValue {
 interface CategoryFormDialogProps {
   mode: 'create' | 'edit';
   initial: CategoryFormValue;
-  /** A sub-category wears its parent's icon, so it can't pick one. */
-  iconLocked?: boolean;
   /** Returns a message when it can't be saved (the dialog then stays open). */
   onSubmit: (value: CategoryFormValue) => string | null;
   /** Closed either way: after 생성/완료, 취소, Esc or a tap outside. */
@@ -28,7 +26,7 @@ const ICON_NAMES = Object.keys(PIN_ICONS) as PinIcon[];
  * palette, the name, then the stub torn in two — 취소 | 생성 (완료).
  * A native modal <dialog>, so it sits above the category sheet.
  */
-export default function CategoryFormDialog({ mode, initial, iconLocked, onSubmit, onClose }: CategoryFormDialogProps) {
+export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }: CategoryFormDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const [value, setValue] = useState(initial);
   const [picking, setPicking] = useState(false);
@@ -82,7 +80,6 @@ export default function CategoryFormDialog({ mode, initial, iconLocked, onSubmit
             style={{ '--pin': `var(--pin-${value.color})` } as CSSProperties}
             aria-label={`아이콘: ${PIN_ICONS[value.icon]}`}
             aria-expanded={picking}
-            disabled={iconLocked}
             onClick={() => setPicking((p) => !p)}
           >
             <PinGlyph icon={value.icon} />

@@ -19,7 +19,7 @@ const set = (overrides: Partial<SharedPinSet> = {}): SharedPinSet => ({
   title: '성수 디저트',
   categories: [
     { name: '카페', icon: 'cafe', color: 1 },
-    { name: '디저트', icon: 'cafe', color: 5, parent: 0 },
+    { name: '디저트', icon: 'cafe', color: 5 },
   ],
   pins: [
     { place: { ...samplePlaces.onionSeongsu, address: '서울 성동구 아차산로9길 8' }, category: 1, memo: '크루아상' },
@@ -39,7 +39,7 @@ const wire = {
 };
 
 describe('pin set share links', () => {
-  it('pin set round-trips through #pins= with colors, icons and category paths', async () => {
+  it('pin set round-trips through #pins= with colors, icons and categories', async () => {
     const service = new LinkPinShareService(() => 'https://goodroot.app/');
     const url = await service.createShareUrl(set());
     expect(url.startsWith('https://goodroot.app/#pins=')).toBe(true);
@@ -56,7 +56,6 @@ describe('pin set share links', () => {
     expect(bad((w) => ({ ...w, p: [{ ...w.p[0], k: 3 }] }))).toBeNull();
     expect(bad((w) => ({ ...w, c: [{ ...w.c[0], ic: '<img>' }] }))).toBeNull();
     expect(bad((w) => ({ ...w, c: [{ ...w.c[0], co: 9 }] }))).toBeNull();
-    expect(bad((w) => ({ ...w, c: [{ ...w.c[0], p: 0 }] }))).toBeNull(); // a parent must come earlier
     expect(decodeSharedPinSet('not-base64!')).toBeNull();
     expect(decodeSharedPinSet('a'.repeat(MAX_PINS_TOKEN_LENGTH + 1))).toBeNull();
 
@@ -64,6 +63,17 @@ describe('pin set share links', () => {
     expect(clamped?.title.length).toBe(40);
     expect(clamped?.pins[0].place.name.length).toBe(80);
     expect(clamped?.pins[0].memo?.length).toBe(120);
+  });
+
+  it('links made while sub-categories existed still open; the parent index is ignored', () => {
+    const old = { ...wire, c: [{ n: '카페', ic: 'cafe', co: 1 }, { n: '디저트', ic: 'cafe', co: 5, p: 0 }], p: [{ ...wire.p[0], k: 1 }] };
+    const decoded = decodeSharedPinSet(toToken(old));
+    expect(decoded?.categories).toEqual([
+      { name: '카페', icon: 'cafe', color: 1 },
+      { name: '디저트', icon: 'cafe', color: 5 },
+    ]);
+    // Even a malformed parent no longer matters.
+    expect(decodeSharedPinSet(toToken({ ...wire, c: [{ ...wire.c[0], p: 7 }] }))).not.toBeNull();
   });
 
   it('pin sets over 30 pins or 6000 chars are trimmed (memo, then address) with a notice', () => {

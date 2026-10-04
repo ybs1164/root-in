@@ -1,6 +1,6 @@
 import { Pencil, Plus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { categoryStyle, PIN_LIMITS, type CategoryProblem, type NewCategoryInput } from '../domain/pin';
+import { PIN_LIMITS, type CategoryProblem, type NewCategoryInput } from '../domain/pin';
 import { PIN_COLORS, type Pin, type PinCategory } from '../types/pin';
 import CategoryFormDialog, { type CategoryFormValue } from './CategoryFormDialog';
 import CategoryManager from './CategoryManager';
@@ -22,8 +22,6 @@ interface CategorySheetProps {
 const PROBLEMS: Record<CategoryProblem, string> = {
   'empty-name': '이름을 입력하세요.',
   'too-many': `카테고리는 ${PIN_LIMITS.maxCategories}개까지 만들 수 있어요.`,
-  'too-deep': '세부 카테고리 아래에는 더 만들 수 없어요.',
-  'bad-parent': '상위 카테고리를 찾을 수 없어요.',
 };
 
 /** What 핀 카테고리 생성 starts on: the plain pin, in the first colour no category wears yet. */
@@ -108,9 +106,8 @@ export default function CategorySheet({
           initial={
             form.mode === 'create'
               ? freshValue(categories)
-              : { name: form.category.name, icon: categoryStyle(categories, form.category.id).icon, color: form.category.color }
+              : { name: form.category.name, icon: form.category.icon, color: form.category.color }
           }
-          iconLocked={form.mode === 'edit' && !!form.category.parentId}
           onSubmit={(value) => {
             if (form.mode === 'create') {
               const problem = onCreate(value);

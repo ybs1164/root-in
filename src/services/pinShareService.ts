@@ -17,7 +17,7 @@ interface WireCategory {
   n: string;
   ic: PinIcon;
   co: PinColor;
-  p?: number; // parent index
+  p?: number; // parent index — old links only (sub-categories are gone); ignored
 }
 interface WirePin {
   i: string;
@@ -71,7 +71,7 @@ export function encodeSharedPinSet(set: SharedPinSet): PinsEncodeResult {
     const payload: WirePayload = {
       v: PAYLOAD_VERSION,
       t: set.title.trim().slice(0, PIN_SET_LIMITS.title),
-      c: set.categories.map((c) => ({ n: c.name, ic: c.icon, co: c.color, ...(c.parent !== undefined ? { p: c.parent } : {}) })),
+      c: set.categories.map((c) => ({ n: c.name, ic: c.icon, co: c.color })),
       p: pins.map((pin) => {
         const wire: WirePin = {
           i: pin.place.id,
@@ -101,17 +101,14 @@ export function encodeSharedPinSet(set: SharedPinSet): PinsEncodeResult {
 
 // Links come from anyone: validate every field, clamp every string, and
 // accept icons/colors only from the fixed lists.
-const parseCategory = (raw: unknown, index: number): SharedPinCategory | null => {
+const parseCategory = (raw: unknown): SharedPinCategory | null => {
   if (!raw || typeof raw !== 'object') return null;
-  const { n, ic, co, p } = raw as Partial<WireCategory>;
+  // `p` (a parent, from links made while sub-categories existed) is ignored:
+  // such a category simply arrives as a category of its own.
+  const { n, ic, co } = raw as Partial<WireCategory>;
   const name = clampText(n, PIN_LIMITS.categoryName);
   if (!name || !isPinIcon(ic) || !isPinColor(co)) return null;
-  const category: SharedPinCategory = { name, icon: ic, color: co };
-  if (p !== undefined) {
-    if (!Number.isInteger(p) || (p as number) < 0 || (p as number) >= index) return null;
-    category.parent = p;
-  }
-  return category;
+  return { name, icon: ic, color: co };
 };
 
 const parsePin = (raw: unknown, categoryCount: number): SharedPin | null => {
