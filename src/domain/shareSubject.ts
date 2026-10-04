@@ -1,5 +1,6 @@
 import type { Course } from '../types/course';
-import type { DayDecor } from './decor';
+import type { DayDecor, PlacedText } from './decor';
+import { cardToScene, FRONT_CARD, POLAROID, SCENE, STRIP } from './polaroid';
 import type { DayPing, EdgeStyle, PingShape } from './dayPings';
 import { withoutExcluded, type ExcludedPlace } from './privacy';
 
@@ -30,6 +31,32 @@ export interface ShareSubject {
    * apart from the card's own theme, pattern and pieces.
    */
   photo?: DayDecor;
+}
+
+/**
+ * The card's title as a text box (scene fractions), where it's written by
+ * default: handwritten in the middle of the front card's strip, turned
+ * with the card.
+ */
+export function cardTitleText(title: string): PlacedText {
+  const at = cardToScene(FRONT_CARD, POLAROID.w / 2, STRIP.y + STRIP.h * 0.48);
+  return {
+    id: 'card-title',
+    text: title,
+    x: at.x / SCENE.w,
+    y: at.y / SCENE.h,
+    size: 110 / SCENE.w,
+    rotate: FRONT_CARD.angle,
+    font: 'pen',
+    color: 'ink-black',
+    align: 'center',
+  };
+}
+
+/** A card's 꾸미기 with its title put down once as a text box (left alone after that, even if it was thrown away). */
+export function withCardTitle(decor: DayDecor, title: string): DayDecor {
+  if (decor.titled) return decor;
+  return { ...decor, texts: [...(decor.texts ?? []), cardTitleText(title)], titled: true };
 }
 
 export const dayDecorKey = (date: string) => `day:${date}`;

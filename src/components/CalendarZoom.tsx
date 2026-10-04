@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'react';
 import { swipeCommits, SWIPE } from '../domain/appTabs';
-import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, pingsLandedMs, SAMPLE_PING_DATES, type EdgeStyle, type PingShape } from '../domain/dayPings';
+import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, pingsLandedMs, SAMPLE_PING_DATES } from '../domain/dayPings';
 import { addDays } from '../domain/calendar';
 import {
   canUndo,

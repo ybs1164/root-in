@@ -1,12 +1,11 @@
 import { latestPingIndex, layoutPings, type DayPing, type EdgeStyle } from '../domain/dayPings';
 import { ERASER_SCALE, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, textWeight, type DayDecor, type PlacedText, type ThemeId } from '../domain/decor';
-import { BACK_CARD, DRAWING_BOX, FRONT_CARD, POLAROID, SCENE, STRIP, type CardPose } from '../domain/polaroid';
+import { BACK_CARD, DRAWING_BOX, FRONT_CARD, POLAROID, SCENE, type CardPose } from '../domain/polaroid';
 import type { StopMark } from '../domain/shareSubject';
 import { paintPattern } from './dayPatterns';
 import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
 
 export interface ShareImageInput {
-  title: string;
   pings: DayPing[];
   /** How each ping is drawn, by index. */
   marks: StopMark[];
@@ -37,7 +36,6 @@ function tokens() {
   return {
     backdrop: get('--accent-soft'),
     card: get('--polaroid'),
-    cardInk: get('--polaroid-ink'),
     cardShadow: get('--polaroid-shadow'),
     photo: get('--surface-2'),
     page: get('--surface'),
@@ -50,9 +48,6 @@ function tokens() {
   };
 }
 
-/** The strip's handwriting, with a fallback if the web font can't load. */
-const HAND_FONT = '"Nanum Pen Script", "Jua", cursive';
-
 const DASHES: Record<EdgeStyle, { width: number; dash: number[]; cap: CanvasLineCap }> = {
   solid: { width: 9, dash: [], cap: 'round' },
   dashed: { width: 9, dash: [34, 22], cap: 'butt' },
@@ -63,18 +58,17 @@ const DASHES: Record<EdgeStyle, { width: number; dash: number[]; cap: CanvasLine
 /**
  * Draws the share image: two polaroids lying askew on the backdrop (its
  * theme colour and pattern), the front one holding the photo (the lines and
- * stops laid out as the day screen does) with the title handwritten on its
- * strip, and the 꾸미기 pieces over all of it. Returns a PNG data URL.
+ * stops laid out as the day screen does), and the 꾸미기 pieces over all of
+ * it (the strip's title among them). Returns a PNG data URL.
  * Drawn from the data rather than screenshotting the DOM: sharp at any
  * size, and no capture library needed.
  */
-export async function renderShareImage({ title, pings, marks, edges, decor, withoutPieces, photo }: ShareImageInput): Promise<string> {
+export async function renderShareImage({ pings, marks, edges, decor, withoutPieces, photo }: ShareImageInput): Promise<string> {
   await document.fonts?.ready;
   // Web fonts load only once something shows them; make sure the strip's
   // hand and the text boxes' fonts are in before drawing (one that won't
   // load falls back).
   await Promise.all([
-    document.fonts?.load(`110px ${HAND_FONT}`, title).catch(() => undefined),
     ...[...(withoutPieces ? [] : (decor?.texts ?? [])), ...(photo?.texts ?? [])].map((t) =>
       document.fonts?.load(textFont(t, 40), t.text).catch(() => undefined),
     ),
@@ -120,11 +114,7 @@ export async function renderShareImage({ title, pings, marks, edges, decor, with
       if (photo) drawDecor(ctx, photo, p.font, BOX_FRAME);
     });
     ctx.restore();
-    ctx.fillStyle = c.cardInk;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = `110px ${HAND_FONT}`;
-    ctx.fillText(title, POLAROID.w / 2, STRIP.y + STRIP.h * 0.48, PHOTO.w);
+    // The strip's title is one of the card's text boxes (withCardTitle), drawn with the pieces.
   });
 
   if (decor && !withoutPieces) drawDecor(ctx, decor, c.font, SCENE_FRAME);

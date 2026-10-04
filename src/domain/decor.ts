@@ -133,6 +133,11 @@ export interface DayDecor {
   theme?: ThemeId;
   /** A background pattern behind the day (absent = none); one at a time. */
   pattern?: PatternId;
+  /**
+   * Share cards only: its title has been put down as a text box (so it can
+   * be edited or thrown away like any other, and stays away once it is).
+   */
+  titled?: true;
 }
 
 export const EMPTY_DECOR: DayDecor = { stickers: [], strokes: [] };

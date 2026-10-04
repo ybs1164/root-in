@@ -53,4 +53,9 @@ describe('share card decorations', () => {
       expect(y).toBeLessThan(1);
     }
   });
+
+  it('remember that a card’s title was thrown away, even with nothing else on it', () => {
+    saveDecor({ 'route:c-1': { stickers: [], strokes: [], texts: [], titled: true } });
+    expect(loadDecor()['route:c-1'].titled).toBe(true);
+  });
 });

@@ -18,7 +18,7 @@ import {
   type ThemeId,
 } from '../domain/decor';
 import { SCENE } from '../domain/polaroid';
-import type { ShareSubject } from '../domain/shareSubject';
+import { withCardTitle, type ShareSubject } from '../domain/shareSubject';
 import { canShareImage, downloadDataUrl, renderShareImage, shareImage } from '../lib/shareImage';
 import { loadDecor, saveDecor, type DecorStore } from '../services/decorRepository';
 import DecorLayer, { type TextFocus } from './DecorLayer';
@@ -46,7 +46,12 @@ interface ShareStudioProps {
  */
 export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioProps) {
   const { key } = subject;
-  const [store, setStore] = useState<DecorStore>(loadDecor);
+  // The title is a text box like any other (it can be edited or thrown away);
+  // a card gets it once, the first time it's opened.
+  const [store, setStore] = useState<DecorStore>(() => {
+    const loaded = loadDecor();
+    return { ...loaded, [key]: withCardTitle(loaded[key] ?? EMPTY_DECOR, subject.title) };
+  });
   const loaded = useRef(true);
   useEffect(() => {
     if (loaded.current) {

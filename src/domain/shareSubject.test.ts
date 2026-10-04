@@ -3,7 +3,7 @@ import type { Course } from '../types/course';
 import type { DayPing } from './dayPings';
 import { BACK_CARD, cardToScene, DRAWING_BOX, FRONT_CARD, POLAROID, SCENE, STRIP } from './polaroid';
 import type { ExcludedPlace } from './privacy';
-import { dayCardTitle, daySubject, isDecorKey, routeSubject } from './shareSubject';
+import { cardTitleText, dayCardTitle, daySubject, isDecorKey, routeSubject, withCardTitle } from './shareSubject';
 
 const home: ExcludedPlace = { id: 'home', kind: 'home', address: '서울 성동구 성수이로 88', center: [127.0557, 37.5431] };
 const place = (id: string, name: string, center: [number, number]) => ({ id, name, center, address: '' });
@@ -102,5 +102,21 @@ describe('share cards', () => {
     expect(isDecorKey('2026-10-03')).toBe(false);
     expect(isDecorKey('route:../x')).toBe(false);
     expect(dayCardTitle('2026-01-09')).toBe('01.09');
+  });
+
+  it('put the title down once as a text box on the front card’s strip, which can then be thrown away for good', () => {
+    const t = cardTitleText('성수 데이트');
+    const strip = cardToScene(FRONT_CARD, POLAROID.w / 2, STRIP.y + STRIP.h / 2);
+    expect(t.text).toBe('성수 데이트');
+    // Around the middle of the strip.
+    expect(Math.abs(t.x * SCENE.w - strip.x)).toBeLessThan(20);
+    expect(Math.abs(t.y * SCENE.h - strip.y)).toBeLessThan(20);
+    expect(t.rotate).toBe(FRONT_CARD.angle);
+    const first = withCardTitle({ stickers: [], strokes: [] }, '성수 데이트');
+    expect(first.texts?.map((x) => x.text)).toEqual(['성수 데이트']);
+    expect(first.titled).toBe(true);
+    // Thrown away: it doesn't come back next time.
+    const gone = { ...first, texts: [] };
+    expect(withCardTitle(gone, '성수 데이트').texts).toEqual([]);
   });
 });
