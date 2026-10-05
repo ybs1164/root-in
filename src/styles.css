@@ -619,7 +619,7 @@ button:disabled {
   flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 4px 16px 16px;
+  padding: 14px 16px 16px;
 }
 
 .tabs {
@@ -1018,7 +1018,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 8px 16px calc(20px + var(--safe-bottom));
+  padding: 18px 16px calc(20px + var(--safe-bottom));
 }
 
 .sheet-grip {
@@ -1985,7 +1985,7 @@ button:disabled {
 }
 
 /* A route on show: the tag stands at the right, just above the lowered
-   folder sheet (314px: .route-folders.is-lowered). */
+   folder sheet (324px: .route-folders.is-lowered). */
 .share-tag--route {
   position: absolute;
   right: 14px;
@@ -2319,7 +2319,7 @@ button:disabled {
 /* A route on show: the sheet sinks so only its tabs and the route's row stay
    up (App's FOLDER_LOWERED_PX), leaving the map to the route. */
 .route-folders.is-lowered {
-  transform: translateY(calc(100% - 314px)); /* tabs, the toolbar, the route's row with its trash, and the next route's name with room under it */
+  transform: translateY(calc(100% - 324px)); /* tabs, the toolbar, the route's row with its trash, and the next route's name with room under it */
 }
 
 /* Room to scroll any route, even the last, up to the top of the strip. */
@@ -2459,9 +2459,9 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 12px 0 16px;
-  /* The sheet's top edge, under the tabs: rounded like the other sheets. */
-  border-radius: 20px 20px 0 0;
+  padding: 16px 12px 0 16px;
+  /* The sheet's top edge, under the tabs: straight, like the other route sheets. */
+  border-radius: 0;
   background: var(--surface);
 }
 
@@ -3068,8 +3068,8 @@ button:disabled {
   display: flex;
   flex-direction: column;
   height: 44dvh;
-  /* The bottom sheets' look: rounded top corners. */
-  border-radius: 20px 20px 0 0;
+  /* The route sheets keep a straight top edge (the other sheets are rounded). */
+  border-radius: 0;
   background: var(--surface);
   box-shadow: var(--shadow-up);
   color: var(--text);
@@ -3167,7 +3167,7 @@ button:disabled {
   overflow-y: auto;
   overscroll-behavior: contain;
   /* The description starts at the top, in from the edges like the stops under it; room at the bottom so the trash never covers the last stop. */
-  padding: 14px 16px calc(var(--safe-bottom) + 84px);
+  padding: 24px 16px calc(var(--safe-bottom) + 84px);
 }
 
 .route-edit__note {
@@ -3352,9 +3352,9 @@ button:disabled {
   flex-direction: column;
   gap: 10px;
   /* A clear margin under the fields, so they sit a little higher up. */
-  padding: 16px 16px calc(var(--safe-bottom) + 76px);
-  /* The bottom sheets' look: rounded top corners. */
-  border-radius: 20px 20px 0 0;
+  padding: 26px 16px calc(var(--safe-bottom) + 76px);
+  /* The route sheets keep a straight top edge (the other sheets are rounded). */
+  border-radius: 0;
   background: var(--surface);
   box-shadow: var(--shadow-up);
   animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
@@ -4918,10 +4918,10 @@ button:disabled {
 /* Its toolbar (CATEGORY, ✎, +) stays at the top while the categories scroll under it. */
 .category-sheet .share-sheet__head {
   position: sticky;
-  top: -8px; /* the body's own top padding scrolls away first */
+  top: -18px; /* the body's own top padding scrolls away first */
   z-index: 3;
-  margin: -8px -16px 0;
-  padding: 8px 16px 4px;
+  margin: -18px -16px 0;
+  padding: 18px 16px 4px;
   background: var(--surface);
 }
 
