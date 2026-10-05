@@ -41,11 +41,12 @@ export const BACK_CARD: CardPose = { cx: 730, cy: 985, angle: 4 };
 
 /**
  * How the polaroid lies on the share image (the 꾸미기 screen's 폴라로이드
- * button), after the share card mock: 탑승권 (a smaller card with a boarding
- * pass under it — the default), 두 장, 한 장 반듯하게 on a faint grid,
- * 테이프 on paper, 지도 위 on an illustrated map, 노트 clipped to a lined
- * page with the date in hand under it, and 빨랫줄, hung straight from a
- * sagging line by two wooden pegs.
+ * button), after the share card mock, always on plain white: 탑승권 (a
+ * smaller card with a boarding pass under it — the default), 두 장, 한 장
+ * 반듯하게, 테이프 at the corners, 항로 (a dashed flight past a tilted card),
+ * 클립 (clipped, the date in hand under it), and 빨랫줄, hung straight from a
+ * sagging line by two wooden pegs. The notebook page and the map that 클립
+ * and 항로 lay on once are background patterns now (노트, 지도).
  */
 export type PolaroidLayout = 'ticket' | 'stack' | 'single' | 'tape' | 'map' | 'notebook' | 'line';
 
@@ -54,8 +55,8 @@ export const POLAROID_LAYOUTS: { id: PolaroidLayout; label: string }[] = [
   { id: 'stack', label: '두 장' },
   { id: 'single', label: '한 장' },
   { id: 'tape', label: '테이프' },
-  { id: 'map', label: '지도' },
-  { id: 'notebook', label: '노트' },
+  { id: 'map', label: '항로' },
+  { id: 'notebook', label: '클립' },
   { id: 'line', label: '빨랫줄' },
 ];
 

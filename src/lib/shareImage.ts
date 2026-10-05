@@ -55,7 +55,6 @@ function tokens() {
     route: get('--route'),
     perforation: get('--perforation'),
     arrow: get('--ticket-arrow'),
-    danger: get('--danger'),
     peg: get('--clothespin'),
     pegShade: get('--clothespin-shade'),
     font: getComputedStyle(document.body).fontFamily,
@@ -199,33 +198,14 @@ function faint(ctx: CanvasRenderingContext2D, alpha: number, draw: () => void) {
 }
 
 /**
- * What the cards lie on: the theme's soft accent (탑승권, 두 장), a white page
- * with a faint grid (한 장), plain paper (테이프), an illustrated map of
- * blocks, roads, a river and a dashed flight (지도), or a lined notebook
- * page with its red margin (노트).
+ * What the cards lie on: plain white in every layout (the card paper's white,
+ * whatever the theme); a background pattern goes over it. 항로 adds its
+ * dashed flight and 빨랫줄 its line, behind the card.
  */
 function drawBackdrop(ctx: CanvasRenderingContext2D, c: Tokens, layout: PolaroidLayout) {
-  const base = layout === 'single' || layout === 'notebook' ? c.page : layout === 'tape' ? c.photo : c.backdrop;
-  ctx.fillStyle = base;
+  ctx.fillStyle = c.card;
   ctx.fillRect(0, 0, W, H);
-  if (layout === 'single') {
-    faint(ctx, 0.12, () => {
-      ctx.fillStyle = c.accent;
-      for (let x = 50; x < W; x += 70) ctx.fillRect(x, 0, 2, H);
-      for (let y = 50; y < H; y += 70) ctx.fillRect(0, y, W, 2);
-    });
-  }
-  if (layout === 'notebook') {
-    faint(ctx, 0.2, () => {
-      ctx.fillStyle = c.accent;
-      for (let y = 150; y < H; y += 84) ctx.fillRect(0, y, W, 3);
-    });
-    faint(ctx, 0.45, () => {
-      ctx.fillStyle = c.danger;
-      ctx.fillRect(120, 0, 4, H);
-    });
-  }
-  if (layout === 'map') drawMap(ctx, c);
+  if (layout === 'map') drawFlight(ctx, c);
   if (layout === 'line') drawClothesline(ctx, c);
 }
 
@@ -269,31 +249,8 @@ function drawPegs(ctx: CanvasRenderingContext2D, c: Tokens) {
   }
 }
 
-/** 지도: city blocks between white roads on a slant, a river across, and a dashed flight with its plane. */
-function drawMap(ctx: CanvasRenderingContext2D, c: Tokens) {
-  ctx.save();
-  ctx.translate(W / 2, H / 2);
-  ctx.rotate((-14 * Math.PI) / 180);
-  ctx.fillStyle = c.page;
-  const span = 1500;
-  for (let x = -span; x <= span; x += 230) ctx.fillRect(x, -span, 34, span * 2);
-  for (let y = -span; y <= span; y += 150) ctx.fillRect(-span, y, span * 2, 22);
-  faint(ctx, 0.75, () => {
-    ctx.fillStyle = c.page;
-    for (let x = -span + 115; x <= span; x += 460) ctx.fillRect(x, -span, 12, span * 2);
-  });
-  ctx.restore();
-
-  faint(ctx, 0.22, () => {
-    ctx.strokeStyle = c.accent;
-    ctx.lineWidth = 70;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(-60, 1500);
-    ctx.bezierCurveTo(400, 1380, 900, 1260, 1460, 1080);
-    ctx.stroke();
-  });
-
+/** 항로: a dashed flight across the scene, its plane near the start. */
+function drawFlight(ctx: CanvasRenderingContext2D, c: Tokens) {
   ctx.save();
   ctx.strokeStyle = c.accent;
   ctx.lineWidth = 6;
