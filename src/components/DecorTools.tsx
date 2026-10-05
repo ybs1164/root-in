@@ -135,6 +135,8 @@ interface DecorTrayProps {
 const PULLABLE: DecorTool[] = ['sticker', 'theme', 'pattern', 'polaroid'];
 /** How far a pull has to go before it counts (px). */
 const PULL_STEP = 40;
+/** Less movement than this is a tap on the top edge, not a pull (px). */
+const TAP_SLOP = 6;
 /** Matches the sheet's slide down in styles.css (`is-closing`). */
 const CLOSE_MS = 200;
 /** Matches the sheet's height easing in styles.css. */
@@ -145,10 +147,11 @@ const SETTLE_MS = 260;
  * past a step it opens to nearly the whole screen, down to under ~60% of
  * its usual height it closes. From full height, letting go anywhere above
  * that goes back to the usual height (or stays full if barely moved).
+ * A plain tap on the top edge flips between the usual and full height.
  */
 function useSheetPull(onClose?: () => void) {
   const sheet = useRef<HTMLDivElement | null>(null);
-  const drag = useRef<{ y: number; from: number; normal: number } | null>(null);
+  const drag = useRef<{ y: number; from: number; normal: number; moved: number } | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [closing, setClosing] = useState(false);
   const normalHeight = useRef(0);
@@ -165,7 +168,7 @@ function useSheetPull(onClose?: () => void) {
     delete el.dataset.settling;
     const from = el.offsetHeight;
     if (!expanded) normalHeight.current = from;
-    drag.current = { y: e.clientY, from, normal: normalHeight.current || from };
+    drag.current = { y: e.clientY, from, normal: normalHeight.current || from, moved: 0 };
     // Pin the height it has now before lifting the max-height, or the sheet
     // would jump to its full content height at the first touch.
     el.style.height = `${from}px`;
@@ -175,6 +178,7 @@ function useSheetPull(onClose?: () => void) {
     const d = drag.current;
     const el = sheet.current;
     if (!d || !el) return;
+    d.moved = Math.max(d.moved, Math.abs(e.clientY - d.y));
     const h = Math.max(0, Math.min(fullHeight(), d.from - (e.clientY - d.y)));
     el.style.height = `${h}px`;
   };
@@ -184,13 +188,15 @@ function useSheetPull(onClose?: () => void) {
     drag.current = null;
     if (!d || !el) return;
     const h = el.offsetHeight;
-    if (h < d.normal * 0.6) {
+    // A tap on the top edge (no real drag): flip between usual and full height.
+    const tapped = d.moved < TAP_SLOP;
+    if (!tapped && h < d.normal * 0.6) {
       delete el.dataset.pulling;
       setClosing(true);
       window.setTimeout(() => onClose?.(), CLOSE_MS);
       return;
     }
-    const toFull = expanded ? h > fullHeight() - PULL_STEP : h > d.normal + PULL_STEP;
+    const toFull = tapped ? !expanded : expanded ? h > fullHeight() - PULL_STEP : h > d.normal + PULL_STEP;
     // Glide from where the finger left it to the new height (a px height can
     // ease; the usual one is content-sized and can't), then hand back to CSS.
     // Data attributes, not classes: React rewrites className on the re-render.
