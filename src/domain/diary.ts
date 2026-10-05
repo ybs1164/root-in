@@ -1,5 +1,5 @@
 import type { PlaceRef } from '../types/course';
-import type { DiaryDraft, DiaryEntry, DiaryKind, DiaryMood, DiarySnapshot, DiaryStop } from '../types/diary';
+import type { DiaryDraft, DiaryEntry, DiaryKind, DiaryMood, DiaryStop } from '../types/diary';
 import { COURSE_LIMITS } from './course';
 import { haversineMeters } from './geo';
 
@@ -161,15 +161,10 @@ export function toDiaryDraft(entry: DiaryEntry): DiaryDraft {
   return { id, date, ...(kind === 'plan' ? { kind } : {}), title, mood, travelMode, stops, text };
 }
 
-export function diarySnapshot(source: DiarySnapshot): DiarySnapshot {
-  const { date, title, mood, travelMode, stops, text, sharedBy } = source;
-  return { date, title, mood, travelMode, stops, text, sharedBy };
-}
-
 /** Newest day first; within a day, most recently written first. */
-export function sortDiaries<T extends { date: string; createdAt?: string; updatedAt?: string; addedAt?: string }>(
+export function sortDiaries<T extends { date: string; createdAt?: string; updatedAt?: string }>(
   list: T[],
 ): T[] {
-  const stamp = (e: T) => e.updatedAt ?? e.createdAt ?? e.addedAt ?? '';
+  const stamp = (e: T) => e.updatedAt ?? e.createdAt ?? '';
   return [...list].sort((a, b) => b.date.localeCompare(a.date) || stamp(b).localeCompare(stamp(a)));
 }

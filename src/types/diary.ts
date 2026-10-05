@@ -63,29 +63,3 @@ export interface SharedDiary {
   sharedBy?: string;
   sharedAt: string;
 }
-
-/**
- * A daily route kept in the wishlist ("다시 가고 싶은 하루"). It is a
- * snapshot, stored separately from the diary, so routes received from
- * other people can be kept without becoming part of my own diary.
- */
-export interface WishItem {
-  id: string;
-  userId: string;
-  /** Set when the item came from one of my own diary entries. */
-  sourceDiaryId?: string;
-  date: string;
-  title: string;
-  mood?: DiaryMood;
-  travelMode: TravelMode;
-  stops: DiaryStop[];
-  text?: string;
-  /** Set when the item came from someone else's share link. */
-  sharedBy?: string;
-  addedAt: string;
-}
-
-/** Fields a wish item copies from a diary entry or a shared diary. */
-export type DiarySnapshot = Pick<DiaryEntry, 'date' | 'title' | 'mood' | 'travelMode' | 'stops' | 'text'> & {
-  sharedBy?: string;
-};
