@@ -64,19 +64,19 @@
   <symbol id="tree" viewBox="0 0 24 24"><path d="M10 15h4v9h-4z"/><circle cx="7" cy="11" r="6"/><circle cx="17" cy="11" r="6"/><circle cx="12" cy="6" r="6"/></symbol>
   <symbol id="leaf" viewBox="0 0 24 24"><path d="M22 1Q1 0 2 15q1 7 8 6Q24 20 22 1z"/><path d="M2 23 18 7" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
   <symbol id="cinema" viewBox="0 0 24 24"><path d="M2 10h20v11H2z"/><path fill-rule="evenodd" d="M2 3h20v5H2zm4 0-3 5h3l3-5zm7 0-3 5h3l3-5zm7 0-3 5h3l2-4V3z"/></symbol>
-  <symbol id="amusement" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="10" r="8"/><path d="M4 10h16M12 2v16M6.3 4.3l11.4 11.4M6.3 15.7 17.7 4.3"/></g><path d="m12 9 6 14h-3l-3-8-3 8H6z"/></symbol>
+  <symbol id="amusement" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="9" r="6"/><path d="m7 22 5-12 5 12"/></g><rect x="10" y="1" width="4" height="4" rx="1"/><rect x="3" y="7" width="4" height="4" rx="1"/><rect x="17" y="7" width="4" height="4" rx="1"/><rect x="10" y="13" width="4" height="4" rx="1"/></symbol>
   <symbol id="salon" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="5" cy="18" r="3.5"/><circle cx="19" cy="18" r="3.5"/><path d="m7 15 12-13M17 15 5 2"/></g></symbol>
   <symbol id="laundry" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M4 2h16v20H4zm3 2v2h2V4zm4 0v2h6V4zm1 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12z"/><path d="M8 14q2-3 4 0t4 0a4 4 0 0 1-8 0z"/></symbol>
   <symbol id="store" viewBox="0 0 24 24"><path d="M4 2h16l3 7H1z"/><path fill-rule="evenodd" d="M3 11h18v11H3zm3 3v5h5v-5zm8 0v8h4v-8z"/></symbol>
   <symbol id="gas" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M3 2h12v18H3zm3 3v5h6V5z"/><path d="M1 21h16v2H1z"/><path d="m17 4 4 4v9q0 4-4 2l-2-3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
   <symbol id="restroom" viewBox="0 0 24 24"><circle cx="6" cy="4" r="2.5"/><circle cx="18" cy="4" r="2.5"/><path d="M3 8h6v8H8v7H4v-7H3zm12 0h6l3 10h-4v5h-4v-5h-4z"/></symbol>
   <symbol id="post" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="m3 6 9 7 9-7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/></symbol>
-  <symbol id="donut" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 6a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM5 6v2h2V6zm11-1v2h2V5zM6 17v2h2v-2zm12-2v2h2v-2z"/></symbol>
-  <symbol id="chicken" viewBox="0 0 24 24"><path d="M8 5q4-6 10-2 7 5 2 11-3 4-8 0L8 18l-2-2 4-4Q4 9 8 5z"/><path d="M7 16 4 19" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="3" cy="18" r="2"/><circle cx="5" cy="21" r="2"/></symbol>
-  <symbol id="noodles" viewBox="0 0 24 24"><path d="M2 12h20q-1 10-10 10T2 12z"/><path d="M4 4h16M5 8h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
-  <symbol id="sandwich" viewBox="0 0 24 24"><path d="m12 2 11 15H1z"/><path d="M2 19h20v3H2z"/></symbol>
+  <symbol id="donut" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM6 6l3-1 1 2-3 1zm10 0 2 3-2 1-2-3zM6 17h4v2H6z"/></symbol>
+  <symbol id="chicken" viewBox="0 0 24 24"><ellipse cx="15.5" cy="7.5" rx="6" ry="7" transform="rotate(35 15.5 7.5)"/><path d="m11 10-7 7 3 3 8-8z"/><circle cx="3" cy="18" r="2.3"/><circle cx="6" cy="21" r="2.3"/></symbol>
+  <symbol id="noodles" viewBox="0 0 24 24"><path d="M2 12h20q-1 9-10 9T2 12z"/><path d="m8 2 14 4M7 5l14 4M10 7v5m4-4v4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+  <symbol id="sandwich" viewBox="0 0 24 24"><path d="m2 8 10-6 10 6-10 6zM2 12l10 6 10-6v3l-10 6-10-6z"/></symbol>
   <symbol id="apple" viewBox="0 0 24 24"><path d="M12 7q-8-6-10 2-2 10 7 13l3-1 3 1q9-3 7-13-2-8-10-2zM12 6q0-5 7-5 0 5-7 5z"/></symbol>
-  <symbol id="cheese" viewBox="0 0 24 24"><path fill-rule="evenodd" d="m3 9 14-7 5 7v12H3zm4 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm10 1a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></symbol>
-  <symbol id="tea" viewBox="0 0 24 24"><path d="M6 8h12q5 11-4 13h-4q-8-2-4-13zM8 5h8v2H8zm3-3h2v3h-2zM5 10 1 7v5l5 6z"/><path d="M18 10q7-2 4 6l-4 2" fill="none" stroke="currentColor" stroke-width="2.2"/></symbol>
+  <symbol id="cheese" viewBox="0 0 24 24"><path fill-rule="evenodd" d="m2 9 15-6 5 5v13H2zm3 0v2h14V9zm2 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm10-1a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></symbol>
+  <symbol id="tea" viewBox="0 0 24 24"><path d="M3 9h14v5q0 6-7 6t-7-6z"/><path d="M17 10h2a3 3 0 0 1 0 6h-2M8 6q-2-2 0-4m5 4q-2-2 0-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="2" y="21" width="18" height="2" rx="1"/></symbol>
   <symbol id="drink" viewBox="0 0 24 24"><path d="M4 8h16l-2 14H6zM3 5h18v2H3zM11 1h2v4h-2z"/></symbol>
 </svg>
