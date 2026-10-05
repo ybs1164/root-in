@@ -13,14 +13,13 @@ CLAUDE.md의 "이전 버전 링크는 계속 열려야 한다" 규칙의 임시 
 - [ ] **받은 하루 열기** — `#diary=` 토큰을 읽어(`readDiaryToken` → `decodeSharedDiary`) 그날 장소·시간을 보여 주는 화면.
   달력 페이지(`CalendarZoom`) 안의 어떤 화면으로 열지 정하기 (예: 받은 하루를 DAY 화면처럼 핑·선으로).
   링크가 잘렸거나 깨졌으면 "공유받은 하루 루트를 열 수 없어요" 안내 후 해시 지우기(`clearDiaryFromLocation`).
-- [ ] **받은 하루 → 위시리스트에 저장** · 위시리스트 목록 · 위시리스트에서 빼기(빼기는 탑승권 확인창 `ConfirmDialog`로).
 - [ ] **내 하루 공유 링크 만들기** — 하루 공유 팝업(`DayShareSheet`)의 비활성 "링크 복사" 버튼을 여기에 연결.
   지금 그날 데이터는 꾸미기(`goodroot:days:v1`)와 임시 핑(`SAMPLE_PING_DATES`)뿐이라, 링크에 무엇을 담을지(핑·시간·장소) 먼저 정하기.
 - [ ] (옛 패널에 있던 것) 하루 기록·계획 편집, "루트-인"(지금 위치를 그날 기록에 추가) — 새 달력에서 다시 만들지 결정.
 
 남겨 둔 코드 (테스트 포함, 다시 쓸 수 있음):
 - `services/diaryShareService.ts` — `#diary=` 인코드·디코드·검증, 공유 문구 (`diaryShareService.test.ts`)
-- `services/diaryRepository.ts` — 하루 기록 `goodroot:diaries:v1`, 위시리스트 `goodroot:wishlist:v1` 저장소 (기존 사용자 데이터가 이 키에 남아 있을 수 있음)
+- `services/diaryRepository.ts` — 하루 기록 `goodroot:diaries:v1` 저장소 (기존 사용자 데이터가 이 키에 남아 있을 수 있음). 위시리스트(`goodroot:wishlist:v1`)는 2026-10-05에 코드째 없앰 — 남은 값은 아무도 안 읽음
 - `services/shareTargets.ts` — `planShare({ kind: 'day' })` 공유 제목·요약·링크·문구
 - `domain/diary.ts`, `lib/geolocation.ts`(루트-인), `lib/clipboard.ts`(링크 복사)
 
