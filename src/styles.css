@@ -2469,12 +2469,25 @@ button:disabled {
 
 /* ROUTES, at the left like the category sheet's CATEGORY. */
 .route-folders__title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
   margin: 0;
   color: var(--text);
   font-size: 22px;
 }
 
+.route-folders__current-name {
+  color: var(--muted);
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .route-folders__tools {
+  flex-shrink: 0;
   display: flex;
   gap: 2px;
 }

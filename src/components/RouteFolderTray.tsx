@@ -710,7 +710,10 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
 
       {/* The sheet's toolbar: ROUTES and its tools stay put while the routes scroll under them. */}
       <div className="route-folders__head">
-        <h2 className="route-folders__title">ROUTES</h2>
+        <h2 className="route-folders__title">
+          <span>ROUTES</span>
+          {current !== 'all' && current !== 'none' && <span className="route-folders__current-name">{folderName(current)}</span>}
+        </h2>
         <div className="route-folders__tools">
           <button
             className={`route-folders__new route-folders__select ${selecting ? 'is-on' : ''}`}
