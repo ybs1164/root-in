@@ -4,7 +4,7 @@ import type { PinIcon } from '../types/pin';
 export const QUICK_PIN_ICONS: readonly PinIcon[] = ['pin', 'cafe', 'food', 'photo', 'star'];
 export const PIN_ICON_GROUPS: { id: string; label: string; icons: PinIcon[] }[] = [
   { id: 'shapes', label: '도형', icons: ['pin', 'circle', 'square', 'diamond', 'star', 'heart', 'flag', 'check', 'cross', 'quote'] },
-  { id: 'places', label: '장소', icons: ['photo', 'shop', 'stay', 'culture', 'book', 'music', 'theater', 'hospital', 'gift', 'building', 'church', 'school', 'bank', 'parking', 'wifi', 'cinema', 'amusement', 'salon', 'laundry', 'store', 'gas', 'restroom', 'post'] },
+  { id: 'places', label: '장소', icons: ['photo', 'shop', 'stay', 'book', 'music', 'theater', 'hospital', 'gift', 'building', 'church', 'school', 'bank', 'parking', 'wifi', 'cinema', 'amusement', 'salon', 'laundry', 'store', 'gas', 'restroom', 'post'] },
   { id: 'food', label: '음식', icons: ['cafe', 'food', 'bar', 'burger', 'pizza', 'cake', 'bread', 'icecream', 'sushi', 'beer', 'cocktail', 'donut', 'chicken', 'noodles', 'sandwich', 'apple', 'cheese', 'tea', 'drink'] },
   { id: 'nature', label: '자연', icons: ['nature', 'flower', 'mountain', 'palm', 'tree', 'leaf'] },
   { id: 'transport', label: '교통수단', icons: ['car', 'bus', 'train', 'plane', 'ship', 'scooter', 'rocket'] },

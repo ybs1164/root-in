@@ -10,7 +10,8 @@ describe('category icon library', () => {
     expect(new Set(icons).size).toBe(icons.length);
     // Retired artwork remains readable in saved categories and older share links.
     expect(icons).not.toContain('waterfall');
-    expect([...icons].sort()).toEqual(Object.keys(PIN_ICONS).filter((icon) => icon !== 'waterfall').sort());
+    expect(icons).not.toContain('culture');
+    expect([...icons].sort()).toEqual(Object.keys(PIN_ICONS).filter((icon) => !['waterfall', 'culture'].includes(icon)).sort());
   });
 
   it('has generated artwork for every icon in both React and map markers', () => {
