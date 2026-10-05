@@ -940,6 +940,10 @@ export default function App() {
       {shownStops.length > 1 && (
         <StopLines
           count={shownStops.length}
+          pinStyles={shownStops.map((place) => {
+            const pin = pins.find((p) => p.place.id === place.id);
+            return categoryStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id);
+          })}
           edgeStyles={buildPins ? buildRouteLook(buildPins.map((p) => p.id), buildLook).edgeStyles : editRoute ? editRoute.look.edgeStyles : shownRoute?.edgeStyles}
           stopShapes={buildPins ? buildRouteLook(buildPins.map((p) => p.id), buildLook).stopShapes : editRoute ? editRoute.look.stopShapes : shownRoute?.stopShapes}
           // A route on show names its stops, as a calendar day names its pings.
@@ -1000,7 +1004,10 @@ export default function App() {
           label={`${shownRoute.title} 공유`}
           onClick={() => {
             if (!hasHome(privacy.excluded)) return needHome();
-            setStudio(routeSubject(shownRoute, privacy.excluded));
+            setStudio(routeSubject(shownRoute, privacy.excluded, shownRoute.stops.map((s) => {
+              const pin = pins.find((p) => p.place.id === s.place.id);
+              return categoryStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id).icon;
+            })));
           }}
         />
       )}

@@ -3031,7 +3031,7 @@ button:disabled {
 .ping-picker.route-style-picker {
   position: fixed;
   z-index: 25;
-  left: clamp(130px, var(--x), calc(100% - 130px));
+  left: clamp(154px, var(--x), calc(100% - 154px));
   top: var(--y);
   transform: translate(-50%, calc(-100% - 28px));
 }
@@ -5896,4 +5896,14 @@ button:disabled {
     margin: auto auto 0;
     border-radius: 0;
   }
+}
+
+/* Blank route styles keep their long-press targets available for restyling. */
+.stop-lines .stop-lines__seg--transparent {
+  stroke: transparent;
+}
+
+.stop-shape--transparent svg {
+  color: var(--stop-pin);
+  fill: currentColor;
 }

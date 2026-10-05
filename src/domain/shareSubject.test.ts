@@ -94,6 +94,13 @@ describe('share cards', () => {
     expect(s.marks).toEqual(['number', 'number', 'heart']);
     expect(s.edges).toEqual(['dashed', 'solid']);
     expect(s.removed).toBe(0);
+    const transparent = routeSubject({ ...course, stopShapes: ['transparent', null, 'transparent'], edgeStyles: ['transparent', null] }, [], ['cafe', 'food', 'nature']);
+    expect(transparent.marks).toEqual(['transparent', 'number', 'transparent']);
+    expect(transparent.edges).toEqual(['transparent', 'solid']);
+    expect(transparent.icons).toEqual(['cafe', 'food', 'nature']);
+    const cut = routeSubject({ ...course, stopShapes: ['transparent', null, 'transparent'] }, [{ ...home, center: course.stops[1].place.center }], ['cafe', 'food', 'nature']);
+    expect(cut.icons).toEqual(['cafe', 'nature']);
+    expect(cut.marks).toEqual(['transparent', 'transparent']);
   });
 
   it('keep their decorations under a day or route key only', () => {

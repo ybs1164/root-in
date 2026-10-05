@@ -8,6 +8,17 @@ describe('route look', () => {
     expect(look).toEqual({ stopShapes: [null, 'star', null], edgeStyles: ['dashed', null] });
   });
 
+  it('keeps transparent choices distinct from the numbered and solid defaults', () => {
+    let look = withStopShape({}, 3, 1, 'transparent');
+    look = withEdgeStyle(look, 3, 0, 'transparent');
+    expect(cleanRouteLook(JSON.parse(JSON.stringify(look)), 3)).toEqual({
+      stopShapes: [null, 'transparent', null], edgeStyles: ['transparent', null],
+    });
+    expect(withStopShape(withEdgeStyle(look, 3, 0, null), 3, 1, null)).toEqual({
+      stopShapes: undefined, edgeStyles: undefined,
+    });
+  });
+
   it('back to all defaults stores nothing', () => {
     const look = withStopShape(withStopShape({}, 2, 0, 'heart'), 2, 0, null);
     expect(look).toEqual({ stopShapes: undefined, edgeStyles: undefined });

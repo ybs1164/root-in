@@ -1,3 +1,6 @@
+import type { RouteEdgeStyle } from '../domain/routeStyle';
+import type { PinIcon } from '../types/pin';
+import { pinGlyphSvg } from './pinGlyphs';
 import { latestPingIndex, layoutPings, type DayPing, type EdgeStyle } from '../domain/dayPings';
 import { ERASER_SCALE, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, textWeight, type DayDecor, type PlacedText, type ThemeId } from '../domain/decor';
 import { BACK_CARD, DRAWING_BOX, FRONT_CARD, POLAROID, SCENE, type CardPose } from '../domain/polaroid';
@@ -11,7 +14,8 @@ export interface ShareImageInput {
   /** How each ping is drawn, by index. */
   marks: StopMark[];
   /** `edges[i]` joins `pings[i]` and `pings[i + 1]`. */
-  edges: EdgeStyle[];
+  edges: RouteEdgeStyle[];
+  icons?: PinIcon[];
   /** Stickers, pen strokes, text boxes, theme and pattern; pieces in scene fractions (0..1 of its width / height). */
   decor?: DayDecor;
   /** Leave the card's stickers, strokes and text boxes off (the 꾸미기 screen lays its own over the image). */
@@ -64,7 +68,7 @@ const DASHES: Record<EdgeStyle, { width: number; dash: number[]; cap: CanvasLine
  * Drawn from the data rather than screenshotting the DOM: sharp at any
  * size, and no capture library needed.
  */
-export async function renderShareImage({ pings, marks, edges, decor, withoutPieces, photo }: ShareImageInput): Promise<string> {
+export async function renderShareImage({ pings, marks, edges, decor, withoutPieces, photo, icons }: ShareImageInput): Promise<string> {
   await document.fonts?.ready;
   // Web fonts load only once something shows them; make sure the strip's
   // hand and the text boxes' fonts are in before drawing (one that won't
@@ -75,6 +79,13 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
     ),
   ]);
   const c = tokens();
+  const pinImages = await Promise.all(marks.map(async (mark, i) => {
+    if (mark !== 'transparent') return null;
+    const img = new Image();
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(pinGlyphSvg(icons?.[i] ?? 'pin').replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ').replace('fill="currentColor"', `color="${c.accent}" fill="${c.accent}"`))}`;
+    await img.decode();
+    return img;
+  }));
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
@@ -111,7 +122,7 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
         paintPattern(ctx, photo.pattern, { w: PHOTO.w, h: PHOTO.h }, BOX.size / 360, p.accent);
         ctx.restore();
       }
-      drawStops(ctx, p, bg, pings, marks, edges);
+      drawStops(ctx, p, bg, pings, marks, edges, pinImages);
       if (photo) drawDecor(ctx, photo, p.font, BOX_FRAME);
     });
     ctx.restore();
@@ -163,7 +174,7 @@ function drawPaper(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>) 
 }
 
 /** Lines first, then the stops over them, laid out in the drawing box. */
-function drawStops(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, bg: string, pings: DayPing[], marks: StopMark[], edges: EdgeStyle[]) {
+function drawStops(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, bg: string, pings: DayPing[], marks: StopMark[], edges: RouteEdgeStyle[], pinImages: (HTMLImageElement | null)[]) {
   const points = layoutPings(pings.map((p) => p.center)).map((p) => ({
     x: BOX.x + p.x * BOX.size,
     y: BOX.y + p.y * BOX.size,
@@ -171,7 +182,9 @@ function drawStops(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, 
 
   ctx.strokeStyle = c.route;
   for (let i = 0; i + 1 < points.length; i++) {
-    const style = DASHES[edges[i] ?? 'solid'];
+    const edge = edges[i] ?? 'solid';
+    if (edge === 'transparent') continue;
+    const style = DASHES[edge];
     ctx.lineWidth = style.width;
     ctx.lineCap = style.cap;
     ctx.setLineDash(style.dash);
@@ -188,11 +201,15 @@ function drawStops(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   pings.forEach((ping, i) => {
-    const mark = marks[i] ?? 'pin';
+    const originalMark = marks[i] ?? 'pin';
+    const mark = originalMark === 'transparent' ? 'dot' : originalMark;
     const k = i === latest ? 1.4 : 1;
     const { x, y } = points[i];
     let bottom: number;
-    if (mark === 'number') {
+    if (originalMark === 'transparent' && pinImages[i]) {
+      ctx.drawImage(pinImages[i]!, x - 42, y - 42, 84, 84);
+      bottom = y + 42;
+    } else if (mark === 'number') {
       // A route's plain stop: a flat accent disc with its number, as on the map.
       const r = 34;
       ctx.fillStyle = c.accent;
