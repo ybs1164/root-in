@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { MoreHorizontal } from 'lucide-react';
-import { PIN_LIMITS } from '../domain/pin';
+import { PIN_LIMITS, PIN_SWATCHES, pinColorCss } from '../domain/pin';
 import { QUICK_PIN_ICONS } from '../domain/categoryIcons';
-import { PIN_COLORS, PIN_ICONS, type PinColor, type PinIcon } from '../types/pin';
+import { PIN_ICONS, type PinColor, type PinIcon } from '../types/pin';
 import PinGlyph from './PinGlyph';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import CategoryIconPicker from './CategoryIconPicker';
+import ColorPicker from './ColorPicker';
 
 export interface CategoryFormValue {
   name: string;
@@ -25,7 +26,8 @@ interface CategoryFormDialogProps {
 /**
  * 핀 카테고리 생성 / 편집, a boarding pass like the other centre popups
  * (`ticket-dialog`): the name above the icon, five shortcuts and a library
- * button, then the palette and the stub torn in two — 취소 | 생성 (완료).
+ * button, then seven swatches and a rainbow button that opens the 꾸미기
+ * colour wheel (`ColorPicker`), and the stub torn in two — 취소 | 생성 (완료).
  * A native modal <dialog>, so it sits above the category sheet.
  */
 export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }: CategoryFormDialogProps) {
@@ -34,6 +36,8 @@ export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }:
   const [value, setValue] = useState(initial);
   const [problem, setProblem] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const custom = typeof value.color === 'string' ? value.color : null;
   const [extraIcon, setExtraIcon] = useState<PinIcon | null>(QUICK_PIN_ICONS.includes(initial.icon) ? null : initial.icon);
   // No close() in cleanup: it would fire onClose during StrictMode's check (as ConfirmDialog).
   useEffect(() => {
@@ -94,7 +98,7 @@ export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }:
           {/* The chosen icon, large, in the chosen colour; the icon list stays open under it. */}
           <span
             className="pin-badge cat-form__icon"
-            style={{ '--pin': `var(--pin-${value.color})` } as CSSProperties}
+            style={{ '--pin': pinColorCss(value.color) } as CSSProperties}
             role="img"
             aria-label={`아이콘: ${PIN_ICONS[value.icon]}`}
           >
@@ -126,17 +130,37 @@ export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }:
             </button>
           </div>
           <div className="cat-form__colors" role="group" aria-label="색">
-            {PIN_COLORS.map((color) => (
+            {PIN_SWATCHES.map((color) => (
               <button
                 key={color}
                 type="button"
                 className={`color-dot ${value.color === color ? 'is-on' : ''}`}
-                style={{ '--pin': `var(--pin-${color})` } as CSSProperties}
+                style={{ '--pin': pinColorCss(color) } as CSSProperties}
                 aria-pressed={value.color === color}
                 aria-label={`색 ${color}`}
                 onClick={() => setValue((v) => ({ ...v, color }))}
               />
             ))}
+            {/* The grey's old place: any colour, from the same wheel as the 꾸미기 pen. */}
+            <button
+              type="button"
+              className={`color-dot color-dot--rainbow ${custom ? 'is-on' : ''}`}
+              style={custom ? ({ '--pin': custom } as CSSProperties) : undefined}
+              data-palette-toggle
+              aria-pressed={!!custom}
+              aria-expanded={paletteOpen}
+              aria-label={custom ? `팔레트에서 고른 색 ${custom}` : '팔레트에서 색 고르기'}
+              onClick={() => setPaletteOpen((open) => !open)}
+            >
+              {custom && <span aria-hidden />}
+            </button>
+            {paletteOpen && (
+              <ColorPicker
+                color={custom ?? '#ff4d6d'}
+                onPick={(hex) => setValue((v) => ({ ...v, color: hex as PinColor }))}
+                onClose={() => setPaletteOpen(false)}
+              />
+            )}
           </div>
           {problem && <p className="cat-form__problem">{problem}</p>}
         </div>

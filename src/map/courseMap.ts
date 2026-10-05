@@ -3,6 +3,7 @@ import type { MapViewport } from '../domain/districtMap';
 import type { PlaceRef } from '../types/course';
 import { pinGlyphSvg } from '../lib/pinGlyphs';
 import type { PinIcon, PinTint } from '../types/pin';
+import { pinColorCss } from '../domain/pin';
 
 export interface MapPadding {
   top: number;
@@ -142,7 +143,7 @@ export function createPinElement(pin: PinMarker, onClick?: (id: string) => void)
   const el = document.createElement('button');
   el.type = 'button';
   el.className = `map-marker map-marker--pin${pin.selected ? ' is-selected' : ''}`;
-  el.style.setProperty('--pin', `var(--pin-${pin.color})`);
+  el.style.setProperty('--pin', pinColorCss(pin.color));
   // The category's solid glyph in the pin colour, no disc behind it.
   el.innerHTML = pinGlyphSvg(pin.icon);
   el.setAttribute('aria-label', pin.name);

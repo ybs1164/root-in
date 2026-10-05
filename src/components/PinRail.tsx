@@ -1,6 +1,6 @@
 import { ChevronDown, MapPin, Plus, Route } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { categoriesWithUncategorized, categoryStyle, UNCATEGORIZED } from '../domain/pin';
+import { categoriesWithUncategorized, categoryStyle, UNCATEGORIZED, pinColorCss } from '../domain/pin';
 import { isAllPicked, railPage, railPageCount, type PinRailEntry, type PinRailMode } from '../domain/pinRail';
 import type { PinCategory } from '../types/pin';
 import PinGlyph from './PinGlyph';
@@ -114,7 +114,7 @@ export default function PinRail({ mode, onAction, categories, counts, picked, on
               <li key={category.id} className={`pin-rail__item ${listOpen ? '' : 'is-leaving'}`} style={stagger(i + 1)}>
                 <button
                   className={`pin-rail__btn pin-rail__pin ${category.id === UNCATEGORIZED.id ? 'pin-rail__pin--none' : ''} ${on ? 'is-on' : ''}`}
-                  style={{ '--pin': `var(--pin-${style.color})` } as CSSProperties}
+                  style={{ '--pin': pinColorCss(style.color) } as CSSProperties}
                   aria-label={`${category.name} ${counts.get(category.id) ?? 0}곳`}
                   aria-pressed={on}
                   onClick={() => onToggle(category.id)}

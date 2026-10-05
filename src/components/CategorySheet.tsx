@@ -1,7 +1,7 @@
 import { Pencil, Plus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { PIN_LIMITS, type CategoryProblem, type NewCategoryInput } from '../domain/pin';
-import { PIN_COLORS, type Pin, type PinCategory } from '../types/pin';
+import { PIN_LIMITS, PIN_SWATCHES, type CategoryProblem, type NewCategoryInput } from '../domain/pin';
+import type { Pin, PinCategory } from '../types/pin';
 import CategoryFormDialog, { type CategoryFormValue } from './CategoryFormDialog';
 import CategoryManager from './CategoryManager';
 import { useBackdropTap } from '../hooks/useBackdropTap';
@@ -27,7 +27,7 @@ const PROBLEMS: Record<CategoryProblem, string> = {
 
 /** What 핀 카테고리 생성 starts on: the plain pin, in the first colour no category wears yet. */
 function freshValue(categories: PinCategory[]): CategoryFormValue {
-  const color = PIN_COLORS.find((c) => !categories.some((cat) => cat.color === c)) ?? PIN_COLORS[0];
+  const color = PIN_SWATCHES.find((c) => !categories.some((cat) => cat.color === c)) ?? PIN_SWATCHES[0];
   return { name: '', icon: 'pin', color };
 }
 

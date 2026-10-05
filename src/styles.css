@@ -5005,6 +5005,31 @@ button:disabled {
   box-shadow: 0 0 0 3px var(--text);
 }
 
+/* The category form's last swatch: the rainbow that opens the palette; a
+   colour picked there shows as a dot in its middle. */
+.color-dot--rainbow {
+  display: grid;
+  place-items: center;
+  background: conic-gradient(
+    var(--rainbow-1),
+    var(--rainbow-2),
+    var(--rainbow-3),
+    var(--rainbow-4),
+    var(--rainbow-5),
+    var(--rainbow-6),
+    var(--rainbow-7),
+    var(--rainbow-1)
+  );
+}
+
+.color-dot--rainbow span {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--pin);
+}
+
 
 .category-sheet__actions {
   display: flex;
@@ -5209,6 +5234,8 @@ button:disabled {
 }
 
 .cat-form__colors {
+  /* The palette (ColorPicker) floats above this row. */
+  position: relative;
   display: grid;
   grid-template-columns: repeat(4, 44px);
   gap: 10px 16px;

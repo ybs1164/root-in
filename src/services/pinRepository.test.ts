@@ -22,6 +22,12 @@ describe('pin storage', () => {
       expect(await new LocalPinCategoryRepository().list()).toEqual(categories);
     }
   });
+  it('keeps a colour picked from the palette when saved categories are reloaded', async () => {
+    const repo = new LocalPinCategoryRepository();
+    const categories = [{ ...DEFAULT_CATEGORIES[0], color: '#12ab90' as const }];
+    await repo.saveAll(categories);
+    expect(await new LocalPinCategoryRepository().list()).toEqual(categories);
+  });
   it('pins and categories persist in goodroot:pins:v1 / goodroot:pin-categories:v2 with default categories on first run', async () => {
     const categories = new LocalPinCategoryRepository();
     expect(await categories.list()).toEqual(DEFAULT_CATEGORIES);
