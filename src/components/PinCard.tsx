@@ -149,7 +149,7 @@ export default function PinCard({ pin, categories, onRecategorize, onRename, onM
         ) : (
           <>
             <strong className="pin-card__name">{pin.place.name}</strong>
-            <p className={`pin-card__memo ${pin.memo ? '' : 'is-empty'}`}>{pin.memo || pin.place.name}</p>
+            <p className={`pin-card__memo ${pin.memo ? '' : 'is-empty'}`}>{pin.memo || '...'}</p>
           </>
         )}
         <button
