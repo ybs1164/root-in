@@ -5180,7 +5180,7 @@ button:disabled {
   background: var(--backdrop);
 }
 
-/* A spaced-caps English label with a short accent dash after it. */
+/* A spaced-caps English label with an accent rule after it, running to the line's end. */
 .label-dash {
   display: flex;
   align-items: center;
@@ -5196,7 +5196,8 @@ button:disabled {
 
 .label-dash::after {
   content: '';
-  width: 26px;
+  flex: 1;
+  min-width: 26px;
   height: 3px;
   border-radius: 2px;
   background: var(--accent);
@@ -5204,8 +5205,11 @@ button:disabled {
 
 .category-icon-picker__title {
   flex: none;
+  margin: 0;
   padding: 0 22px 14px;
-  font-size: 20px;
+  /* Like the category sheet's CATEGORY: the app's own face, ink colour, no dash. */
+  color: var(--text);
+  font-size: 22px;
 }
 
 .category-icon-picker__body {
@@ -5228,9 +5232,6 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
   gap: 4px;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: 18px;
 }
 
 .category-icon-picker__option {
