@@ -3,7 +3,7 @@ import type { PinIcon } from '../types/pin';
 import { pinGlyphSvg } from './pinGlyphs';
 import { latestPingIndex, layoutPings, type DayPing, type EdgeStyle } from '../domain/dayPings';
 import { ERASER_SCALE, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, textWeight, type DayDecor, type PlacedText, type ThemeId } from '../domain/decor';
-import { DEFAULT_LAYOUT, DRAWING_BOX, LAYOUT_CARDS, POLAROID, SCENE, TICKET, type CardPose, type PolaroidLayout } from '../domain/polaroid';
+import { CLOTHESLINE, clotheslineY, DEFAULT_LAYOUT, DRAWING_BOX, LAYOUT_CARDS, POLAROID, SCENE, TICKET, type CardPose, type PolaroidLayout } from '../domain/polaroid';
 import type { CardStamp, StopMark } from '../domain/shareSubject';
 import { paintPattern } from './dayPatterns';
 import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
@@ -56,6 +56,8 @@ function tokens() {
     perforation: get('--perforation'),
     arrow: get('--ticket-arrow'),
     danger: get('--danger'),
+    peg: get('--clothespin'),
+    pegShade: get('--clothespin-shade'),
     font: getComputedStyle(document.body).fontFamily,
   };
 }
@@ -145,7 +147,8 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
     if (layout === 'tape') drawTape(ctx, c);
     if (layout === 'notebook') drawClip(ctx, c);
   });
-  if (layout === 'single') drawWordmark(ctx, c);
+  if (layout === 'single' || layout === 'line') drawWordmark(ctx, c);
+  if (layout === 'line') drawPegs(ctx, c);
   if (layout === 'notebook') drawNoteDate(ctx, c, stamp);
 
   if (decor && !withoutPieces) drawDecor(ctx, decor, c.font, SCENE_FRAME);
@@ -223,6 +226,47 @@ function drawBackdrop(ctx: CanvasRenderingContext2D, c: Tokens, layout: Polaroid
     });
   }
   if (layout === 'map') drawMap(ctx, c);
+  if (layout === 'line') drawClothesline(ctx, c);
+}
+
+/** 빨랫줄: the sagging line, behind the card and its pegs. */
+function drawClothesline(ctx: CanvasRenderingContext2D, c: Tokens) {
+  const { from, control, to } = CLOTHESLINE;
+  ctx.save();
+  ctx.strokeStyle = c.muted;
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(from.x, from.y);
+  ctx.quadraticCurveTo(control.x, control.y, to.x, to.y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** 빨랫줄: two wooden pegs on the line, gripping the card's top edge, each turned along the line. */
+function drawPegs(ctx: CanvasRenderingContext2D, c: Tokens) {
+  for (const x of CLOTHESLINE.pegs) {
+    const y = clotheslineY(x);
+    const slope = (clotheslineY(x + 1) - clotheslineY(x - 1)) / 2;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.atan(slope) * 0.8);
+    ctx.save();
+    ctx.shadowColor = c.cardShadow;
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 6;
+    ctx.fillStyle = c.peg;
+    ctx.beginPath();
+    ctx.roundRect(-34, -70, 68, 220, 12);
+    ctx.fill();
+    ctx.restore();
+    // The two halves' seam, and the metal spring band across them.
+    ctx.fillStyle = c.pegShade;
+    ctx.fillRect(-2, -62, 4, 204);
+    ctx.fillStyle = c.muted;
+    ctx.fillRect(-38, 6, 76, 22);
+    ctx.restore();
+  }
 }
 
 /** 지도: city blocks between white roads on a slant, a river across, and a dashed flight with its plane. */

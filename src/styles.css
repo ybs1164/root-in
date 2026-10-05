@@ -33,6 +33,9 @@
   /* The share polaroid's card: white paper in every theme. */
   --polaroid: #ffffff;
   --polaroid-shadow: rgba(27, 36, 64, 0.22);
+  /* 빨랫줄 layout: the wooden clothespins (not themed, like the card's paper). */
+  --clothespin: #e3c690;
+  --clothespin-shade: #c9a467;
   --mask-show: #fff; /* SVG masks: white = fully shown (not a colour anyone sees) */
   --mask-hide: #000; /* …and black = hidden (the eraser's rub) */
   /* 꾸미기: fixed ink colours (not themed), the tool sheet and the palette rainbow. */

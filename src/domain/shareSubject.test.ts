@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Course } from '../types/course';
 import type { DayPing } from './dayPings';
-import { BACK_CARD, cardToScene, DEFAULT_LAYOUT, DRAWING_BOX, FRONT_CARD, LAYOUT_CARDS, POLAROID, SCENE, sceneToCard, STRIP } from './polaroid';
+import { BACK_CARD, cardToScene, CLOTHESLINE, clotheslineY, DEFAULT_LAYOUT, DRAWING_BOX, FRONT_CARD, LAYOUT_CARDS, POLAROID, SCENE, sceneToCard, STRIP } from './polaroid';
 import type { ExcludedPlace } from './privacy';
 import { cardTitleText, dayCardTitle, daySubject, isDecorKey, routeSubject, withCardTitle, withLayout, withStoredLayout } from './shareSubject';
 
@@ -161,6 +161,20 @@ describe('share cards', () => {
       const back = withLayout(next, 'stack').texts![0];
       expect(back.x).toBeCloseTo(start.texts[0].x);
       expect(back.y).toBeCloseTo(start.texts[0].y);
+    }
+  });
+
+  it('빨랫줄: the line sags over the card and each peg on it reaches down over the card’s top edge', () => {
+    const front = LAYOUT_CARDS.line.front;
+    const top = cardToScene(front, POLAROID.w / 2, 0).y;
+    expect(clotheslineY(700)).toBeLessThan(top);
+    expect(clotheslineY(700)).toBeGreaterThan(clotheslineY(100));
+    for (const x of CLOTHESLINE.pegs) {
+      const y = clotheslineY(x);
+      // A peg spans 70px above the line to 150px below it.
+      expect(y - 70).toBeLessThan(top);
+      expect(y + 150).toBeGreaterThan(top);
+      expect(Math.abs(x - front.cx)).toBeLessThan((POLAROID.w * (front.scale ?? 1)) / 2);
     }
   });
 

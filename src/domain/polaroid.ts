@@ -43,10 +43,11 @@ export const BACK_CARD: CardPose = { cx: 730, cy: 985, angle: 4 };
  * How the polaroid lies on the share image (the 꾸미기 screen's 폴라로이드
  * button), after the share card mock: 탑승권 (a smaller card with a boarding
  * pass under it — the default), 두 장, 한 장 반듯하게 on a faint grid,
- * 테이프 on paper, 지도 위 on an illustrated map, and 노트 clipped to a lined
- * page with the date in hand under it.
+ * 테이프 on paper, 지도 위 on an illustrated map, 노트 clipped to a lined
+ * page with the date in hand under it, and 빨랫줄, hung straight from a
+ * sagging line by two wooden pegs.
  */
-export type PolaroidLayout = 'ticket' | 'stack' | 'single' | 'tape' | 'map' | 'notebook';
+export type PolaroidLayout = 'ticket' | 'stack' | 'single' | 'tape' | 'map' | 'notebook' | 'line';
 
 export const POLAROID_LAYOUTS: { id: PolaroidLayout; label: string }[] = [
   { id: 'ticket', label: '탑승권' },
@@ -55,6 +56,7 @@ export const POLAROID_LAYOUTS: { id: PolaroidLayout; label: string }[] = [
   { id: 'tape', label: '테이프' },
   { id: 'map', label: '지도' },
   { id: 'notebook', label: '노트' },
+  { id: 'line', label: '빨랫줄' },
 ];
 
 export const DEFAULT_LAYOUT: PolaroidLayout = 'ticket';
@@ -69,7 +71,22 @@ export const LAYOUT_CARDS: Record<PolaroidLayout, { front: CardPose; back?: Card
   tape: { front: { cx: 700, cy: 1010, angle: -2, scale: 0.88 } },
   map: { front: { cx: 700, cy: 960, angle: 4, scale: 0.76 } },
   notebook: { front: { cx: 730, cy: 870, angle: 3, scale: 0.72 } },
+  line: { front: { cx: 700, cy: 990, angle: 0, scale: 0.8 } },
 };
+
+/**
+ * 빨랫줄: the line sags from one side of the scene to the other, over the
+ * card (a quadratic curve: its ends and its control point), and the two pegs
+ * sit on it this far in from the card's sides (scene x).
+ */
+export const CLOTHESLINE = { from: { x: -20, y: 90 }, control: { x: 700, y: 470 }, to: { x: 1420, y: 90 }, pegs: [450, 950] } as const;
+
+/** Where the line is at scene `x` (its control point is midway, so x runs evenly along it). */
+export function clotheslineY(x: number): number {
+  const { from, control, to } = CLOTHESLINE;
+  const t = (x - from.x) / (to.x - from.x);
+  return (1 - t) ** 2 * from.y + 2 * t * (1 - t) * control.y + t ** 2 * to.y;
+}
 
 /** 탑승권: the boarding pass under the card (its centre, turn and size on the scene). */
 export const TICKET = { cx: 820, cy: 1640, angle: 5, w: 820, h: 300, stub: 220 } as const;
