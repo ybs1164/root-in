@@ -166,33 +166,30 @@ export class MapLibreCourseMap implements CourseMap {
     if (points.length === 0) return Promise.resolve();
     if (points.length === 1) {
       this.focus(points[0], padding);
-      return this.moveSettled(this.duration(FOCUS_MS));
+      return this.moveSettled();
     }
     const bounds = new maplibregl.LngLatBounds();
     points.forEach((p) => bounds.extend(p));
     // Slow enough to read as a glide, gently eased in and out. A plain ease, not the default fly's
     // zoom-out-and-back arc, which on a short hop reads as a lurch.
     this.map.fitBounds(bounds, { padding, maxZoom: 16, linear: true, easing: easeInOutSine, duration: this.duration(glideMs) });
-    return this.moveSettled(this.duration(glideMs));
+    return this.moveSettled();
   }
 
   /**
-   * The end of the move just started (`ms` long; 0 = a jump, already over).
+   * The actual end of the move just started (a jump is already over).
    * Listened for after starting it: starting a move ends the one before,
-   * whose moveend must not count. The eased tail of a glide is too slow to
-   * see, so it counts as over a little early; a move that never starts
-   * (already there) or never runs (no render) still resolves.
+   * whose moveend must not count. Already settled moves resolve immediately;
+   * animated ones wait for moveend, including the eased tail of the glide.
    */
-  private moveSettled(ms: number): Promise<void> {
-    if (ms === 0) return Promise.resolve();
+  private moveSettled(): Promise<void> {
+    if (!this.map.isMoving()) return Promise.resolve();
     return new Promise((resolve) => {
       const done = () => {
-        window.clearTimeout(timer);
         this.map.off('moveend', done);
         resolve();
       };
-      const timer = window.setTimeout(done, ms * 0.9);
-        this.map.on('moveend', done);
+      this.map.on('moveend', done);
     });
   }
 

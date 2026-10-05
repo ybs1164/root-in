@@ -1,4 +1,5 @@
 import type { PinIcon } from '../types/pin';
+import { EXTRA_PIN_GLYPHS } from './extraPinGlyphs';
 
 /**
  * Pin category icons as solid vector shapes (24×24, `currentColor`), so one
@@ -9,6 +10,7 @@ import type { PinIcon } from '../types/pin';
  * show whatever is behind.
  */
 export const PIN_GLYPHS: Record<PinIcon, string> = {
+  ...EXTRA_PIN_GLYPHS,
   cafe:
     '<path d="M3 6h14v2.5A6.5 6.5 0 0 1 10.5 15h-1A6.5 6.5 0 0 1 3 8.5z"/>' +
     '<path d="M17 7h1.5a3.5 3.5 0 0 1 0 7h-2.2l.9-2.2h1.3a1.3 1.3 0 0 0 0-2.6H17z"/>' +

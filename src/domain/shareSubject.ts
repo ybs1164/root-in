@@ -1,3 +1,5 @@
+import type { RouteEdgeStyle, RouteStopShape } from './routeStyle';
+import type { PinIcon } from '../types/pin';
 import type { Course } from '../types/course';
 import type { DayDecor, PlacedText } from './decor';
 import { cardToScene, FRONT_CARD, POLAROID, SCENE, STRIP } from './polaroid';
@@ -5,7 +7,7 @@ import type { DayPing, EdgeStyle, PingShape } from './dayPings';
 import { withoutExcluded, type ExcludedPlace } from './privacy';
 
 /** How a stop is drawn on the card: a ping shape, or a route's plain numbered marker. */
-export type StopMark = PingShape | 'number';
+export type StopMark = RouteStopShape | 'number';
 
 /**
  * What the 꾸미기 screen makes a polaroid of: a calendar day's pings or a
@@ -22,7 +24,8 @@ export interface ShareSubject {
   pings: DayPing[];
   marks: StopMark[];
   /** `edges[i]` joins `pings[i]` and `pings[i + 1]`. */
-  edges: EdgeStyle[];
+  edges: RouteEdgeStyle[];
+  icons?: PinIcon[];
   /** Stops left out for sitting on a 제외 주소. */
   removed: number;
   /**
@@ -73,7 +76,7 @@ export const dayCardTitle = (date: string): string => `${date.slice(5, 7)}.${dat
  * other keep their line's style; stops that only meet because the ones
  * between them were cut get a plain line.
  */
-function keptEdges(kept: number[], edgeAt: (index: number) => EdgeStyle): EdgeStyle[] {
+function keptEdges(kept: number[], edgeAt: (index: number) => RouteEdgeStyle): RouteEdgeStyle[] {
   return kept.slice(1).map((to, i) => (to === kept[i] + 1 ? edgeAt(kept[i]) : 'solid'));
 }
 
@@ -99,11 +102,12 @@ export function daySubject(
   };
 }
 
-export function routeSubject(course: Course, excluded: ExcludedPlace[]): ShareSubject {
+export function routeSubject(course: Course, excluded: ExcludedPlace[], icons?: PinIcon[]): ShareSubject {
   const cut = withoutExcluded(course.stops.map((stop, index) => ({ stop, index })), (k) => k.stop.place, excluded);
   const kept = cut.kept.map((k) => k.index);
   return {
     key: routeDecorKey(course.id),
+    ...(icons ? { icons: kept.map((i) => icons[i] ?? 'pin') } : {}),
     title: course.title,
     fileName: `root-in-${course.title}`,
     // Routes have no visiting times; the card only names the stops.

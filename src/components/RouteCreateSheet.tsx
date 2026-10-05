@@ -55,10 +55,10 @@ export default function RouteCreateSheet({ draft, onDraft, defaultTitle, folders
             aria-expanded={picking}
             onClick={() => setPicking(!picking)}
           >
-            {folder?.icon ?? <Inbox size={20} aria-hidden />}
+            {folder?.name ?? <Inbox size={20} aria-hidden />}
           </button>
           {picking && (
-            <div className="folder-picker route-create__grid" role="group" aria-label="폴더">
+            <div className="folder-picker folder-name-options route-create__grid" role="group" aria-label="폴더">
               <button
                 className={`folder-picker__opt ${!folder ? 'is-on' : ''}`}
                 aria-label="미분류"
@@ -79,7 +79,7 @@ export default function RouteCreateSheet({ draft, onDraft, defaultTitle, folders
                     setPicking(false);
                   }}
                 >
-                  {f.icon}
+                  {f.name}
                 </button>
               ))}
             </div>

@@ -203,8 +203,8 @@ export default function App() {
   }, [routeShowing]);
   // A route put on show takes the map in turns: it glides over with the pins
   // still there, and the moment the glide ends the pins fade away and the
-  // route's own stops drop in. Stepping to another route (< >) plays the
-  // same again: the pins come back while the map glides over, then go.
+  // route's own stops drop in. Stepping to another route (< >) keeps the
+  // pins hidden until the route view is closed.
   const [pinsAway, setPinsAway] = useState<'no' | 'fading' | 'gone'>('no');
   // Only 'gone' changes the markers: re-making them mid-fade would cut the fade short.
   const pinsGone = pinsAway === 'gone';
@@ -217,11 +217,11 @@ export default function App() {
       setLandedRoute(null);
       return setPinsAway('no');
     }
-    if (!routeLanded) return setPinsAway('no');
+    if (pinsGone || !routeLanded) return;
     setPinsAway('fading');
     const fade = window.setTimeout(() => setPinsAway('gone'), PINS_FADE_MS);
     return () => window.clearTimeout(fade);
-  }, [shownRouteKey, routeLanded]);
+  }, [shownRouteKey, routeLanded, pinsGone]);
   const shownPins = useMemo(() => filterPinsByCategories(pins, categories, picked), [pins, categories, picked]);
 
   // Numbered course markers + solid route line.
@@ -742,9 +742,14 @@ export default function App() {
     for (const c of cs) await course.remove(c.id);
   };
 
-  // 핀 삭제 asks first; a pin some route stops at can't go until it's taken out of them.
+  // Deleting a pin also removes every route that contains its place.
   const [pinDeleting, setPinDeleting] = useState<Pin | null>(null);
   const routesWithPin = (pin: Pin) => course.courses.filter((c) => c.stops.some((s) => s.place.id === pin.place.id));
+  const deletePinWithRoutes = async (pin: Pin) => {
+    await deleteRoutes(routesWithPin(pin));
+    pinStore.removePin(pin.id);
+    if (activePinId === pin.id) setActivePinId(null);
+  };
 
   // ✓ on the edit sheet: keep the stops with their look, the description and the folder.
   const saveEdit = async () => {
@@ -935,6 +940,10 @@ export default function App() {
       {shownStops.length > 1 && (
         <StopLines
           count={shownStops.length}
+          pinStyles={shownStops.map((place) => {
+            const pin = pins.find((p) => p.place.id === place.id);
+            return categoryStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id);
+          })}
           edgeStyles={buildPins ? buildRouteLook(buildPins.map((p) => p.id), buildLook).edgeStyles : editRoute ? editRoute.look.edgeStyles : shownRoute?.edgeStyles}
           stopShapes={buildPins ? buildRouteLook(buildPins.map((p) => p.id), buildLook).stopShapes : editRoute ? editRoute.look.stopShapes : shownRoute?.stopShapes}
           // A route on show names its stops, as a calendar day names its pings.
@@ -969,6 +978,8 @@ export default function App() {
               ? (step) => {
                   const next = neighborRoute(course.courses, routeFolders.folders, routeTab, shownRoute.id, step);
                   if (!next) return;
+                  // Even a step during the initial fade must keep individual pins off.
+                  setPinsAway('gone');
                   setRouteStep({ id: next.id, from: step });
                   setShownRouteId(next.id);
                 }
@@ -993,7 +1004,10 @@ export default function App() {
           label={`${shownRoute.title} 공유`}
           onClick={() => {
             if (!hasHome(privacy.excluded)) return needHome();
-            setStudio(routeSubject(shownRoute, privacy.excluded));
+            setStudio(routeSubject(shownRoute, privacy.excluded, shownRoute.stops.map((s) => {
+              const pin = pins.find((p) => p.place.id === s.place.id);
+              return categoryStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id).icon;
+            })));
           }}
         />
       )}
@@ -1166,24 +1180,22 @@ export default function App() {
       {pinDeleting &&
         (routesWithPin(pinDeleting).length > 0 ? (
           <ConfirmDialog
-            label="장소 삭제 불가"
-            message="이 장소는 루트에 들어 있는 장소예요."
+            label="장소와 루트 삭제"
+            message="이 장소는 루트에 포함되어 있는 장소예요."
             detail={
               <>
-                소속 루트:{' '}
+                포함된 루트:{' '}
                 {routesWithPin(pinDeleting).map((c, i) => (
                   <span key={c.id}>
                     {i > 0 && '  '}
                     <b className="confirm-dialog__em">'{c.title}'</b>
                   </span>
                 ))}
-                {'\n'}먼저 해당하는 루트에서 장소를 제거해 주세요.
+                {'\n'}루트도 같이 삭제돼요.
               </>
             }
-            confirmLabel="루트 편집"
-            tone="action"
-            // The first route named: straight into editing it.
-            onConfirm={() => editRouteNow(routesWithPin(pinDeleting)[0])}
+            confirmLabel="삭제"
+            onConfirm={() => void deletePinWithRoutes(pinDeleting)}
             onClose={() => setPinDeleting(null)}
           />
         ) : (

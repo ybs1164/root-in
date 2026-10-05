@@ -1,4 +1,5 @@
 import type { PlaceRef } from './course';
+import { EXTRA_PIN_ICONS } from './categoryIcons';
 
 // Category icons, by name (the label is for screen readers). The shapes are
 // solid vector glyphs in lib/pinGlyphs.ts, shared by React UI and the
@@ -16,6 +17,7 @@ export const PIN_ICONS = {
   heart: '하트',
   flag: '깃발',
   pin: '핀',
+  ...EXTRA_PIN_ICONS,
 } as const;
 
 export type PinIcon = keyof typeof PIN_ICONS;

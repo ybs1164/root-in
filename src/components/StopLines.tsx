@@ -1,5 +1,7 @@
-import { useEffect, useRef } from 'react';
-import type { EdgeStyle, PingShape } from '../domain/dayPings';
+import { useEffect, useRef, type CSSProperties } from 'react';
+import type { RouteEdgeStyle, RouteStopShape } from '../domain/routeStyle';
+import type { PinIcon, PinTint } from '../types/pin';
+import PinGlyph from './PinGlyph';
 import { placeLabels } from '../domain/stopLabels';
 import { PingIcon } from './DayPings';
 
@@ -13,10 +15,11 @@ export function stopCentre(n: number): { x: number; y: number } | null {
 
 interface StopLinesProps {
   count: number;
+  pinStyles?: { icon: PinIcon; color: PinTint }[];
   /** Per line between stops (null / missing = solid). */
-  edgeStyles?: (EdgeStyle | null)[];
+  edgeStyles?: (RouteEdgeStyle | null)[];
   /** Per stop (null / missing = the plain numbered marker). */
-  stopShapes?: (PingShape | null)[];
+  stopShapes?: (RouteStopShape | null)[];
   /**
    * Plays the route in, as a calendar day's pings do: after `delayMs` (the map
    * gliding over), the stops drop in one by one and each line draws itself to
@@ -39,7 +42,7 @@ const LINE_MS = 320;
  * A stop given a shape is drawn here as that shape and its marker hidden
  * (`data-shape`), the marker staying in place for taps and long presses.
  */
-export default function StopLines({ count, edgeStyles, stopShapes, play, names }: StopLinesProps) {
+export default function StopLines({ count, edgeStyles, stopShapes, play, names, pinStyles }: StopLinesProps) {
   // When the current playback started (performance.now(), after its delay); null = all shown.
   const playStart = useRef<number | null>(null);
   useEffect(() => {
@@ -166,9 +169,10 @@ export default function StopLines({ count, edgeStyles, stopShapes, play, names }
               shapes.current[i] = el;
             }}
             className={`stop-shape stop-shape--${shape ?? 'none'}`}
+            style={shape === 'transparent' ? { '--stop-pin': `var(--pin-${pinStyles?.[i]?.color ?? 0})` } as CSSProperties : undefined}
             aria-hidden
           >
-            {shape && <PingIcon shape={shape} />}
+            {shape === 'transparent' ? <PinGlyph icon={pinStyles?.[i]?.icon ?? 'pin'} /> : shape && <PingIcon shape={shape} />}
           </div>
         );
       })}

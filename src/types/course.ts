@@ -1,4 +1,4 @@
-import type { EdgeStyle, PingShape } from '../domain/dayPings';
+import type { RouteEdgeStyle, RouteStopShape } from '../domain/routeStyle';
 import type { PlaceRef } from './travelRoute';
 
 export type { PlaceRef };
@@ -35,8 +35,8 @@ export interface Course {
   /** Set when this course was saved from someone else's share link. */
   sharedBy?: string;
   /** How it is drawn on the map (long-press a stop or a line); see domain/routeStyle. */
-  stopShapes?: (PingShape | null)[];
-  edgeStyles?: (EdgeStyle | null)[];
+  stopShapes?: (RouteStopShape | null)[];
+  edgeStyles?: (RouteEdgeStyle | null)[];
   createdAt: string;
   updatedAt?: string;
 }
@@ -50,8 +50,8 @@ export interface CourseDraft {
   stops: CourseStop[];
   note?: string;
   sharedBy?: string;
-  stopShapes?: (PingShape | null)[];
-  edgeStyles?: (EdgeStyle | null)[];
+  stopShapes?: (RouteStopShape | null)[];
+  edgeStyles?: (RouteEdgeStyle | null)[];
 }
 
 /** Self-contained snapshot carried by a share link. */

@@ -99,10 +99,10 @@ export default function RouteEditTray({ stops, note, onNote, onMove, onRemove, o
             aria-expanded={pickingFolder}
             onClick={() => setPickingFolder((v) => !v)}
           >
-            {filed?.icon ?? <Inbox size={20} aria-hidden />}
+            {filed?.name ?? <Inbox size={20} aria-hidden />}
           </button>
           {pickingFolder && (
-            <div className="route-edit__folders folder-picker" role="group" aria-label="폴더">
+            <div className="route-edit__folders folder-picker folder-name-options" role="group" aria-label="폴더">
               <button
                 className={`folder-picker__opt ${!filed ? 'is-on' : ''}`}
                 aria-label="미분류"
@@ -123,7 +123,7 @@ export default function RouteEditTray({ stops, note, onNote, onMove, onRemove, o
                     setPickingFolder(false);
                   }}
                 >
-                  {f.icon}
+                  {f.name}
                 </button>
               ))}
             </div>

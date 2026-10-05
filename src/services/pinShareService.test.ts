@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { samplePlaces } from '../test/fixtures';
 import type { SharedPinSet } from '../types/pin';
+import { EXTRA_PIN_ICONS } from '../types/categoryIcons';
 import {
   decodeSharedPinSet,
   encodeSharedPinSet,
@@ -39,6 +40,12 @@ const wire = {
 };
 
 describe('pin set share links', () => {
+  it('preserves additional icons through a shared pin link', () => {
+    for (const icon of Object.keys(EXTRA_PIN_ICONS) as (keyof typeof EXTRA_PIN_ICONS)[]) {
+      const shared = set({ categories: [{ name: '새 아이콘', icon, color: 1 }], pins: [{ place: samplePlaces.seoulForest, category: 0 }] });
+      expect(decodeSharedPinSet(encodeSharedPinSet(shared).token)).toEqual(shared);
+    }
+  });
   it('pin set round-trips through #pins= with colors, icons and categories', async () => {
     const service = new LinkPinShareService(() => 'https://goodroot.app/');
     const url = await service.createShareUrl(set());

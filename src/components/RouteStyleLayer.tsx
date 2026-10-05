@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { EDGE_STYLES, PING_SHAPES, PRESS, type EdgeStyle, type PingShape } from '../domain/dayPings';
+import { EDGE_STYLES, PING_SHAPES, PRESS, type EdgeStyle } from '../domain/dayPings';
+import type { RouteEdgeStyle, RouteStopShape } from '../domain/routeStyle';
 import { PingIcon } from './DayPings';
 import { stopCentre } from './StopLines';
 
 interface RouteStyleLayerProps {
   mapEl: HTMLElement | null;
   stopCount: number;
-  stopShapes?: (PingShape | null)[];
-  edgeStyles?: (EdgeStyle | null)[];
-  onStopShape: (index: number, shape: PingShape | null) => void;
-  onEdgeStyle: (index: number, style: EdgeStyle | null) => void;
+  stopShapes?: (RouteStopShape | null)[];
+  edgeStyles?: (RouteEdgeStyle | null)[];
+  onStopShape: (index: number, shape: RouteStopShape | null) => void;
+  onEdgeStyle: (index: number, style: RouteEdgeStyle | null) => void;
 }
 
 type Target = { kind: 'stop' | 'edge'; index: number };
@@ -125,6 +126,16 @@ export default function RouteStyleLayer({ mapEl, stopCount, stopShapes, edgeStyl
   const style = { '--x': `${picking.x}px`, '--y': `${picking.y}px` } as CSSProperties;
   return (
     <div className="ping-picker route-style-picker" role="dialog" aria-label={picking.kind === 'stop' ? `${picking.index + 1}번 장소 모양` : '선 스타일'} style={style}>
+      <button
+        className={`ping-picker__opt ${(picking.kind === 'stop' ? stopShapes?.[picking.index] : edgeStyles?.[picking.index]) === 'transparent' ? 'is-on' : ''}`}
+        aria-label={picking.kind === 'stop' ? '투명 · 개별 핀 아이콘' : '투명 선'}
+        aria-pressed={(picking.kind === 'stop' ? stopShapes?.[picking.index] : edgeStyles?.[picking.index]) === 'transparent'}
+        onClick={() => {
+          if (picking.kind === 'stop') onStopShape(picking.index, 'transparent');
+          else onEdgeStyle(picking.index, 'transparent');
+          setPicking(null);
+        }}
+      />
       {picking.kind === 'stop' ? (
         <>
           <button

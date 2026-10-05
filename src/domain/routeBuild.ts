@@ -1,5 +1,5 @@
 import { COURSE_LIMITS } from './course';
-import type { EdgeStyle, PingShape } from './dayPings';
+import type { RouteEdgeStyle, RouteStopShape } from './routeStyle';
 import { cleanRouteLook, type RouteLook } from './routeStyle';
 
 /**
@@ -35,8 +35,8 @@ export function nextRouteName(taken: Iterable<string>): string {
  * joins, either way round.
  */
 export interface BuildLook {
-  shapes: Record<string, PingShape>;
-  edges: Record<string, EdgeStyle>;
+  shapes: Record<string, RouteStopShape>;
+  edges: Record<string, RouteEdgeStyle>;
 }
 
 export const EMPTY_BUILD_LOOK: BuildLook = { shapes: {}, edges: {} };
@@ -55,7 +55,7 @@ export function buildRouteLook(ids: readonly string[], look: BuildLook): RouteLo
 }
 
 /** Long press on stop `index`: its pin's shape (null back to its number). */
-export function withBuildShape(look: BuildLook, ids: readonly string[], index: number, shape: PingShape | null): BuildLook {
+export function withBuildShape(look: BuildLook, ids: readonly string[], index: number, shape: RouteStopShape | null): BuildLook {
   const id = ids[index];
   if (!id) return look;
   const shapes = { ...look.shapes };
@@ -65,7 +65,7 @@ export function withBuildShape(look: BuildLook, ids: readonly string[], index: n
 }
 
 /** Long press on the line from stop `index` to the next. */
-export function withBuildEdge(look: BuildLook, ids: readonly string[], index: number, style: EdgeStyle | null): BuildLook {
+export function withBuildEdge(look: BuildLook, ids: readonly string[], index: number, style: RouteEdgeStyle | null): BuildLook {
   const a = ids[index];
   const b = ids[index + 1];
   if (!a || !b) return look;
