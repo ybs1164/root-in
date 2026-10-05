@@ -10,9 +10,11 @@ import {
   filterPins,
   filterPinsByCategories,
   importPinSet,
+  isPinColor,
   moveCategory,
   orderedCategories,
   PIN_LIMITS,
+  pinColorCss,
   placeCategory,
   removeCategory,
   UNCATEGORIZED,
@@ -40,6 +42,16 @@ const pin = (place: typeof onionSeongsu, categoryId: string, id = makeId()): Pin
 });
 
 describe('pins', () => {
+  it('a category colour is a palette entry or a lowercase #rrggbb from the palette wheel', () => {
+    expect(isPinColor(1)).toBe(true);
+    expect(isPinColor(8)).toBe(true);
+    expect(isPinColor('#ff4d6d')).toBe(true);
+    for (const bad of [0, 9, 1.5, '1', '#FF4D6D', '#fff', 'red', 'var(--x)', '#ff4d6d;', null]) expect(isPinColor(bad)).toBe(false);
+    expect(pinColorCss(3)).toBe('var(--pin-3)');
+    expect(pinColorCss(0)).toBe('var(--pin-0)');
+    expect(pinColorCss('#ff4d6d')).toBe('#ff4d6d');
+  });
+
   it('addPin keeps one pin per place id and updates its category instead of duplicating', () => {
     const first = upsertPin([], { place: onionSeongsu, categoryId: 'cafe' }, makePin);
     if ('problem' in first) throw new Error();

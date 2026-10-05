@@ -46,6 +46,13 @@ describe('pin set share links', () => {
       expect(decodeSharedPinSet(encodeSharedPinSet(shared).token)).toEqual(shared);
     }
   });
+  it('a colour picked from the palette survives a shared pin link; anything else in its place is refused', () => {
+    const shared = set({ categories: [{ name: '보라', icon: 'pin', color: '#7a3cff' }], pins: [{ place: samplePlaces.seoulForest, category: 0 }] });
+    expect(decodeSharedPinSet(encodeSharedPinSet(shared).token)).toEqual(shared);
+    for (const co of ['#7A3CFF', 'url(x)', '#7a3cff;color:red']) {
+      expect(decodeSharedPinSet(toToken({ ...wire, c: [{ n: '카페', ic: 'cafe', co }] }))).toBeNull();
+    }
+  });
   it('pin set round-trips through #pins= with colors, icons and categories', async () => {
     const service = new LinkPinShareService(() => 'https://goodroot.app/');
     const url = await service.createShareUrl(set());

@@ -2,6 +2,7 @@ import { X } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import type { SharedPinSet } from '../types/pin';
 import PinGlyph from './PinGlyph';
+import { pinColorCss } from '../domain/pin';
 
 interface SharedPinsViewProps {
   set: SharedPinSet;
@@ -38,7 +39,7 @@ export default function SharedPinsView({ set, saved, onSave, onFocus, onClose }:
           return (
             <li key={`${pin.place.id}-${i}`}>
               <button className="pin-row" onClick={() => onFocus(i)}>
-                <span className="pin-badge" style={{ '--pin': `var(--pin-${s.color})` } as CSSProperties} aria-hidden>
+                <span className="pin-badge" style={{ '--pin': pinColorCss(s.color) } as CSSProperties} aria-hidden>
                   <PinGlyph icon={s.icon} />
                 </span>
                 <span className="pin-row__text">

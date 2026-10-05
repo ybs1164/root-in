@@ -4,6 +4,7 @@ import type { PinIcon, PinTint } from '../types/pin';
 import PinGlyph from './PinGlyph';
 import { placeLabels } from '../domain/stopLabels';
 import { PingIcon } from './DayPings';
+import { pinColorCss } from '../domain/pin';
 
 /** Screen centre of the numbered stop marker `n` (1-based), if it's on the map. */
 export function stopCentre(n: number): { x: number; y: number } | null {
@@ -169,7 +170,7 @@ export default function StopLines({ count, edgeStyles, stopShapes, play, names, 
               shapes.current[i] = el;
             }}
             className={`stop-shape stop-shape--${shape ?? 'none'}`}
-            style={shape === 'transparent' ? { '--stop-pin': `var(--pin-${pinStyles?.[i]?.color ?? 0})` } as CSSProperties : undefined}
+            style={shape === 'transparent' ? { '--stop-pin': pinColorCss(pinStyles?.[i]?.color ?? 0) } as CSSProperties : undefined}
             aria-hidden
           >
             {shape === 'transparent' ? <PinGlyph icon={pinStyles?.[i]?.icon ?? 'pin'} /> : shape && <PingIcon shape={shape} />}

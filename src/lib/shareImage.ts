@@ -3,8 +3,8 @@ import type { PinIcon } from '../types/pin';
 import { pinGlyphSvg } from './pinGlyphs';
 import { latestPingIndex, layoutPings, type DayPing, type EdgeStyle } from '../domain/dayPings';
 import { ERASER_SCALE, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, textWeight, type DayDecor, type PlacedText, type ThemeId } from '../domain/decor';
-import { BACK_CARD, DRAWING_BOX, FRONT_CARD, POLAROID, SCENE, type CardPose } from '../domain/polaroid';
-import type { StopMark } from '../domain/shareSubject';
+import { CLOTHESLINE, clotheslineY, DEFAULT_LAYOUT, DRAWING_BOX, LAYOUT_CARDS, POLAROID, SCENE, TICKET, type CardPose, type PolaroidLayout } from '../domain/polaroid';
+import type { CardStamp, StopMark } from '../domain/shareSubject';
 import { paintPattern } from './dayPatterns';
 import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
 import { labelSide } from '../domain/stopLabels';
@@ -27,6 +27,10 @@ export interface ShareImageInput {
    * with the card. Left out (a route), the photo takes the card's theme.
    */
   photo?: DayDecor;
+  /** The pass's and the notebook's words (탑승권, 노트 layouts). */
+  stamp?: CardStamp;
+  /** Drawn smaller (the layout picker's previews): a fraction of the full size. */
+  scale?: number;
 }
 
 const W = SCENE.w;
@@ -49,6 +53,10 @@ function tokens() {
     accent: get('--accent'),
     onAccent: get('--on-accent'),
     route: get('--route'),
+    perforation: get('--perforation'),
+    arrow: get('--ticket-arrow'),
+    peg: get('--clothespin'),
+    pegShade: get('--clothespin-shade'),
     font: getComputedStyle(document.body).fontFamily,
   };
 }
@@ -68,7 +76,7 @@ const DASHES: Record<EdgeStyle, { width: number; dash: number[]; cap: CanvasLine
  * Drawn from the data rather than screenshotting the DOM: sharp at any
  * size, and no capture library needed.
  */
-export async function renderShareImage({ pings, marks, edges, decor, withoutPieces, photo, icons }: ShareImageInput): Promise<string> {
+export async function renderShareImage({ pings, marks, edges, decor, withoutPieces, photo, icons, stamp, scale = 1 }: ShareImageInput): Promise<string> {
   await document.fonts?.ready;
   // Web fonts load only once something shows them; make sure the strip's
   // hand and the text boxes' fonts are in before drawing (one that won't
@@ -77,7 +85,12 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
     ...[...(withoutPieces ? [] : (decor?.texts ?? [])), ...(photo?.texts ?? [])].map((t) =>
       document.fonts?.load(textFont(t, 40), t.text).catch(() => undefined),
     ),
+    // The pass's caps and the notebook's hand.
+    document.fonts?.load(`40px ${CAPS}`, 'SEOUL').catch(() => undefined),
+    document.fonts?.load(`40px ${textFamily('pen')}`, '2026. 성수').catch(() => undefined),
   ]);
+  const layout: PolaroidLayout = decor?.layout ?? DEFAULT_LAYOUT;
+  const cards = LAYOUT_CARDS[layout];
   const c = tokens();
   const pinImages = await Promise.all(marks.map(async (mark, i) => {
     if (mark !== 'transparent') return null;
@@ -87,22 +100,25 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
     return img;
   }));
   const canvas = document.createElement('canvas');
-  canvas.width = W;
-  canvas.height = H;
+  canvas.width = Math.round(W * scale);
+  canvas.height = Math.round(H * scale);
   const ctx = canvas.getContext('2d')!;
+  ctx.scale(scale, scale);
 
-  ctx.fillStyle = c.backdrop;
-  ctx.fillRect(0, 0, W, H);
+  drawBackdrop(ctx, c, layout);
   // The background pattern, as a still frame even if it flows on screen.
   if (decor?.pattern) paintPattern(ctx, decor.pattern, { w: W, h: H }, W / 390, c.accent);
+  if (layout === 'ticket') drawTicket(ctx, c, stamp);
 
-  // The blank card behind, then the one with the photo.
-  onCard(ctx, BACK_CARD, () => {
-    drawPaper(ctx, c);
-    ctx.fillStyle = c.photo;
-    ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
-  });
-  onCard(ctx, FRONT_CARD, () => {
+  // The blank card behind (두 장), then the one with the photo.
+  if (cards.back) {
+    onCard(ctx, cards.back, () => {
+      drawPaper(ctx, c);
+      ctx.fillStyle = c.photo;
+      ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
+    });
+  }
+  onCard(ctx, cards.front, () => {
     drawPaper(ctx, c);
     ctx.save();
     ctx.beginPath();
@@ -127,7 +143,11 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
     });
     ctx.restore();
     // The strip's title is one of the card's text boxes (withCardTitle), drawn with the pieces.
+    if (layout === 'tape') drawTape(ctx, c);
+    if (layout === 'notebook') drawClip(ctx, c);
   });
+  if (layout === 'line') drawPegs(ctx, c);
+  if (layout === 'notebook') drawNoteDate(ctx, c, stamp);
 
   if (decor && !withoutPieces) drawDecor(ctx, decor, c.font, SCENE_FRAME);
   return canvas.toDataURL('image/png');
@@ -157,8 +177,247 @@ function onCard(ctx: CanvasRenderingContext2D, pose: CardPose, draw: () => void)
   ctx.save();
   ctx.translate(pose.cx, pose.cy);
   ctx.rotate((pose.angle * Math.PI) / 180);
+  ctx.scale(pose.scale ?? 1, pose.scale ?? 1);
   ctx.translate(-POLAROID.w / 2, -POLAROID.h / 2);
   draw();
+  ctx.restore();
+}
+
+type Tokens = ReturnType<typeof tokens>;
+
+/** The boarding pass's condensed caps (the calendar title's face). */
+const CAPS = '"Bebas Neue", "Oswald", sans-serif';
+
+/** Runs `draw` with the canvas a little see-through. */
+function faint(ctx: CanvasRenderingContext2D, alpha: number, draw: () => void) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  draw();
+  ctx.restore();
+}
+
+/**
+ * What the cards lie on: plain white in every layout (the card paper's white,
+ * whatever the theme); a background pattern goes over it. 항로 adds its
+ * dashed flight and 빨랫줄 its line, behind the card.
+ */
+function drawBackdrop(ctx: CanvasRenderingContext2D, c: Tokens, layout: PolaroidLayout) {
+  ctx.fillStyle = c.card;
+  ctx.fillRect(0, 0, W, H);
+  if (layout === 'map') drawFlight(ctx, c);
+  if (layout === 'line') drawClothesline(ctx, c);
+}
+
+/** 빨랫줄: the sagging line, behind the card and its pegs. */
+function drawClothesline(ctx: CanvasRenderingContext2D, c: Tokens) {
+  const { from, control, to } = CLOTHESLINE;
+  ctx.save();
+  ctx.strokeStyle = c.muted;
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(from.x, from.y);
+  ctx.quadraticCurveTo(control.x, control.y, to.x, to.y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** 빨랫줄: two wooden pegs on the line, gripping the card's top edge, each turned along the line. */
+function drawPegs(ctx: CanvasRenderingContext2D, c: Tokens) {
+  for (const x of CLOTHESLINE.pegs) {
+    const y = clotheslineY(x);
+    const slope = (clotheslineY(x + 1) - clotheslineY(x - 1)) / 2;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(Math.atan(slope) * 0.8);
+    ctx.save();
+    ctx.shadowColor = c.cardShadow;
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 6;
+    ctx.fillStyle = c.peg;
+    ctx.beginPath();
+    ctx.roundRect(-34, -70, 68, 220, 12);
+    ctx.fill();
+    ctx.restore();
+    // The two halves' seam, and the metal spring band across them.
+    ctx.fillStyle = c.pegShade;
+    ctx.fillRect(-2, -62, 4, 204);
+    ctx.fillStyle = c.muted;
+    ctx.fillRect(-38, 6, 76, 22);
+    ctx.restore();
+  }
+}
+
+/** 항로: a dashed flight across the scene, its plane near the start. */
+function drawFlight(ctx: CanvasRenderingContext2D, c: Tokens) {
+  ctx.save();
+  ctx.strokeStyle = c.accent;
+  ctx.lineWidth = 6;
+  ctx.setLineDash([22, 18]);
+  ctx.beginPath();
+  ctx.moveTo(40, 1960);
+  ctx.bezierCurveTo(260, 1600, 140, 700, 1360, 120);
+  ctx.stroke();
+  ctx.restore();
+  drawPlane(ctx, c.accent, 150, 1720, -62, 1.4);
+}
+
+/** A small plane (lucide's, stroked), centred on x, y, nose turned `angle` degrees from the right. */
+function drawPlane(ctx: CanvasRenderingContext2D, color: string, x: number, y: number, angle: number, k: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(((angle + 45) * Math.PI) / 180);
+  ctx.scale(k * 3, k * 3);
+  ctx.translate(-12, -12);
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  const plane = new Path2D(PLANE_PATH);
+  ctx.fill(plane);
+  ctx.stroke(plane);
+  ctx.restore();
+}
+
+const PLANE_PATH =
+  'M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z';
+
+/** 테이프: see-through accent masking tape over the card's two top corners (card pixels). */
+function drawTape(ctx: CanvasRenderingContext2D, c: Tokens) {
+  for (const [x, turn] of [[40, -38], [POLAROID.w - 40, 38]] as const) {
+    ctx.save();
+    ctx.translate(x, 40);
+    ctx.rotate((turn * Math.PI) / 180);
+    faint(ctx, 0.42, () => {
+      ctx.fillStyle = c.accent;
+      ctx.fillRect(-170, -48, 340, 96);
+    });
+    ctx.restore();
+  }
+}
+
+/** 노트: a paperclip over the card's top edge, near its left (card pixels). */
+function drawClip(ctx: CanvasRenderingContext2D, c: Tokens) {
+  ctx.save();
+  ctx.translate(250, -70);
+  ctx.strokeStyle = c.muted;
+  ctx.lineWidth = 12;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.roundRect(-38, 0, 76, 250, 38);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-14, 200);
+  ctx.lineTo(-14, 60);
+  ctx.arc(4, 60, 18, Math.PI, 0);
+  ctx.lineTo(22, 170);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** `2026-10-05` as written on a print: 2026.10.05 (or by hand, 2026. 10. 5). */
+const dotDate = (date: string, hand = false) => {
+  const [y, m, d] = date.split('-');
+  return hand ? `${y}. ${Number(m)}. ${Number(d)}` : `${y}.${m}.${d}`;
+};
+
+/** 노트: the date (and the place) in hand on the page's lines under the card. */
+function drawNoteDate(ctx: CanvasRenderingContext2D, c: Tokens, stamp?: CardStamp) {
+  if (!stamp) return;
+  ctx.save();
+  ctx.fillStyle = c.text;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = `92px ${textFamily('pen')}`;
+  ctx.fillText(`${dotDate(stamp.date, true)}${stamp.area ? ` · ${stamp.area}` : ''}`, 200, 1818, W - 260);
+  ctx.restore();
+}
+
+/**
+ * 탑승권: a boarding pass under the card, a little askew — FROM → TO and the
+ * date and stops on the left, a torn-off stub with ROOT and a plane on the
+ * right, split by a dashed tear line with a notch at each end.
+ */
+function drawTicket(ctx: CanvasRenderingContext2D, c: Tokens, stamp?: CardStamp) {
+  const { w, h, stub } = TICKET;
+  const tear = w - stub;
+  ctx.save();
+  ctx.translate(TICKET.cx, TICKET.cy);
+  ctx.rotate((TICKET.angle * Math.PI) / 180);
+  ctx.translate(-w / 2, -h / 2);
+
+  // The paper, with the two notches cut where the tear line meets the edges
+  // (even-odd, so whatever is under the pass shows through them).
+  const paper = new Path2D();
+  paper.roundRect(0, 0, w, h, 30);
+  for (const y of [0, h]) {
+    paper.moveTo(tear + 22, y);
+    paper.arc(tear, y, 22, 0, Math.PI * 2);
+  }
+  ctx.save();
+  ctx.shadowColor = c.cardShadow;
+  ctx.shadowBlur = 40;
+  ctx.shadowOffsetY = 12;
+  ctx.fillStyle = c.card;
+  ctx.fill(paper, 'evenodd');
+  ctx.restore();
+  ctx.strokeStyle = c.perforation;
+  ctx.lineWidth = 4;
+  ctx.setLineDash([14, 12]);
+  ctx.beginPath();
+  ctx.moveTo(tear, 34);
+  ctx.lineTo(tear, h - 34);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // FROM → TO, then the date and the stops.
+  // Long names shrink to fit before the tear line.
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+  const room = tear - 64 - 36;
+  const from = (stamp?.from ?? 'MY ROUTE').toUpperCase();
+  const to = stamp?.from && stamp.to ? stamp.to.toUpperCase() : '';
+  const widthAt = (size: number) => {
+    ctx.font = `${size}px ${CAPS}`;
+    const words = ctx.measureText(from).width + (to ? ctx.measureText(to).width : 0);
+    ctx.font = `${size * 0.7}px ${CAPS}`;
+    return words + (to ? ctx.measureText('→').width + size * 0.56 : 0);
+  };
+  const size = Math.min(92, (92 * room) / widthAt(92));
+  let x = 64;
+  ctx.fillStyle = c.muted;
+  ctx.font = `${size}px ${CAPS}`;
+  ctx.fillText(from, x, 150);
+  if (to) {
+    x += ctx.measureText(from).width + size * 0.28;
+    ctx.fillStyle = c.arrow;
+    ctx.font = `${size * 0.7}px ${CAPS}`;
+    ctx.fillText('→', x, 150 - size * 0.1);
+    x += ctx.measureText('→').width + size * 0.28;
+    ctx.fillStyle = c.muted;
+    ctx.font = `${size}px ${CAPS}`;
+    ctx.fillText(to, x, 150);
+  }
+  if (stamp) {
+    ctx.fillStyle = c.muted;
+    ctx.font = `48px ${CAPS}`;
+    ctx.fillText(`${dotDate(stamp.date)} · ${stamp.stops} ${stamp.stops === 1 ? 'STOP' : 'STOPS'}`, 64, 226, room);
+  }
+
+  // The stub: ROOT and a plane.
+  ctx.textAlign = 'center';
+  ctx.fillStyle = c.muted;
+  ctx.font = `46px ${CAPS}`;
+  ctx.letterSpacing = '8px';
+  ctx.fillText('ROOT', tear + stub / 2, 128, stub - 40);
+  ctx.letterSpacing = '0px';
+  ctx.restore();
+  ctx.save();
+  // The plane in the stub, turned with the pass.
+  const t = (TICKET.angle * Math.PI) / 180;
+  const sx = tear + stub / 2 - w / 2;
+  const sy = 205 - h / 2;
+  drawPlane(ctx, c.accent, TICKET.cx + sx * Math.cos(t) - sy * Math.sin(t), TICKET.cy + sx * Math.sin(t) + sy * Math.cos(t), -90 + TICKET.angle, 1.6);
   ctx.restore();
 }
 

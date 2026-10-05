@@ -1,7 +1,7 @@
 import { Check } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { addressRoute } from '../domain/addressRoute';
-import { categoriesWithUncategorized, categoryStyle, findCategory, PIN_LIMITS, UNCATEGORIZED } from '../domain/pin';
+import { categoriesWithUncategorized, categoryStyle, findCategory, PIN_LIMITS, UNCATEGORIZED, pinColorCss } from '../domain/pin';
 import type { PlaceRef } from '../types/course';
 import type { PinCategory } from '../types/pin';
 import PinGlyph from './PinGlyph';
@@ -69,7 +69,7 @@ export default function NewPinCard({ place, categories, onSave, onClose }: NewPi
               <button
                 key={category.id}
                 className={`folder-picker__opt pin-card__icon-opt ${on ? 'is-on' : ''}`}
-                style={{ '--pin': `var(--pin-${s.color})` } as CSSProperties}
+                style={{ '--pin': pinColorCss(s.color) } as CSSProperties}
                 aria-label={category.name}
                 aria-pressed={on}
                 onClick={() => {
@@ -124,7 +124,7 @@ export default function NewPinCard({ place, categories, onSave, onClose }: NewPi
         <span className="pin-card__group">GROUP</span>
         <button
           className="pin-card__category is-editable"
-          style={{ '--pin': `var(--pin-${style.color})` } as CSSProperties}
+          style={{ '--pin': pinColorCss(style.color) } as CSSProperties}
           aria-label={`그룹 바꾸기 (지금 ${findCategory(categories, categoryId).name})`}
           aria-expanded={picking}
           onClick={() => setPicking((v) => !v)}

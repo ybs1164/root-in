@@ -4,6 +4,7 @@ import {
   type Pin,
   type PinCategory,
   type PinColor,
+  type PinPaletteColor,
   type PinIcon,
   type PinTint,
   type SharedPin,
@@ -35,7 +36,17 @@ export const DEFAULT_CATEGORIES: PinCategory[] = [
 
 export const isPinIcon = (value: unknown): value is PinIcon => typeof value === 'string' && value in PIN_ICONS;
 export const isPinColor = (value: unknown): value is PinColor =>
-  typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 8;
+  (typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 8) ||
+  (typeof value === 'string' && /^#[0-9a-f]{6}$/.test(value));
+
+/**
+ * The category form's seven swatches: the palette without its grey (8), whose
+ * place is the rainbow button. Old categories in grey keep drawing in it.
+ */
+export const PIN_SWATCHES: PinPaletteColor[] = [1, 2, 3, 4, 5, 6, 7];
+
+/** CSS for a pin colour: palette entries (and 미분류's 0) by token, wheel picks as they are. */
+export const pinColorCss = (color: PinTint): string => (typeof color === 'string' ? color : `var(--pin-${color})`);
 
 const byOrder = (a: PinCategory, b: PinCategory) => a.order - b.order || a.name.localeCompare(b.name);
 

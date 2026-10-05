@@ -4,7 +4,10 @@
  * drawing box (0..1), so they survive any screen size and the share image.
  */
 
-export type DecorTool = 'sticker' | 'pen' | 'text' | 'theme' | 'pattern';
+import type { PolaroidLayout } from './polaroid';
+
+/** 'polaroid' (the card's layout) is the share screen's only. */
+export type DecorTool = 'sticker' | 'pen' | 'text' | 'theme' | 'pattern' | 'polaroid';
 
 export interface PlacedSticker {
   id: string;
@@ -138,6 +141,8 @@ export interface DayDecor {
    * be edited or thrown away like any other, and stays away once it is).
    */
   titled?: true;
+  /** Share cards only: how the polaroid lies on the image (absent = DEFAULT_LAYOUT). */
+  layout?: PolaroidLayout;
 }
 
 export const EMPTY_DECOR: DayDecor = { stickers: [], strokes: [] };
@@ -266,7 +271,7 @@ export const THEMES: { id: ThemeId; label: string }[] = [
 ];
 
 /** Background patterns (꾸미기); some drift slowly on screen, the share image is a still. */
-export type PatternId = 'none' | 'dots' | 'grid' | 'stripes' | 'waves' | 'hearts' | 'stars' | 'snow';
+export type PatternId = 'none' | 'dots' | 'grid' | 'stripes' | 'waves' | 'hearts' | 'stars' | 'snow' | 'notes';
 
 export const PATTERNS: { id: PatternId; label: string }[] = [
   { id: 'none', label: '없음' },
@@ -277,6 +282,7 @@ export const PATTERNS: { id: PatternId; label: string }[] = [
   { id: 'hearts', label: '하트' },
   { id: 'stars', label: '별' },
   { id: 'snow', label: '눈' },
+  { id: 'notes', label: '노트' },
 ];
 
 export const isPatternId = (value: unknown): value is PatternId => PATTERNS.some((p) => p.id === value);

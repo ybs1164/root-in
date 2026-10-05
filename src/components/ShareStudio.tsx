@@ -17,10 +17,9 @@ import {
   type TextStyle,
   type ThemeId,
 } from '../domain/decor';
-import { SCENE } from '../domain/polaroid';
-import { withCardTitle, type ShareSubject } from '../domain/shareSubject';
+import { DEFAULT_LAYOUT, POLAROID_LAYOUTS, SCENE, type PolaroidLayout } from '../domain/polaroid';
+import { withCardTitle, withLayout, type ShareSubject } from '../domain/shareSubject';
 import { canShareImage, downloadDataUrl, renderShareImage, shareImage } from '../lib/shareImage';
-import { loadDecor, saveDecor, type DecorStore } from '../services/decorRepository';
 import DecorLayer, { type TextFocus } from './DecorLayer';
 import { DecorRail, DecorTray } from './DecorTools';
 
@@ -42,26 +41,13 @@ interface ShareStudioProps {
  * day screen as it looks there, with its own theme, pattern and pieces;
  * what's chosen here is apart from it); the bottom row
  * saves the finished card, copies its link or hands it to an SNS app.
- * Decorations are kept per card, so it opens again the way it was left.
+ * Nothing here is kept: each visit starts from a fresh card (title only,
+ * default layout), and leaving throws the decorations away. A day's own
+ * 꾸미기 on its day screen is kept as ever and shows in the photo.
  */
 export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioProps) {
-  const { key } = subject;
-  // The title is a text box like any other (it can be edited or thrown away);
-  // a card gets it once, the first time it's opened.
-  const [store, setStore] = useState<DecorStore>(() => {
-    const loaded = loadDecor();
-    return { ...loaded, [key]: withCardTitle(loaded[key] ?? EMPTY_DECOR, subject.title) };
-  });
-  const loaded = useRef(true);
-  useEffect(() => {
-    if (loaded.current) {
-      loaded.current = false;
-      return;
-    }
-    saveDecor(store);
-  }, [store]);
-  const decor = store[key] ?? EMPTY_DECOR;
-  const setDecor = (next: DayDecor) => setStore((s) => ({ ...s, [key]: next }));
+  // The title is a text box like any other (it can be edited or thrown away).
+  const [decor, setDecor] = useState<DayDecor>(() => withCardTitle(EMPTY_DECOR, subject.title, subject.titleAt));
 
   // Undo / redo, for this visit only.
   const [history, setHistory] = useState<DecorHistory>(EMPTY_HISTORY);
@@ -103,13 +89,33 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
   const [base, setBase] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
-    renderShareImage({ ...subject, decor: { ...EMPTY_DECOR, pattern: decor.pattern }, withoutPieces: true }).then(
+    renderShareImage({ ...subject, decor: { ...EMPTY_DECOR, pattern: decor.pattern, layout: decor.layout }, withoutPieces: true }).then(
       (url) => alive && setBase(url),
     );
     return () => {
       alive = false;
     };
-  }, [theme, decor.pattern]);
+  }, [theme, decor.pattern, decor.layout]);
+
+  // The 폴라로이드 sheet's cards: this card drawn small in every layout (with
+  // its theme and pattern, without pieces), once the sheet is opened.
+  const [layoutPreviews, setLayoutPreviews] = useState<Partial<Record<PolaroidLayout, string>>>({});
+  const wantsPreviews = tool === 'polaroid';
+  useEffect(() => {
+    if (!wantsPreviews) return;
+    let alive = true;
+    setLayoutPreviews({});
+    (async () => {
+      for (const { id } of POLAROID_LAYOUTS) {
+        const url = await renderShareImage({ ...subject, decor: { ...EMPTY_DECOR, pattern: decor.pattern, layout: id }, withoutPieces: true, scale: 0.12 });
+        if (!alive) return;
+        setLayoutPreviews((prev) => ({ ...prev, [id]: url }));
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [wantsPreviews, theme, decor.pattern]);
 
   // The text tool's toolbar is for a written box that's been picked: it
   // stays down while nothing is picked, and while typing (the keyboard is up).
@@ -285,6 +291,9 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
           onPattern={(next) => setDecor({ ...decor, pattern: next === 'none' ? undefined : next })}
           textStyle={sheetTextStyle}
           onTextStyle={changeTextStyle}
+          layout={decor.layout ?? DEFAULT_LAYOUT}
+          onLayout={(next) => next !== (decor.layout ?? DEFAULT_LAYOUT) && changeDecor(withLayout(decor, next))}
+          layoutPreviews={layoutPreviews}
         />
       )}
     </div>

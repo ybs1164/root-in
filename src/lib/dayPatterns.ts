@@ -24,6 +24,8 @@ export interface PatternTile {
   /** Outlines rather than filled shapes, at this width. */
   stroke?: number;
   flow?: { x: number; y: number; seconds: number };
+  /** One upright rule at `x` from the area's left edge (not repeated): a notebook's margin. */
+  margin?: { x: number; width: number };
 }
 
 const dot = (cx: number, cy: number, r: number) => `M${cx - r} ${cy}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`;
@@ -118,6 +120,8 @@ export const PATTERN_TILES: Record<Exclude<PatternId, 'none'>, PatternTile> = {
     marks: scatter(3, 320, [{ kind: 'dot', count: 22, r: [2.2, 7] }]),
     flow: { x: 0, y: 320, seconds: 29 },
   },
+  // A notebook's ruled lines, and its margin rule down the left once.
+  notes: { size: 30, marks: [{ d: 'M0 28H30V30H0Z' }], margin: { x: 40, width: 2 } },
 };
 
 /** SVG transform for a mark within its tile. */
@@ -159,6 +163,7 @@ export function paintPattern(
       }
     }
   }
+  if (tile.margin) ctx.fillRect(tile.margin.x, 0, tile.margin.width, area.h / unit);
   ctx.restore();
 }
 

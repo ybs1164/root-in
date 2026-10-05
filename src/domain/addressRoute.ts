@@ -112,3 +112,14 @@ export function addressRoute(address: string | undefined): AddressRoute | null {
     ...(area && area !== city ? { to: capitalize(romanize(area)) } : {}),
   };
 }
+
+/**
+ * The neighbourhood of a Korean address in Korean (성수동1가 → 성수), else its
+ * most specific 시·군·구: what the 노트 card writes by hand after the date.
+ */
+export function addressArea(address: string | undefined): string | null {
+  const tokens = (address ?? '').trim().split(/\s+/).filter(Boolean).slice(1);
+  const dong = tokens.map((t) => /^([가-힣]+?)\d*(동|읍|면)(\d+가)?$/.exec(t)?.[1]).find(Boolean);
+  const district = [...tokens].reverse().map((t) => /^([가-힣]+)(구|군|시)$/.exec(t)?.[1]).find(Boolean);
+  return dong ?? district ?? null;
+}

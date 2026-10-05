@@ -700,8 +700,8 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
           aria-hidden
         >
           <div className="route-row__main">
-            {folderOf(folders, draggedRoute.id) && <span className="route-row__folder">{folderName(folderOf(folders, draggedRoute.id)!)}</span>}
             <strong>{draggedRoute.title || '이름 없는 경로'}</strong>
+            {folderOf(folders, draggedRoute.id) && <span className="route-row__folder">{folderName(folderOf(folders, draggedRoute.id)!)}</span>}
             {/* Several carried at once: how many. */}
             {rowDrag.ids.length > 1 && <span className="route-row--ghost__count">{rowDrag.ids.length}</span>}
           </div>
@@ -783,15 +783,13 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
                     )}
                     {/* A stop on the dashed line down the list: hollow, filled for the route on show. */}
                     {!selecting && <span className={`route-row__dot ${shown ? 'is-on' : ''}`} aria-hidden />}
-                    {/* Its folder's name, before the route name; a route in none keeps the slot empty so the names line up. */}
-                    {filed ? (
+                    <strong>{c.title || '이름 없는 경로'}</strong>
+                    {/* Its folder's name, after the route name (a route in none shows nothing). */}
+                    {filed && (
                       <span className="route-row__folder" aria-label={`${folderName(filed)}에 있음`}>
                         {folderName(filed)}
                       </span>
-                    ) : (
-                      <span className="route-row__folder" aria-hidden />
                     )}
-                    <strong>{c.title || '이름 없는 경로'}</strong>
                   </button>
                   {/* The open route's tool: small, at its bottom right (delete asks first). */}
                   {shown && (

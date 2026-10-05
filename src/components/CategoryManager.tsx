@@ -1,7 +1,7 @@
 import { GripVertical, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
-import { categoryStyle, isUncategorized, orderedCategories, UNCATEGORIZED } from '../domain/pin';
-import type { Pin, PinCategory } from '../types/pin';
+import { categoryStyle, isUncategorized, orderedCategories, UNCATEGORIZED, pinColorCss } from '../domain/pin';
+import type { Pin, PinCategory, PinTint } from '../types/pin';
 import ConfirmDialog from './ConfirmDialog';
 import PinGlyph from './PinGlyph';
 
@@ -206,8 +206,8 @@ export default function CategoryManager({
     );
   };
 
-  const badge = (color: string, icon: Parameters<typeof PinGlyph>[0]['icon']) => (
-    <span className={`pin-badge ${color === '0' ? 'pin-badge--none' : ''}`} style={{ '--pin': `var(--pin-${color})` } as CSSProperties} aria-hidden>
+  const badge = (color: PinTint, icon: Parameters<typeof PinGlyph>[0]['icon']) => (
+    <span className={`pin-badge ${color === 0 ? 'pin-badge--none' : ''}`} style={{ '--pin': pinColorCss(color) } as CSSProperties} aria-hidden>
       <PinGlyph icon={icon} />
     </span>
   );
@@ -227,7 +227,7 @@ export default function CategoryManager({
           {editing ? (
             <div className="cat-item__head">
               <span className="cat-item__grip is-blank" aria-hidden />
-              {badge('0', 'pin')}
+              {badge(0, 'pin')}
               <span className="cat-item__name">{UNCATEGORIZED.name}</span>
             </div>
           ) : (
@@ -236,7 +236,7 @@ export default function CategoryManager({
               aria-expanded={uncategorizedOpen}
               onClick={() => setOpen(uncategorizedOpen ? null : UNCATEGORIZED.id)}
             >
-              {badge('0', 'pin')}
+              {badge(0, 'pin')}
               <span className="cat-item__name">{UNCATEGORIZED.name}</span>
               <span className="cat-item__count">{countLabel(UNCATEGORIZED.id)}</span>
             </button>
@@ -276,7 +276,7 @@ export default function CategoryManager({
                   >
                     <GripVertical size={20} aria-hidden />
                   </span>
-                  {badge(String(style.color), style.icon)}
+                  {badge(style.color, style.icon)}
                   <span className="cat-item__name">{category.name}</span>
                   {/* In the count's place: ✎ (핀 카테고리 편집) and 🗑, right-aligned. Their own presses aren't the row's. */}
                   <span className="cat-item__tools" onPointerDown={(e) => e.stopPropagation()}>
@@ -300,7 +300,7 @@ export default function CategoryManager({
                   onContextMenu={(e) => e.preventDefault()}
                   onClick={() => setOpen(expanded ? null : category.id)}
                 >
-                  {badge(String(style.color), style.icon)}
+                  {badge(style.color, style.icon)}
                   <span className="cat-item__name">{category.name}</span>
                   <span className="cat-item__count">{countLabel(category.id)}</span>
                 </button>
