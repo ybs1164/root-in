@@ -21,6 +21,15 @@ export function isAllPicked(picked: ReadonlySet<string>, categoryIds: readonly s
   return !categoryIds.some((id) => picked.has(id));
 }
 
+/**
+ * ALL tapped: while it is on (every pin showing), a tap hides every pin and
+ * turns it off; the next tap — or any tap while categories are picked —
+ * brings every pin back with ALL on.
+ */
+export function tapAll(hidden: boolean, picked: ReadonlySet<string>, categoryIds: readonly string[]): { picked: Set<string>; hidden: boolean } {
+  return { picked: new Set(), hidden: !hidden && isAllPicked(picked, categoryIds) };
+}
+
 /** Taps a category in or out of the picked set. */
 export function togglePicked(picked: ReadonlySet<string>, id: string): Set<string> {
   const next = new Set(picked);

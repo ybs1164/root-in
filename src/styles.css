@@ -142,8 +142,14 @@
   /* Theme swatches in the 꾸미기 → 테마 tray: each theme's background and accent. */
   --swatch-default-bg: #ffffff;
   --swatch-default-accent: #2f6fe0;
-  --swatch-night-bg: #1b1715;
-  --swatch-night-accent: #f07a62;
+  --swatch-matcha-bg: #eef1e3;
+  --swatch-matcha-accent: #6b8e3e;
+  --swatch-custard-bg: #fdf3d8;
+  --swatch-custard-accent: #a8692a;
+  --swatch-yellow-bg: #fff8d6;
+  --swatch-yellow-accent: #f2c200;
+  --swatch-y2k-bg: #e4e8f0;
+  --swatch-y2k-accent: #ff5fa8;
   --swatch-mint-bg: #e6f4ee;
   --swatch-mint-accent: #2f9e7a;
   --swatch-lavender-bg: #efeafb;
@@ -159,7 +165,11 @@
 }
 
 /* Themes (꾸미기 → 테마), set on <html data-theme>. They win over the
-   system dark mode: a light theme stays light, 밤 is dark everywhere. */
+   system dark mode: every theme stays light. */
+:root[data-theme='matcha'],
+:root[data-theme='custard'],
+:root[data-theme='yellow'],
+:root[data-theme='y2k'],
 :root[data-theme='mint'],
 :root[data-theme='lovely'],
 :root[data-theme='love'],
@@ -248,33 +258,53 @@
   --route: #2b2b2b;
 }
 
-:root[data-theme='night'] {
-  color-scheme: dark;
-  --perforation: rgba(243, 235, 229, 0.22);
-  --ticket-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
-  --bg: #1b1715;
-  --surface: #25201d;
-  --surface-2: #2f2926;
-  --text: #f3ebe5;
-  --muted: #a8998f;
-  --border: rgba(243, 235, 229, 0.12);
-  --accent: #f07a62;
-  --accent-strong: #ff8d76;
-  --accent-soft: #4a2a23;
-  --on-accent: #1b1715;
-  --route: #f07a62;
-  --sage: #7cc39b;
-  --sage-soft: #23382c;
-  --sky: #7fb1e6;
-  --sky-soft: #1f3044;
-  --on-sky: #10161d;
-  --amber: #e3b25e;
-  --amber-soft: #3d3020;
-  --danger: #ff7b7b;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
-  --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.45);
-  --backdrop: rgba(0, 0, 0, 0.6);
+:root[data-theme='matcha'] {
+  --bg: #f3f5ec;
+  --surface: #fbfcf7;
+  --surface-2: #e7ecd9;
+  --accent: #6b8e3e;
+  --accent-strong: #557330;
+  --accent-soft: #e1e9cf;
+  --route: #6b8e3e;
+}
+
+/* 커스터드: pudding yellow with caramel brown. */
+:root[data-theme='custard'] {
+  --bg: #fdf7e6;
+  --surface: #fffcf2;
+  --surface-2: #f9ecc6;
+  --text: #3d2a18;
+  --muted: #957a5c;
+  --accent: #a8692a;
+  --accent-strong: #87521d;
+  --accent-soft: #f8e4b2;
+  --route: #a8692a;
+}
+
+/* 노랑: a bright lemon yellow; dark ink on it, as white would not read. */
+:root[data-theme='yellow'] {
+  --bg: #fffbea;
+  --surface: #fffef6;
+  --surface-2: #fff4c4;
+  --accent: #f2c200;
+  --accent-strong: #c99f00;
+  --accent-soft: #fff0a6;
+  --on-accent: #3a2f00;
+  --route: #e6b400;
+}
+
+/* Y2K: silver ground, bubblegum pink, sky blue lines. */
+:root[data-theme='y2k'] {
+  --bg: #eef1f6;
+  --surface: #fafbfd;
+  --surface-2: #e2e6ee;
+  --text: #2a2f3d;
+  --muted: #7d8496;
+  --accent: #ff5fa8;
+  --accent-strong: #e8408f;
+  --accent-soft: #ffdcee;
+  --route: #4fb3ff;
+  --sky: #4fb3ff;
 }
 
 * {
@@ -1802,7 +1832,10 @@ button:disabled {
 }
 
 .theme-card--default { --card-bg: var(--swatch-default-bg); --card-accent: var(--swatch-default-accent); }
-.theme-card--night { --card-bg: var(--swatch-night-bg); --card-accent: var(--swatch-night-accent); }
+.theme-card--matcha { --card-bg: var(--swatch-matcha-bg); --card-accent: var(--swatch-matcha-accent); }
+.theme-card--custard { --card-bg: var(--swatch-custard-bg); --card-accent: var(--swatch-custard-accent); }
+.theme-card--yellow { --card-bg: var(--swatch-yellow-bg); --card-accent: var(--swatch-yellow-accent); }
+.theme-card--y2k { --card-bg: var(--swatch-y2k-bg); --card-accent: var(--swatch-y2k-accent); }
 .theme-card--mint { --card-bg: var(--swatch-mint-bg); --card-accent: var(--swatch-mint-accent); }
 .theme-card--lavender { --card-bg: var(--swatch-lavender-bg); --card-accent: var(--swatch-lavender-accent); }
 .theme-card--sky { --card-bg: var(--swatch-sky-bg); --card-accent: var(--swatch-sky-accent); }
@@ -5180,7 +5213,7 @@ button:disabled {
   background: var(--backdrop);
 }
 
-/* A spaced-caps English label with a short accent dash after it. */
+/* A spaced-caps English label with a thin plain rule after it, running to the line's end. */
 .label-dash {
   display: flex;
   align-items: center;
@@ -5196,16 +5229,19 @@ button:disabled {
 
 .label-dash::after {
   content: '';
-  width: 26px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--accent);
+  flex: 1;
+  min-width: 26px;
+  height: 1px;
+  background: var(--border);
 }
 
 .category-icon-picker__title {
   flex: none;
+  margin: 0;
   padding: 0 22px 14px;
-  font-size: 20px;
+  /* Like the category sheet's CATEGORY: the app's own face, ink colour, no dash. */
+  color: var(--text);
+  font-size: 22px;
 }
 
 .category-icon-picker__body {
@@ -5228,9 +5264,6 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
   gap: 4px;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: 18px;
 }
 
 .category-icon-picker__option {

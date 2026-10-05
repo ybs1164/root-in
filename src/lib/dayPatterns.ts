@@ -1,6 +1,9 @@
 import type { PatternId } from '../domain/decor';
 import { HEART_PATH, STAR_PATH } from './pingPaths';
 
+/** 💧 in a 24-unit box: a point on top, round at the bottom. */
+const DROP_PATH = 'M12 2C12 2 5 10.5 5 15a7 7 0 0 0 14 0C19 10.5 12 2 12 2Z';
+
 /**
  * Background patterns for a day (꾸미기), as one repeating tile each, so the
  * screen (an SVG <pattern>) and the share image (canvas) draw the same thing.
@@ -88,6 +91,8 @@ function scatter(seed: number, size: number, groups: Scatter[]): PatternMark[] {
 // previews in the 꾸미기 sheet, while staying a backdrop.
 export const PATTERN_TILES: Record<Exclude<PatternId, 'none'>, PatternTile> = {
   dots: { size: 44, marks: [{ d: dot(11, 11, 4) }, { d: dot(33, 33, 4) }] },
+  // 물방울: big polka dots, staggered.
+  polka: { size: 64, marks: [{ d: dot(16, 16, 10) }, { d: dot(48, 48, 10) }] },
   grid: { size: 44, stroke: 2, marks: [{ d: 'M0 1H44M1 0V44' }] },
   stripes: {
     size: 36,
@@ -114,6 +119,12 @@ export const PATTERN_TILES: Record<Exclude<PatternId, 'none'>, PatternTile> = {
       { kind: 'dot', count: 12, r: [1.6, 3.2] },
     ]),
     flow: { x: -320, y: 0, seconds: 44 },
+  },
+  // 💧 drops, scattered and drifting down like rain.
+  drops: {
+    size: 320,
+    marks: scatter(5, 320, [{ kind: { path: DROP_PATH }, count: 13, r: [7, 14], turn: 12 }]),
+    flow: { x: 0, y: 320, seconds: 26 },
   },
   snow: {
     size: 320,

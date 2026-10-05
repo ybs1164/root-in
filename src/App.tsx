@@ -27,7 +27,7 @@ import { calendarAgain, homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncomi
 import { COURSE_LIMITS } from './domain/course';
 import type { MapViewport } from './domain/districtMap';
 import { categoryStyle, filterPinsByCategories, isUncategorized, UNCATEGORIZED } from './domain/pin';
-import { pinRailNext, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
+import { pinRailNext, tapAll, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
 import { PRESS } from './domain/dayPings';
 import { buildRouteLook, EMPTY_BUILD_LOOK, nextRouteName, ROUTE_NOTE_MAX, toggleBuildStop, withBuildEdge, withBuildShape, type BuildLook } from './domain/routeBuild';
 import { addEditStop, moveStop, toggleEditStop, withEditStops, type RouteEdit } from './domain/routeEdit';
@@ -171,6 +171,8 @@ export default function App() {
   // Bumped to send the map back over to the route on show (after editing it).
   const [refit, setRefit] = useState(0);
   const [picked, setPicked] = useState<Set<string>>(new Set());
+  // ALL tapped while on: every pin hidden until ALL (or a category) is tapped again.
+  const [pinsHidden, setPinsHidden] = useState(false);
 
   const sharedCourse = incomingCourse.status === 'ready' ? incomingCourse.course : null;
   const sharedPins = incomingPins.status === 'ready' ? incomingPins.set : null;
@@ -222,7 +224,7 @@ export default function App() {
     const fade = window.setTimeout(() => setPinsAway('gone'), PINS_FADE_MS);
     return () => window.clearTimeout(fade);
   }, [shownRouteKey, routeLanded, pinsGone]);
-  const shownPins = useMemo(() => filterPinsByCategories(pins, categories, picked), [pins, categories, picked]);
+  const shownPins = useMemo(() => (pinsHidden ? [] : filterPinsByCategories(pins, categories, picked)), [pins, categories, picked, pinsHidden]);
 
   // Numbered course markers + solid route line.
   const shownStops = useMemo(() => {
@@ -580,7 +582,10 @@ export default function App() {
   // rail's filter hides it, back to ALL so its marker is there under the card.
   const pickListedPin = (id: string) => {
     const pin = pins.find((p) => p.id === id);
-    if (pin && filterPinsByCategories([pin], categories, picked).length === 0) setPicked(new Set());
+    if (pin && (pinsHidden || filterPinsByCategories([pin], categories, picked).length === 0)) {
+      setPicked(new Set());
+      setPinsHidden(false);
+    }
     openPin(id);
   };
 
@@ -911,8 +916,16 @@ export default function App() {
           categories={categories}
           counts={pinCounts}
           picked={picked}
-          onToggle={(id) => setPicked((prev) => togglePicked(prev, id))}
-          onAll={() => setPicked(new Set())}
+          hidden={pinsHidden}
+          onToggle={(id) => {
+            setPinsHidden(false);
+            setPicked((prev) => togglePicked(prev, id));
+          }}
+          onAll={() => {
+            const next = tapAll(pinsHidden, picked, [UNCATEGORIZED.id, ...categories.map((c) => c.id)]);
+            setPicked(next.picked);
+            setPinsHidden(next.hidden);
+          }}
           onCategories={() => setCategoriesOpen(true)}
         />
       )}

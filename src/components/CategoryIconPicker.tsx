@@ -11,9 +11,9 @@ interface CategoryIconPickerProps {
 }
 
 /**
- * The full icon library, above the category form: a rounded white card with
- * a spaced-caps ICON label and an accent dash, then each group under the same
- * kind of label in its own outlined panel. Picking an icon returns straight
+ * The full icon library, above the category form: a rounded white card
+ * titled ICON like the category sheet's CATEGORY, then each group under a
+ * spaced-caps label whose thin rule runs to the end of the line. Picking an icon returns straight
  * to the form; a tap outside (or Esc) closes it.
  */
 export default function CategoryIconPicker({ selected, onSelect, onClose }: CategoryIconPickerProps) {
@@ -38,7 +38,7 @@ export default function CategoryIconPicker({ selected, onSelect, onClose }: Cate
         if (backdrop.isBackdropTap(event.target)) dialogRef.current?.close();
       }}
     >
-      <h2 id="category-icon-picker-title" className="label-dash category-icon-picker__title">
+      <h2 id="category-icon-picker-title" className="category-icon-picker__title">
         <span aria-hidden>ICON</span>
         <span className="sr-only">아이콘 선택</span>
       </h2>

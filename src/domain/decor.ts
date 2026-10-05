@@ -257,32 +257,38 @@ export function extendStroke(points: [number, number][], x: number, y: number, m
 }
 
 /** Colour themes for the whole app (tokens in styles.css under :root[data-theme=…]). */
-export type ThemeId = 'default' | 'night' | 'lovely' | 'love' | 'sky' | 'mint' | 'lavender' | 'mono';
+export type ThemeId = 'default' | 'sky' | 'matcha' | 'mint' | 'custard' | 'yellow' | 'lovely' | 'love' | 'lavender' | 'y2k' | 'mono';
 
+/** In the 테마 sheet's order. (밤 is gone: a day saved in it reads as the default.) */
 export const THEMES: { id: ThemeId; label: string }[] = [
   { id: 'default', label: '기본' },
-  { id: 'night', label: '밤' },
+  { id: 'sky', label: '하늘' },
+  { id: 'matcha', label: '말차' },
+  { id: 'mint', label: '민트' },
+  { id: 'custard', label: '커스터드' },
+  { id: 'yellow', label: '노랑' },
   { id: 'lovely', label: '러블리' },
   { id: 'love', label: '러브' },
-  { id: 'sky', label: '하늘' },
-  { id: 'mint', label: '민트' },
   { id: 'lavender', label: '라벤더' },
+  { id: 'y2k', label: 'Y2K' },
   { id: 'mono', label: '모노' },
 ];
 
 /** Background patterns (꾸미기); some drift slowly on screen, the share image is a still. */
-export type PatternId = 'none' | 'dots' | 'grid' | 'stripes' | 'waves' | 'hearts' | 'stars' | 'snow' | 'notes';
+export type PatternId = 'none' | 'notes' | 'grid' | 'stripes' | 'waves' | 'dots' | 'polka' | 'drops' | 'hearts' | 'stars' | 'snow';
 
 export const PATTERNS: { id: PatternId; label: string }[] = [
   { id: 'none', label: '없음' },
-  { id: 'dots', label: '도트' },
+  { id: 'notes', label: '노트' },
   { id: 'grid', label: '모눈' },
   { id: 'stripes', label: '사선' },
   { id: 'waves', label: '물결' },
+  { id: 'dots', label: '도트' },
+  { id: 'polka', label: '물방울' },
+  { id: 'drops', label: '빗방울' },
   { id: 'hearts', label: '하트' },
   { id: 'stars', label: '별' },
   { id: 'snow', label: '눈' },
-  { id: 'notes', label: '노트' },
 ];
 
 export const isPatternId = (value: unknown): value is PatternId => PATTERNS.some((p) => p.id === value);
