@@ -9,7 +9,7 @@ import {
   DEFAULT_CATEGORIES,
   filterPins,
   filterPinsByCategories,
-  importPinSet,
+  addPlacesAsPins,
   isPinColor,
   moveCategory,
   orderedCategories,
@@ -143,18 +143,12 @@ describe('pins', () => {
     expect(set.sharedBy).toBe('지우');
   });
 
-  it('importing a set merges categories by name and creates the missing ones', () => {
-    const mine = DEFAULT_CATEGORIES;
-    const { set } = buildPinSet('x', [pin(onionSeongsu, 'dessert'), pin(seoulForest, 'cafe')], withDessert());
+  it("a received route's places join my pins in 미분류; ones already pinned keep their group", () => {
     const existing = [pin(seoulForest, 'food')];
-    const result = importPinSet(mine, existing, set, makeId, makePin);
-    const dessert = result.categories.find((c) => c.name === '디저트');
-    expect(dessert).toMatchObject({ icon: 'cafe', color: 5 });
-    expect(result.categories.filter((c) => c.name === '카페')).toHaveLength(1);
+    const result = addPlacesAsPins(existing, [onionSeongsu, seoulForest, onionSeongsu], makePin);
     expect(result.added).toBe(1);
-    // An already-pinned place is re-filed, not duplicated.
     expect(result.pins).toHaveLength(2);
-    expect(result.pins.find((p) => p.place.id === seoulForest.id)?.categoryId).toBe('cafe');
-    expect(result.pins.find((p) => p.place.id === onionSeongsu.id)?.categoryId).toBe(dessert?.id);
+    expect(result.pins.find((p) => p.place.id === onionSeongsu.id)?.categoryId).toBe(UNCATEGORIZED.id);
+    expect(result.pins.find((p) => p.place.id === seoulForest.id)?.categoryId).toBe('food');
   });
 });
