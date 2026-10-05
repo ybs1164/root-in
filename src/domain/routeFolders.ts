@@ -43,7 +43,7 @@ export const EMPTY_ROUTE_FOLDERS: RouteFolders = { folders: [], assign: {} };
 /** '#1', '#2', … skipping names already taken. */
 export function nextFolderName(folders: RouteFolder[]): string {
   const taken = new Set(folders.map((f) => f.name));
-  let n = folders.length + 1;
+  let n = 1;
   while (taken.has(`#${n}`)) n += 1;
   return `#${n}`;
 }

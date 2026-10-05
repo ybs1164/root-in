@@ -598,7 +598,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
       {confirming && (
         <ConfirmDialog
           label="폴더 삭제"
-          message={`${folderName(confirming)} 폴더를 삭제합니다.`}
+          message={`'${folderName(confirming)}' 폴더를 삭제합니다.`}
           detail="루트는 모두 미분류로 옮겨져요."
           onConfirm={() => onFolders(deleteFolder(folders, confirming))}
           onClose={() => {
