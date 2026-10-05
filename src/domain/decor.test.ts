@@ -18,8 +18,8 @@ describe('day decorations', () => {
     expect(STICKERS.length).toBeGreaterThan(10);
     expect(PEN_TOOLS.map((t) => t.tool)).toEqual(['pen', 'highlighter', 'neon', 'eraser']);
     expect(BASE_COLORS.map((c) => c.label)).toEqual(['검정', '흰색', '테마 색']);
-    expect(THEMES.map((t) => t.label)).toEqual(['기본', '하늘', '말차', '민트', '커스터드', '러블리', '러브', '라벤더', 'Y2K', '모노']);
-    expect(PATTERNS.map((p) => p.label)).toEqual(['없음', '노트', '모눈', '사선', '물결', '도트', '물방울', '하트', '별', '눈']);
+    expect(THEMES.map((t) => t.label)).toEqual(['기본', '하늘', '말차', '민트', '커스터드', '노랑', '러블리', '러브', '라벤더', 'Y2K', '모노']);
+    expect(PATTERNS.map((p) => p.label)).toEqual(['없음', '노트', '모눈', '사선', '물결', '도트', '물방울', '빗방울', '하트', '별', '눈']);
     expect(isThemeId('mint')).toBe(true);
     // 밤 is gone: a day stored in it reads as the default.
     expect(isThemeId('night')).toBe(false);

@@ -146,6 +146,8 @@
   --swatch-matcha-accent: #6b8e3e;
   --swatch-custard-bg: #fdf3d8;
   --swatch-custard-accent: #a8692a;
+  --swatch-yellow-bg: #fff8d6;
+  --swatch-yellow-accent: #f2c200;
   --swatch-y2k-bg: #e4e8f0;
   --swatch-y2k-accent: #ff5fa8;
   --swatch-mint-bg: #e6f4ee;
@@ -166,6 +168,7 @@
    system dark mode: every theme stays light. */
 :root[data-theme='matcha'],
 :root[data-theme='custard'],
+:root[data-theme='yellow'],
 :root[data-theme='y2k'],
 :root[data-theme='mint'],
 :root[data-theme='lovely'],
@@ -276,6 +279,18 @@
   --accent-strong: #87521d;
   --accent-soft: #f8e4b2;
   --route: #a8692a;
+}
+
+/* 노랑: a bright lemon yellow; dark ink on it, as white would not read. */
+:root[data-theme='yellow'] {
+  --bg: #fffbea;
+  --surface: #fffef6;
+  --surface-2: #fff4c4;
+  --accent: #f2c200;
+  --accent-strong: #c99f00;
+  --accent-soft: #fff0a6;
+  --on-accent: #3a2f00;
+  --route: #e6b400;
 }
 
 /* Y2K: silver ground, bubblegum pink, sky blue lines. */
@@ -1819,6 +1834,7 @@ button:disabled {
 .theme-card--default { --card-bg: var(--swatch-default-bg); --card-accent: var(--swatch-default-accent); }
 .theme-card--matcha { --card-bg: var(--swatch-matcha-bg); --card-accent: var(--swatch-matcha-accent); }
 .theme-card--custard { --card-bg: var(--swatch-custard-bg); --card-accent: var(--swatch-custard-accent); }
+.theme-card--yellow { --card-bg: var(--swatch-yellow-bg); --card-accent: var(--swatch-yellow-accent); }
 .theme-card--y2k { --card-bg: var(--swatch-y2k-bg); --card-accent: var(--swatch-y2k-accent); }
 .theme-card--mint { --card-bg: var(--swatch-mint-bg); --card-accent: var(--swatch-mint-accent); }
 .theme-card--lavender { --card-bg: var(--swatch-lavender-bg); --card-accent: var(--swatch-lavender-accent); }
