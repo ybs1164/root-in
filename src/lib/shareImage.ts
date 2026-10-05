@@ -146,7 +146,6 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
     if (layout === 'tape') drawTape(ctx, c);
     if (layout === 'notebook') drawClip(ctx, c);
   });
-  if (layout === 'single' || layout === 'line') drawWordmark(ctx, c);
   if (layout === 'line') drawPegs(ctx, c);
   if (layout === 'notebook') drawNoteDate(ctx, c, stamp);
 
@@ -313,17 +312,6 @@ function drawClip(ctx: CanvasRenderingContext2D, c: Tokens) {
   ctx.arc(4, 60, 18, Math.PI, 0);
   ctx.lineTo(22, 170);
   ctx.stroke();
-  ctx.restore();
-}
-
-/** 한 장: the small wordmark under the card. */
-function drawWordmark(ctx: CanvasRenderingContext2D, c: Tokens) {
-  ctx.save();
-  ctx.fillStyle = c.muted;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = `600 44px ${c.font}`;
-  ctx.fillText('root·in', W / 2, 1830);
   ctx.restore();
 }
 
