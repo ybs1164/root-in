@@ -2166,9 +2166,10 @@ button:disabled {
 .studio__card {
   position: relative;
   width: min(100cqw, 100cqh * 1400 / 2000); /* SCENE in domain/polaroid.ts */
-  border-radius: 14px;
-  /* The scene's own ground is the page colour too: no box of another colour around it. */
-  background: var(--bg);
+  /* No ground of its own: the screen's colour and pattern show through.
+     A thin grey line marks what gets saved. */
+  outline: 1.5px solid var(--muted);
+  outline-offset: 0;
 }
 
 .studio__image {

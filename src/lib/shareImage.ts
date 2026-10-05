@@ -31,6 +31,12 @@ export interface ShareImageInput {
   stamp?: CardStamp;
   /** Drawn smaller (the layout picker's previews): a fraction of the full size. */
   scale?: number;
+  /**
+   * Leave the ground out (no page colour, no pattern): the 꾸미기 screen
+   * shows the cards over its own full-screen ground, so its pattern runs
+   * on unbroken around the shared area.
+   */
+  withoutGround?: boolean;
 }
 
 const W = SCENE.w;
@@ -76,7 +82,7 @@ const DASHES: Record<EdgeStyle, { width: number; dash: number[]; cap: CanvasLine
  * Drawn from the data rather than screenshotting the DOM: sharp at any
  * size, and no capture library needed.
  */
-export async function renderShareImage({ pings, marks, edges, decor, withoutPieces, photo, icons, stamp, scale = 1 }: ShareImageInput): Promise<string> {
+export async function renderShareImage({ pings, marks, edges, decor, withoutPieces, photo, icons, stamp, scale = 1, withoutGround }: ShareImageInput): Promise<string> {
   await document.fonts?.ready;
   // Web fonts load only once something shows them; make sure the strip's
   // hand and the text boxes' fonts are in before drawing (one that won't
@@ -116,9 +122,9 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
   const ctx = canvas.getContext('2d')!;
   ctx.scale(scale, scale);
 
-  drawBackdrop(ctx, c, layout);
+  drawBackdrop(ctx, c, layout, !withoutGround);
   // The background pattern, as a still frame even if it flows on screen.
-  if (decor?.pattern) paintPattern(ctx, decor.pattern, { w: W, h: H }, W / 390, c.accent);
+  if (decor?.pattern && !withoutGround) paintPattern(ctx, decor.pattern, { w: W, h: H }, W / 390, c.accent);
   if (layout === 'ticket') drawTicket(ctx, c, stamp);
 
   // The blank card behind (두 장), then the one with the photo.
@@ -213,9 +219,11 @@ function faint(ctx: CanvasRenderingContext2D, alpha: number, draw: () => void) {
  * saved image; no layout paints a ground of its own. A background pattern
  * goes over it; 항로 adds its dashed flight and 빨랫줄 its line, behind the card.
  */
-function drawBackdrop(ctx: CanvasRenderingContext2D, c: Tokens, layout: PolaroidLayout) {
-  ctx.fillStyle = c.backdrop;
-  ctx.fillRect(0, 0, W, H);
+function drawBackdrop(ctx: CanvasRenderingContext2D, c: Tokens, layout: PolaroidLayout, ground: boolean) {
+  if (ground) {
+    ctx.fillStyle = c.backdrop;
+    ctx.fillRect(0, 0, W, H);
+  }
   if (layout === 'map') drawFlight(ctx, c);
   if (layout === 'line') drawClothesline(ctx, c);
 }

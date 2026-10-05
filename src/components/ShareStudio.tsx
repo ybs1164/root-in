@@ -20,6 +20,7 @@ import {
 import { DEFAULT_LAYOUT, POLAROID_LAYOUTS, SCENE, type PolaroidLayout } from '../domain/polaroid';
 import { withCardTitle, withLayout, type ShareSubject } from '../domain/shareSubject';
 import { canShareImage, downloadDataUrl, renderShareImage, shareImage } from '../lib/shareImage';
+import DayPattern from './DayPattern';
 import DecorLayer, { type TextFocus } from './DecorLayer';
 import { DecorRail, DecorTray } from './DecorTools';
 
@@ -89,13 +90,13 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
   const [base, setBase] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
-    renderShareImage({ ...subject, decor: { ...EMPTY_DECOR, pattern: decor.pattern, layout: decor.layout }, withoutPieces: true }).then(
+    renderShareImage({ ...subject, decor: { ...EMPTY_DECOR, layout: decor.layout }, withoutPieces: true, withoutGround: true }).then(
       (url) => alive && setBase(url),
     );
     return () => {
       alive = false;
     };
-  }, [theme, decor.pattern, decor.layout]);
+  }, [theme, decor.layout]);
 
   // The 폴라로이드 sheet's cards: this card drawn small in every layout (with
   // its theme and pattern, without pieces), once the sheet is opened.
@@ -191,6 +192,9 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
 
   return (
     <div className={`studio ${tool ? 'is-tooling' : ''}`} role="dialog" aria-modal="true" aria-label={`${subject.title} 꾸미기`}>
+      {/* The ground (theme colour and pattern) runs under the whole screen;
+          the shared area is only outlined. The saved image paints the same ground. */}
+      <DayPattern pattern={decor.pattern ?? 'none'} />
       <button className="studio__back" aria-label="닫기" onClick={onClose}>
         <ChevronLeft size={26} strokeWidth={2.2} aria-hidden />
       </button>
