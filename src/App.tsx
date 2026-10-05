@@ -1211,7 +1211,7 @@ export default function App() {
           />
         ))}
 
-      {studio && <ShareStudio key={studio.key} subject={studio} onTheme={setStudioTheme} onClose={() => setStudio(null)} />}
+      {studio && <ShareStudio subject={studio} onTheme={setStudioTheme} onClose={() => setStudio(null)} />}
 
       {profileOpen && (
         <ProfileSheet

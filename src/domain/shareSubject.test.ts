@@ -3,7 +3,7 @@ import type { Course } from '../types/course';
 import type { DayPing } from './dayPings';
 import { BACK_CARD, cardToScene, CLOTHESLINE, clotheslineY, DEFAULT_LAYOUT, DRAWING_BOX, FRONT_CARD, LAYOUT_CARDS, POLAROID, SCENE, sceneToCard, STRIP } from './polaroid';
 import type { ExcludedPlace } from './privacy';
-import { cardTitleText, dayCardTitle, daySubject, isDecorKey, routeSubject, withCardTitle, withLayout, withStoredLayout } from './shareSubject';
+import { cardTitleText, dayCardTitle, daySubject, routeSubject, withCardTitle, withLayout } from './shareSubject';
 
 const home: ExcludedPlace = { id: 'home', kind: 'home', address: '서울 성동구 성수이로 88', center: [127.0557, 37.5431] };
 const place = (id: string, name: string, center: [number, number]) => ({ id, name, center, address: '' });
@@ -48,7 +48,6 @@ describe('share cards', () => {
       (from) => (from.name === '서울숲' ? 'dotted' : 'dashed'),
       [home],
     );
-    expect(s.key).toBe('day:2026-10-03');
     expect(s.title).toBe('10.03');
     expect(s.pings.map((p) => p.name)).toEqual(['어니언', '서울숲', '카페']);
     expect(s.marks).toEqual(['pin', 'heart', 'pin']);
@@ -88,7 +87,6 @@ describe('share cards', () => {
       createdAt: '2026-10-01T00:00:00.000Z',
     };
     const s = routeSubject(course, []);
-    expect(s.key).toBe('route:c-1');
     expect(s.title).toBe('성수 데이트');
     expect(s.pings.map((p) => [p.name, p.time])).toEqual([['어니언', ''], ['대림창고', ''], ['서울숲', '']]);
     expect(s.marks).toEqual(['number', 'number', 'heart']);
@@ -103,11 +101,7 @@ describe('share cards', () => {
     expect(cut.marks).toEqual(['transparent', 'transparent']);
   });
 
-  it('keep their decorations under a day or route key only', () => {
-    expect(isDecorKey('day:2026-10-03')).toBe(true);
-    expect(isDecorKey('route:3f1c2d4e-aaaa-bbbb-cccc-1234567890ab')).toBe(true);
-    expect(isDecorKey('2026-10-03')).toBe(false);
-    expect(isDecorKey('route:../x')).toBe(false);
+  it('title a day’s card like a date on a print', () => {
     expect(dayCardTitle('2026-01-09')).toBe('01.09');
   });
 
@@ -127,8 +121,8 @@ describe('share cards', () => {
     expect(withCardTitle(gone, '성수 데이트').texts).toEqual([]);
   });
 
-  it('a new card is laid out as 탑승권 (its title on that smaller card); cards decorated before layouts keep 두 장', () => {
-    const fresh = withCardTitle(withStoredLayout({ stickers: [], strokes: [] }), '성수');
+  it('a new card is laid out as 탑승권, its title on that smaller card', () => {
+    const fresh = withCardTitle({ stickers: [], strokes: [] }, '성수');
     expect(fresh.layout).toBeUndefined();
     const front = LAYOUT_CARDS[DEFAULT_LAYOUT].front;
     const strip = cardToScene(front, POLAROID.w / 2, STRIP.y + STRIP.h / 2);
@@ -136,8 +130,6 @@ describe('share cards', () => {
     expect(Math.abs(fresh.texts![0].x * SCENE.w - strip.x)).toBeLessThan(20);
     expect(Math.abs(fresh.texts![0].y * SCENE.h - strip.y)).toBeLessThan(20);
     expect(fresh.texts![0].rotate).toBe(front.angle);
-    expect(withStoredLayout({ stickers: [], strokes: [], titled: true }).layout).toBe('stack');
-    expect(withStoredLayout({ stickers: [], strokes: [], titled: true, layout: 'map' }).layout).toBe('map');
   });
 
   it('switching layouts carries the title box with the photo card (where it sat on the card, its turn and size); other pieces stay put', () => {

@@ -18,9 +18,8 @@ import {
   type ThemeId,
 } from '../domain/decor';
 import { DEFAULT_LAYOUT, POLAROID_LAYOUTS, SCENE, type PolaroidLayout } from '../domain/polaroid';
-import { withCardTitle, withLayout, withStoredLayout, type ShareSubject } from '../domain/shareSubject';
+import { withCardTitle, withLayout, type ShareSubject } from '../domain/shareSubject';
 import { canShareImage, downloadDataUrl, renderShareImage, shareImage } from '../lib/shareImage';
-import { loadDecor, saveDecor, type DecorStore } from '../services/decorRepository';
 import DecorLayer, { type TextFocus } from './DecorLayer';
 import { DecorRail, DecorTray } from './DecorTools';
 
@@ -42,26 +41,13 @@ interface ShareStudioProps {
  * day screen as it looks there, with its own theme, pattern and pieces;
  * what's chosen here is apart from it); the bottom row
  * saves the finished card, copies its link or hands it to an SNS app.
- * Decorations are kept per card, so it opens again the way it was left.
+ * Nothing here is kept: each visit starts from a fresh card (title only,
+ * default layout), and leaving throws the decorations away. A day's own
+ * 꾸미기 on its day screen is kept as ever and shows in the photo.
  */
 export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioProps) {
-  const { key } = subject;
-  // The title is a text box like any other (it can be edited or thrown away);
-  // a card gets it once, the first time it's opened.
-  const [store, setStore] = useState<DecorStore>(() => {
-    const loaded = loadDecor();
-    return { ...loaded, [key]: withCardTitle(withStoredLayout(loaded[key] ?? EMPTY_DECOR), subject.title) };
-  });
-  const loaded = useRef(true);
-  useEffect(() => {
-    if (loaded.current) {
-      loaded.current = false;
-      return;
-    }
-    saveDecor(store);
-  }, [store]);
-  const decor = store[key] ?? EMPTY_DECOR;
-  const setDecor = (next: DayDecor) => setStore((s) => ({ ...s, [key]: next }));
+  // The title is a text box like any other (it can be edited or thrown away).
+  const [decor, setDecor] = useState<DayDecor>(() => withCardTitle(EMPTY_DECOR, subject.title));
 
   // Undo / redo, for this visit only.
   const [history, setHistory] = useState<DecorHistory>(EMPTY_HISTORY);

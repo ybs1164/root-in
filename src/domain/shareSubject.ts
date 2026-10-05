@@ -16,8 +16,6 @@ export type StopMark = RouteStopShape | 'number';
  * 제외 주소 are gone), with how each stop and line is drawn.
  */
 export interface ShareSubject {
-  /** Where its decorations are kept: `day:<date>` or `route:<course id>`. */
-  key: string;
   /** Handwritten on the strip under the photo. */
   title: string;
   /** The saved image's name, without the extension. */
@@ -101,13 +99,6 @@ export function withLayout(decor: DayDecor, layout: PolaroidLayout): DayDecor {
   return { ...decor, ...(texts ? { texts } : {}), layout };
 }
 
-/**
- * Cards first decorated before there were layouts were all 두 장: they keep
- * it, so their title and pieces stay on their cards. New cards get the default.
- */
-export const withStoredLayout = (decor: DayDecor): DayDecor =>
-  decor.titled && !decor.layout ? { ...decor, layout: 'stack' } : decor;
-
 /** A local YYYY-MM-DD for a saved time. */
 const localDate = (iso: string): string => {
   const d = new Date(iso);
@@ -115,11 +106,6 @@ const localDate = (iso: string): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-export const dayDecorKey = (date: string) => `day:${date}`;
-export const routeDecorKey = (courseId: string) => `route:${courseId}`;
-
-/** Keys the 꾸미기 store accepts (anything else read back from storage is dropped). */
-export const isDecorKey = (key: string): boolean => /^(day:\d{4}-\d{2}-\d{2}|route:[\w-]{1,80})$/.test(key);
 
 /** A day's card title, like a date written on a print: 10.03. */
 export const dayCardTitle = (date: string): string => `${date.slice(5, 7)}.${date.slice(8, 10)}`;
@@ -144,7 +130,6 @@ export function daySubject(
   const cut = withoutExcluded(pings.map((ping, index) => ({ ping, index })), (k) => k.ping, excluded);
   const kept = cut.kept.map((k) => k.index);
   return {
-    key: dayDecorKey(date),
     title: dayCardTitle(date),
     fileName: `root-in-${date}`,
     pings: cut.kept.map((k) => k.ping),
@@ -160,7 +145,6 @@ export function routeSubject(course: Course, excluded: ExcludedPlace[], icons?: 
   const cut = withoutExcluded(course.stops.map((stop, index) => ({ stop, index })), (k) => k.stop.place, excluded);
   const kept = cut.kept.map((k) => k.index);
   return {
-    key: routeDecorKey(course.id),
     ...(icons ? { icons: kept.map((i) => icons[i] ?? 'pin') } : {}),
     title: course.title,
     fileName: `root-in-${course.title}`,
