@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BASE_COLORS, EMPTY_HISTORY, recordChange, redoDecor, undoDecor, type DayDecor, type Stroke, STICKER_MAX, stickerGesture, clamp01, extendStroke, hexToHsv, hsvToHex, inkCss, isBlankText, cleanTextStyle, dropOutcome, textWeight, TEXT_MIN, TEXT_MAX, isThemeId, normalizeHex, PEN_TOOLS, STICKERS, THEMES } from './decor';
+import { BASE_COLORS, EMPTY_HISTORY, recordChange, redoDecor, undoDecor, type DayDecor, type Stroke, STICKER_MAX, stickerGesture, clamp01, extendStroke, hexToHsv, hsvToHex, inkCss, isBlankText, cleanTextStyle, dropOutcome, textWeight, TEXT_MIN, TEXT_MAX, isThemeId, normalizeHex, PEN_TOOLS, STICKERS, THEMES, PATTERNS } from './decor';
 
 describe('day decorations', () => {
   it('keeps stroke points inside the box and skips tiny moves', () => {
@@ -18,8 +18,11 @@ describe('day decorations', () => {
     expect(STICKERS.length).toBeGreaterThan(10);
     expect(PEN_TOOLS.map((t) => t.tool)).toEqual(['pen', 'highlighter', 'neon', 'eraser']);
     expect(BASE_COLORS.map((c) => c.label)).toEqual(['검정', '흰색', '테마 색']);
-    expect(THEMES[0].id).toBe('default');
+    expect(THEMES.map((t) => t.label)).toEqual(['기본', '하늘', '말차', '민트', '커스터드', '러블리', '러브', '라벤더', 'Y2K', '모노']);
+    expect(PATTERNS.map((p) => p.label)).toEqual(['없음', '노트', '모눈', '사선', '물결', '도트', '물방울', '하트', '별', '눈']);
     expect(isThemeId('mint')).toBe(true);
+    // 밤 is gone: a day stored in it reads as the default.
+    expect(isThemeId('night')).toBe(false);
     expect(isThemeId('forest')).toBe(false);
   });
 

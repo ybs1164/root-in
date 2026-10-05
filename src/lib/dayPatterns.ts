@@ -88,6 +88,8 @@ function scatter(seed: number, size: number, groups: Scatter[]): PatternMark[] {
 // previews in the 꾸미기 sheet, while staying a backdrop.
 export const PATTERN_TILES: Record<Exclude<PatternId, 'none'>, PatternTile> = {
   dots: { size: 44, marks: [{ d: dot(11, 11, 4) }, { d: dot(33, 33, 4) }] },
+  // 물방울: big polka dots, staggered.
+  polka: { size: 64, marks: [{ d: dot(16, 16, 10) }, { d: dot(48, 48, 10) }] },
   grid: { size: 44, stroke: 2, marks: [{ d: 'M0 1H44M1 0V44' }] },
   stripes: {
     size: 36,
