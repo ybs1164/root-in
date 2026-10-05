@@ -101,6 +101,18 @@ describe('share cards', () => {
     expect(cut.marks).toEqual(['transparent', 'transparent']);
   });
 
+  it('write a day’s date toward the strip’s bottom right, a route’s name in its middle', () => {
+    const front = LAYOUT_CARDS[DEFAULT_LAYOUT].front;
+    const date = withCardTitle({ stickers: [], strokes: [] }, '09.29', daySubject('2026-09-29', [], () => 'pin', () => 'solid', []).titleAt).texts![0];
+    const onCard = sceneToCard(front, date.x * SCENE.w, date.y * SCENE.h);
+    expect(onCard.x).toBeGreaterThan(POLAROID.w * 0.7);
+    expect(onCard.y).toBeGreaterThan(STRIP.y + STRIP.h / 2);
+    expect(date.align).toBe('right');
+    expect(date.rotate).toBe(front.angle);
+    const name = cardTitleText('성수 데이트');
+    expect(sceneToCard(front, name.x * SCENE.w, name.y * SCENE.h).x).toBeCloseTo(POLAROID.w / 2);
+  });
+
   it('title a day’s card like a date on a print', () => {
     expect(dayCardTitle('2026-01-09')).toBe('01.09');
   });

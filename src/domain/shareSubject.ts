@@ -18,6 +18,8 @@ export type StopMark = RouteStopShape | 'number';
 export interface ShareSubject {
   /** Handwritten on the strip under the photo. */
   title: string;
+  /** Where the title goes by default: the strip's middle, or its right end (a day's date, like a print's). */
+  titleAt?: TitlePlace;
   /** The saved image's name, without the extension. */
   fileName: string;
   pings: DayPing[];
@@ -49,14 +51,19 @@ export interface CardStamp {
   area?: string;
 }
 
+export type TitlePlace = 'middle' | 'corner';
+
 /**
  * The card's title as a text box (scene fractions), where it's written by
- * default: handwritten in the middle of the front card's strip, turned
- * with the card.
+ * default: handwritten on the front card's strip, in its middle or (a day's
+ * date) toward its bottom right, turned with the card.
  */
-export function cardTitleText(title: string, layout: PolaroidLayout = DEFAULT_LAYOUT): PlacedText {
+export function cardTitleText(title: string, layout: PolaroidLayout = DEFAULT_LAYOUT, place: TitlePlace = 'middle'): PlacedText {
   const front = LAYOUT_CARDS[layout].front;
-  const at = cardToScene(front, POLAROID.w / 2, STRIP.y + STRIP.h * 0.48);
+  const at =
+    place === 'corner'
+      ? cardToScene(front, POLAROID.w * 0.8, STRIP.y + STRIP.h * 0.55)
+      : cardToScene(front, POLAROID.w / 2, STRIP.y + STRIP.h * 0.48);
   return {
     id: 'card-title',
     text: title,
@@ -66,14 +73,14 @@ export function cardTitleText(title: string, layout: PolaroidLayout = DEFAULT_LA
     rotate: front.angle,
     font: 'pen',
     color: 'ink-black',
-    align: 'center',
+    align: place === 'corner' ? 'right' : 'center',
   };
 }
 
 /** A card's 꾸미기 with its title put down once as a text box (left alone after that, even if it was thrown away). */
-export function withCardTitle(decor: DayDecor, title: string): DayDecor {
+export function withCardTitle(decor: DayDecor, title: string, place: TitlePlace = 'middle'): DayDecor {
   if (decor.titled) return decor;
-  return { ...decor, texts: [...(decor.texts ?? []), cardTitleText(title, decor.layout)], titled: true };
+  return { ...decor, texts: [...(decor.texts ?? []), cardTitleText(title, decor.layout, place)], titled: true };
 }
 
 /**
@@ -131,6 +138,7 @@ export function daySubject(
   const kept = cut.kept.map((k) => k.index);
   return {
     title: dayCardTitle(date),
+    titleAt: 'corner',
     fileName: `root-in-${date}`,
     pings: cut.kept.map((k) => k.ping),
     marks: cut.kept.map((k) => shapeOf(k.ping)),

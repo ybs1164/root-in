@@ -47,7 +47,7 @@ interface ShareStudioProps {
  */
 export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioProps) {
   // The title is a text box like any other (it can be edited or thrown away).
-  const [decor, setDecor] = useState<DayDecor>(() => withCardTitle(EMPTY_DECOR, subject.title));
+  const [decor, setDecor] = useState<DayDecor>(() => withCardTitle(EMPTY_DECOR, subject.title, subject.titleAt));
 
   // Undo / redo, for this visit only.
   const [history, setHistory] = useState<DecorHistory>(EMPTY_HISTORY);
