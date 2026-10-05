@@ -5180,7 +5180,7 @@ button:disabled {
   background: var(--backdrop);
 }
 
-/* A spaced-caps English label with an accent rule after it, running to the line's end. */
+/* A spaced-caps English label with a thin plain rule after it, running to the line's end. */
 .label-dash {
   display: flex;
   align-items: center;
@@ -5198,9 +5198,8 @@ button:disabled {
   content: '';
   flex: 1;
   min-width: 26px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--accent);
+  height: 1px;
+  background: var(--border);
 }
 
 .category-icon-picker__title {

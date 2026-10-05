@@ -13,7 +13,7 @@ interface CategoryIconPickerProps {
 /**
  * The full icon library, above the category form: a rounded white card
  * titled ICON like the category sheet's CATEGORY, then each group under a
- * spaced-caps label whose accent rule runs to the end of the line. Picking an icon returns straight
+ * spaced-caps label whose thin rule runs to the end of the line. Picking an icon returns straight
  * to the form; a tap outside (or Esc) closes it.
  */
 export default function CategoryIconPicker({ selected, onSelect, onClose }: CategoryIconPickerProps) {
