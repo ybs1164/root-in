@@ -24,9 +24,8 @@ interface CategoryFormDialogProps {
 
 /**
  * 핀 카테고리 생성 / 편집, a boarding pass like the other centre popups
- * (`ticket-dialog`): the icon in the middle with five shortcuts and a library
- * button under it, the
- * palette, the name, then the stub torn in two — 취소 | 생성 (완료).
+ * (`ticket-dialog`): the name above the icon, five shortcuts and a library
+ * button, then the palette and the stub torn in two — 취소 | 생성 (완료).
  * A native modal <dialog>, so it sits above the category sheet.
  */
 export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }: CategoryFormDialogProps) {
@@ -81,6 +80,17 @@ export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }:
           <h2 id="cat-form-title" className="cat-form__title">
             {title}
           </h2>
+          <input
+            className="cat-form__name"
+            value={value.name}
+            maxLength={PIN_LIMITS.categoryName}
+            placeholder="카테고리 이름"
+            aria-label="카테고리 이름"
+            onChange={(event) => {
+              setProblem(null);
+              setValue((v) => ({ ...v, name: event.target.value }));
+            }}
+          />
           {/* The chosen icon, large, in the chosen colour; the icon list stays open under it. */}
           <span
             className="pin-badge cat-form__icon"
@@ -128,17 +138,6 @@ export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }:
               />
             ))}
           </div>
-          <input
-            className="cat-form__name"
-            value={value.name}
-            maxLength={PIN_LIMITS.categoryName}
-            placeholder="카테고리 이름"
-            aria-label="카테고리 이름"
-            onChange={(event) => {
-              setProblem(null);
-              setValue((v) => ({ ...v, name: event.target.value }));
-            }}
-          />
           {problem && <p className="cat-form__problem">{problem}</p>}
         </div>
         <div className="ticket-dialog__stub ticket-dialog__split">
