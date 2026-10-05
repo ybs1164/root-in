@@ -59,7 +59,7 @@ describe('share cards', () => {
   it('carry a day’s own 꾸미기 along for the photo: its pieces, theme and pattern', () => {
     const pings: DayPing[] = [{ name: '서울숲', time: '17:40', center: [127.0374, 37.5444] }];
     const decor = {
-      stickers: [{ id: 's', emoji: '⭐', x: 0.2, y: 0.3, size: 0.2 }],
+      stickers: [{ id: 's', stickerId: 'star', x: 0.2, y: 0.3, size: 0.2 }],
       strokes: [],
       texts: [{ id: 't', text: '안녕', x: 0.5, y: 0.5, size: 0.07, font: 'sans' as const, color: 'ink-black', align: 'center' as const }],
       theme: 'mint' as const,
@@ -145,7 +145,7 @@ describe('share cards', () => {
   });
 
   it('switching layouts carries the title box with the photo card (where it sat on the card, its turn and size); other pieces stay put', () => {
-    const sticker = { id: 's', emoji: '⭐', x: 0.1, y: 0.1, size: 0.1 };
+    const sticker = { id: 's', stickerId: 'star', x: 0.1, y: 0.1, size: 0.1 };
     const start = { ...withCardTitle({ stickers: [sticker], strokes: [], layout: 'stack' as const }, '성수') };
     // Nudged a little on its card.
     start.texts = start.texts!.map((t) => ({ ...t, x: t.x + 0.01, rotate: (t.rotate ?? 0) + 5 }));

@@ -1,12 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { loadDays, saveDays } from './dayRepository';
+import { loadDays, saveDays, readDecor } from './dayRepository';
 
 describe('calendar days', () => {
+  it('removes legacy emoji and unrecognized stickers while keeping drawing data', () => {
+    const decor = readDecor({
+      stickers: [
+        { id: 'old', emoji: '⭐', x: 0.5, y: 0.5, size: 0.13 },
+        { id: 'unknown', stickerId: 'missing', x: 0.5, y: 0.5, size: 0.26 },
+        { id: 'new', stickerId: 'flower', x: 0.5, y: 0.5, size: 0.26 },
+      ],
+      strokes: [{ tool: 'pen', color: 'accent', width: 'thin', points: [[0.1, 0.2]] }],
+    });
+    expect(decor?.stickers.map((s) => s.stickerId)).toEqual(['flower']);
+    expect(decor?.stickers[0].size).toBe(0.26);
+    expect(decor?.strokes).toHaveLength(1);
+  });
+
   it('keeps each day’s stickers, strokes, theme, ping shapes and line styles across a reload', () => {
     saveDays({
       decor: {
         '2026-09-29': {
-          stickers: [{ id: 's1', emoji: '⭐', x: 0.2, y: 0.3, size: 0.2, rotate: 45 }],
+          stickers: [{ id: 's1', stickerId: 'star', x: 0.2, y: 0.3, size: 0.2, rotate: 45 }],
           strokes: [{ tool: 'pen', color: '#3aa0ff', width: 'thin', points: [[0.123456, 0.5], [0.6, 0.7]] }],
           theme: 'mint',
           pattern: 'hearts',
@@ -32,7 +46,7 @@ describe('calendar days', () => {
       JSON.stringify({
         decor: {
           '2026-09-29': {
-            stickers: [{ id: 's', emoji: '⭐', x: 9, y: 0.5, size: 99 }, { id: 1 }],
+            stickers: [{ id: 's', stickerId: 'star', x: 9, y: 0.5, size: 99 }, { id: 1 }],
             strokes: [{ tool: 'laser', color: 'red', width: 'thin', points: [[0, 0]] }, { tool: 'pen', color: 'accent', width: 'medium', points: [[2, -1]] }],
             theme: 'forest',
             pattern: 'plaid',
@@ -45,7 +59,7 @@ describe('calendar days', () => {
     );
     const days = loadDays();
     const d = days.decor['2026-09-29'];
-    expect(d.stickers).toEqual([{ id: 's', emoji: '⭐', x: 1, y: 0.5, size: 0.6 }]);
+    expect(d.stickers).toEqual([{ id: 's', stickerId: 'star', x: 1, y: 0.5, size: 0.6 }]);
     expect(d.strokes).toEqual([{ tool: 'pen', color: 'accent', width: 'medium', points: [[1, 0]] }]);
     expect(d.theme).toBeUndefined();
     expect(d.pattern).toBeUndefined();

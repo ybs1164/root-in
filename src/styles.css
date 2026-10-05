@@ -1414,8 +1414,8 @@ button:disabled {
 /* Stickers: a grid that scrolls up and down. */
 .decor-tray__stickers {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
-  gap: 2px;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 8px;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1425,16 +1425,17 @@ button:disabled {
 .decor-tray__sticker {
   display: grid;
   place-items: center;
-  height: 48px;
-  padding: 0;
+  height: 72px;
+  padding: 6px;
   border-radius: 12px;
-  font-size: 28px;
   line-height: 1;
 }
 
 .decor-tray__sticker.is-on {
   background: var(--tray-hi);
 }
+
+
 
 /* Pen: two rows, no scrolling. Tools and width on top, colours below. */
 .decor-tray__pen {
@@ -6032,4 +6033,20 @@ button:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Generated die-cut stickers retain transparent edges in the tray and canvas. */
+.decor__sticker img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.decor-tray__sticker img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  pointer-events: none;
 }

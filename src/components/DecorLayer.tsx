@@ -2,6 +2,7 @@ import { Trash2 } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import {
   clamp01,
+  getSticker,
   cleanTextStyle,
   dropOutcome,
   ERASER_SCALE,
@@ -253,7 +254,7 @@ export default function DecorLayer({
     setSelected(null);
     if (!armed) return;
     const [x, y] = at(e);
-    const sticker = { id: newId(), emoji: armed, x: clamp01(x), y: clamp01(y), size: STICKER_SIZE };
+    const sticker = { id: newId(), stickerId: armed, x: clamp01(x), y: clamp01(y), size: STICKER_SIZE };
     onChange({ ...decor, stickers: [...decor.stickers, sticker] });
     setSelected(sticker.id);
   };
@@ -479,6 +480,8 @@ export default function DecorLayer({
         </svg>
       )}
       {decor.stickers.map((s) => {
+        const sticker = getSticker(s.stickerId);
+        if (!sticker) return null;
         const pos = live?.id === s.id ? live : s;
         const isSelected = tool === 'sticker' && selected === s.id;
         return (
@@ -488,12 +491,12 @@ export default function DecorLayer({
             style={{
               left: `${pos.x * 100}%`,
               top: `${pos.y * 100}%`,
-              fontSize: `${pos.size * 78}cqw`,
+              width: `${pos.size * 78}cqw`,
               rotate: `${pos.rotate ?? 0}deg`,
             }}
             onPointerDown={onStickerDown(s.id)}
           >
-            {s.emoji}
+            <img src={sticker.src} alt={sticker.label} draggable={false} />
           </span>
         );
       })}

@@ -2,6 +2,7 @@ import { isPolaroidLayout } from '../domain/polaroid';
 import {
   BASE_COLORS,
   clamp01,
+  getSticker,
   isCustomColor,
   isPatternId,
   isThemeId,
@@ -67,11 +68,11 @@ function readStroke(v: unknown): Stroke | null {
 
 function readSticker(v: unknown): PlacedSticker | null {
   const s = v as PlacedSticker;
-  if (!s || typeof s.id !== 'string' || typeof s.emoji !== 'string' || s.emoji.length > 16) return null;
+  if (!s || typeof s.id !== 'string' || typeof s.stickerId !== 'string' || !getSticker(s.stickerId)) return null;
   if (!num(s.x) || !num(s.y) || !num(s.size)) return null;
   return {
     id: s.id.slice(0, 64),
-    emoji: s.emoji,
+    stickerId: s.stickerId,
     x: clamp01(s.x),
     y: clamp01(s.y),
     size: Math.min(STICKER_MAX, Math.max(STICKER_MIN, s.size)),

@@ -2,7 +2,7 @@ import type { RouteEdgeStyle } from '../domain/routeStyle';
 import type { PinIcon } from '../types/pin';
 import { pinGlyphSvg } from './pinGlyphs';
 import { latestPingIndex, layoutPings, type DayPing, type EdgeStyle } from '../domain/dayPings';
-import { ERASER_SCALE, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, textWeight, type DayDecor, type PlacedText, type ThemeId } from '../domain/decor';
+import { ERASER_SCALE, getSticker, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, textWeight, type DayDecor, type PlacedText, type ThemeId } from '../domain/decor';
 import { CLOTHESLINE, clotheslineY, DEFAULT_LAYOUT, DRAWING_BOX, LAYOUT_CARDS, POLAROID, SCENE, TICKET, type CardPose, type PolaroidLayout } from '../domain/polaroid';
 import type { CardStamp, StopMark } from '../domain/shareSubject';
 import { paintPattern } from './dayPatterns';
@@ -99,6 +99,17 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
     await img.decode();
     return img;
   }));
+  // Decode local sticker assets before painting either the day photo or the card.
+  const stickerImages = new Map<string, HTMLImageElement>();
+  const stickerIds = new Set([...(withoutPieces ? [] : decor?.stickers ?? []), ...(photo?.stickers ?? [])].map((s) => s.stickerId));
+  await Promise.all([...stickerIds].map(async (id) => {
+    const sticker = getSticker(id);
+    if (!sticker) return;
+    const img = new Image();
+    img.src = sticker.src;
+    await img.decode();
+    stickerImages.set(id, img);
+  }));
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(W * scale);
   canvas.height = Math.round(H * scale);
@@ -139,7 +150,7 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
         ctx.restore();
       }
       drawStops(ctx, p, bg, pings, marks, edges, pinImages);
-      if (photo) drawDecor(ctx, photo, p.font, BOX_FRAME);
+      if (photo) drawDecor(ctx, photo, BOX_FRAME, stickerImages);
     });
     ctx.restore();
     // The strip's title is one of the card's text boxes (withCardTitle), drawn with the pieces.
@@ -149,7 +160,7 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
   if (layout === 'line') drawPegs(ctx, c);
   if (layout === 'notebook') drawNoteDate(ctx, c, stamp);
 
-  if (decor && !withoutPieces) drawDecor(ctx, decor, c.font, SCENE_FRAME);
+  if (decor && !withoutPieces) drawDecor(ctx, decor, SCENE_FRAME, stickerImages);
   return canvas.toDataURL('image/png');
 }
 
@@ -560,7 +571,7 @@ const SCENE_FRAME: PieceFrame = { x: 0, y: 0, w: W, h: H, canvas: { w: W, h: H }
 const BOX_FRAME: PieceFrame = { x: BOX.x, y: BOX.y, w: BOX.size, h: BOX.size, canvas: { w: POLAROID.w, h: POLAROID.h } };
 
 /** Pen strokes, then stickers, then text boxes, laid out in `frame`. */
-function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, font: string, frame: PieceFrame) {
+function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, frame: PieceFrame, stickerImages: Map<string, HTMLImageElement>) {
   const css = getComputedStyle(document.documentElement);
   const px = (v: number) => v * frame.w;
   const at = (x: number, y: number): [number, number] => [frame.x + x * frame.w, frame.y + y * frame.h];
@@ -622,8 +633,9 @@ function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, font: string,
     ctx.save();
     ctx.translate(...at(s.x, s.y));
     ctx.rotate(((s.rotate ?? 0) * Math.PI) / 180);
-    ctx.font = `${px(s.size * 0.78)}px ${font}`;
-    ctx.fillText(s.emoji, 0, 0);
+    const img = stickerImages.get(s.stickerId);
+    const size = px(s.size * 0.78);
+    if (img) ctx.drawImage(img, -size / 2, -size / 2, size, size);
     ctx.restore();
   }
   for (const t of decor.texts ?? []) {
