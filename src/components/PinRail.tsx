@@ -13,7 +13,9 @@ interface PinRailProps {
   counts: Map<string, number>;
   picked: ReadonlySet<string>;
   onToggle: (categoryId: string) => void;
-  /** ALL: back to every pin (drops the picked categories). */
+  /** Every pin hidden (ALL tapped while on): ALL shows off too. */
+  hidden: boolean;
+  /** ALL: back to every pin (drops the picked categories), or, while every pin shows, hide them all. */
   onAll: () => void;
   /** The + at the foot of the list: 핀 카테고리 (add, edit, browse). */
   onCategories: () => void;
@@ -40,9 +42,9 @@ const ENTRIES: { entry: PinRailEntry; label: string; icon: ReactNode }[] = [
  * below that list; picking categories narrows the map to them, and the map
  * stays narrowed after 핀 closes. The list ends in + (핀 카테고리).
  */
-export default function PinRail({ mode, onAction, categories, counts, picked, onToggle, onAll, onCategories }: PinRailProps) {
-  // ALL is on while nothing that exists (미분류 included) is picked.
-  const allOn = isAllPicked(picked, [UNCATEGORIZED.id, ...categories.map((c) => c.id)]);
+export default function PinRail({ mode, onAction, categories, counts, picked, hidden, onToggle, onAll, onCategories }: PinRailProps) {
+  // ALL is on while nothing that exists (미분류 included) is picked, and pins aren't all hidden.
+  const allOn = !hidden && isAllPicked(picked, [UNCATEGORIZED.id, ...categories.map((c) => c.id)]);
   // The category list trails the mode so it can play out before unmounting.
   const listOpen = mode === 'pins';
   const [listShown, setListShown] = useState(listOpen);

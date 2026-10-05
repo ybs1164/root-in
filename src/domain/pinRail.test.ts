@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isAllPicked, pinRailNext, railPage, railPageCount, togglePicked } from './pinRail';
+import { isAllPicked, pinRailNext, railPage, railPageCount, tapAll, togglePicked } from './pinRail';
 
 describe('pin rail', () => {
   it('opens 핀 or 경로 from the menu', () => {
@@ -43,5 +43,12 @@ describe('pin rail', () => {
     // Five or fewer: one set, so no ↓.
     expect(railPageCount(5)).toBe(1);
     expect(railPageCount(0)).toBe(1);
+  });
+  it('ALL tapped while on hides every pin; tapped again (or with categories picked) shows them all', () => {
+    const ids = ['none', 'cafe'];
+    const hide = tapAll(false, new Set(), ids);
+    expect(hide).toEqual({ picked: new Set(), hidden: true });
+    expect(tapAll(true, new Set(), ids)).toEqual({ picked: new Set(), hidden: false });
+    expect(tapAll(false, new Set(['cafe']), ids)).toEqual({ picked: new Set(), hidden: false });
   });
 });
