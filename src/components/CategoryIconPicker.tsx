@@ -1,4 +1,3 @@
-import { X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { PIN_ICON_GROUPS } from '../domain/categoryIcons';
 import { useBackdropTap } from '../hooks/useBackdropTap';
@@ -11,7 +10,12 @@ interface CategoryIconPickerProps {
   onClose: () => void;
 }
 
-/** A modal above the category form; selecting artwork returns directly to the form. */
+/**
+ * The full icon library, above the category form and dressed as the same
+ * boarding pass (`ticket-dialog`): title, group tabs and the scrolling grid
+ * on the ticket, then the tear line and a 취소 stub. Picking an icon returns
+ * straight to the form.
+ */
 export default function CategoryIconPicker({ selected, onSelect, onClose }: CategoryIconPickerProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const backdrop = useBackdropTap(dialogRef);
@@ -34,7 +38,7 @@ export default function CategoryIconPicker({ selected, onSelect, onClose }: Cate
   return (
     <dialog
       ref={dialogRef}
-      className="category-icon-picker"
+      className="category-icon-picker ticket-dialog"
       aria-labelledby="category-icon-picker-title"
       onClose={(event) => { event.stopPropagation(); onClose(); }}
       onCancel={(event) => event.stopPropagation()}
@@ -45,44 +49,48 @@ export default function CategoryIconPicker({ selected, onSelect, onClose }: Cate
         if (backdrop.isBackdropTap(event.target)) dialogRef.current?.close();
       }}
     >
-      <header className="category-icon-picker__head">
-        <h2 id="category-icon-picker-title">아이콘 선택</h2>
-        <button type="button" className="icon-btn" aria-label="아이콘 선택 닫기" onClick={() => dialogRef.current?.close()}>
-          <X size={22} aria-hidden />
+      <div className="ticket-dialog__main category-icon-picker__main">
+        <h2 id="category-icon-picker-title" className="category-icon-picker__title">
+          아이콘 선택
+        </h2>
+        <nav className="category-icon-picker__tabs" aria-label="아이콘 분류">
+          {[{ id: 'all', label: '전체' }, ...PIN_ICON_GROUPS].map((g) => (
+            <button
+              key={g.id}
+              type="button"
+              aria-pressed={group === g.id}
+              onClick={() => scrollToGroup(g.id)}
+            >
+              {g.label}
+            </button>
+          ))}
+        </nav>
+        <div ref={bodyRef} className="category-icon-picker__body">
+          {PIN_ICON_GROUPS.map((g) => (
+            <section key={g.id} data-icon-group={g.id} aria-label={g.label}>
+              <h3>{g.label}</h3>
+              <div className="icon-grid category-icon-picker__grid">
+                {g.icons.map((icon) => (
+                  <button
+                    key={icon}
+                    type="button"
+                    className={`icon-grid__btn ${selected === icon ? 'is-on' : ''}`}
+                    aria-label={PIN_ICONS[icon]}
+                    aria-pressed={selected === icon}
+                    onClick={() => { onSelect(icon); dialogRef.current?.close(); }}
+                  >
+                    <PinGlyph icon={icon} />
+                  </button>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      </div>
+      <div className="ticket-dialog__stub ticket-dialog__split">
+        <button type="button" onClick={() => dialogRef.current?.close()}>
+          취소
         </button>
-      </header>
-      <nav className="category-icon-picker__tabs" aria-label="아이콘 분류">
-        {[{ id: 'all', label: '전체' }, ...PIN_ICON_GROUPS].map((g) => (
-          <button
-            key={g.id}
-            type="button"
-            aria-pressed={group === g.id}
-            onClick={() => scrollToGroup(g.id)}
-          >
-            {g.label}
-          </button>
-        ))}
-      </nav>
-      <div ref={bodyRef} className="category-icon-picker__body">
-        {PIN_ICON_GROUPS.map((g) => (
-          <section key={g.id} data-icon-group={g.id} aria-label={g.label}>
-            <h3>{g.label}</h3>
-            <div className="category-icon-picker__grid">
-              {g.icons.map((icon) => (
-                <button
-                  key={icon}
-                  type="button"
-                  className="category-icon-picker__option"
-                  aria-label={PIN_ICONS[icon]}
-                  aria-pressed={selected === icon}
-                  onClick={() => { onSelect(icon); dialogRef.current?.close(); }}
-                >
-                  <span className="category-icon-picker__glyph"><PinGlyph icon={icon} /></span>
-                </button>
-              ))}
-            </div>
-          </section>
-        ))}
       </div>
     </dialog>
   );
