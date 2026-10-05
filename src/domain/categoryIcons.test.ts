@@ -8,7 +8,9 @@ describe('category icon library', () => {
     expect(QUICK_PIN_ICONS).toEqual(['pin', 'cafe', 'food', 'photo', 'star']);
     const icons = PIN_ICON_GROUPS.flatMap((g) => g.icons);
     expect(new Set(icons).size).toBe(icons.length);
-    expect([...icons].sort()).toEqual(Object.keys(PIN_ICONS).sort());
+    // Retired artwork remains readable in saved categories and older share links.
+    expect(icons).not.toContain('waterfall');
+    expect([...icons].sort()).toEqual(Object.keys(PIN_ICONS).filter((icon) => icon !== 'waterfall').sort());
   });
 
   it('has generated artwork for every icon in both React and map markers', () => {
