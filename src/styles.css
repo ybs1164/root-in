@@ -583,9 +583,8 @@ button:disabled {
   flex-direction: column;
   height: var(--sheet-peek);
   background: var(--surface);
-  /* The bottom sheets' look: a square top under a thick ink rule. */
-  border-radius: 0;
-  border-top: 3px solid var(--text);
+  /* The bottom sheets' look: rounded top corners. */
+  border-radius: 22px 22px 0 0;
   box-shadow: var(--shadow-up);
   transition:
     height 0.28s ease,
@@ -1005,9 +1004,8 @@ button:disabled {
   margin: auto auto 0;
   padding: 0;
   border: 0;
-  /* The bottom sheets' look: a square top under a thick ink rule. */
-  border-radius: 0;
-  border-top: 3px solid var(--text);
+  /* The bottom sheets' look: rounded top corners. */
+  border-radius: 22px 22px 0 0;
   background: var(--surface);
   color: var(--text);
 }
@@ -2462,8 +2460,8 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   padding: 6px 12px 0 16px;
-  /* The tabs stand on the sheet's ink rule (the open one too), as on the other sheets. */
-  border-top: 3px solid var(--text);
+  /* The sheet's top edge, under the tabs: rounded like the other sheets. */
+  border-radius: 20px 20px 0 0;
   background: var(--surface);
 }
 
@@ -3070,9 +3068,8 @@ button:disabled {
   display: flex;
   flex-direction: column;
   height: 44dvh;
-  /* The bottom sheets' look: a square top under a thick ink rule. */
-  border-radius: 0;
-  border-top: 3px solid var(--text);
+  /* The bottom sheets' look: rounded top corners. */
+  border-radius: 20px 20px 0 0;
   background: var(--surface);
   box-shadow: var(--shadow-up);
   color: var(--text);
@@ -3091,9 +3088,8 @@ button:disabled {
 .route-create__pick.route-create__pick {
   position: absolute;
   left: 16px;
-  /* Standing on the sheet's ink rule (3px, above its padding box) like the
-     folder sheet's tabs, not in front of it. */
-  bottom: calc(100% + 3px);
+  /* Standing on the sheet's top edge like the folder sheet's tabs. */
+  bottom: 100%;
 }
 
 .route-edit__folder,
@@ -3357,9 +3353,8 @@ button:disabled {
   gap: 10px;
   /* A clear margin under the fields, so they sit a little higher up. */
   padding: 16px 16px calc(var(--safe-bottom) + 76px);
-  /* The bottom sheets' look: a square top under a thick ink rule. */
-  border-radius: 0;
-  border-top: 3px solid var(--text);
+  /* The bottom sheets' look: rounded top corners. */
+  border-radius: 20px 20px 0 0;
   background: var(--surface);
   box-shadow: var(--shadow-up);
   animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
@@ -5138,78 +5133,108 @@ button:disabled {
   width: min(360px, calc(100vw - 24px));
 }
 
-/* The icon library: the category form's boarding pass, a little taller,
-   with the grid scrolling between the tabs and the tear line. */
+/* The icon library: a rounded white card over the category form, after the
+   share card mock — an ICON label with an accent dash, then each group under
+   the same label in an outlined panel. */
 .category-icon-picker {
-  width: min(360px, calc(100vw - 24px));
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(680px, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 48px));
+  margin: auto;
+  padding: 22px 0 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 28px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--dialog-shadow);
 }
 
-.category-icon-picker__main {
+.category-icon-picker[open] {
   display: flex;
   flex-direction: column;
-  /* The dialog's own height cap, less the 56px stub. */
-  max-height: min(640px, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 104px));
-  padding-top: 24px;
+  animation: mac-open 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+}
+
+.category-icon-picker::backdrop {
+  background: var(--backdrop);
+}
+
+/* A spaced-caps English label with a short accent dash after it. */
+.label-dash {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  color: var(--muted);
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: 0.24em;
+  line-height: 1;
+}
+
+.label-dash::after {
+  content: '';
+  width: 26px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
 }
 
 .category-icon-picker__title {
   flex: none;
-  margin: 0;
-  padding: 0 20px;
-  font-size: 18px;
-  text-align: center;
-}
-
-.category-icon-picker__tabs {
-  display: flex;
-  flex: none;
-  gap: 6px;
-  margin-top: 16px;
-  padding: 0 20px 12px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  border-bottom: 1.5px dashed var(--perforation);
-}
-
-.category-icon-picker__tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.category-icon-picker__tabs button {
-  flex: none;
-  min-width: 44px;
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 15px;
-}
-
-.category-icon-picker__tabs button[aria-pressed='true'] {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent);
+  padding: 0 22px 14px;
+  font-size: 20px;
 }
 
 .category-icon-picker__body {
   min-height: 0;
-  padding: 0 20px 20px;
+  padding: 2px 18px 22px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
-.category-icon-picker__body h3 {
-  margin: 16px 0 8px;
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 400;
+.category-icon-picker__group + .category-icon-picker__group {
+  margin-top: 18px;
 }
 
-/* Same tiles as the form's five shortcuts, so a pick looks the same on both. */
+.category-icon-picker__group .label-dash {
+  margin: 0 4px 8px;
+  font-size: 14px;
+}
+
 .category-icon-picker__grid {
+  display: grid;
   grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+
+.category-icon-picker__option {
+  display: grid;
+  place-items: center;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+}
+
+.category-icon-picker__option .pin-glyph {
+  width: 22px;
+  height: 22px;
+}
+
+.category-icon-picker__option.is-on {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.category-icon-picker__option:not(.is-on):active {
+  background: var(--surface-2);
 }
 
 .cat-form__title {
@@ -5892,7 +5917,7 @@ button:disabled {
   /* Still rises from the bottom edge on wide screens. */
   .category-sheet {
     margin: auto auto 0;
-    border-radius: 0;
+    border-radius: 22px 22px 0 0;
   }
 }
 
