@@ -20,8 +20,8 @@ interface PinCardProps {
  * pin, which the map has centred. Left: the place's city → neighbourhood in
  * English (from its address, read-only), its name, its one-line memo, and a
  * pen. Right, past the tear line: GROUP, the category's icon and the bin.
- * The pen opens the name, memo and category for editing; tapped again (or
- * Enter) it saves them. A touch outside the card saves any edit and closes it.
+ * The category can always be changed directly. The pen opens the name and
+ * memo for editing; tapped again (or Enter) it saves them. A touch outside the card saves any edit and closes it.
  */
 export default function PinCard({ pin, categories, onRecategorize, onRename, onMemo, onDelete, onClose }: PinCardProps) {
   const [editing, setEditing] = useState(false);
@@ -164,26 +164,15 @@ export default function PinCard({ pin, categories, onRecategorize, onRename, onM
 
       <div className="pin-card__stub">
         <span className="pin-card__group">GROUP</span>
-        {editing ? (
-          <button
-            className="pin-card__category is-editable"
-            style={{ '--pin': `var(--pin-${style.color})` } as CSSProperties}
-            aria-label={`카테고리 바꾸기 (지금 ${findCategory(categories, pin.categoryId).name})`}
-            aria-expanded={picking}
-            onClick={() => setPicking((v) => !v)}
-          >
-            <PinGlyph icon={style.icon} />
-          </button>
-        ) : (
-          <span
-            className="pin-card__category"
-            style={{ '--pin': `var(--pin-${style.color})` } as CSSProperties}
-            role="img"
-            aria-label={findCategory(categories, pin.categoryId).name}
-          >
-            <PinGlyph icon={style.icon} />
-          </span>
-        )}
+        <button
+          className="pin-card__category is-editable"
+          style={{ '--pin': `var(--pin-${style.color})` } as CSSProperties}
+          aria-label={`카테고리 바꾸기 (지금 ${findCategory(categories, pin.categoryId).name})`}
+          aria-expanded={picking}
+          onClick={() => setPicking((v) => !v)}
+        >
+          <PinGlyph icon={style.icon} />
+        </button>
         <button className="icon-btn pin-card__bin" aria-label="핀 삭제" onClick={onDelete}>
           <Trash2 size={20} aria-hidden />
         </button>
