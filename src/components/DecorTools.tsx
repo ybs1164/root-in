@@ -103,7 +103,7 @@ interface DecorTrayProps {
   /** Out of the way below the screen for now (a piece is being dragged). */
   away?: boolean;
   armed: string | null;
-  onArm: (emoji: string | null) => void;
+  onArm: (stickerId: string | null) => void;
   pen: PenSettings;
   onPen: (pen: PenSettings) => void;
   /** Takes back the day's last stroke (eraser passes included). */
@@ -200,15 +200,15 @@ export function DecorTray(p: DecorTrayProps) {
 
       {p.tool === 'sticker' && (
         <div className="decor-tray__stickers">
-          {STICKERS.map((emoji) => (
+          {STICKERS.map((sticker) => (
             <button
-              key={emoji}
-              className={`decor-tray__sticker ${p.armed === emoji ? 'is-on' : ''}`}
-              aria-label={`스티커 ${emoji}`}
-              aria-pressed={p.armed === emoji}
-              onClick={() => p.onArm(p.armed === emoji ? null : emoji)}
+              key={sticker.id}
+              className={`decor-tray__sticker ${p.armed === sticker.id ? 'is-on' : ''}`}
+              aria-label={`스티커 ${sticker.label}`}
+              aria-pressed={p.armed === sticker.id}
+              onClick={() => p.onArm(p.armed === sticker.id ? null : sticker.id)}
             >
-              {emoji}
+              <img src={sticker.src} alt="" draggable={false} />
             </button>
           ))}
         </div>

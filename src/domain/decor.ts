@@ -11,7 +11,7 @@ export type DecorTool = 'sticker' | 'pen' | 'text' | 'theme' | 'pattern' | 'pola
 
 export interface PlacedSticker {
   id: string;
-  emoji: string;
+  stickerId: string;
   x: number;
   y: number;
   /** Width of the sticker as a fraction of the box. */
@@ -147,10 +147,65 @@ export interface DayDecor {
 
 export const EMPTY_DECOR: DayDecor = { stickers: [], strokes: [] };
 
-export const STICKERS = [
-  '❤️', '⭐', '✨', '🌸', '🍀', '☀️', '🌙', '🌈', '☕', '🍰', '🍜', '🍦',
-  '🍺', '📷', '🎈', '🎁', '🎵', '🐶', '🐱', '🚲', '🌊', '⛰️', '👍', '😊',
+/** Original illustrations generated with imagegen; assets are served locally. */
+export interface StickerAsset {
+  id: string;
+  label: string;
+  src: string;
+}
+
+export const STICKERS: StickerAsset[] = [
+  { id: 'paper-heart', label: '콜라주 하트', src: `${import.meta.env.BASE_URL}stickers/paper-heart.png` },
+  { id: 'paper-star', label: '콜라주 별', src: `${import.meta.env.BASE_URL}stickers/paper-star.png` },
+  { id: 'paper-cloud', label: '콜라주 구름', src: `${import.meta.env.BASE_URL}stickers/paper-cloud.png` },
+  { id: 'paper-umbrella', label: '콜라주 우산', src: `${import.meta.env.BASE_URL}stickers/paper-umbrella.png` },
+  { id: 'paper-headphones', label: '콜라주 헤드폰', src: `${import.meta.env.BASE_URL}stickers/paper-headphones.png` },
+  { id: 'paper-book', label: '콜라주 책', src: `${import.meta.env.BASE_URL}stickers/paper-book.png` },
+  { id: 'paper-plane', label: '콜라주 종이비행기', src: `${import.meta.env.BASE_URL}stickers/paper-plane.png` },
+  { id: 'paper-cake', label: '콜라주 케이크', src: `${import.meta.env.BASE_URL}stickers/paper-cake.png` },
+  { id: 'paper-ribbon', label: '콜라주 리본', src: `${import.meta.env.BASE_URL}stickers/paper-ribbon.png?v=2` },
+  { id: 'pop-heart', label: '팝 하트', src: `${import.meta.env.BASE_URL}stickers/pop-heart.png?v=2` },
+  { id: 'pop-star', label: '팝 별', src: `${import.meta.env.BASE_URL}stickers/pop-star.png?v=2` },
+  { id: 'pop-icecream', label: '팝 아이스크림', src: `${import.meta.env.BASE_URL}stickers/pop-icecream.png` },
+  { id: 'pop-balloon', label: '팝 풍선', src: `${import.meta.env.BASE_URL}stickers/pop-balloon.png` },
+  { id: 'pop-letter', label: '팝 편지', src: `${import.meta.env.BASE_URL}stickers/pop-letter.png` },
+  { id: 'pop-eyes', label: '팝 눈알', src: `${import.meta.env.BASE_URL}stickers/pop-eyes.png` },
+  { id: 'pixel-moon', label: '픽셀 달', src: `${import.meta.env.BASE_URL}stickers/pixel-moon.png` },
+  { id: 'pixel-game', label: '픽셀 게임기', src: `${import.meta.env.BASE_URL}stickers/pixel-game.png` },
+  { id: 'pixel-lemonade', label: '픽셀 레모네이드', src: `${import.meta.env.BASE_URL}stickers/pixel-lemonade.png` },
+  { id: 'pixel-heart', label: '픽셀 하트', src: `${import.meta.env.BASE_URL}stickers/pixel-heart.png?v=2` },
+  { id: 'pixel-star', label: '픽셀 별', src: `${import.meta.env.BASE_URL}stickers/pixel-star.png?v=2` },
+  { id: 'pixel-clover', label: '픽셀 네잎클로버', src: `${import.meta.env.BASE_URL}stickers/pixel-clover.png?v=2` },
+  { id: 'pixel-planet', label: '픽셀 행성', src: `${import.meta.env.BASE_URL}stickers/pixel-planet.png` },
+  { id: 'pixel-cloud', label: '픽셀 구름', src: `${import.meta.env.BASE_URL}stickers/pixel-cloud.png` },
+  { id: 'pixel-cherries', label: '픽셀 체리', src: `${import.meta.env.BASE_URL}stickers/pixel-cherries.png` },
+  { id: 'pixel-eyes', label: '픽셀 눈알', src: `${import.meta.env.BASE_URL}stickers/pixel-eyes.png?v=2` },
+  { id: 'jelly-heart', label: '젤리 하트', src: `${import.meta.env.BASE_URL}stickers/jelly-heart.png` },
+  { id: 'jelly-star', label: '젤리 별', src: `${import.meta.env.BASE_URL}stickers/jelly-star.png` },
+  { id: 'jelly-peach', label: '젤리 복숭아', src: `${import.meta.env.BASE_URL}stickers/jelly-peach.png` },
+  { id: 'jelly-lemon', label: '젤리 레몬', src: `${import.meta.env.BASE_URL}stickers/jelly-lemon.png` },
+  { id: 'chrome-heart', label: '크롬 하트', src: `${import.meta.env.BASE_URL}stickers/chrome-heart.png` },
+  { id: 'chrome-star', label: '크롬 별', src: `${import.meta.env.BASE_URL}stickers/chrome-star.png` },
+  { id: 'chrome-bolt', label: '크롬 번개', src: `${import.meta.env.BASE_URL}stickers/chrome-bolt.png` },
+  { id: 'crayon-heart', label: '크레용 하트', src: `${import.meta.env.BASE_URL}stickers/crayon-heart.png` },
+  { id: 'crayon-star', label: '크레용 별', src: `${import.meta.env.BASE_URL}stickers/crayon-star.png` },
+  { id: 'crayon-peach', label: '크레용 복숭아', src: `${import.meta.env.BASE_URL}stickers/crayon-peach.png` },
+  { id: 'crayon-pudding', label: '크레용 푸딩', src: `${import.meta.env.BASE_URL}stickers/crayon-pudding.png` },
+  { id: 'crayon-ribbon', label: '크레용 리본', src: `${import.meta.env.BASE_URL}stickers/crayon-ribbon.png?v=2` },
+  { id: 'jelly-gift', label: '크레용 선물상자', src: `${import.meta.env.BASE_URL}stickers/crayon-gift.png` },
+  { id: 'heart', label: '코랄 하트', src: `${import.meta.env.BASE_URL}stickers/heart.png` },
+  { id: 'star', label: '골드 별', src: `${import.meta.env.BASE_URL}stickers/star.png` },
+  { id: 'flower', label: '라일락 꽃', src: `${import.meta.env.BASE_URL}stickers/flower.png` },
+  { id: 'rainbow', label: '파스텔 무지개', src: `${import.meta.env.BASE_URL}stickers/rainbow.png` },
+  { id: 'cherries', label: '빨간 체리', src: `${import.meta.env.BASE_URL}stickers/cherries.png` },
+  { id: 'planet', label: '보라 행성', src: `${import.meta.env.BASE_URL}stickers/planet.png` },
+  { id: 'drink', label: '피치 음료', src: `${import.meta.env.BASE_URL}stickers/drink.png` },
+  { id: 'clover', label: '초록 클로버', src: `${import.meta.env.BASE_URL}stickers/clover.png` },
+  { id: 'pixel-bubble', label: '픽셀 말풍선', src: `${import.meta.env.BASE_URL}stickers/pixel-bubble.png` },
+  { id: 'pop-bubble', label: '팝 말풍선', src: `${import.meta.env.BASE_URL}stickers/pop-bubble.png` },
 ];
+
+export const getSticker = (id: string) => STICKERS.find((sticker) => sticker.id === id);
 
 export const PEN_TOOLS: { tool: PenTool; label: string }[] = [
   { tool: 'pen', label: '일반펜' },
@@ -176,7 +231,7 @@ export const inkCss = (color: InkColor): string => (isCustomColor(color) ? color
 /** Stroke widths as fractions of the box width (~3 / 5 / 10px on a phone). */
 export const PEN_WIDTHS: Record<PenWidth, number> = { thin: 0.009, medium: 0.016, thick: 0.03 };
 
-export const STICKER_SIZE = 0.13;
+export const STICKER_SIZE = 0.26;
 /** How small and big a pinch can make a sticker (box fractions). */
 export const STICKER_MIN = 0.05;
 export const STICKER_MAX = 0.6;
