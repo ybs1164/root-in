@@ -7,7 +7,7 @@ import type { Course } from '../types/course';
  */
 export interface RouteFolder {
   id: string;
-  /** Not shown (tabs show the icon); read out by screen readers. */
+  /** Shown on tabs and folder choosers. */
   name: string;
   /** What the folder's index tab shows, one of FOLDER_ICONS. */
   icon: string;
@@ -40,12 +40,12 @@ export const ROUTE_FOLDER_LIMITS = { maxFolders: 20, name: 12 } as const;
 
 export const EMPTY_ROUTE_FOLDERS: RouteFolders = { folders: [], assign: {} };
 
-/** '폴더 1', '폴더 2', … skipping names already taken. */
+/** '#1', '#2', … skipping names already taken. */
 export function nextFolderName(folders: RouteFolder[]): string {
   const taken = new Set(folders.map((f) => f.name));
   let n = folders.length + 1;
-  while (taken.has(`폴더 ${n}`)) n += 1;
-  return `폴더 ${n}`;
+  while (taken.has(`#${n}`)) n += 1;
+  return `#${n}`;
 }
 
 export function addFolder(state: RouteFolders, id: string, name = nextFolderName(state.folders)): RouteFolders | null {

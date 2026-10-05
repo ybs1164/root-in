@@ -5907,3 +5907,54 @@ button:disabled {
   color: var(--stop-pin);
   fill: currentColor;
 }
+
+/* Folder names replace emoji across tabs and destination choosers. */
+.folder-name-editor.folder-picker {
+  display: flex;
+  align-items: center;
+  width: min(260px, calc(100vw - 24px));
+  left: clamp(12px, calc(var(--x) - 130px), calc(100% - 272px));
+}
+.folder-name-editor input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  font-size: 16px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.folder-name-options.folder-picker {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(288px, calc(100vw - 32px));
+}
+.folder-name-options .folder-picker__opt {
+  width: 100%;
+  padding: 0 6px;
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+.route-row__folder {
+  width: auto;
+  min-width: 24px;
+  max-width: 84px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+.route-create__btn, .route-edit__folder {
+  width: auto;
+  min-width: 44px;
+  max-width: 160px;
+  padding: 0 12px;
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

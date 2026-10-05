@@ -7,9 +7,9 @@ const course = (id: string, createdAt: string): Course => ({
 });
 
 describe('route folders', () => {
-  it('names new folders 폴더 N, skipping taken names', () => {
-    expect(nextFolderName([])).toBe('폴더 1');
-    expect(nextFolderName([{ id: 'a', name: '폴더 2', icon: '📁' }])).toBe('폴더 3');
+  it('names new folders #N, skipping taken names', () => {
+    expect(nextFolderName([])).toBe('#1');
+    expect(nextFolderName([{ id: 'a', name: '#2', icon: '📁' }])).toBe('#3');
   });
 
   it('adds folders up to the limit', () => {

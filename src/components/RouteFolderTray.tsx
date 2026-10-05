@@ -3,7 +3,6 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import {
   addFolder,
   deleteFolder,
-  FOLDER_ICONS,
   folderOf,
   moveFolder,
   moveRoute,
@@ -12,7 +11,7 @@ import {
   gatherPlace,
   placeRoutes,
   routesInTab,
-  setFolderIcon,
+  renameFolder,
   type RouteFolders,
   type RouteTab,
 } from '../domain/routeFolders';
@@ -39,7 +38,7 @@ interface RouteFolderTrayProps {
   onDeleteRoutes: (courses: Course[]) => void;
 }
 
-/** The fixed tabs wear line icons, set apart from the folders' own emoji. */
+/** The fixed tabs retain line icons; custom folders display their names. */
 const ALL_ICON = <Layers size={20} aria-hidden />;
 const NONE_ICON = <Inbox size={20} aria-hidden />;
 
@@ -73,15 +72,16 @@ const newId = () =>
  * 경로 폴더: a white sheet rising in the tab buttons' place, with index
  * tabs along its top edge like a file folder's. 전체 lists every saved route,
  * 미분류 the ones not filed anywhere, then the user's own folders, and + adds
- * one. Every tab is an icon only (no names, no counts). Tapping the open
- * folder's tab again (or making a new one) pops a small icon picker up above
+ * one. Custom tabs show their names. Tapping the open
+ * folder's tab again (or making a new one) pops a name input up above
  * that tab, like a ping's shape picker on TODAY. Long-pressing a folder tab
  * lifts it so it can be dragged among the folders; let go without moving and
  * an ✕ appears on it, which deletes the folder after a confirm.
  */
 export default function RouteFolderTray({ open, lowered, courses, folders, onFolders, shownId, onShow, tab, onTab: setTab, onNewRoute, onDeleteRoutes }: RouteFolderTrayProps) {
-  // The folder whose icon picker is out.
+  // The folder whose name editor is open.
   const [picking, setPicking] = useState<string | null>(null);
+  const [folderDraft, setFolderDraft] = useState('');
   // The route whose 폴더 chooser is out.
   // A route about to be deleted from its row's trash (asked first), and
   // 다중 선택's folder chooser by its trash.
@@ -113,6 +113,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     if (!next) return;
     onFolders(next);
     setTab(id);
+    setFolderDraft(next.folders.find((f) => f.id === id)!.name);
     setPicking(id);
   };
 
@@ -147,11 +148,12 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     const away = (e: PointerEvent) => {
       const t = e.target as Element | null;
       if (t?.closest('.folder-picker') || t?.closest(`[data-tab="${picking}"]`)) return;
+      onFolders(renameFolder(folders, picking, folderDraft));
       setPicking(null);
     };
     document.addEventListener('pointerdown', away);
     return () => document.removeEventListener('pointerdown', away);
-  }, [picking]);
+  }, [picking, folderDraft, folders, onFolders]);
 
   // While a tab is lifted, a finger sliding along the row drags it instead of
   // scrolling the row (React's touch listeners are passive, so this one isn't).
@@ -293,7 +295,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
   });
 
-  /** Every tab is just an icon: a line icon for the fixed two, the folder's own emoji otherwise. */
+  /** Fixed tabs show icons; custom tabs show editable folder names. */
   const tabButton = (id: RouteTab, label: string, icon: ReactNode) => {
     const on = current === id;
     const custom = id !== 'all' && id !== 'none';
@@ -303,7 +305,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
         data-tab={id}
         role="tab"
         aria-selected={on}
-        aria-label={custom && on ? `${label}, 다시 누르면 아이콘 바꾸기` : label}
+        aria-label={custom && on ? `${label}, 다시 누르면 이름 바꾸기` : label}
         className={`route-folders__tab ${on ? 'is-on' : ''} ${lifted === id ? 'is-lifted' : ''} ${rowDrag?.overTab === id ? 'is-drop' : ''}`}
         {...(custom ? pressHandlers(id) : {})}
         onClick={() => {
@@ -314,11 +316,15 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
           setMovingPicked(false);
           // Any tab lets go of a route on show (the sheet comes back up).
           if (shownId) onShow(null);
-          // The second tap on an open folder brings out its icon picker and,
+          // The second tap on an open folder brings out its name editor and,
           // with it, the ✕ (as a long press does); the first tap only selects.
           const opening = on && custom && picking !== id;
           setDeleting(opening ? id : null);
-          if (on && custom) return setPicking(opening ? id : null);
+          if (picking) onFolders(renameFolder(folders, picking, folderDraft));
+          if (on && custom) {
+            if (opening) setFolderDraft(label);
+            return setPicking(opening ? id : null);
+          }
           setTab(id);
           setPicking(null);
         }}
@@ -564,7 +570,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     return 0;
   };
   const folderName = (id: string) => folders.folders.find((f) => f.id === id)?.name ?? '폴더';
-  const folderIcon = (id: string) => folders.folders.find((f) => f.id === id)?.icon ?? '📁';
+
   const draggedRoute = rowDrag ? courses.find((c) => c.id === rowDrag.held) : null;
 
   const pickingFolder = folders.folders.find((f) => f.id === picking) ?? null;
@@ -575,27 +581,24 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
       className={`route-folders ${open ? '' : 'is-leaving'} ${lowered ? 'is-lowered' : ''}`} aria-label="경로 폴더" inert={!open}>
       {pickingFolder && pickerX !== null && (
         <>
-          <div className="folder-picker" role="dialog" aria-label="폴더 아이콘" style={{ '--x': `${pickerX}px` } as CSSProperties}>
-            {FOLDER_ICONS.map((icon) => (
-              <button
-                key={icon}
-                className={`folder-picker__opt ${pickingFolder.icon === icon ? 'is-on' : ''}`}
-                aria-pressed={pickingFolder.icon === icon}
-                onClick={() => {
-                  onFolders(setFolderIcon(folders, pickingFolder.id, icon));
-                  setPicking(null);
-                }}
-              >
-                {icon}
-              </button>
-            ))}
-          </div>
+          <form className="folder-picker folder-name-editor" role="dialog" aria-label="폴더 이름 변경" style={{ '--x': `${pickerX}px` } as CSSProperties}
+            onSubmit={(e) => {
+              e.preventDefault();
+              onFolders(renameFolder(folders, pickingFolder.id, folderDraft));
+              setPicking(null);
+            }}>
+            <input key={pickingFolder.id} autoFocus aria-label="폴더 이름" value={folderDraft} maxLength={ROUTE_FOLDER_LIMITS.name}
+              onChange={(e) => setFolderDraft(e.target.value)}
+              onFocus={(e) => e.currentTarget.select()}
+              onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setPicking(null); } }} />
+            <button type="submit" className="icon-btn" aria-label="폴더 이름 저장"><Check size={20} aria-hidden /></button>
+          </form>
         </>
       )}
       {confirming && (
         <ConfirmDialog
           label="폴더 삭제"
-          message={`${folderIcon(confirming)} 폴더를 삭제합니다.`}
+          message={`${folderName(confirming)} 폴더를 삭제합니다.`}
           detail="루트는 모두 미분류로 옮겨져요."
           onConfirm={() => onFolders(deleteFolder(folders, confirming))}
           onClose={() => {
@@ -618,7 +621,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
       <div ref={tabsEl} className="route-folders__tabs" role="tablist" aria-label="폴더">
         {tabButton('all', '전체', ALL_ICON)}
         {tabButton('none', '미분류', NONE_ICON)}
-        {folders.folders.map((f) => tabButton(f.id, f.name, f.icon))}
+        {folders.folders.map((f) => tabButton(f.id, f.name, f.name))}
         <button
           className="route-folders__tab route-folders__tab--add"
           aria-label="새 폴더"
@@ -643,11 +646,11 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
           </button>
           {movingPicked && pickedRoutes.length > 0 && (
             <div
-              className="folder-picker route-folders__move-picker"
+              className="folder-picker folder-name-options route-folders__move-picker"
               role="dialog"
               aria-label="옮길 폴더"
               // As many columns as there are folders (미분류 too), five at most.
-              style={{ gridTemplateColumns: `repeat(${Math.min(5, folders.folders.length + 1)}, 44px)` }}
+              style={{ gridTemplateColumns: `repeat(${Math.min(3, folders.folders.length + 1)}, minmax(0, 1fr))` }}
             >
               {[{ id: null, name: '미분류', icon: NONE_ICON }, ...folders.folders].map((f) => (
                 <button
@@ -660,7 +663,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
                     setMovingPicked(false);
                   }}
                 >
-                  {f.icon}
+                  {f.id ? f.name : NONE_ICON}
                 </button>
               ))}
             </div>
@@ -697,7 +700,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
           aria-hidden
         >
           <div className="route-row__main">
-            {folderOf(folders, draggedRoute.id) && <span className="route-row__folder">{folderIcon(folderOf(folders, draggedRoute.id)!)}</span>}
+            {folderOf(folders, draggedRoute.id) && <span className="route-row__folder">{folderName(folderOf(folders, draggedRoute.id)!)}</span>}
             <strong>{draggedRoute.title || '이름 없는 경로'}</strong>
             {/* Several carried at once: how many. */}
             {rowDrag.ids.length > 1 && <span className="route-row--ghost__count">{rowDrag.ids.length}</span>}
@@ -777,10 +780,10 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
                     )}
                     {/* A stop on the dashed line down the list: hollow, filled for the route on show. */}
                     {!selecting && <span className={`route-row__dot ${shown ? 'is-on' : ''}`} aria-hidden />}
-                    {/* Its folder's icon, before the name; a route in none keeps the slot empty so the names line up. */}
+                    {/* Its folder's name, before the route name; a route in none keeps the slot empty so the names line up. */}
                     {filed ? (
                       <span className="route-row__folder" aria-label={`${folderName(filed)}에 있음`}>
-                        {folderIcon(filed)}
+                        {folderName(filed)}
                       </span>
                     ) : (
                       <span className="route-row__folder" aria-hidden />
