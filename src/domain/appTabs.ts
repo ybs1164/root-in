@@ -28,7 +28,7 @@ export const PAGE_TITLES: Partial<Record<AppTab, string>> = { calendar: '달력'
 /**
  * 달력 is a separate screen, like Instagram's or KakaoTalk's tabs; only
  * 핀 is the map. A tab page steps aside while the map itself is
- * needed: an opened course or pin set, a search, or a place being added.
+ * needed: a search, or a place being added.
  */
 export function showsPage(tab: AppTab, mapNeeded: boolean): boolean {
   return tab in PAGE_TITLES && !mapNeeded;

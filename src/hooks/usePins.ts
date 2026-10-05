@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   addCategory,
-  importPinSet,
+  addPlacesAsPins,
   moveCategory,
   placeCategory,
   removeCategory,
@@ -17,7 +17,7 @@ import {
   type PinRepository,
 } from '../services/pinRepository';
 import type { PlaceRef } from '../types/course';
-import type { Pin, PinCategory, SharedPinSet } from '../types/pin';
+import type { Pin, PinCategory } from '../types/pin';
 
 const generateId = (prefix: string) =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -127,14 +127,14 @@ export function usePins(pinsRepo: PinRepository = pinRepository, categoriesRepo:
     [commitCategories, commitPins],
   );
 
-  const importSet = useCallback(
-    (set: SharedPinSet) => {
-      const result = importPinSet(latest.current.categories, latest.current.pins, set, () => generateId('cat'), makePin);
-      commitCategories(result.categories);
-      commitPins(result.pins);
+  /** A received route's places as pins (미분류 unless already pinned); returns how many were new. */
+  const addPlaces = useCallback(
+    (places: PlaceRef[]) => {
+      const result = addPlacesAsPins(latest.current.pins, places, makePin);
+      if (result.added > 0) commitPins(result.pins);
       return result.added;
     },
-    [commitCategories, commitPins, makePin],
+    [commitPins, makePin],
   );
 
   return {
@@ -148,6 +148,6 @@ export function usePins(pinsRepo: PinRepository = pinRepository, categoriesRepo:
     reorderCategory,
     dropCategory,
     deleteCategory,
-    importSet,
+    addPlaces,
   };
 }

@@ -3557,6 +3557,47 @@ button:disabled {
   font-weight: 700;
 }
 
+/* A shared route link's popup: the sharer's photo centred, who shared it and how often. */
+.shared-route-dialog {
+  width: min(300px, calc(100vw - 48px));
+  text-align: center;
+}
+
+.shared-route-dialog .ticket-dialog__main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 20px 24px;
+}
+
+.shared-route-dialog__avatar {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 14px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--muted);
+  overflow: hidden;
+}
+
+.shared-route-dialog__who {
+  font-size: 17px;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.shared-route-dialog__who b {
+  color: var(--accent);
+}
+
+.shared-route-dialog__count {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 15px;
+}
+
 .btn--danger {
   background: var(--danger);
   color: var(--on-accent);
