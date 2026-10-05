@@ -291,6 +291,7 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
           onPattern={(next) => setDecor({ ...decor, pattern: next === 'none' ? undefined : next })}
           textStyle={sheetTextStyle}
           onTextStyle={changeTextStyle}
+          onClose={() => setTool(null)}
           layout={decor.layout ?? DEFAULT_LAYOUT}
           onLayout={(next) => next !== (decor.layout ?? DEFAULT_LAYOUT) && changeDecor(withLayout(decor, next))}
           layoutPreviews={layoutPreviews}

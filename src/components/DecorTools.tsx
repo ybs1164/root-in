@@ -21,7 +21,7 @@ import {
   Undo2,
   Wallpaper,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import ColorPicker from './ColorPicker';
 import {
   BASE_COLORS,
@@ -127,6 +127,68 @@ interface DecorTrayProps {
   layout?: PolaroidLayout;
   onLayout?: (layout: PolaroidLayout) => void;
   layoutPreviews?: Partial<Record<PolaroidLayout, string>>;
+  /** Dragged all the way down by its top edge: put the tool away. */
+  onClose?: () => void;
+}
+
+/** The sheets of cards (stickers, themes, patterns, layouts) can be pulled up to nearly full screen, or down shut. */
+const PULLABLE: DecorTool[] = ['sticker', 'theme', 'pattern', 'polaroid'];
+/** How far a pull has to go before it counts (px). */
+const PULL_STEP = 40;
+/** Matches the sheet's slide down in styles.css (`is-closing`). */
+const CLOSE_MS = 200;
+
+/**
+ * Dragging a card sheet by its top edge. It starts at its usual height; up
+ * past a step it opens to nearly the whole screen, down to under ~60% of
+ * its usual height it closes. From full height, letting go anywhere above
+ * that goes back to the usual height (or stays full if barely moved).
+ */
+function useSheetPull(onClose?: () => void) {
+  const sheet = useRef<HTMLDivElement | null>(null);
+  const drag = useRef<{ y: number; from: number; normal: number } | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const normalHeight = useRef(0);
+
+  // Nearly the whole screen: a strip stays clear at the top (matches `is-expanded`).
+  const fullHeight = () => window.innerHeight - 56;
+
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const el = sheet.current;
+    if (!el) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const from = el.offsetHeight;
+    if (!expanded) normalHeight.current = from;
+    drag.current = { y: e.clientY, from, normal: normalHeight.current || from };
+    el.classList.add('is-pulling');
+  };
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    const el = sheet.current;
+    if (!d || !el) return;
+    const h = Math.max(0, Math.min(fullHeight(), d.from - (e.clientY - d.y)));
+    el.style.height = `${h}px`;
+  };
+  const onPointerEnd = () => {
+    const d = drag.current;
+    const el = sheet.current;
+    drag.current = null;
+    if (!d || !el) return;
+    const h = el.offsetHeight;
+    el.classList.remove('is-pulling');
+    el.style.height = '';
+    if (h < d.normal * 0.6) {
+      setClosing(true);
+      window.setTimeout(() => onClose?.(), CLOSE_MS);
+    } else if (expanded) {
+      setExpanded(h > fullHeight() - PULL_STEP);
+    } else {
+      setExpanded(h > d.normal + PULL_STEP);
+    }
+  };
+  const handle = { onPointerDown, onPointerMove, onPointerUp: onPointerEnd, onPointerCancel: onPointerEnd };
+  return { sheet, expanded, closing, handle };
 }
 
 const EFFECT_ICONS = { bold: Bold, italic: Italic, underline: Underline, strike: Strikethrough };
@@ -154,6 +216,8 @@ const WIDTH_LABELS: Record<PenWidth, string> = { thin: '가늘게', medium: '보
  */
 export function DecorTray(p: DecorTrayProps) {
   const [picking, setPicking] = useState(false);
+  const pullable = PULLABLE.includes(p.tool);
+  const pull = useSheetPull(p.onClose);
   const label = [...RAIL, POLAROID_TOOL].find((r) => r.tool === p.tool)?.label;
   // Picking a colour means drawing with it: the eraser hands over to the pen.
   // With the text tool the colours are the picked box's.
@@ -195,8 +259,20 @@ export function DecorTray(p: DecorTrayProps) {
   const picker = picking && <ColorPicker color={custom ?? '#ff4d6d'} onPick={setColor} onClose={() => setPicking(false)} />;
 
   return (
-    <div className={`decor-tray decor-tray--${p.tool} ${p.leaving ? 'is-leaving' : ''} ${p.away ? 'is-away' : ''}`} role="toolbar" aria-label={label}>
-      <div className="decor-tray__grip" aria-hidden />
+    <div
+      ref={pull.sheet}
+      className={`decor-tray decor-tray--${p.tool} ${p.leaving ? 'is-leaving' : ''} ${p.away ? 'is-away' : ''} ${pull.expanded ? 'is-expanded' : ''} ${pull.closing ? 'is-closing' : ''}`}
+      role="toolbar"
+      aria-label={label}
+    >
+      {pullable ? (
+        // The top edge: drag up for nearly the whole screen, down to close.
+        <div className="decor-tray__handle" {...pull.handle} aria-hidden>
+          <div className="decor-tray__grip" />
+        </div>
+      ) : (
+        <div className="decor-tray__grip" aria-hidden />
+      )}
 
       {p.tool === 'sticker' && (
         <div className="decor-tray__stickers">

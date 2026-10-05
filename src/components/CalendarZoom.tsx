@@ -724,6 +724,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
           onPattern={(pattern) => setDayDecor({ ...dayDecor, pattern: pattern === 'none' ? undefined : pattern })}
           textStyle={sheetTextStyle}
           onTextStyle={changeTextStyle}
+          onClose={() => setTool(null)}
         />
       )}
 

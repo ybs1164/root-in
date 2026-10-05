@@ -1369,7 +1369,44 @@ button:disabled {
 /* A piece being dragged: the sheet steps down out of the way of the trash
    under the drawing (transform, so it doesn't fight the translate animations). */
 .decor-tray {
-  transition: transform 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    height 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+/* The card sheets' top edge: a wide strip to pull by (DecorTray useSheetPull). */
+.decor-tray__handle {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 28px;
+  margin: -6px -16px 0;
+  padding-top: 8px;
+  touch-action: none;
+  cursor: grab;
+}
+
+.decor-tray__handle .decor-tray__grip {
+  margin-bottom: 0;
+}
+
+/* Being pulled: it follows the finger (inline height), no easing. */
+.decor-tray.is-pulling {
+  max-height: none;
+  transition: none;
+}
+
+/* Pulled up: nearly the whole screen, a strip left clear at the top. */
+.decor-tray.is-expanded {
+  max-height: none;
+  height: calc(100dvh - 56px);
+}
+
+/* Pulled down shut: it slides away, then the tool closes. */
+.decor-tray.is-closing {
+  transform: translateY(100%);
+  pointer-events: none;
 }
 
 .decor-tray.is-away {
@@ -1732,14 +1769,17 @@ button:disabled {
 }
 
 .decor-tray__themes {
-  display: flex;
-  gap: 28px;
+  display: grid;
+  /* Three to a row, scrolling down. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 16px;
+  align-content: start;
   min-height: 0;
-  overflow-x: auto;
+  overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
   /* Room for the selected card's ring, which the scroller would clip. */
-  padding: 6px 6px 2px;
+  padding: 6px 6px 8px;
   margin: -6px -6px 0;
 }
 
@@ -1749,7 +1789,7 @@ button:disabled {
 }
 
 .decor-tray__theme {
-  flex: none;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1769,8 +1809,8 @@ button:disabled {
 .theme-card {
   position: relative;
   display: block;
-  /* As big as the theme sheet allows (label and padding take ~54px). */
-  height: min(132px, calc(30dvh - 54px));
+  /* A third of the sheet's width, three to a row. */
+  width: 100%;
   aspect-ratio: 10 / 13;
   border-radius: 14px;
   background: var(--card-bg);
