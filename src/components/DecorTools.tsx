@@ -137,6 +137,8 @@ const PULLABLE: DecorTool[] = ['sticker', 'theme', 'pattern', 'polaroid'];
 const PULL_STEP = 40;
 /** Matches the sheet's slide down in styles.css (`is-closing`). */
 const CLOSE_MS = 200;
+/** Matches the sheet's height easing in styles.css. */
+const SETTLE_MS = 260;
 
 /**
  * Dragging a card sheet by its top edge. It starts at its usual height; up
@@ -150,6 +152,7 @@ function useSheetPull(onClose?: () => void) {
   const [expanded, setExpanded] = useState(false);
   const [closing, setClosing] = useState(false);
   const normalHeight = useRef(0);
+  const settle = useRef(0);
 
   // Nearly the whole screen: a strip stays clear at the top (matches `is-expanded`).
   const fullHeight = () => window.innerHeight - 56;
@@ -158,10 +161,15 @@ function useSheetPull(onClose?: () => void) {
     const el = sheet.current;
     if (!el) return;
     e.currentTarget.setPointerCapture(e.pointerId);
+    window.clearTimeout(settle.current);
+    delete el.dataset.settling;
     const from = el.offsetHeight;
     if (!expanded) normalHeight.current = from;
     drag.current = { y: e.clientY, from, normal: normalHeight.current || from };
-    el.classList.add('is-pulling');
+    // Pin the height it has now before lifting the max-height, or the sheet
+    // would jump to its full content height at the first touch.
+    el.style.height = `${from}px`;
+    el.dataset.pulling = '';
   };
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const d = drag.current;
@@ -176,16 +184,25 @@ function useSheetPull(onClose?: () => void) {
     drag.current = null;
     if (!d || !el) return;
     const h = el.offsetHeight;
-    el.classList.remove('is-pulling');
-    el.style.height = '';
     if (h < d.normal * 0.6) {
+      delete el.dataset.pulling;
       setClosing(true);
       window.setTimeout(() => onClose?.(), CLOSE_MS);
-    } else if (expanded) {
-      setExpanded(h > fullHeight() - PULL_STEP);
-    } else {
-      setExpanded(h > d.normal + PULL_STEP);
+      return;
     }
+    const toFull = expanded ? h > fullHeight() - PULL_STEP : h > d.normal + PULL_STEP;
+    // Glide from where the finger left it to the new height (a px height can
+    // ease; the usual one is content-sized and can't), then hand back to CSS.
+    // Data attributes, not classes: React rewrites className on the re-render.
+    delete el.dataset.pulling;
+    el.dataset.settling = '';
+    void el.offsetHeight;
+    el.style.height = `${toFull ? fullHeight() : d.normal}px`;
+    setExpanded(toFull);
+    settle.current = window.setTimeout(() => {
+      delete el.dataset.settling;
+      el.style.height = '';
+    }, SETTLE_MS);
   };
   const handle = { onPointerDown, onPointerMove, onPointerUp: onPointerEnd, onPointerCancel: onPointerEnd };
   return { sheet, expanded, closing, handle };

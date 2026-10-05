@@ -1392,9 +1392,14 @@ button:disabled {
 }
 
 /* Being pulled: it follows the finger (inline height), no easing. */
-.decor-tray.is-pulling {
+.decor-tray[data-pulling] {
   max-height: none;
   transition: none;
+}
+
+/* Let go: gliding to its new height (inline px), unclamped until it lands. */
+.decor-tray[data-settling] {
+  max-height: none;
 }
 
 /* Pulled up: nearly the whole screen, a strip left clear at the top. */
