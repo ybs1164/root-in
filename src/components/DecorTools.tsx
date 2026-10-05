@@ -5,6 +5,7 @@ import {
   Bold,
   BrushCleaning,
   Eraser,
+  GalleryVerticalEnd,
   Highlighter,
   Italic,
   Palette,
@@ -45,6 +46,7 @@ import {
   type PenWidth,
   type ThemeId,
 } from '../domain/decor';
+import { POLAROID_LAYOUTS, type PolaroidLayout } from '../domain/polaroid';
 import { PIN_BOX, PIN_PATH } from '../lib/pingPaths';
 import DayPattern from './DayPattern';
 
@@ -55,6 +57,8 @@ const RAIL: { tool: DecorTool; label: string; Icon: typeof Sticker }[] = [
   { tool: 'theme', label: '테마', Icon: Palette },
   { tool: 'pattern', label: '꾸미기', Icon: Wallpaper },
 ];
+/** The share screen's own: how the polaroid lies on the image. */
+const POLAROID_TOOL = { tool: 'polaroid' as const, label: '폴라로이드', Icon: GalleryVerticalEnd };
 
 /** 스티커 · 펜 · 텍스트 · 테마 · 꾸미기, stacked under the settings button, then 공유 a little apart in the accent colour. */
 export function DecorRail({
@@ -72,7 +76,7 @@ export function DecorRail({
 }) {
   return (
     <div className={`decor-rail ${row ? 'decor-rail--row' : ''}`} role="toolbar" aria-label="꾸미기" aria-orientation={row ? 'horizontal' : 'vertical'}>
-      {RAIL.map(({ tool: t, label, Icon }) => (
+      {(row ? [...RAIL, POLAROID_TOOL] : RAIL).map(({ tool: t, label, Icon }) => (
         <button
           key={t}
           className={`decor-rail__btn ${tool === t ? 'is-on' : ''}`}
@@ -119,6 +123,10 @@ interface DecorTrayProps {
   /** The picked text box's looks; changes apply to it (and to the next new box). */
   textStyle: TextStyle;
   onTextStyle: (patch: Partial<TextStyle>) => void;
+  /** Share cards: the polaroid's layout, and a small picture of the card in each (while they're drawn, none). */
+  layout?: PolaroidLayout;
+  onLayout?: (layout: PolaroidLayout) => void;
+  layoutPreviews?: Partial<Record<PolaroidLayout, string>>;
 }
 
 const EFFECT_ICONS = { bold: Bold, italic: Italic, underline: Underline, strike: Strikethrough };
@@ -146,7 +154,7 @@ const WIDTH_LABELS: Record<PenWidth, string> = { thin: '가늘게', medium: '보
  */
 export function DecorTray(p: DecorTrayProps) {
   const [picking, setPicking] = useState(false);
-  const label = RAIL.find((r) => r.tool === p.tool)?.label;
+  const label = [...RAIL, POLAROID_TOOL].find((r) => r.tool === p.tool)?.label;
   // Picking a colour means drawing with it: the eraser hands over to the pen.
   // With the text tool the colours are the picked box's.
   const isText = p.tool === 'text';
@@ -321,6 +329,24 @@ export function DecorTray(p: DecorTrayProps) {
                   <circle cx="12" cy="10" r="3" />
                 </svg>
                 <i />
+              </span>
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {p.tool === 'polaroid' && (
+        <div className="decor-tray__themes">
+          {POLAROID_LAYOUTS.map(({ id, label: name }) => (
+            <button
+              key={id}
+              className={`decor-tray__theme ${p.layout === id ? 'is-on' : ''}`}
+              aria-pressed={p.layout === id}
+              onClick={() => p.onLayout?.(id)}
+            >
+              <span className="theme-card layout-card" aria-hidden>
+                {p.layoutPreviews?.[id] && <img src={p.layoutPreviews[id]} alt="" draggable={false} />}
               </span>
               {name}
             </button>

@@ -17,6 +17,16 @@ describe('share card decorations', () => {
     expect(loadDecor()).toEqual({});
   });
 
+  it('keeps a card’s polaroid layout across a reload, and drops one it doesn’t know', () => {
+    saveDecor({
+      'route:c-1': { stickers: [], strokes: [], layout: 'notebook' },
+      'route:c-2': { stickers: [], strokes: [], titled: true, layout: 'zigzag' as never },
+    });
+    const store = loadDecor();
+    expect(store['route:c-1'].layout).toBe('notebook');
+    expect(store['route:c-2'].layout).toBeUndefined();
+  });
+
   it('keeps each card’s pieces across a reload, and drops what doesn’t look right', () => {
     saveDecor({
       'route:c-1': { stickers: [], strokes: [{ tool: 'pen', color: 'ink-black', width: 'thin', points: [[0.123456, 0.5]] }], pattern: 'hearts' },

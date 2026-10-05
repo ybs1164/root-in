@@ -1689,7 +1689,8 @@ button:disabled {
   color: var(--tray-fg);
 }
 
-.decor-tray--theme {
+.decor-tray--theme,
+.decor-tray--polaroid {
   /* Themes get a taller sheet than the other tools: the cards are the point. */
   max-height: 30dvh;
   /* The grip's own margin is room the cards can use. */
@@ -1775,6 +1776,20 @@ button:disabled {
 .pattern-card {
   --card-bg: var(--surface);
   overflow: hidden;
+}
+
+/* 폴라로이드: the card itself, drawn small in that layout (the share image's 7:10). */
+.layout-card {
+  --card-bg: var(--tray-hi);
+  aspect-ratio: 7 / 10;
+  overflow: hidden;
+}
+
+.layout-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* Stronger in the small card, so the pattern reads at a glance. */

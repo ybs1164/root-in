@@ -4,7 +4,10 @@
  * drawing box (0..1), so they survive any screen size and the share image.
  */
 
-export type DecorTool = 'sticker' | 'pen' | 'text' | 'theme' | 'pattern';
+import type { PolaroidLayout } from './polaroid';
+
+/** 'polaroid' (the card's layout) is the share screen's only. */
+export type DecorTool = 'sticker' | 'pen' | 'text' | 'theme' | 'pattern' | 'polaroid';
 
 export interface PlacedSticker {
   id: string;
@@ -138,6 +141,8 @@ export interface DayDecor {
    * be edited or thrown away like any other, and stays away once it is).
    */
   titled?: true;
+  /** Share cards only: how the polaroid lies on the image (absent = DEFAULT_LAYOUT). */
+  layout?: PolaroidLayout;
 }
 
 export const EMPTY_DECOR: DayDecor = { stickers: [], strokes: [] };
