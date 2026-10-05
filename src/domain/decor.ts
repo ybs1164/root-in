@@ -26,7 +26,7 @@ export interface PlacedSticker {
  * kept in order, so ink drawn after them isn't erased and undo brings the
  * rubbed-out part back.
  */
-export type PenTool = 'pen' | 'highlighter' | 'neon' | 'eraser';
+export type PenTool = 'pen' | 'crayon' | 'highlighter' | 'neon' | 'eraser';
 export type InkTool = Exclude<PenTool, 'eraser'>;
 export type PenWidth = 'thin' | 'medium' | 'thick';
 
@@ -209,6 +209,7 @@ export const getSticker = (id: string) => STICKERS.find((sticker) => sticker.id 
 
 export const PEN_TOOLS: { tool: PenTool; label: string }[] = [
   { tool: 'pen', label: '일반펜' },
+  { tool: 'crayon', label: '크레용' },
   { tool: 'highlighter', label: '형광펜' },
   { tool: 'neon', label: '네온펜' },
   { tool: 'eraser', label: '지우개' },
@@ -230,6 +231,9 @@ export const inkCss = (color: InkColor): string => (isCustomColor(color) ? color
 
 /** Stroke widths as fractions of the box width (~3 / 5 / 10px on a phone). */
 export const PEN_WIDTHS: Record<PenWidth, number> = { thin: 0.009, medium: 0.016, thick: 0.03 };
+
+/** A crayon line is a little wider than a pen's, and grainy (see DecorLayer / shareImage). */
+export const CRAYON_SCALE = 1.35;
 
 export const STICKER_SIZE = 0.26;
 /** How small and big a pinch can make a sticker (box fractions). */

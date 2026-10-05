@@ -2,7 +2,7 @@ import type { RouteEdgeStyle } from '../domain/routeStyle';
 import type { PinIcon } from '../types/pin';
 import { pinGlyphSvg } from './pinGlyphs';
 import { latestPingIndex, layoutPings, type DayPing, type EdgeStyle } from '../domain/dayPings';
-import { ERASER_SCALE, getSticker, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, textWeight, type DayDecor, type PlacedText, type ThemeId } from '../domain/decor';
+import { CRAYON_SCALE, ERASER_SCALE, getSticker, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, textWeight, type DayDecor, type PlacedText, type ThemeId } from '../domain/decor';
 import { CLOTHESLINE, clotheslineY, DEFAULT_LAYOUT, DRAWING_BOX, LAYOUT_CARDS, POLAROID, SCENE, TICKET, type CardPose, type PolaroidLayout } from '../domain/polaroid';
 import type { CardStamp, StopMark } from '../domain/shareSubject';
 import { paintPattern } from './dayPatterns';
@@ -43,7 +43,7 @@ function tokens() {
   const css = getComputedStyle(document.documentElement);
   const get = (name: string) => css.getPropertyValue(name).trim();
   return {
-    backdrop: get('--accent-soft'),
+    backdrop: get('--bg'),
     card: get('--polaroid'),
     cardShadow: get('--polaroid-shadow'),
     photo: get('--surface-2'),
@@ -208,12 +208,13 @@ function faint(ctx: CanvasRenderingContext2D, alpha: number, draw: () => void) {
 }
 
 /**
- * What the cards lie on: plain white in every layout (the card paper's white,
- * whatever the theme); a background pattern goes over it. 항로 adds its
- * dashed flight and 빨랫줄 its line, behind the card.
+ * What the cards lie on: the theme's page colour (`--bg`), the same as the
+ * 꾸미기 screen around the card, so changing the theme recolours the whole
+ * saved image; no layout paints a ground of its own. A background pattern
+ * goes over it; 항로 adds its dashed flight and 빨랫줄 its line, behind the card.
  */
 function drawBackdrop(ctx: CanvasRenderingContext2D, c: Tokens, layout: PolaroidLayout) {
-  ctx.fillStyle = c.card;
+  ctx.fillStyle = c.backdrop;
   ctx.fillRect(0, 0, W, H);
   if (layout === 'map') drawFlight(ctx, c);
   if (layout === 'line') drawClothesline(ctx, c);
@@ -570,6 +571,31 @@ const SCENE_FRAME: PieceFrame = { x: 0, y: 0, w: W, h: H, canvas: { w: W, h: H }
 /** A day's pieces: its drawing box, in the card's pixels. */
 const BOX_FRAME: PieceFrame = { x: BOX.x, y: BOX.y, w: BOX.size, h: BOX.size, canvas: { w: POLAROID.w, h: POLAROID.h } };
 
+/**
+ * The crayon's tooth: soft specks of alpha at random, a few pixels across
+ * (scaled with the line's width), to rub out of a crayon line. Seeded, so
+ * an image comes out the same each time.
+ */
+function crayonGrain(width: number, height: number, lineWidth: number): HTMLCanvasElement {
+  const cell = Math.max(1.5, lineWidth / 7);
+  const gw = Math.ceil(width / cell);
+  const gh = Math.ceil(height / cell);
+  const small = document.createElement('canvas');
+  small.width = gw;
+  small.height = gh;
+  const sc = small.getContext('2d')!;
+  const img = sc.createImageData(gw, gh);
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < gw * gh; i++) {
+    const r = rnd();
+    // About a quarter of the cells show through, some only partly.
+    img.data[i * 4 + 3] = r < 0.2 ? 255 : r < 0.32 ? 120 : 0;
+  }
+  sc.putImageData(img, 0, 0);
+  return small;
+}
+
 /** Pen strokes, then stickers, then text boxes, laid out in `frame`. */
 function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, frame: PieceFrame, stickerImages: Map<string, HTMLImageElement>) {
   const css = getComputedStyle(document.documentElement);
@@ -608,6 +634,24 @@ function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, frame: PieceF
       ink.globalAlpha = 0.35;
       ink.lineWidth = w * 2.4;
       trace(stroke.points);
+    } else if (stroke.tool === 'crayon') {
+      // Drawn on its own sheet, then the grain is rubbed out of it, so the
+      // holes show what's under the crayon rather than eating earlier ink.
+      const sheet = document.createElement('canvas');
+      sheet.width = layer.width;
+      sheet.height = layer.height;
+      const c = sheet.getContext('2d')!;
+      c.lineCap = 'round';
+      c.lineJoin = 'round';
+      c.strokeStyle = color;
+      c.lineWidth = w * CRAYON_SCALE;
+      c.beginPath();
+      stroke.points.forEach(([x, y], i) => (i ? c.lineTo : c.moveTo).call(c, ...at(x, y)));
+      if (stroke.points.length === 1) c.lineTo(at(...stroke.points[0])[0] + 0.01, at(...stroke.points[0])[1]);
+      c.stroke();
+      c.globalCompositeOperation = 'destination-out';
+      c.drawImage(crayonGrain(layer.width, layer.height, w), 0, 0, layer.width, layer.height);
+      ink.drawImage(sheet, 0, 0);
     } else if (stroke.tool === 'neon') {
       ink.shadowColor = color;
       ink.shadowBlur = w * 2.5;

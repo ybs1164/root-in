@@ -2167,8 +2167,8 @@ button:disabled {
   position: relative;
   width: min(100cqw, 100cqh * 1400 / 2000); /* SCENE in domain/polaroid.ts */
   border-radius: 14px;
-  background: var(--accent-soft);
-  box-shadow: var(--shadow-sm);
+  /* The scene's own ground is the page colour too: no box of another colour around it. */
+  background: var(--bg);
 }
 
 .studio__image {

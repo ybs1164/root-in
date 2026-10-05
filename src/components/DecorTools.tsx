@@ -3,6 +3,7 @@ import {
   AlignLeft,
   AlignRight,
   Bold,
+  Brush,
   BrushCleaning,
   Eraser,
   GalleryVerticalEnd,
@@ -219,6 +220,7 @@ const ALIGN_ICONS: Record<TextAlign, typeof Bold> = { left: AlignLeft, center: A
 
 const PEN_ICONS: Record<PenTool, typeof PenLine> = {
   pen: Pencil,
+  crayon: Brush,
   highlighter: Highlighter,
   neon: Sparkles,
   eraser: Eraser,

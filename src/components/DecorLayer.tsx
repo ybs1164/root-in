@@ -1,6 +1,7 @@
 import { Trash2 } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import {
+  CRAYON_SCALE,
   clamp01,
   getSticker,
   cleanTextStyle,
@@ -79,8 +80,9 @@ const strokePath = (points: [number, number][], aspect: number) =>
 
 /**
  * One stroke as SVG, styled by its pen: plain ink; a wide see-through
- * highlighter; or a neon tube (blurred glow in the colour, then the colour,
- * then a bright core).
+ * highlighter; a neon tube (blurred glow in the colour, then the colour,
+ * then a bright core); or a waxy crayon line (grain cut out of it and its
+ * edges roughened by the crayon filter).
  */
 function Ink({ stroke, glowId, aspect }: { stroke: Stroke; glowId: string; aspect: number }) {
   const d = strokePath(stroke.points, aspect);
@@ -88,6 +90,9 @@ function Ink({ stroke, glowId, aspect }: { stroke: Stroke; glowId: string; aspec
   const color = inkCss(stroke.color);
   if (stroke.tool === 'highlighter') {
     return <path d={d} className="decor__hl" style={{ stroke: color, strokeWidth: w * 2.4 }} />;
+  }
+  if (stroke.tool === 'crayon') {
+    return <path d={d} filter={`url(#${glowId}-crayon)`} style={{ stroke: color, strokeWidth: w * CRAYON_SCALE }} />;
   }
   if (stroke.tool === 'neon') {
     return (
@@ -474,6 +479,14 @@ export default function DecorLayer({
                 stroke's bounds are too thin and would clip the glow square. */}
             <filter id={glowId} filterUnits="userSpaceOnUse" x="-10" y="-10" width="120" height={100 * aspect + 20}>
               <feGaussianBlur stdDeviation="1.4" />
+            </filter>
+            {/* Crayon: fractal noise both roughens the line's edges and, made
+                into an alpha grain, punches the paper's tooth through it. */}
+            <filter id={`${glowId}-crayon`} filterUnits="userSpaceOnUse" x="-10" y="-10" width="120" height={100 * aspect + 20}>
+              <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="7" result="noise" />
+              <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -2.6 0 0 0 2.15" result="grain" />
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="0.7" xChannelSelector="R" yChannelSelector="G" result="rough" />
+              <feComposite in="rough" in2="grain" operator="in" />
             </filter>
           </defs>
           {inkLayers(strokes, glowId, `rub-${uid}`, aspect)}
