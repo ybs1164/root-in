@@ -56,6 +56,15 @@ export default function DayPattern({
             : undefined
         }
       />
+      {tile.margin && (
+        <rect
+          x={tile.margin.x * scale}
+          y="0"
+          width={tile.margin.width * scale}
+          height="100%"
+          className="day-pattern__mark"
+        />
+      )}
     </svg>
   );
 }

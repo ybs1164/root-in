@@ -271,7 +271,7 @@ export const THEMES: { id: ThemeId; label: string }[] = [
 ];
 
 /** Background patterns (꾸미기); some drift slowly on screen, the share image is a still. */
-export type PatternId = 'none' | 'dots' | 'grid' | 'stripes' | 'waves' | 'hearts' | 'stars' | 'snow' | 'notes' | 'map';
+export type PatternId = 'none' | 'dots' | 'grid' | 'stripes' | 'waves' | 'hearts' | 'stars' | 'snow' | 'notes';
 
 export const PATTERNS: { id: PatternId; label: string }[] = [
   { id: 'none', label: '없음' },
@@ -283,7 +283,6 @@ export const PATTERNS: { id: PatternId; label: string }[] = [
   { id: 'stars', label: '별' },
   { id: 'snow', label: '눈' },
   { id: 'notes', label: '노트' },
-  { id: 'map', label: '지도' },
 ];
 
 export const isPatternId = (value: unknown): value is PatternId => PATTERNS.some((p) => p.id === value);

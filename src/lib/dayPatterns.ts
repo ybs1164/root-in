@@ -24,6 +24,8 @@ export interface PatternTile {
   /** Outlines rather than filled shapes, at this width. */
   stroke?: number;
   flow?: { x: number; y: number; seconds: number };
+  /** One upright rule at `x` from the area's left edge (not repeated): a notebook's margin. */
+  margin?: { x: number; width: number };
 }
 
 const dot = (cx: number, cy: number, r: number) => `M${cx - r} ${cy}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`;
@@ -118,32 +120,9 @@ export const PATTERN_TILES: Record<Exclude<PatternId, 'none'>, PatternTile> = {
     marks: scatter(3, 320, [{ kind: 'dot', count: 22, r: [2.2, 7] }]),
     flow: { x: 0, y: 320, seconds: 29 },
   },
-  // A notebook's ruled lines (they were the 노트 card's page).
-  notes: { size: 30, marks: [{ d: 'M0 28H30V30H0Z' }] },
-  // An illustrated map's blocks between the roads (they were the 지도 card's).
-  map: { size: 240, marks: mapBlocks() },
+  // A notebook's ruled lines, and its margin rule down the left once.
+  notes: { size: 30, marks: [{ d: 'M0 28H30V30H0Z' }], margin: { x: 40, width: 2 } },
 };
-
-/**
- * 지도: city blocks as rounded rectangles, rows of different heights cut into
- * blocks of different widths, with a road's gap between them (also across
- * the tile's seams: every block keeps 6px clear of the edges).
- */
-function mapBlocks(): PatternMark[] {
-  const rows: [number, number, number[]][] = [
-    // [top, bottom, the x where each block ends — a road (12px) follows each]
-    [6, 50, [80, 150, 234]],
-    [62, 122, [120, 234]],
-    [134, 172, [54, 140, 196, 234]],
-    [184, 234, [96, 176, 234]],
-  ];
-  const r = 6;
-  const block = (x0: number, y0: number, x1: number, y1: number) =>
-    `M${x0 + r} ${y0}H${x1 - r}Q${x1} ${y0} ${x1} ${y0 + r}V${y1 - r}Q${x1} ${y1} ${x1 - r} ${y1}H${x0 + r}Q${x0} ${y1} ${x0} ${y1 - r}V${y0 + r}Q${x0} ${y0} ${x0 + r} ${y0}Z`;
-  return rows.flatMap(([top, bottom, ends]) =>
-    ends.map((end, i) => ({ d: block(i === 0 ? 6 : ends[i - 1] + 12, top, end, bottom) })),
-  );
-}
 
 /** SVG transform for a mark within its tile. */
 export const markTransform = (m: PatternMark): string =>
@@ -184,6 +163,7 @@ export function paintPattern(
       }
     }
   }
+  if (tile.margin) ctx.fillRect(tile.margin.x, 0, tile.margin.width, area.h / unit);
   ctx.restore();
 }
 
