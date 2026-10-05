@@ -10,4 +10,6 @@ export const EXTRA_PIN_ICONS = {
   sun: '해', moon: '달', cloud: '구름', rain: '비', snow: '눈', lightning: '번개', umbrella: '우산',
   dog: '강아지', cat: '고양이', fish: '물고기', bird: '새', rabbit: '토끼', paw: '발바닥',
   mountain: '산', palm: '야자수', waterfall: '폭포', tree: '나무', leaf: '잎',
+  cinema: '영화관', amusement: '놀이공원', salon: '미용실', laundry: '세탁소', store: '편의점', gas: '주유소', restroom: '화장실', post: '우체국',
+  donut: '도넛', chicken: '치킨', noodles: '국수', sandwich: '샌드위치', apple: '사과', cheese: '치즈', tea: '차', drink: '음료',
 } as const;
