@@ -4507,7 +4507,7 @@ button:disabled {
   /* Well above the row of round buttons. */
   bottom: calc(100% + 32px);
   display: block;
-  width: 80px;
+  width: 64px;
   height: 54px;
   padding: 0;
   border: 0;
@@ -4544,16 +4544,36 @@ button:disabled {
   overflow: visible;
 }
 
-/* White, the flat end's corners lightly rounded by a same-colour round-joined stroke. */
+/* White, the eyelet a hole through it (even-odd), the map showing through. */
 .edge-tag__body {
   fill: var(--surface);
-  stroke: var(--surface);
-  stroke-width: 5;
-  stroke-linejoin: round;
 }
 
-.edge-tag__eyelet {
-  fill: var(--accent);
+/* On the page: the same height as on the map's row (row lift + row + gap). */
+.page > .edge-tag {
+  bottom: calc(var(--safe-bottom) + 36px + var(--bar-h) + 32px);
+  z-index: 3;
+}
+
+/* A tag that appears (page landed, or the map uncovered) pops out of its edge. */
+.edge-tag--pop.edge-tag--left {
+  animation: tag-pop-left 340ms cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+
+.edge-tag--pop.edge-tag--right {
+  animation: tag-pop-right 340ms cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+
+@keyframes tag-pop-left {
+  from {
+    translate: -100% 0;
+  }
+}
+
+@keyframes tag-pop-right {
+  from {
+    translate: 100% 0;
+  }
 }
 
 /* The icon on the tag's body, clear of the eyelet. */
@@ -4565,11 +4585,11 @@ button:disabled {
 }
 
 .edge-tag--left .edge-tag__icon {
-  left: 18px;
+  left: 11px;
 }
 
 .edge-tag--right .edge-tag__icon {
-  right: 18px;
+  right: 11px;
 }
 
 .edge-tag__icon svg {
@@ -4610,7 +4630,7 @@ button:disabled {
   /* Just right of the blue pin, sitting a little higher than its bottom
      (the pin hangs 8px below the row). */
   top: auto;
-  bottom: 2px;
+  bottom: -1px;
   translate: none;
   left: calc(50% + 40px + 12px);
   width: 44px;
@@ -5748,6 +5768,11 @@ button:disabled {
   box-shadow: var(--shadow); /* shows as the page slides off the map */
   /* Vertical scrolling stays native; sideways moves are the swipe home. */
   touch-action: pan-y;
+}
+
+/* 공유 lives outside the page (portal), so it can't slide with it: it waits out the move. */
+body:has(.app--page-moving) .day-share {
+  visibility: hidden;
 }
 
 /* Opened from the map's left-edge tag: the page sweeps in from that side. */

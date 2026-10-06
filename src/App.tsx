@@ -5,7 +5,7 @@ import ShareStudio from './components/ShareStudio';
 import ConfirmDialog from './components/ConfirmDialog';
 import { routeSubject, type ShareSubject } from './domain/shareSubject';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import BottomBar from './components/BottomBar';
+import BottomBar, { CalendarTagIcon, EdgeTag, MapTagIcon } from './components/BottomBar';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
 import NewPinCard, { type NewPinInput } from './components/NewPinCard';
 import PinCard from './components/PinCard';
@@ -895,7 +895,7 @@ export default function App() {
   };
 
   return (
-    <div className={`app ${searchOpen ? 'app--searching' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''} ${aiming ? 'app--aiming' : ''}`}>
+    <div className={`app ${searchOpen ? 'app--searching' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''} ${aiming ? 'app--aiming' : ''} ${pageEnter || swipe.leaving ? 'app--page-moving' : ''}`}>
       <div ref={mapEl} className="map" aria-label="지도" />
 
       <SearchBar
@@ -1154,6 +1154,14 @@ export default function App() {
           {...swipe.handlers}
         >
           {calendarZoom && <DayPattern pattern={dayPattern} />}
+          {/* The tags ride on the page. Coming in, the map's tag is pushed along
+              by the page's right edge and the calendar's own pops out once it
+              has landed; going out, the calendar's tag leaves with the page. */}
+          {pageEnter ? (
+            <EdgeTag ghost side="left" label="달력" icon={<CalendarTagIcon />} style={{ left: '100%' }} />
+          ) : (
+            calendarZoom && !decorating && <EdgeTag side="right" label="지도" icon={<MapTagIcon />} onClick={() => tagTab('pins')} />
+          )}
           <header className="page__head">
             {/* The calendar's own TODAY / DAY n heading takes the stage. */}
             <h1 className={calendarZoom ? 'sr-only' : ''}>{PAGE_TITLES[tab]}</h1>
@@ -1195,7 +1203,7 @@ export default function App() {
       )}
 
       <div ref={barEl} className={`bottom-bar-wrap ${barAway ? 'is-away' : ''}`} inert={barAway}>
-        <BottomBar tab={swipe.leaving ? 'pins' : tab} onTab={tagTab} onPin={startPinning} onAim={startAiming} />
+        <BottomBar tab={swipe.leaving ? 'pins' : tab} tagHidden={swipe.leaving} onTab={tagTab} onPin={startPinning} onAim={startAiming} />
       </div>
 
       {routeDeleting && course.courses.some((c) => c.id === routeDeleting) && (
