@@ -4643,6 +4643,13 @@ button:disabled {
 
 .bar-aim {
   left: calc(50% + 48px);
+  /* Leaving for the calendar it shrinks down onto its own bottom as it goes
+     right (and grows back up from it), fading out only at the end. */
+  transform-origin: 50% 100%;
+  transition:
+    left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.3s ease-in,
+    scale 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* Everything moves right on the way to the calendar (and back left): the
@@ -4681,7 +4688,7 @@ button:disabled {
 .bottom-bar--cal .bar-aim {
   left: calc(50% + 100px);
   opacity: 0;
-  scale: 0.6;
+  scale: 0;
   pointer-events: none;
 }
 
