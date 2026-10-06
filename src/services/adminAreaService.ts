@@ -114,7 +114,7 @@ export class StaticAdminAreaService implements AdminAreaService {
         this.load(`section/${focus.code}.json`, signal),
         ...sggWithDongs.map((s) => this.load(`dong/${s.code}.json`, signal)),
       ]);
-      if (signal?.aborted || !sections || !dongLists[0]) return null;
+      if (signal?.aborted || !dongLists[0]) return null;
       const dong = areaAt(dongLists[0], center);
       if (!dong) return null;
       const others = [
@@ -122,7 +122,10 @@ export class StaticAdminAreaService implements AdminAreaService {
         // 시군구 whose 읍면동 weren't loaded stay whole.
         ...sggNear.filter((s, i) => !dongLists[i + 1]),
       ];
-      const parts = sections.filter((a) => a.code.startsWith(`${dong.code}-`));
+      // No section file (it wasn't built or deployed): the 읍면동 stands whole as its one section.
+      const parts = sections
+        ? sections.filter((a) => a.code.startsWith(`${dong.code}-`))
+        : [{ ...dong, code: `${dong.code}-0` }];
       return { focus: { code: dong.code, name: dong.name }, parts, others };
     } catch (error) {
       if (import.meta.env.DEV && !signal?.aborted) console.warn('Admin areas loading failed', error);
