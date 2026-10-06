@@ -1340,10 +1340,10 @@ button:disabled {
 }
 
 /* On the day screen the rail matches the map's 핀/경로 rail: 48px rounds,
-   10px apart, in the same place (the calendar area starts below the 56px
-   page head). */
+   10px apart, starting where the map's profile button is. */
 .cal-zoom .decor-rail {
-  top: 20px;
+  /* Up in the top corner, where the map's profile sits. */
+  top: 12px;
   right: 14px;
   gap: 10px;
 }
@@ -5868,7 +5868,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 16px 16px 12dvh;
+  padding: 72px 16px 12dvh; /* top: 16px + the head bar the calendar no longer has */
 }
 
 .cal-zoom__month .calendar {
@@ -5888,7 +5888,8 @@ button:disabled {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 36px 24px 0;
+  /* The calendar has no head bar: 56px of it kept here so TODAY stays put. */
+  padding: 92px 24px 0;
 }
 
 /* 꾸미기 → background pattern (DayPattern), faint, across the whole page

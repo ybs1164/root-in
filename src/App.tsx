@@ -1160,10 +1160,15 @@ export default function App() {
           {...swipe.handlers}
         >
           {calendarZoom && <DayPattern pattern={dayPattern} />}
-          <header className="page__head">
-            {/* The calendar's own TODAY / DAY n heading takes the stage. */}
-            <h1 className={calendarZoom ? 'sr-only' : ''}>{PAGE_TITLES[tab]}</h1>
-          </header>
+          {/* The calendar has no head bar: its own TODAY / DAY n heading takes the
+              stage and the 꾸미기 rail runs up to the top corner. */}
+          {calendarZoom ? (
+            <h1 className="sr-only">{PAGE_TITLES[tab]}</h1>
+          ) : (
+            <header className="page__head">
+              <h1>{PAGE_TITLES[tab]}</h1>
+            </header>
+          )}
           {calendarZoom ? (
             <CalendarZoom
               command={calendarCommand}
