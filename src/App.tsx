@@ -176,11 +176,11 @@ export default function App() {
   const onPage = showsPage(tab, Boolean(searchOpen || preview));
   // Swiping 달력 left slides the page off and uncovers the map (핀).
   const swipe = usePageSwipe(onPage && !decorating && !studio ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
-  // The calendar page rising from the bottom (the corner tab tapped), or
+  // The calendar page rising from the bottom (the calendar button tapped), or
   // lifting off the top on the way back to the map.
   const [pageRise, setPageRise] = useState(false);
   const [pageLift, setPageLift] = useState(false);
-  // …or pulled up by dragging the corner tab: the page's offset from the top
+  // …or pulled up by dragging the calendar button: the page's offset from the top
   // (px, ≥ 0), and whether it is gliding (released) rather than following the finger.
   const [pull, setPull] = useState<{ y: number; glide: boolean } | null>(null);
   // While the page is coming in, the day's intro waits.
@@ -891,7 +891,7 @@ export default function App() {
 
   const calendarZoom = tab === 'calendar';
 
-  // The corner tabs switch the screens with an upward move: TODAY rises from
+  // The calendar and map buttons switch the screens with an upward move: TODAY rises from
   // the bottom over the map; going back, it lifts off the top and the map
   // shows from below.
   const tagTab = (next: AppTab) => {
@@ -902,7 +902,7 @@ export default function App() {
     else changeTab(next);
   };
 
-  // Dragging the map's corner tab up pulls the calendar page up after it;
+  // Dragging the map's calendar button up pulls the calendar page up after it;
   // let go far enough (or with a flick) and it lands, otherwise it drops back.
   const tagDrag = (e: ReactPointerEvent) => {
     if (e.button !== 0) return;
@@ -1227,16 +1227,17 @@ export default function App() {
           {calendarZoom && <DayPattern pattern={dayPattern} />}
           {/* The calendar's bottom row, built like the map's so its buttons sit
               exactly where the map's do: 공유 in the pin's place (CalendarZoom
-              puts it in here), the way back to the map in the same corner tab.
+              puts it in here), the way back to the map in the calendar button's.
               On the page, so it moves with it. */}
           {calendarZoom && (
             <div className="bottom-bar-wrap page-bar">
-              {!decorating && (
-                <button className="corner-tab day-map" aria-label="지도" onClick={() => tagTab('pins')}>
-                  <MapPin size={24} strokeWidth={2.2} aria-hidden />
-                </button>
-              )}
-              <nav className="bottom-bar page-bar__row" aria-label="달력 메뉴" />
+              <nav className="bottom-bar page-bar__row" aria-label="달력 메뉴">
+                {!decorating && (
+                  <button className="bar-side bar-cal day-map" aria-label="지도" onClick={() => tagTab('pins')}>
+                    <MapPin size={21} strokeWidth={2.2} aria-hidden />
+                  </button>
+                )}
+              </nav>
             </div>
           )}
           <header className="page__head">
