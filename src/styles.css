@@ -4694,13 +4694,16 @@ button:disabled {
 }
 
 .bottom-bar--cal .bar-aim {
-  /* Off to the calendar: it slides away to the right, fading out. */
-  left: calc(50% + 120px);
+  /* Off to the calendar: all at once it moves right, shrinks down onto its
+     own bottom and fades — the fade done before the shrink is. */
+  left: calc(50% + 100px);
   opacity: 0;
+  scale: 0;
   pointer-events: none;
   transition:
     left 0.3s cubic-bezier(0.4, 0, 0.6, 1),
-    opacity 0.3s ease-in;
+    scale 0.3s cubic-bezier(0.4, 0, 0.6, 1),
+    opacity 0.16s ease-out;
 }
 
 /* Over the calendar page, the app's row sits above it (the page's own row
