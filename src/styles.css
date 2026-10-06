@@ -2282,7 +2282,7 @@ button:disabled {
      tag back to the map (rendered on the body: the page clips above that row). */
   position: fixed;
   left: 50%;
-  bottom: calc(var(--safe-bottom) + 6px);
+  bottom: calc(var(--safe-bottom) + 20px);
   z-index: 12;
   margin-left: -32px;
   animation: none;
@@ -4484,8 +4484,8 @@ button:disabled {
   transition:
     translate 0.22s ease,
     opacity 0.18s ease;
-  /* A little lift so the big pin button clears the screen edge. */
-  padding-bottom: calc(var(--safe-bottom) + 6px);
+  /* Lifted off the screen's edge, easier to reach. */
+  padding-bottom: calc(var(--safe-bottom) + 20px);
   /* No bar: only the round buttons take touches. */
   pointer-events: none;
 }
@@ -4589,16 +4589,16 @@ button:disabled {
 
 .bar-pin {
   left: 50%;
-  width: 62px;
-  height: 62px;
-  margin-left: -31px;
+  width: 72px;
+  height: 72px;
+  margin-left: -36px;
   background: var(--accent);
   color: var(--on-accent);
 }
 
 .bar-aim {
   /* Just right of the blue pin. */
-  left: calc(50% + 31px + 12px);
+  left: calc(50% + 36px + 12px);
   width: 44px;
   height: 44px;
   background: var(--surface);
@@ -5717,7 +5717,7 @@ button:disabled {
 /* MapLibre fallback: keep attribution clear of the sheet on phones. */
 .maplibregl-ctrl-bottom-right,
 .maplibregl-ctrl-bottom-left {
-  bottom: calc(var(--sheet-peek) + var(--bar-h) + var(--safe-bottom));
+  bottom: calc(var(--sheet-peek) + var(--bar-h) + var(--safe-bottom) + 34px);
 }
 
 /* ---------- Tab pages (달력): full screens, no map ---------- */
@@ -6239,7 +6239,8 @@ button:disabled {
 
   .app--sheet-top .maplibregl-ctrl-bottom-right,
   .app--sheet-top .maplibregl-ctrl-bottom-left {
-    bottom: calc(var(--bar-h) + var(--safe-bottom));
+    /* Above the lifted row of round buttons (the big pin). */
+    bottom: calc(var(--bar-h) + var(--safe-bottom) + 34px);
   }
 }
 

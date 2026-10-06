@@ -46,7 +46,7 @@ export default function BottomBar({ tab, onTab, onPin, onAim }: BottomBarProps) 
         <>
           <EdgeTag side="left" label="달력" icon={<CalendarToday />} onClick={() => onTab('calendar')} />
           <button className="bar-pin" aria-label="지도에 핀 꽂기" onClick={onPin}>
-            <MapPin size={30} strokeWidth={2.2} aria-hidden />
+            <MapPin size={34} strokeWidth={2.2} aria-hidden />
           </button>
           <button className="bar-aim" aria-label="조준해서 핀 꽂기" onClick={onAim}>
             <Crosshair size={21} strokeWidth={2.2} aria-hidden />
