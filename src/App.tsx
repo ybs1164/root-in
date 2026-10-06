@@ -176,19 +176,14 @@ export default function App() {
   const onPage = showsPage(tab, Boolean(searchOpen || preview));
   // Swiping 달력 left slides the page off and uncovers the map (핀).
   const swipe = usePageSwipe(onPage && !decorating && !studio ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
-  // The calendar page sliding in over the map (from the left-edge tag).
-  const [pageEnter, setPageEnter] = useState(false);
-  // …or pulled in by dragging the map's tag: the page's offset (px, ≤ 0), and
-  // whether it is gliding (released) rather than following the finger.
+  // The calendar page pulled in by dragging the map's calendar button: the
+  // page's offset (px, ≤ 0), and whether it is gliding (released) rather than
+  // following the finger.
   const [pull, setPull] = useState<{ x: number; glide: boolean } | null>(null);
-  // While the page is coming in, the calendar's own tag and the day's intro wait.
-  const pageArriving = pageEnter || pull !== null;
-  // The calendar's map button: the page goes away through a widening hole.
-  const [pageLeave, setPageLeave] = useState(false);
-  // Where the circle grows from (the button pressed) and how far it must reach.
-  const [reveal, setReveal] = useState<{ x: number; y: number; r: number } | null>(null);
+  // While the page is coming in, the day's intro waits.
+  const pageArriving = pull !== null;
   // While the page slides in or out, the map screen under it stays whole.
-  const pageMoving = pageArriving || pageLeave || swipe.moving;
+  const pageMoving = pageArriving || swipe.moving;
   const onPinHome = tab === 'pins';
   // The map's own things (pins, rail, row) show on the map, and under a moving page.
   const mapUi = onPinHome || pageMoving;
@@ -895,28 +890,8 @@ export default function App() {
 
   // The tags between the two screens slide the page rather than cut: in from
   // the left on the way to 달력, back off to the left on the way to the map.
-  // The buttons between the two screens switch them with a circle growing out
-  // of the button: TODAY inside it on the way in, the map on the way out.
-  const circleFrom = (selector: string) => {
-    const el = document.querySelector(selector);
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    const box = el?.getBoundingClientRect();
-    const x = box ? box.left + box.width / 2 : w / 2;
-    const y = box ? box.top + box.height / 2 : h;
-    // Far enough to cover the farthest corner.
-    setReveal({ x, y, r: Math.ceil(Math.hypot(Math.max(x, w - x), Math.max(y, h - y))) });
-  };
-  const tagTab = (next: AppTab) => {
-    if (next === 'calendar') {
-      circleFrom('.bar-cal');
-      setPageEnter(true);
-      changeTab('calendar');
-    } else if (onPage) {
-      circleFrom('.day-map');
-      setPageLeave(true);
-    } else changeTab(next);
-  };
+  // The buttons between the two screens switch them at once.
+  const tagTab = (next: AppTab) => changeTab(next);
 
   // Dragging the map's tag to the right pulls the calendar page in after it;
   // let go far enough (or with a flick) and it lands, otherwise it slides back.
@@ -1228,30 +1203,26 @@ export default function App() {
 
       {onPage ? (
         <section
-          className={`page ${pageEnter ? 'page--reveal' : ''} ${pageLeave ? 'page--hide' : ''}`}
+          className="page"
           aria-label={PAGE_TITLES[tab]}
-          style={{
-            ...(pullStyle ?? swipe.style),
-            ...(reveal && (pageEnter || pageLeave)
-              ? ({ '--cx': `${reveal.x}px`, '--cy': `${reveal.y}px`, '--r': `${reveal.r}px` } as CSSProperties)
-              : null),
-          }}
-          onAnimationEnd={(e) => {
-            if (e.target !== e.currentTarget) return;
-            if (pageLeave) {
-              setPageLeave(false);
-              changeTab('pins');
-            } else setPageEnter(false);
-          }}
+          style={pullStyle ?? swipe.style}
           {...swipe.handlers}
         >
           {calendarZoom && <DayPattern pattern={dayPattern} />}
-          {/* The way back to the map: a small white round left of 공유, on the
-              page so it slides with it. */}
-          {calendarZoom && !decorating && (
-            <button className="day-map" aria-label="지도" onClick={() => tagTab('pins')}>
-              <MapPin size={21} strokeWidth={2.2} aria-hidden />
-            </button>
+          {/* The calendar's bottom row, built like the map's so its buttons sit
+              exactly where the map's do: 공유 in the pin's place (CalendarZoom
+              puts it in here), the way back to the map in the calendar button's.
+              On the page, so it slides with it. */}
+          {calendarZoom && (
+            <div className="bottom-bar-wrap page-bar">
+              <nav className="bottom-bar page-bar__row" aria-label="달력 메뉴">
+                {!decorating && (
+                  <button className="bar-side bar-cal day-map" aria-label="지도" onClick={() => tagTab('pins')}>
+                    <MapPin size={21} strokeWidth={2.2} aria-hidden />
+                  </button>
+                )}
+              </nav>
+            </div>
           )}
           <header className="page__head">
             {/* The calendar's own TODAY / DAY n heading takes the stage. */}

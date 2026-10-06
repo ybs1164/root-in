@@ -162,7 +162,10 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
   const stageEl = useRef<HTMLDivElement | null>(null);
   // The page this calendar sits on: 공유 goes there (see below).
   const [pageEl, setPageEl] = useState<HTMLElement | null>(null);
-  useLayoutEffect(() => setPageEl(stageEl.current?.closest<HTMLElement>('.page') ?? null), []);
+  useLayoutEffect(() => {
+    const page = stageEl.current?.closest<HTMLElement>('.page');
+    setPageEl(page?.querySelector<HTMLElement>('.page-bar__row') ?? page ?? null);
+  }, []);
   const monthEl = useRef<HTMLDivElement | null>(null);
   const dayEl = useRef<HTMLElement | null>(null);
   const gesture = useRef<Gesture | null>(null);
@@ -662,11 +665,11 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
           }}
         />
         {/* 공유, a round button as on a route: makes the day's card, its 꾸미기 carried along, and opens it there.
-            Straight on the page, out of the clipped calendar area, so it can sit in the
-            bottom row and still slide with the page. */}
+            In the page's bottom row (App), out of the clipped calendar area, exactly where
+            the map's pin button sits, and sliding with the page. */}
         {!tool && createPortal(
           <button
-            className="route-action route-action--share day-share"
+            className="bar-pin day-share"
             aria-label="공유"
             onClick={() => {
               if (!hasHome(excluded)) return onNeedHome();
@@ -682,7 +685,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
               );
             }}
           >
-            <Share size={26} strokeWidth={2.2} aria-hidden />
+            <Share size={32} strokeWidth={2.2} aria-hidden />
           </button>,
           pageEl ?? document.body,
         )}

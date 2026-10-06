@@ -2276,19 +2276,6 @@ button:disabled {
   color: var(--text);
 }
 
-/* The day screen's 공유: the same round button, at its bottom right (just above the tab bar). */
-.route-action.day-share {
-  /* In the middle of the bottom row, level with the map's blue pin and the
-     tag back to the map (rendered straight on the page, which is full screen:
-     fixed or not, it lands in the same place and moves with the page). */
-  position: fixed;
-  left: 50%;
-  bottom: calc(var(--safe-bottom) + 36px);
-  z-index: 27; /* over the calendar page it belongs to */
-  margin-left: -32px;
-  animation: none;
-}
-
 @keyframes tag-in {
   from {
     opacity: 0;
@@ -4558,29 +4545,9 @@ button:disabled {
   height: 22px;
 }
 
-/* The calendar's way back, the same round left of its 공유 (64px, its
-   bottom 36px up): a touch above that bottom, a small gap from it. On the
-   full-screen page, so fixed lands where absolute would and it slides along. */
-.day-map {
-  position: fixed;
-  right: calc(50% + 32px + 8px);
-  bottom: calc(var(--safe-bottom) + 36px + 4px);
+/* The calendar's bottom row: the map's row again, on the page (over its content). */
+.page-bar {
   z-index: 27;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--round-btn-shadow);
-  transition: scale 0.12s ease;
-}
-
-.day-map:active {
-  scale: 0.92;
 }
 
 .calendar-today text {
@@ -5713,40 +5680,6 @@ button:disabled {
   background: var(--surface);
   /* Vertical scrolling stays native; sideways moves are the swipe home. */
   touch-action: pan-y;
-}
-
-/* The calendar button: TODAY opens as a circle widening out of it. */
-.page--reveal {
-  animation: page-reveal 460ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes page-reveal {
-  from {
-    clip-path: circle(0 at var(--cx) var(--cy));
-  }
-  to {
-    clip-path: circle(var(--r) at var(--cx) var(--cy));
-  }
-}
-
-/* The calendar's map button: the map shows through a hole widening out of
-   it (a mask, so the page around the hole stays put); it stays gone at the end
-   until the page is taken down. */
-@property --hole {
-  syntax: '<length>';
-  inherits: false;
-  initial-value: 0px;
-}
-
-.page--hide {
-  mask-image: radial-gradient(circle at var(--cx) var(--cy), transparent var(--hole), var(--text) calc(var(--hole) + 0.5px));
-  animation: page-hole 460ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes page-hole {
-  to {
-    --hole: var(--r);
-  }
 }
 
 .page__head {
