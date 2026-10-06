@@ -25,7 +25,7 @@ import {
   Undo2,
   Wallpaper,
 } from 'lucide-react';
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import ColorPicker from './ColorPicker';
 import {
   BASE_COLORS,
@@ -61,6 +61,9 @@ const RAIL: { tool: DecorTool; label: string; Icon: typeof Sticker }[] = [
   { tool: 'theme', label: '테마', Icon: Palette },
   { tool: 'pattern', label: '꾸미기', Icon: Wallpaper },
 ];
+/** How long the name / time switches take to tuck away (matches `.decor-rail__switch.is-leaving`). */
+const SWITCH_OUT_MS = 160;
+
 /** 장소 이름 switch: a pin with a line of text above its head. */
 function PinName() {
   return (
@@ -95,7 +98,25 @@ export function DecorRail({
   labels?: { names: boolean; times: boolean; onNames: () => void; onTimes: () => void };
 }) {
   // A day's rail folds its name / time switches away behind ↓ until asked for.
+  // They drop out one after another like the map's category buttons, and tuck
+  // back up before going; ↓ / ↑ glides to its new place (`moved` replays it).
   const [open, setOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [moved, setMoved] = useState<'down' | 'up' | null>(null);
+  const toggle = () => {
+    if (leaving) return;
+    if (!open) {
+      setOpen(true);
+      setMoved('down');
+      return;
+    }
+    setLeaving(true);
+    window.setTimeout(() => {
+      setOpen(false);
+      setLeaving(false);
+      setMoved('up');
+    }, SWITCH_OUT_MS);
+  };
   const tools = labels ? DAY_RAIL : row ? [...RAIL, POLAROID_TOOL] : RAIL;
   return (
     <div className={`decor-rail ${row ? 'decor-rail--row' : ''}`} role="toolbar" aria-label="꾸미기" aria-orientation={row ? 'horizontal' : 'vertical'}>
@@ -113,7 +134,8 @@ export function DecorRail({
       {labels && open && (
         <>
           <button
-            className={`decor-rail__btn decor-rail__switch ${labels.names ? '' : 'is-off'}`}
+            className={`decor-rail__btn decor-rail__switch ${labels.names ? '' : 'is-off'} ${leaving ? 'is-leaving' : ''}`}
+            style={{ '--i': 0 } as CSSProperties}
             aria-label="장소 이름 보이기"
             aria-pressed={labels.names}
             onClick={labels.onNames}
@@ -121,7 +143,8 @@ export function DecorRail({
             <PinName />
           </button>
           <button
-            className={`decor-rail__btn decor-rail__switch ${labels.times ? '' : 'is-off'}`}
+            className={`decor-rail__btn decor-rail__switch ${labels.times ? '' : 'is-off'} ${leaving ? 'is-leaving' : ''}`}
+            style={{ '--i': 1 } as CSSProperties}
             aria-label="방문 시간 보이기"
             aria-pressed={labels.times}
             onClick={labels.onTimes}
@@ -132,10 +155,11 @@ export function DecorRail({
       )}
       {labels && (
         <button
-          className="decor-rail__btn decor-rail__more"
+          key={open ? 'open' : 'shut'}
+          className={`decor-rail__btn decor-rail__more ${moved ? `is-moved-${moved}` : ''}`}
           aria-label={open ? '접기' : '펼치기'}
           aria-expanded={open}
-          onClick={() => setOpen((o) => !o)}
+          onClick={toggle}
         >
           {open ? <ChevronUp size={20} aria-hidden /> : <ChevronDown size={20} aria-hidden />}
         </button>

@@ -1368,6 +1368,40 @@ button:disabled {
   color: var(--muted);
 }
 
+/* Unfolding, the switches drop out one after another as the map's category
+   buttons do out of 핀 (pin-rail-in), and ↓ glides down past them; folding,
+   they tuck back up together and ↑ glides up into their place. Two rows of
+   48px + the 10px gap. */
+.decor-rail__switch {
+  animation: pin-rail-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+  animation-delay: calc(var(--i, 0) * 30ms);
+}
+
+.decor-rail__switch.is-leaving {
+  animation: pin-rail-out 0.16s ease-in both;
+  pointer-events: none;
+}
+
+.decor-rail__more.is-moved-down {
+  animation: rail-more-down 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.decor-rail__more.is-moved-up {
+  animation: rail-more-up 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes rail-more-down {
+  from {
+    translate: 0 -116px;
+  }
+}
+
+@keyframes rail-more-up {
+  from {
+    translate: 0 116px;
+  }
+}
+
 /* The day's name / time switches: off greys the icon and strikes it through. */
 .decor-rail__switch {
   position: relative;
