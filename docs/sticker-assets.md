@@ -1,6 +1,6 @@
 # Generated decoration stickers
 
-All 48 PNGs in `public/stickers/` are original images generated with the built-in `image_gen` tool. No external images or stock assets were used. All images have transparent alpha. The active collection has 9 cut-paper collage stickers, 6 pop-art stickers, 10 pixel-art stickers, 4 glossy jelly stickers, 3 chrome stickers, 6 crayon stickers and 8 painted stickers, followed by 2 speech bubble stickers in one continuous grid without section labels.
+All 65 PNGs in `public/stickers/` are original images generated with the built-in `image_gen` tool. No external images or stock assets were used. All images have transparent alpha. The active collection has 12 cut-paper collage stickers, 9 pop-art stickers, 11 pixel-art stickers, 14 painted stickers, 7 crayon stickers, 7 glossy jelly stickers and 3 chrome stickers, followed by 2 speech bubble stickers in one continuous grid without section labels.
 
 ## Square crayon gift replacement
 
@@ -270,3 +270,15 @@ The round crayon gift was rejected. The final user-requested square gift is `pai
 Final prompt:
 
 Use case: stylized-concept. Generate one original transparent PNG diary decoration sticker: a SQUARE GIFT BOX seen front-on, clearly square sky-blue box, neat peach-apricot wrapping ribbon crossing vertically and horizontally, small tied peach bow on the top, a narrow soft blue line indicating the lid. Simple uncluttered classic square gift shape, no round or star-shaped container, no polka dots, no scalloped trim. Style: charming hand-painted watercolor and gouache illustration, soft organic pigment texture, matte cheerful pastel colors, refined softly imperfect hand-drawn contours, slim ivory die-cut rim. Flat illustrated view, no visible side planes, no glossy 3D or jelly, no crayon wax grain, no paper collage cut edges, no thick navy pop-art outlines. One complete cohesive isolated sticker centered in a square canvas filling 85% with transparent margin. Actual transparent alpha background. No floor, outside shadow, lettering, watermark, emoji glyph, brand or external artwork.
+
+## Adopted preview collections — 2026-10-07
+
+Added 18 approved stickers from the 2026-10-06 batch and 15 from the 2026-10-07 batch. Rejected previews were discarded. Existing IDs and artwork remain unchanged; additions follow the established paper → pop → pixel → jelly 3D → chrome → crayon → painted order. The original batch numbers, labels, asset IDs and exact generation prompts are recorded in [approved-sticker-assets.json](approved-sticker-assets.json). All 33 are original, separately generated transparent PNGs from the built-in image generation tool.
+
+## Collection revision — 2026-10-07
+
+Removed 13 stickers using their positions in the previous 81-item tray: 3, 9, 15, 35, 37, 39, 50, 51, 52, 54, 59, 60, 63. Their app PNGs were removed. Active order is crayon → painted → paper → pop → pixel → jelly 3D → chrome → speech bubbles. Within styles: the crayon envelope follows the gift; painted clover follows the flower and bunny follows the dog; paper cake, donut and clover are consecutive; pixel sparkle follows the yellow star. The adoption manifest preserves generation provenance and marks removed additions as inactive.
+
+## Latest tray order — 2026-10-07
+
+The tray now follows paper → pop → pixel → painted → crayon → jelly 3D → chrome → speech bubbles. Removed the crayon gift and ribbon and pixel ghost. Pixel order is heart → yellow star → sparkle star → moon → planet → game console → drink → cloud → clover → cherries → eyes. Earlier revision notes document historical changes.

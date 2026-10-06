@@ -55,6 +55,9 @@ const num = (v: unknown): v is number => typeof v === 'number' && Number.isFinit
 const isColor = (c: unknown): c is string =>
   typeof c === 'string' && (isCustomColor(c) || BASE_COLORS.some((b) => b.color === c));
 
+const readOrder = (v: unknown): { order?: number } =>
+  typeof v === 'number' && Number.isSafeInteger(v) && v >= 0 && v < Number.MAX_SAFE_INTEGER ? { order: v } : {};
+
 function readStroke(v: unknown): Stroke | null {
   const s = v as Stroke;
   if (!s || !PEN_TOOLS.some((t) => t.tool === s.tool) || !isColor(s.color) || !(s.width in PEN_WIDTHS)) return null;
@@ -63,7 +66,7 @@ function readStroke(v: unknown): Stroke | null {
     .filter((p): p is [number, number] => Array.isArray(p) && num(p[0]) && num(p[1]))
     .slice(0, MAX_POINTS)
     .map(([x, y]) => [clamp01(x), clamp01(y)] as [number, number]);
-  return points.length ? { tool: s.tool, color: s.color, width: s.width as PenWidth, points } : null;
+  return points.length ? { ...readOrder(s.order), tool: s.tool, color: s.color, width: s.width as PenWidth, points } : null;
 }
 
 function readSticker(v: unknown): PlacedSticker | null {
@@ -71,6 +74,7 @@ function readSticker(v: unknown): PlacedSticker | null {
   if (!s || typeof s.id !== 'string' || typeof s.stickerId !== 'string' || !getSticker(s.stickerId)) return null;
   if (!num(s.x) || !num(s.y) || !num(s.size)) return null;
   return {
+    ...readOrder(s.order),
     id: s.id.slice(0, 64),
     stickerId: s.stickerId,
     x: clamp01(s.x),
@@ -94,6 +98,7 @@ function readText(v: unknown): PlacedText | null {
     strike: t.strike === true,
   });
   return {
+    ...readOrder(t.order),
     id: t.id.slice(0, 64),
     text: t.text.slice(0, TEXT_MAX_LENGTH),
     x: clamp01(t.x),

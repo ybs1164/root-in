@@ -10,6 +10,8 @@ import type { PolaroidLayout } from './polaroid';
 export type DecorTool = 'sticker' | 'pen' | 'text' | 'theme' | 'pattern' | 'polaroid';
 
 export interface PlacedSticker {
+  /** Shared stacking order across ink, stickers and text; higher is in front. */
+  order?: number;
   id: string;
   stickerId: string;
   x: number;
@@ -37,6 +39,7 @@ export type PenWidth = 'thin' | 'medium' | 'thick';
 export type InkColor = string;
 
 export interface Stroke {
+  order?: number;
   tool: PenTool;
   color: InkColor;
   width: PenWidth;
@@ -67,6 +70,7 @@ export interface TextStyle {
 
 /** A text box on the drawing, centred on (x, y); lines break only where Enter was pressed. */
 export interface PlacedText extends TextStyle {
+  order?: number;
   id: string;
   text: string;
   x: number;
@@ -151,6 +155,48 @@ export interface DayDecor {
 
 export const EMPTY_DECOR: DayDecor = { stickers: [], strokes: [] };
 
+export type DecorPiece =
+  | { kind: 'stroke'; index: number; piece: Stroke; order: number }
+  | { kind: 'sticker'; index: number; piece: PlacedSticker; order: number }
+  | { kind: 'text'; index: number; piece: PlacedText; order: number };
+
+/** Old drawings have no chronology recorded, so retain their original appearance. */
+export function decorPieces(decor: DayDecor): DecorPiece[] {
+  const pieces: DecorPiece[] = [];
+  const add = (kind: DecorPiece['kind'], values: (Stroke | PlacedSticker | PlacedText)[]) => {
+    values.forEach((piece, index) => {
+      pieces.push({ kind, index, piece, order: piece.order ?? pieces.length } as DecorPiece);
+    });
+  };
+  add('stroke', decor.strokes);
+  add('sticker', decor.stickers);
+  add('text', decor.texts ?? []);
+  return pieces.sort((a, b) => a.order - b.order);
+}
+
+/** Assign legacy pieces an order before additions can shift their fallback positions. */
+export function withDecorOrder(decor: DayDecor): DayDecor {
+  const pieces = decorPieces(decor);
+  const orders = new Map(pieces.map((p) => [`${p.kind}:${p.index}`, p.order]));
+  return {
+    ...decor,
+    strokes: decor.strokes.map((p, i) => ({ ...p, order: orders.get(`stroke:${i}`)! })),
+    stickers: decor.stickers.map((p, i) => ({ ...p, order: orders.get(`sticker:${i}`)! })),
+    ...(decor.texts ? { texts: decor.texts.map((p, i) => ({ ...p, order: orders.get(`text:${i}`)! })) } : {}),
+  };
+}
+
+export const nextDecorOrder = (decor: DayDecor): number =>
+  decorPieces(decor).reduce((max, p) => Math.max(max, p.order), -1) + 1;
+
+/** Selecting a movable piece persists its position above every kind of decoration. */
+export function bringDecorToFront(decor: DayDecor, kind: 'sticker' | 'text', id: string): DayDecor {
+  const ordered = withDecorOrder(decor);
+  const order = nextDecorOrder(ordered);
+  if (kind === 'sticker') return { ...ordered, stickers: ordered.stickers.map((p) => p.id === id ? { ...p, order } : p) };
+  return { ...ordered, texts: (ordered.texts ?? []).map((p) => p.id === id ? { ...p, order } : p) };
+}
+
 /** Original illustrations generated with imagegen; assets are served locally. */
 export interface StickerAsset {
   id: string;
@@ -161,50 +207,67 @@ export interface StickerAsset {
 export const STICKERS: StickerAsset[] = [
   { id: 'paper-heart', label: '콜라주 하트', src: `${import.meta.env.BASE_URL}stickers/paper-heart.png` },
   { id: 'paper-star', label: '콜라주 별', src: `${import.meta.env.BASE_URL}stickers/paper-star.png` },
-  { id: 'paper-cloud', label: '콜라주 구름', src: `${import.meta.env.BASE_URL}stickers/paper-cloud.png` },
   { id: 'paper-umbrella', label: '콜라주 우산', src: `${import.meta.env.BASE_URL}stickers/paper-umbrella.png` },
   { id: 'paper-headphones', label: '콜라주 헤드폰', src: `${import.meta.env.BASE_URL}stickers/paper-headphones.png` },
   { id: 'paper-book', label: '콜라주 책', src: `${import.meta.env.BASE_URL}stickers/paper-book.png` },
   { id: 'paper-plane', label: '콜라주 종이비행기', src: `${import.meta.env.BASE_URL}stickers/paper-plane.png` },
   { id: 'paper-cake', label: '콜라주 케이크', src: `${import.meta.env.BASE_URL}stickers/paper-cake.png` },
-  { id: 'paper-ribbon', label: '콜라주 리본', src: `${import.meta.env.BASE_URL}stickers/paper-ribbon.png?v=2` },
+  { id: 'paper-donut', label: '콜라주 도넛', src: `${import.meta.env.BASE_URL}stickers/paper-donut.png` },
+  { id: 'paper-clover-layered', label: '콜라주 네잎클로버', src: `${import.meta.env.BASE_URL}stickers/paper-clover-layered.png` },
+  { id: 'paper-cloud-layered', label: '콜라주 겹구름', src: `${import.meta.env.BASE_URL}stickers/paper-cloud-layered.png` },
+  { id: 'paper-plane-layered', label: '콜라주 접힌 비행기', src: `${import.meta.env.BASE_URL}stickers/paper-plane-layered.png` },
+  { id: 'paper-map', label: '콜라주 접힌 지도', src: `${import.meta.env.BASE_URL}stickers/paper-map.png` },
   { id: 'pop-heart', label: '팝 하트', src: `${import.meta.env.BASE_URL}stickers/pop-heart.png?v=2` },
   { id: 'pop-star', label: '팝 별', src: `${import.meta.env.BASE_URL}stickers/pop-star.png?v=2` },
   { id: 'pop-icecream', label: '팝 아이스크림', src: `${import.meta.env.BASE_URL}stickers/pop-icecream.png` },
   { id: 'pop-balloon', label: '팝 풍선', src: `${import.meta.env.BASE_URL}stickers/pop-balloon.png` },
   { id: 'pop-letter', label: '팝 편지', src: `${import.meta.env.BASE_URL}stickers/pop-letter.png` },
   { id: 'pop-eyes', label: '팝 눈알', src: `${import.meta.env.BASE_URL}stickers/pop-eyes.png` },
-  { id: 'pixel-moon', label: '픽셀 달', src: `${import.meta.env.BASE_URL}stickers/pixel-moon.png` },
-  { id: 'pixel-game', label: '픽셀 게임기', src: `${import.meta.env.BASE_URL}stickers/pixel-game.png` },
-  { id: 'pixel-lemonade', label: '픽셀 레모네이드', src: `${import.meta.env.BASE_URL}stickers/pixel-lemonade.png` },
+  { id: 'pop-letter-pink', label: '팝 핑크 편지', src: `${import.meta.env.BASE_URL}stickers/pop-letter-pink.png` },
+  { id: 'pop-ticket', label: '팝 티켓', src: `${import.meta.env.BASE_URL}stickers/pop-ticket.png` },
+  { id: 'pop-phone', label: '팝 전화기', src: `${import.meta.env.BASE_URL}stickers/pop-phone.png` },
   { id: 'pixel-heart', label: '픽셀 하트', src: `${import.meta.env.BASE_URL}stickers/pixel-heart.png?v=2` },
   { id: 'pixel-star', label: '픽셀 별', src: `${import.meta.env.BASE_URL}stickers/pixel-star.png?v=2` },
-  { id: 'pixel-clover', label: '픽셀 네잎클로버', src: `${import.meta.env.BASE_URL}stickers/pixel-clover.png?v=2` },
+  { id: 'pixel-sparkle', label: '픽셀 반짝임', src: `${import.meta.env.BASE_URL}stickers/pixel-sparkle.png` },
+  { id: 'pixel-moon', label: '픽셀 달', src: `${import.meta.env.BASE_URL}stickers/pixel-moon.png` },
   { id: 'pixel-planet', label: '픽셀 행성', src: `${import.meta.env.BASE_URL}stickers/pixel-planet.png` },
+  { id: 'pixel-game', label: '픽셀 게임기', src: `${import.meta.env.BASE_URL}stickers/pixel-game.png` },
+  { id: 'pixel-lemonade', label: '픽셀 레모네이드', src: `${import.meta.env.BASE_URL}stickers/pixel-lemonade.png` },
   { id: 'pixel-cloud', label: '픽셀 구름', src: `${import.meta.env.BASE_URL}stickers/pixel-cloud.png` },
+  { id: 'pixel-clover', label: '픽셀 네잎클로버', src: `${import.meta.env.BASE_URL}stickers/pixel-clover.png?v=2` },
   { id: 'pixel-cherries', label: '픽셀 체리', src: `${import.meta.env.BASE_URL}stickers/pixel-cherries.png` },
   { id: 'pixel-eyes', label: '픽셀 눈알', src: `${import.meta.env.BASE_URL}stickers/pixel-eyes.png?v=2` },
-  { id: 'jelly-heart', label: '젤리 하트', src: `${import.meta.env.BASE_URL}stickers/jelly-heart.png` },
-  { id: 'jelly-star', label: '젤리 별', src: `${import.meta.env.BASE_URL}stickers/jelly-star.png` },
-  { id: 'jelly-peach', label: '젤리 복숭아', src: `${import.meta.env.BASE_URL}stickers/jelly-peach.png` },
-  { id: 'jelly-lemon', label: '젤리 레몬', src: `${import.meta.env.BASE_URL}stickers/jelly-lemon.png` },
-  { id: 'chrome-heart', label: '크롬 하트', src: `${import.meta.env.BASE_URL}stickers/chrome-heart.png` },
-  { id: 'chrome-star', label: '크롬 별', src: `${import.meta.env.BASE_URL}stickers/chrome-star.png` },
-  { id: 'chrome-bolt', label: '크롬 번개', src: `${import.meta.env.BASE_URL}stickers/chrome-bolt.png` },
-  { id: 'crayon-heart', label: '크레용 하트', src: `${import.meta.env.BASE_URL}stickers/crayon-heart.png` },
-  { id: 'crayon-star', label: '크레용 별', src: `${import.meta.env.BASE_URL}stickers/crayon-star.png` },
-  { id: 'crayon-peach', label: '크레용 복숭아', src: `${import.meta.env.BASE_URL}stickers/crayon-peach.png` },
-  { id: 'crayon-pudding', label: '크레용 푸딩', src: `${import.meta.env.BASE_URL}stickers/crayon-pudding.png` },
-  { id: 'crayon-ribbon', label: '크레용 리본', src: `${import.meta.env.BASE_URL}stickers/crayon-ribbon.png?v=2` },
-  { id: 'jelly-gift', label: '크레용 선물상자', src: `${import.meta.env.BASE_URL}stickers/crayon-gift.png` },
   { id: 'heart', label: '코랄 하트', src: `${import.meta.env.BASE_URL}stickers/heart.png` },
   { id: 'star', label: '골드 별', src: `${import.meta.env.BASE_URL}stickers/star.png` },
   { id: 'flower', label: '라일락 꽃', src: `${import.meta.env.BASE_URL}stickers/flower.png` },
+  { id: 'clover', label: '초록 클로버', src: `${import.meta.env.BASE_URL}stickers/clover.png` },
   { id: 'rainbow', label: '파스텔 무지개', src: `${import.meta.env.BASE_URL}stickers/rainbow.png` },
   { id: 'cherries', label: '빨간 체리', src: `${import.meta.env.BASE_URL}stickers/cherries.png` },
   { id: 'planet', label: '보라 행성', src: `${import.meta.env.BASE_URL}stickers/planet.png` },
   { id: 'drink', label: '피치 음료', src: `${import.meta.env.BASE_URL}stickers/drink.png` },
-  { id: 'clover', label: '초록 클로버', src: `${import.meta.env.BASE_URL}stickers/clover.png` },
+  { id: 'painted-drink-fruit', label: '페인팅 과일 음료', src: `${import.meta.env.BASE_URL}stickers/painted-drink-fruit.png` },
+  { id: 'painted-cat', label: '페인팅 고양이', src: `${import.meta.env.BASE_URL}stickers/painted-cat.png` },
+  { id: 'painted-dog', label: '페인팅 강아지', src: `${import.meta.env.BASE_URL}stickers/painted-dog.png` },
+  { id: 'painted-bunny', label: '페인팅 토끼', src: `${import.meta.env.BASE_URL}stickers/painted-bunny.png` },
+  { id: 'painted-leaf', label: '페인팅 나뭇잎', src: `${import.meta.env.BASE_URL}stickers/painted-leaf.png` },
+  { id: 'painted-pretzel', label: '페인팅 프레첼', src: `${import.meta.env.BASE_URL}stickers/painted-pretzel.png` },
+  { id: 'crayon-heart', label: '크레용 하트', src: `${import.meta.env.BASE_URL}stickers/crayon-heart.png` },
+  { id: 'crayon-peach', label: '크레용 복숭아', src: `${import.meta.env.BASE_URL}stickers/crayon-peach.png` },
+  { id: 'crayon-pudding', label: '크레용 푸딩', src: `${import.meta.env.BASE_URL}stickers/crayon-pudding.png` },
+  { id: 'crayon-envelope', label: '크레용 봉투', src: `${import.meta.env.BASE_URL}stickers/crayon-envelope.png` },
+  { id: 'crayon-tulip', label: '크레용 튤립', src: `${import.meta.env.BASE_URL}stickers/crayon-tulip.png` },
+  { id: 'crayon-coffee', label: '크레용 커피잔', src: `${import.meta.env.BASE_URL}stickers/crayon-coffee.png` },
+  { id: 'crayon-croissant', label: '크레용 크루아상', src: `${import.meta.env.BASE_URL}stickers/crayon-croissant.png` },
+  { id: 'jelly-heart', label: '젤리 하트', src: `${import.meta.env.BASE_URL}stickers/jelly-heart.png` },
+  { id: 'jelly-star', label: '젤리 별', src: `${import.meta.env.BASE_URL}stickers/jelly-star.png` },
+  { id: 'jelly-peach', label: '젤리 복숭아', src: `${import.meta.env.BASE_URL}stickers/jelly-peach.png` },
+  { id: 'jelly-lemon', label: '젤리 레몬', src: `${import.meta.env.BASE_URL}stickers/jelly-lemon.png` },
+  { id: 'jelly-candy', label: '젤리 사탕', src: `${import.meta.env.BASE_URL}stickers/jelly-candy.png` },
+  { id: 'jelly-bean', label: '젤리빈', src: `${import.meta.env.BASE_URL}stickers/jelly-bean.png` },
+  { id: 'jelly-bear', label: '젤리 곰', src: `${import.meta.env.BASE_URL}stickers/jelly-bear.png` },
+  { id: 'chrome-heart', label: '크롬 하트', src: `${import.meta.env.BASE_URL}stickers/chrome-heart.png` },
+  { id: 'chrome-star', label: '크롬 별', src: `${import.meta.env.BASE_URL}stickers/chrome-star.png` },
+  { id: 'chrome-bolt', label: '크롬 번개', src: `${import.meta.env.BASE_URL}stickers/chrome-bolt.png` },
   { id: 'pixel-bubble', label: '픽셀 말풍선', src: `${import.meta.env.BASE_URL}stickers/pixel-bubble.png` },
   { id: 'pop-bubble', label: '팝 말풍선', src: `${import.meta.env.BASE_URL}stickers/pop-bubble.png` },
 ];

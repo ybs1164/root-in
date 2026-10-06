@@ -1,7 +1,22 @@
 import { describe, expect, it } from 'vitest';
+import { decorPieces, type DayDecor } from '../domain/decor';
 import { loadDays, saveDays, readDecor } from './dayRepository';
 
 describe('calendar days', () => {
+  it('retains interleaved decoration order across reload and rejects malformed order values', () => {
+    const decor: DayDecor = {
+      stickers: [{ id: 's', stickerId: 'heart', x: .5, y: .5, size: .26, order: 4 }],
+      texts: [{ id: 't', text: 'hello', x: .5, y: .5, size: .07, font: 'sans', color: 'accent', align: 'center', order: 2 }],
+      strokes: [{ tool: 'pen', color: 'accent', width: 'thin', points: [[.5, .5]], order: 3 }],
+    };
+    saveDays({ decor: { '2026-10-07': decor }, shapes: {}, edges: {} });
+    const loaded = loadDays().decor['2026-10-07'];
+    expect(decorPieces(loaded).map(p => [p.kind, p.order])).toEqual([['text', 2], ['stroke', 3], ['sticker', 4]]);
+    for (const order of [-1, NaN, Infinity, 'front', 1.5]) {
+      expect(readDecor({ ...decor, strokes: [{ ...decor.strokes[0], order }] })!.strokes[0].order).toBeUndefined();
+    }
+  });
+
   it('removes legacy emoji and unrecognized stickers while keeping drawing data', () => {
     const decor = readDecor({
       stickers: [

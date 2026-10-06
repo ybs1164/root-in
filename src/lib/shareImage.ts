@@ -2,7 +2,7 @@ import type { RouteEdgeStyle } from '../domain/routeStyle';
 import type { PinIcon } from '../types/pin';
 import { pinGlyphSvg } from './pinGlyphs';
 import { latestPingIndex, layoutPings, type DayPing, type EdgeStyle } from '../domain/dayPings';
-import { CRAYON_SCALE, ERASER_SCALE, getSticker, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, textWeight, type DayDecor, type PlacedText, type ThemeId } from '../domain/decor';
+import { CRAYON_SCALE, ERASER_SCALE, decorPieces, getSticker, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, textWeight, type DayDecor, type Stroke, type PlacedSticker, type PlacedText, type ThemeId } from '../domain/decor';
 import { CLOTHESLINE, clotheslineY, DEFAULT_LAYOUT, DRAWING_BOX, LAYOUT_CARDS, POLAROID, SCENE, TICKET, type CardPose, type PolaroidLayout } from '../domain/polaroid';
 import type { CardStamp, StopMark } from '../domain/shareSubject';
 import { paintPattern } from './dayPatterns';
@@ -641,7 +641,7 @@ function crayonGrain(width: number, height: number, lineWidth: number): HTMLCanv
   return small;
 }
 
-/** Pen strokes, then stickers, then text boxes, laid out in `frame`. */
+/** Decorations share one stacking order, matching the editor. Erasers affect only earlier ink. */
 function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, frame: PieceFrame, stickerImages: Map<string, HTMLImageElement>) {
   const css = getComputedStyle(document.documentElement);
   const px = (v: number) => v * frame.w;
@@ -660,7 +660,7 @@ function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, frame: PieceF
     if (points.length === 1) ink.lineTo(at(...points[0])[0] + 0.01, at(...points[0])[1]);
     ink.stroke();
   };
-  for (const stroke of decor.strokes) {
+  const drawInk = (stroke: Stroke) => {
     const w = px(PEN_WIDTHS[stroke.width]);
     ink.save();
     if (stroke.tool === 'eraser') {
@@ -669,7 +669,7 @@ function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, frame: PieceF
       ink.lineWidth = w * ERASER_SCALE;
       trace(stroke.points);
       ink.restore();
-      continue;
+      return;
     }
     const color = isCustomColor(stroke.color) ? stroke.color : css.getPropertyValue(`--${stroke.color}`).trim();
     ink.strokeStyle = color;
@@ -713,12 +713,11 @@ function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, frame: PieceF
       trace(stroke.points);
     }
     ink.restore();
-  }
+  };
   ctx.save();
-  ctx.drawImage(layer, 0, 0);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  for (const s of decor.stickers) {
+  const drawSticker = (s: PlacedSticker) => {
     ctx.save();
     ctx.translate(...at(s.x, s.y));
     ctx.rotate(((s.rotate ?? 0) * Math.PI) / 180);
@@ -726,8 +725,8 @@ function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, frame: PieceF
     const size = px(s.size * 0.78);
     if (img) ctx.drawImage(img, -size / 2, -size / 2, size, size);
     ctx.restore();
-  }
-  for (const t of decor.texts ?? []) {
+  };
+  const drawText = (t: PlacedText) => {
     const fs = px(t.size);
     const lh = fs * TEXT_LINE_HEIGHT;
     ctx.save();
@@ -753,7 +752,22 @@ function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, frame: PieceF
       if (t.strike) ctx.fillRect(from, y + fs * 0.02, lw, thick);
     });
     ctx.restore();
+  };
+  for (const entry of decorPieces(decor)) {
+    if (entry.kind === 'sticker') drawSticker(entry.piece);
+    else if (entry.kind === 'text') drawText(entry.piece);
+    else if (entry.piece.tool !== 'eraser') {
+      ink.clearRect(0, 0, layer.width, layer.height);
+      drawInk(entry.piece);
+      // Mask each stroke separately so stickers and text interleaved with
+      // ink retain their own positions and are never erased.
+      for (const later of decor.strokes.slice(entry.index + 1)) {
+        if (later.tool === 'eraser') drawInk(later);
+      }
+      ctx.drawImage(layer, 0, 0);
+    }
   }
+
   ctx.restore();
 }
 
