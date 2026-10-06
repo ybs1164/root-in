@@ -4643,8 +4643,10 @@ button:disabled {
 
 .bar-aim {
   left: calc(50% + 48px);
-  /* Leaving for the calendar it shrinks down onto its own bottom as it goes
-     right (and grows back up from it), fading out only at the end. */
+  /* Coming back from the calendar it grows up from its own bottom as it
+     slides in, fading in. Leaving plays exactly that in reverse — so it fades
+     out the same way it faded in (the curves mirrored: (x1, y1, x2, y2) →
+     (1-x2, 1-y2, 1-x1, 1-y1)); the transition used is the entered state's. */
   transform-origin: 50% 100%;
   transition:
     left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
@@ -4690,6 +4692,10 @@ button:disabled {
   opacity: 0;
   scale: 0;
   pointer-events: none;
+  transition:
+    left 0.3s cubic-bezier(0.8, 0, 0.8, 0.2),
+    opacity 0.3s ease-out,
+    scale 0.3s cubic-bezier(0.8, 0, 0.8, 0.2);
 }
 
 /* Over the calendar page, the app's row sits above it (the page's own row
