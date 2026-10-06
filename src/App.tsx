@@ -1,4 +1,4 @@
-import { Crosshair, MapPin, Pencil, Share } from 'lucide-react';
+import { Pencil, Share } from 'lucide-react';
 import type { PatternId, ThemeId } from './domain/decor';
 import DayPattern from './components/DayPattern';
 import ShareStudio from './components/ShareStudio';
@@ -21,7 +21,7 @@ import ProfileSheet, { ProfileAvatar } from './components/ProfileSheet';
 import CategorySheet from './components/CategorySheet';
 import SharedRouteDialog from './components/SharedRouteDialog';
 import { visibleCenter } from './domain/adminAreas';
-import { calendarAgain, homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
+import { homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { COURSE_LIMITS } from './domain/course';
 import type { MapViewport } from './domain/districtMap';
 import { categoryStyle, filterPinsByCategories, isUncategorized, UNCATEGORIZED } from './domain/pin';
@@ -123,15 +123,12 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [preview, setPreview] = useState<PlaceRef | null>(null);
 
-  // The calendar page: its zoom level (reported by CalendarZoom), and the
-  // calendar button's commands sent down to it.
-  const [calendarMode, setCalendarMode] = useState<'day' | 'month'>('day');
+  // The calendar page reports its zoom level (day or month); nothing reads it now.
+  const [, setCalendarMode] = useState<'day' | 'month'>('day');
   // A 꾸미기 tool is out on the calendar: the tab buttons step aside for its tray.
   const [decorating, setDecorating] = useState(false);
-  const [calendarCommand, setCalendarCommand] = useState<CalendarCommand | null>(null);
-  const sendCalendar = (type: CalendarCommand['type']) => {
-    setCalendarCommand((prev) => ({ type, seq: (prev?.seq ?? 0) + 1 }));
-  };
+  // Commands for the calendar page (there's no calendar button to send them now).
+  const [calendarCommand] = useState<CalendarCommand | null>(null);
   const [activePinId, setActivePinId] = useState<string | null>(null);
   // The round buttons under ⚙, and the categories picked in its 핀 list.
   const [railMode, setRailMode] = useState<PinRailMode>('menu');
@@ -835,6 +832,29 @@ export default function App() {
     };
   }, [aiming, tab]);
 
+  // The calendar is a page on top of the map: the phone's back button goes
+  // back to the map. Opening it pushes a history entry; leaving it some other
+  // way takes that entry back off, so back on the map leaves the app as before.
+  const calendarEntry = useRef(false);
+  useEffect(() => {
+    if (tab === 'calendar' && !calendarEntry.current) {
+      calendarEntry.current = true;
+      history.pushState({ rootIn: 'calendar' }, '');
+    } else if (tab !== 'calendar' && calendarEntry.current) {
+      calendarEntry.current = false;
+      history.back();
+    }
+  }, [tab]);
+  useEffect(() => {
+    const pop = () => {
+      if (!calendarEntry.current) return;
+      calendarEntry.current = false;
+      changeTab('pins');
+    };
+    window.addEventListener('popstate', pop);
+    return () => window.removeEventListener('popstate', pop);
+  });
+
   // ----- Render -----
 
   const providerLabel =
@@ -1136,21 +1156,6 @@ export default function App() {
         </section>
       ) : null}
 
-      {/* On the pin map, down the right: 조준 (white, a crosshair) over the pin
-          button (blue, bigger) that puts a new pin where the map is looking. */}
-      {tab === 'pins' && !swipe.leaving && !searchOpen && (!barAway || aiming) && (
-        <div className={`map-actions ${aiming ? 'is-aiming' : ''}`}>
-          {!aiming && (
-            <button className="map-actions__aim" aria-label="조준해서 핀 꽂기" onClick={startAiming}>
-              <Crosshair size={24} strokeWidth={2.2} aria-hidden />
-            </button>
-          )}
-          <button className="map-actions__pin" aria-label="지도에 핀 꽂기" onClick={startPinning}>
-            <MapPin size={30} strokeWidth={2.2} aria-hidden />
-          </button>
-        </div>
-      )}
-
       {aiming && (
         <div className="aim" aria-hidden={false}>
           <p className="route-build__hint" role="status">핑을 찍을 위치를 조준해 주세요</p>
@@ -1170,12 +1175,7 @@ export default function App() {
       )}
 
       <div ref={barEl} className={`bottom-bar-wrap ${barAway ? 'is-away' : ''}`} inert={barAway}>
-        <BottomBar
-          tab={swipe.leaving ? 'pins' : tab}
-          onTab={changeTab}
-          onCalendarAgain={() => sendCalendar(calendarAgain(calendarMode))}
-          calendarIcon={tab === 'calendar' && calendarZoom && calendarMode === 'day' ? 'month' : 'today'}
-        />
+        <BottomBar tab={swipe.leaving ? 'pins' : tab} onTab={changeTab} onPin={startPinning} onAim={startAiming} />
       </div>
 
       {routeDeleting && course.courses.some((c) => c.id === routeDeleting) && (

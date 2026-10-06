@@ -1,16 +1,5 @@
-/** Bottom-bar tabs, one round button each. */
+/** The two screens: the map (핀) and the calendar page. */
 export type AppTab = 'calendar' | 'pins';
-
-/**
- * What a bottom-bar tap does. Every button switches to its screen. Tapped
- * again on its own screen, the calendar button flips TODAY ↔ month; the pin
- * button does nothing (a new pin is the filled pin over the bar).
- */
-export function bottomBarAction(target: AppTab, current: AppTab): 'switch' | 'calendar' | 'none' {
-  if (target !== current) return 'switch';
-  if (target === 'calendar') return 'calendar';
-  return 'none';
-}
 
 /**
  * The calendar button tapped again on the calendar: a day screen zooms out

@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Share } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { swipeCommits, SWIPE } from '../domain/appTabs';
 import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, pingsLandedMs, SAMPLE_PING_DATES } from '../domain/dayPings';
 import { addDays } from '../domain/calendar';
@@ -634,8 +635,9 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
             setTextFocus(null);
           }}
         />
-        {/* 공유, a round button as on a route: makes the day's card, its 꾸미기 carried along, and opens it there. */}
-        {!tool && (
+        {/* 공유, a round button as on a route: makes the day's card, its 꾸미기 carried along, and opens it there.
+            Out on the body, so it can sit in the bottom row: the page clips above it. */}
+        {!tool && createPortal(
           <button
             className="route-action route-action--share day-share"
             aria-label="공유"
@@ -654,7 +656,8 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
             }}
           >
             <Share size={26} strokeWidth={2.2} aria-hidden />
-          </button>
+          </button>,
+          document.body,
         )}
         <div ref={curEl} className="cal-day">
           <button className="cal-zoom__title" aria-label={`${dayTitle(shownDate, today)}, 달력 보기`} onClick={() => toMonth()}>
