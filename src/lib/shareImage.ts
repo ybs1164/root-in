@@ -168,7 +168,7 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
         paintPattern(ctx, photo.pattern, { w: PHOTO.w, h: PHOTO.h }, BOX.size / 360, p.accent);
         ctx.restore();
       }
-      drawStops(ctx, p, bg, pings, marks, edges, pinImages);
+      drawStops(ctx, p, bg, pings, marks, edges, pinImages, { names: !photo?.hideNames, times: !photo?.hideTimes });
       if (photo) drawDecor(ctx, photo, BOX_FRAME, stickerImages);
     });
     ctx.restore();
@@ -475,7 +475,17 @@ function drawPaper(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>) 
 }
 
 /** Lines first, then the stops over them, laid out in the drawing box. */
-function drawStops(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, bg: string, pings: DayPing[], marks: StopMark[], edges: RouteEdgeStyle[], pinImages: (HTMLImageElement | null)[]) {
+function drawStops(
+  ctx: CanvasRenderingContext2D,
+  c: ReturnType<typeof tokens>,
+  bg: string,
+  pings: DayPing[],
+  marks: StopMark[],
+  edges: RouteEdgeStyle[],
+  pinImages: (HTMLImageElement | null)[],
+  // A day's 텍스트 / 시간 switches, as on its screen.
+  show: { names: boolean; times: boolean } = { names: true, times: true },
+) {
   const points = layoutPings(pings.map((p) => p.center)).map((p) => ({
     x: BOX.x + p.x * BOX.size,
     y: BOX.y + p.y * BOX.size,
@@ -558,7 +568,10 @@ function drawStops(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, 
     const top = mark === 'number' ? y - 34 : bottom - (mark === 'pin' ? (118 * k) : (84 * k));
     const half = mark === 'number' ? 34 : (mark === 'pin' ? (shapeBox('pin').w * (118 * k)) / shapeBox('pin').h : 84 * k) / 2;
     const mid = (top + bottom) / 2;
-    const lines = ping.time ? 2 : 1;
+    const name = show.names ? ping.name : '';
+    const time = show.times ? ping.time : undefined;
+    if (!name && !time) return;
+    const lines = name && time ? 2 : 1;
     let tx = x;
     let nameY = bottom + 46;
     if (side === 'above') nameY = top - (lines === 2 ? 54 : 14);
@@ -567,13 +580,15 @@ function drawStops(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, 
       nameY = mid + (lines === 2 ? -6 : 12);
     }
     ctx.textAlign = side === 'right' ? 'left' : side === 'left' ? 'right' : 'center';
-    ctx.fillStyle = c.text;
-    ctx.font = `700 ${Math.round(36 * (k > 1 ? 1.15 : 1))}px ${c.font}`;
-    ctx.fillText(ping.name, tx, nameY);
-    if (ping.time) {
+    if (name) {
+      ctx.fillStyle = c.text;
+      ctx.font = `700 ${Math.round(36 * (k > 1 ? 1.15 : 1))}px ${c.font}`;
+      ctx.fillText(name, tx, nameY);
+    }
+    if (time) {
       ctx.fillStyle = c.muted;
       ctx.font = `600 32px ${c.font}`;
-      ctx.fillText(ping.time, tx, nameY + 42);
+      ctx.fillText(time, tx, name ? nameY + 42 : nameY);
     }
     ctx.textAlign = 'center';
   });

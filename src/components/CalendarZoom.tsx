@@ -656,6 +656,18 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
             setArmed(null);
             setTextFocus(null);
           }}
+          labels={{
+            names: !dayDecor.hideNames,
+            times: !dayDecor.hideTimes,
+            onNames: () => {
+              const { hideNames, ...rest } = dayDecor;
+              changeDecor(hideNames ? rest : { ...rest, hideNames: true });
+            },
+            onTimes: () => {
+              const { hideTimes, ...rest } = dayDecor;
+              changeDecor(hideTimes ? rest : { ...rest, hideTimes: true });
+            },
+          }}
           onShare={() => {
             // 공유 at the foot of the rail: the day's card, its 꾸미기 carried along, opened there.
             if (!hasHome(excluded)) return onNeedHome();
@@ -689,6 +701,8 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
                 // Recognised on purpose; what a tap opens is decided later.
               }}
               pressable={() => gesture.current === null && daySwipe.current?.axis !== 'x' && !toolRef.current}
+              showNames={!dayDecor.hideNames}
+              showTimes={!dayDecor.hideTimes}
             >
               {!holdIntro && (
                 <DecorLayer

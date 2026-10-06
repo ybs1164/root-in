@@ -1351,6 +1351,8 @@ button:disabled {
 .cal-zoom .decor-rail {
   /* Centred on the 52px 공유, so 2px further right keeps the tools on the map rail's line. */
   right: 12px;
+  /* Over the day arrows where a short screen brings them together. */
+  z-index: 15;
   align-items: center;
 }
 
@@ -1368,6 +1370,29 @@ button:disabled {
 .cal-zoom .decor-rail__btn svg {
   width: 22px;
   height: 22px;
+}
+
+/* The day's name / time switches: off greys the icon and strikes it through. */
+.decor-rail__switch {
+  position: relative;
+}
+
+.decor-rail__switch.is-off {
+  color: var(--muted);
+}
+
+.decor-rail__switch.is-off::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  translate: -50% -50%;
+  rotate: -45deg;
+  box-shadow: 0 0 0 1.5px var(--surface);
 }
 
 /* 공유 isn't a tool: at the foot of the rail, set a little apart, filled
@@ -3338,7 +3363,12 @@ button:disabled {
 /* The same < > beside a calendar day, paging days: level with the pings'
    drawing rather than the screen's middle, below the 꾸미기 rail on the right. */
 .route-step.day-step {
-  top: calc(50% + 60px);
+  /* Low on the screen, just above the bottom row: clear of the tall 꾸미기
+     rail on the right (tools, name/time switches, 공유). */
+  top: auto;
+  /* (Fixed, but the day layer's will-change makes it the box: its bottom is
+     the calendar area's, already above the page's bottom padding.) */
+  bottom: 48px;
 }
 
 /* Paging names like the calendar pages days: the new one comes in from the

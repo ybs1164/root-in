@@ -5,6 +5,8 @@ import {
   Bold,
   Brush,
   BrushCleaning,
+  Captions,
+  Clock,
   Eraser,
   GalleryVerticalEnd,
   Highlighter,
@@ -61,12 +63,13 @@ const RAIL: { tool: DecorTool; label: string; Icon: typeof Sticker }[] = [
 /** The share screen's own: how the polaroid lies on the image. */
 const POLAROID_TOOL = { tool: 'polaroid' as const, label: '폴라로이드', Icon: GalleryVerticalEnd };
 
-/** 스티커 · 펜 · 텍스트 · 테마 · 꾸미기, stacked under the settings button, then 공유 a little apart in the accent colour. */
+/** 스티커 · 펜 · 텍스트 · 테마 · 꾸미기, stacked under the settings button (on a day, then the name and time switches), then 공유 a little apart in the accent colour. */
 export function DecorRail({
   tool,
   onTool,
   onShare,
   row = false,
+  labels,
 }: {
   tool: DecorTool | null;
   onTool: (tool: DecorTool | null) => void;
@@ -74,6 +77,8 @@ export function DecorRail({
   onShare?: () => void;
   /** Laid out in a row (the 꾸미기 screen's top edge) rather than a column. */
   row?: boolean;
+  /** The day screen's switches under the tools: the pings' place names and visit times. */
+  labels?: { names: boolean; times: boolean; onNames: () => void; onTimes: () => void };
 }) {
   return (
     <div className={`decor-rail ${row ? 'decor-rail--row' : ''}`} role="toolbar" aria-label="꾸미기" aria-orientation={row ? 'horizontal' : 'vertical'}>
@@ -88,6 +93,26 @@ export function DecorRail({
           <Icon size={20} aria-hidden />
         </button>
       ))}
+      {labels && (
+        <>
+          <button
+            className={`decor-rail__btn decor-rail__switch ${labels.names ? '' : 'is-off'}`}
+            aria-label="장소 이름 보이기"
+            aria-pressed={labels.names}
+            onClick={labels.onNames}
+          >
+            <Captions size={20} aria-hidden />
+          </button>
+          <button
+            className={`decor-rail__btn decor-rail__switch ${labels.times ? '' : 'is-off'}`}
+            aria-label="방문 시간 보이기"
+            aria-pressed={labels.times}
+            onClick={labels.onTimes}
+          >
+            <Clock size={20} aria-hidden />
+          </button>
+        </>
+      )}
       {onShare && (
         <button className="decor-rail__btn decor-rail__share" aria-label="공유" onClick={onShare}>
           <Share size={20} aria-hidden />

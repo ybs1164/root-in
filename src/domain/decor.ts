@@ -143,6 +143,10 @@ export interface DayDecor {
   titled?: true;
   /** Share cards only: how the polaroid lies on the image (absent = DEFAULT_LAYOUT). */
   layout?: PolaroidLayout;
+  /** Days only: the pings' place names turned off (absent = shown). */
+  hideNames?: true;
+  /** Days only: the pings' visit times turned off (absent = shown). */
+  hideTimes?: true;
 }
 
 export const EMPTY_DECOR: DayDecor = { stickers: [], strokes: [] };
