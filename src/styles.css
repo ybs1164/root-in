@@ -1335,6 +1335,25 @@ button:disabled {
   color: var(--accent);
 }
 
+/* On the day screen the rail matches the map's 핀/경로 rail: 48px rounds,
+   10px apart, starting 12px under the profile (the calendar area starts
+   below the 56px page head). */
+.cal-zoom .decor-rail {
+  top: 20px;
+  right: 14px;
+  gap: 10px;
+}
+
+.cal-zoom .decor-rail__btn {
+  width: 48px;
+  height: 48px;
+}
+
+.cal-zoom .decor-rail__btn svg {
+  width: 22px;
+  height: 22px;
+}
+
 /* 공유 isn't a tool: set a little apart, filled with the accent colour. */
 .decor-rail__share {
   margin-top: 8px;
@@ -4858,9 +4877,15 @@ button:disabled {
 }
 
 .page__profile {
-  width: 40px;
-  height: 40px;
-  margin: 2px;
+  /* Exactly the map's profile button: same size, same corner. */
+  position: absolute;
+  top: calc(12px + var(--safe-top));
+  right: 12px;
+  z-index: 3;
+  width: 52px;
+  height: 52px;
+  margin: 0;
+  box-shadow: var(--shadow);
 }
 
 .profile {

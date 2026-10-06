@@ -1228,7 +1228,7 @@ export default function App() {
             {/* The calendar's own TODAY / DAY n heading takes the stage. */}
             <h1 className={calendarZoom ? 'sr-only' : ''}>{PAGE_TITLES[tab]}</h1>
             <button className="icon-btn page__profile" aria-label="프로필" onClick={() => setProfileOpen(true)}>
-              <ProfileAvatar photo={profile.photo} size={40} />
+              <ProfileAvatar photo={profile.photo} size={52} />
             </button>
           </header>
           {calendarZoom ? (
