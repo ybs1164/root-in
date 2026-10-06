@@ -40,6 +40,8 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
   const [accountOpen, setAccountOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(!!privacyNotice);
   const [alertsOpen, setAlertsOpen] = useState(false);
+  // 투데이 알림 cells mid-flip: the face each one flips from, keyed to restart on a quick second tap.
+  const [flips, setFlips] = useState<Record<number, { from: boolean; key: number }>>({});
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -89,14 +91,38 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
             <div className="alerts__hours">
               {PING_ALERT_HOURS.map((hour) => {
                 const on = profile.pingAlerts.includes(hour);
+                const flip = flips[hour];
                 return (
                   <button
                     key={hour}
                     className={`alerts__hour ${on ? 'is-on' : ''}`}
                     aria-pressed={on}
-                    onClick={() => onChange({ ...profile, pingAlerts: togglePingAlert(profile.pingAlerts, hour) })}
+                    onClick={() => {
+                      setFlips((all) => ({ ...all, [hour]: { from: on, key: (all[hour]?.key ?? 0) + 1 } }));
+                      onChange({ ...profile, pingAlerts: togglePingAlert(profile.pingAlerts, hour) });
+                    }}
                   >
                     {hour}시
+                    {flip && (
+                      // The split-flap turn: the old face's top half folds down over the
+                      // new one, then the new bottom half drops onto the old one.
+                      <span key={flip.key} className="alerts__flip" aria-hidden>
+                        <span className={`alerts__face alerts__face--old-bottom ${flip.from ? 'is-on' : ''}`}>{hour}시</span>
+                        <span className={`alerts__face alerts__face--old-top ${flip.from ? 'is-on' : ''}`}>{hour}시</span>
+                        <span
+                          className={`alerts__face alerts__face--new-bottom ${on ? 'is-on' : ''}`}
+                          onAnimationEnd={() =>
+                            setFlips((all) => {
+                              if (all[hour]?.key !== flip.key) return all;
+                              const { [hour]: _done, ...rest } = all;
+                              return rest;
+                            })
+                          }
+                        >
+                          {hour}시
+                        </span>
+                      </span>
+                    )}
                   </button>
                 );
               })}

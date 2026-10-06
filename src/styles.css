@@ -5302,18 +5302,19 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 4px;
-  padding: 5px;
-  border-radius: 12px;
+  padding: 3px 5px;
+  border-radius: 10px;
   background: var(--board);
 }
 
+/* Short cells; the 44px touch target is made up by an invisible margin above and below. */
 .alerts__hour {
   position: relative;
   min-width: 0;
-  min-height: 44px;
+  height: 30px;
   padding: 0;
   border: 0;
-  border-radius: 7px;
+  border-radius: 6px;
   background: var(--board-cell);
   color: var(--board-off);
   font: inherit;
@@ -5321,9 +5322,17 @@ button:disabled {
   cursor: pointer;
 }
 
+.alerts__hour::before {
+  content: '';
+  position: absolute;
+  inset: -7px 0;
+}
+
+/* The split line sits above the flaps, as on a real board. */
 .alerts__hour::after {
   content: '';
   position: absolute;
+  z-index: 2;
   left: 0;
   right: 0;
   top: 50%;
@@ -5335,6 +5344,80 @@ button:disabled {
 .alerts__hour.is-on {
   background: var(--accent);
   color: var(--on-accent);
+}
+
+.alerts__flip {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.alerts__face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--board-cell);
+  color: var(--board-off);
+  backface-visibility: hidden;
+}
+
+.alerts__face.is-on {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Old bottom half: stays until the new one has dropped over it. */
+.alerts__face--old-bottom {
+  clip-path: inset(50% 0 0 0);
+  animation: alerts-hold 0.3s step-end both;
+}
+
+/* Old top half folds down on the middle line… */
+.alerts__face--old-top {
+  clip-path: inset(0 0 50% 0);
+  animation: alerts-fold-down 0.15s ease-in both;
+}
+
+/* …then the new bottom half swings down from it and lands. */
+.alerts__face--new-bottom {
+  z-index: 1;
+  clip-path: inset(50% 0 0 0);
+  animation: alerts-drop 0.15s 0.15s ease-out both;
+}
+
+@keyframes alerts-fold-down {
+  from {
+    transform: perspective(120px) rotateX(0deg);
+  }
+  to {
+    transform: perspective(120px) rotateX(-90deg);
+  }
+}
+
+@keyframes alerts-drop {
+  from {
+    transform: perspective(120px) rotateX(90deg);
+  }
+  to {
+    transform: perspective(120px) rotateX(0deg);
+  }
+}
+
+@keyframes alerts-hold {
+  from {
+    visibility: visible;
+  }
+  to {
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alerts__flip {
+    display: none;
+  }
 }
 
 /* Long lists scroll inside the popup rather than past the screen. */
