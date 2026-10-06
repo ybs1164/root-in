@@ -4512,7 +4512,7 @@ button:disabled {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--text);
+  color: var(--on-accent);
   filter: drop-shadow(var(--ticket-shadow));
   transition: scale 0.12s ease;
 }
@@ -4542,7 +4542,21 @@ button:disabled {
   width: 100%;
   height: 100%;
   overflow: visible;
-  fill: var(--surface);
+}
+
+/* Blue, the point's corners softened by a same-colour round-joined stroke. */
+.edge-tag__body {
+  fill: var(--accent);
+  stroke: var(--accent);
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+
+.edge-tag__eyelet {
+  fill: none;
+  stroke: var(--on-accent);
+  stroke-width: 1.8;
+  opacity: 0.75;
 }
 
 /* The icon on the tag's body, clear of the eyelet. */
@@ -4559,7 +4573,6 @@ button:disabled {
 
 .edge-tag--right .edge-tag__icon {
   right: 18px;
-  color: var(--accent);
 }
 
 .edge-tag__icon svg {
