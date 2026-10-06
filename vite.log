@@ -5,3 +5,4 @@
   ➜  Network: use --host to expose
 9:53:01 AM [vite] (client) hmr update /src/styles.css
 9:54:58 AM [vite] (client) hmr update /src/styles.css
+9:56:57 AM [vite] (client) hmr update /src/components/RouteFolderTray.tsx
