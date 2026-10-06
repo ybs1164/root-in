@@ -1325,7 +1325,8 @@ button:disabled {
   border-radius: 50%;
   /* Same round white buttons as the tab bar; the one in use only changes colour. */
   background: var(--surface);
-  color: var(--muted);
+  /* Black icons (the 꾸미기 pen black, the same in every theme). */
+  color: var(--ink-black);
   box-shadow: var(--shadow-sm);
   transition: color 0.15s ease;
 }
