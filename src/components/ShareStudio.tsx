@@ -249,7 +249,7 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
       {/* Where the tab buttons sit elsewhere: what to do with the finished card. */}
       <div className={`studio__actions ${tool ? 'is-away' : ''}`} role="group" aria-label="공유" inert={!!tool}>
         <button
-          className="studio__action studio__action--primary"
+          className="studio__action"
           aria-label="사진 저장"
           disabled={busy}
           onClick={async () => {
@@ -263,13 +263,9 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
         >
           <Download size={22} aria-hidden />
         </button>
-        {/* TODO: decide what 링크 복사 copies, then wire it up. */}
-        <button className="studio__action" aria-label="링크 복사" disabled>
-          <Link size={22} aria-hidden />
-        </button>
-        {/* One button for every SNS: the system share sheet, where there is one. */}
+        {/* The big one in the middle: the system share sheet, where there is one (one button for every SNS). */}
         <button
-          className="studio__action"
+          className="studio__action studio__action--primary"
           aria-label="SNS 공유"
           disabled={busy || !canShare}
           onClick={async () => {
@@ -281,7 +277,11 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
             }
           }}
         >
-          <Share2 size={22} aria-hidden />
+          <Share2 size={30} aria-hidden />
+        </button>
+        {/* TODO: decide what 링크 복사 copies, then wire it up. */}
+        <button className="studio__action" aria-label="링크 복사" disabled>
+          <Link size={22} aria-hidden />
         </button>
       </div>
 

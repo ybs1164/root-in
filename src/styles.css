@@ -2471,6 +2471,7 @@ button:disabled {
   bottom: calc(var(--safe-bottom) + 18px);
   z-index: 3;
   display: flex;
+  align-items: center;
   gap: 22px;
   translate: -50% 0;
   transition: transform 0.24s ease;
@@ -2481,20 +2482,24 @@ button:disabled {
   transform: translateY(calc(100% + 40px));
 }
 
+/* 사진 저장 (left) and 링크 복사 (right): plain white rounds, black icons;
+   공유 in the middle: the biggest, in the accent colour. */
 .studio__action {
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   padding: 0;
   border: 0;
   border-radius: 50%;
   background: var(--surface);
-  color: var(--text);
+  color: var(--ink-black);
   box-shadow: var(--shadow-sm);
 }
 
 .studio__action--primary {
+  width: 72px;
+  height: 72px;
   background: var(--accent);
   color: var(--on-accent);
 }
