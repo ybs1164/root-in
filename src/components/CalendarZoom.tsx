@@ -109,12 +109,14 @@ interface CalendarZoomProps {
   onNeedHome: () => void;
   /** 공유: the day as a card (its 꾸미기 carried along), for the app's 꾸미기 screen. */
   onShare: (subject: ShareSubject) => void;
+  /** The page is still sliding in: the day's pins, lines and 꾸미기 wait to play until it lands. */
+  holdIntro?: boolean;
 }
 
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
 
-export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme, onDayPattern, excluded, onNeedHome, onShare }: CalendarZoomProps) {
+export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme, onDayPattern, excluded, onNeedHome, onShare, holdIntro = false }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
   const [date, setDate] = useState(today);
@@ -173,7 +175,14 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
   const shownDate = preview ?? date;
   // While a pinch-out is only previewing the day, its pins stay out: they
   // drop in once the zoom lands, like every other way of opening a day.
-  const pings = preview ? [] : pingsForDate(shownDate);
+  const pings = preview || holdIntro ? [] : pingsForDate(shownDate);
+  // Landed: remount the drawing so the pins drop, the lines draw and the
+  // 꾸미기 settles now, not unseen under the sliding page.
+  const held = useRef(holdIntro);
+  useEffect(() => {
+    if (held.current && !holdIntro) setVisit((v) => v + 1);
+    held.current = holdIntro;
+  }, [holdIntro]);
   const counts = new Map(
     Object.entries(SAMPLE_PING_DATES).map(([key, pings]) => [key, pings.length] as [string, number]),
   );
@@ -696,18 +705,20 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
               }}
               pressable={() => gesture.current === null && daySwipe.current?.axis !== 'x' && !toolRef.current}
             >
-              <DecorLayer
-                decor={dayDecor}
-                tool={tool}
-                armed={armed}
-                pen={pen}
-                onChange={changeDecor}
-                enterDelayMs={pingsLandedMs(pings.length)}
-                textFocus={textFocus}
-                onTextFocus={setTextFocus}
-                textStyle={textStyle}
-                onDragging={setDraggingPiece}
-              />
+              {!holdIntro && (
+                <DecorLayer
+                  decor={dayDecor}
+                  tool={tool}
+                  armed={armed}
+                  pen={pen}
+                  onChange={changeDecor}
+                  enterDelayMs={pingsLandedMs(pings.length)}
+                  textFocus={textFocus}
+                  onTextFocus={setTextFocus}
+                  textStyle={textStyle}
+                  onDragging={setDraggingPiece}
+                />
+              )}
             </DayPings>
           </div>
         </div>

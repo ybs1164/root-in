@@ -1188,6 +1188,7 @@ export default function App() {
               onDayTheme={setDayTheme}
               onDayPattern={setDayPattern}
               onMode={setCalendarMode}
+              holdIntro={pageEnter}
             />
           ) : null}
         </section>
