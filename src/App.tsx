@@ -130,6 +130,8 @@ export default function App() {
   const [decorating, setDecorating] = useState(false);
   // Commands for the calendar page (there's no calendar button to send them now).
   const [calendarCommand, setCalendarCommand] = useState<CalendarCommand | null>(null);
+  // The calendar hands up how to share the day on screen (its 공유 sits in the page head).
+  const shareDay = useRef<(() => void) | null>(null);
   const [activePinId, setActivePinId] = useState<string | null>(null);
   // The round buttons under ⚙, and the categories picked in its 핀 list.
   const [railMode, setRailMode] = useState<PinRailMode>('menu');
@@ -1161,13 +1163,17 @@ export default function App() {
           <header className="page__head">
             {/* The calendar's own TODAY / DAY n heading takes the stage. */}
             <h1 className={calendarZoom ? 'sr-only' : ''}>{PAGE_TITLES[tab]}</h1>
-            <button className="icon-btn page__profile" aria-label="프로필" onClick={() => setProfileOpen(true)}>
-              <ProfileAvatar photo={profile.photo} size={52} />
-            </button>
+            {/* The day's 공유, in the profile's place (no profile on the calendar). */}
+            {calendarZoom && calendarMode === 'day' && (
+              <button className="page__share" aria-label="공유" onClick={() => shareDay.current?.()}>
+                <Share size={24} strokeWidth={2.2} aria-hidden />
+              </button>
+            )}
           </header>
           {calendarZoom ? (
             <CalendarZoom
               command={calendarCommand}
+              shareRef={shareDay}
               excluded={privacy.excluded}
               onNeedHome={needHome}
               onShare={setStudio}

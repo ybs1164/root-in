@@ -1340,8 +1340,8 @@ button:disabled {
 }
 
 /* On the day screen the rail matches the map's 핀/경로 rail: 48px rounds,
-   10px apart, starting 12px under the profile (the calendar area starts
-   below the 56px page head). */
+   10px apart, starting 12px under 공유 (in the profile's place; the calendar
+   area starts below the 56px page head). */
 .cal-zoom .decor-rail {
   top: 20px;
   right: 14px;
@@ -1349,11 +1349,8 @@ button:disabled {
 }
 
 .cal-zoom .decor-rail {
-  /* Centred on the 52px 공유, so 2px further right keeps the tools on the map rail's line. */
-  right: 12px;
   /* Over the day arrows where a short screen brings them together. */
   z-index: 15;
-  align-items: center;
 }
 
 .cal-zoom .decor-rail__btn {
@@ -1361,15 +1358,14 @@ button:disabled {
   height: 48px;
 }
 
-/* A touch bigger than the tools. */
-.cal-zoom .decor-rail__share {
-  width: 52px;
-  height: 52px;
-}
-
 .cal-zoom .decor-rail__btn svg {
   width: 22px;
   height: 22px;
+}
+
+/* The day rail's ↓ / ↑: shows the rest of the tools (name and time) or folds them away. */
+.decor-rail__more {
+  color: var(--muted);
 }
 
 /* The day's name / time switches: off greys the icon and strikes it through. */
@@ -4937,25 +4933,36 @@ button:disabled {
   object-fit: cover;
 }
 
-/* The profile buttons are the popup's round avatar itself, just smaller. */
-.corner-btn--profile,
-.page__profile {
+/* The profile button is the popup's round avatar itself, just smaller. */
+.corner-btn--profile {
   overflow: hidden;
   border-radius: 50%;
   background: var(--surface-2);
   color: var(--muted);
 }
 
-.page__profile {
-  /* Exactly the map's profile button: same size, same corner. */
+/* The day screen's 공유 sits where the map's profile does (same size, same
+   corner), at the head of the 꾸미기 rail below it. */
+.page__share {
   position: absolute;
   top: calc(12px + var(--safe-top));
   right: 12px;
   z-index: 3;
+  display: grid;
+  place-items: center;
   width: 52px;
   height: 52px;
-  margin: 0;
-  box-shadow: var(--shadow);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--shadow-sm);
+  transition: scale 0.12s ease;
+}
+
+.page__share:active {
+  scale: 0.92;
 }
 
 .profile {

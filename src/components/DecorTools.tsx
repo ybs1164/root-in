@@ -6,6 +6,8 @@ import {
   Brush,
   BrushCleaning,
   Captions,
+  ChevronDown,
+  ChevronUp,
   Clock,
   Eraser,
   GalleryVerticalEnd,
@@ -60,10 +62,12 @@ const RAIL: { tool: DecorTool; label: string; Icon: typeof Sticker }[] = [
   { tool: 'theme', label: '테마', Icon: Palette },
   { tool: 'pattern', label: '꾸미기', Icon: Wallpaper },
 ];
+/** The day screen's order: 텍스트 first. */
+const DAY_RAIL: typeof RAIL = ['text', 'sticker', 'pen', 'theme', 'pattern'].map((t) => RAIL.find((r) => r.tool === t)!);
 /** The share screen's own: how the polaroid lies on the image. */
 const POLAROID_TOOL = { tool: 'polaroid' as const, label: '폴라로이드', Icon: GalleryVerticalEnd };
 
-/** 스티커 · 펜 · 텍스트 · 테마 · 꾸미기, stacked under the settings button (on a day, then the name and time switches), then 공유 a little apart in the accent colour. */
+/** 스티커 · 펜 · 텍스트 · 테마 · 꾸미기 (on a day 텍스트 first, then ↓ unfolding the name and time switches, ↑ folding them), then 공유 a little apart where given. */
 export function DecorRail({
   tool,
   onTool,
@@ -80,9 +84,12 @@ export function DecorRail({
   /** The day screen's switches under the tools: the pings' place names and visit times. */
   labels?: { names: boolean; times: boolean; onNames: () => void; onTimes: () => void };
 }) {
+  // A day's rail folds its name / time switches away behind ↓ until asked for.
+  const [open, setOpen] = useState(false);
+  const tools = labels ? DAY_RAIL : row ? [...RAIL, POLAROID_TOOL] : RAIL;
   return (
     <div className={`decor-rail ${row ? 'decor-rail--row' : ''}`} role="toolbar" aria-label="꾸미기" aria-orientation={row ? 'horizontal' : 'vertical'}>
-      {(row ? [...RAIL, POLAROID_TOOL] : RAIL).map(({ tool: t, label, Icon }) => (
+      {tools.map(({ tool: t, label, Icon }) => (
         <button
           key={t}
           className={`decor-rail__btn ${tool === t ? 'is-on' : ''}`}
@@ -93,7 +100,7 @@ export function DecorRail({
           <Icon size={20} aria-hidden />
         </button>
       ))}
-      {labels && (
+      {labels && open && (
         <>
           <button
             className={`decor-rail__btn decor-rail__switch ${labels.names ? '' : 'is-off'}`}
@@ -112,6 +119,16 @@ export function DecorRail({
             <Clock size={20} aria-hidden />
           </button>
         </>
+      )}
+      {labels && (
+        <button
+          className="decor-rail__btn decor-rail__more"
+          aria-label={open ? '접기' : '펼치기'}
+          aria-expanded={open}
+          onClick={() => setOpen((o) => !o)}
+        >
+          {open ? <ChevronUp size={20} aria-hidden /> : <ChevronDown size={20} aria-hidden />}
+        </button>
       )}
       {onShare && (
         <button className="decor-rail__btn decor-rail__share" aria-label="공유" onClick={onShare}>

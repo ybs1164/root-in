@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Share } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, type TouchEvent } from 'react';
 import { swipeCommits, SWIPE } from '../domain/appTabs';
 import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, pingsLandedMs, SAMPLE_PING_DATES } from '../domain/dayPings';
 import { addDays } from '../domain/calendar';
@@ -110,12 +110,14 @@ interface CalendarZoomProps {
   onShare: (subject: ShareSubject) => void;
   /** The page is still sliding in: the day's pins, lines and 꾸미기 wait to play until it lands. */
   holdIntro?: boolean;
+  /** Filled with this calendar's way to share the day on screen (the page head's 공유 calls it). */
+  shareRef?: MutableRefObject<(() => void) | null>;
 }
 
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
 
-export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme, onDayPattern, excluded, onNeedHome, onShare, holdIntro = false }: CalendarZoomProps) {
+export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme, onDayPattern, excluded, onNeedHome, onShare, holdIntro = false, shareRef }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
   const [date, setDate] = useState(today);
@@ -268,6 +270,22 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
   const dayHistory = history[shownDate] ?? EMPTY_HISTORY;
   const setDayDecor = (next: DayDecor) => setDays((d) => ({ ...d, decor: { ...d.decor, [shownDate]: next } }));
   // A drawing change: undo can bring back what was there; redo is forgotten.
+  // 공유: the day's card, its 꾸미기 carried along, opened on the 꾸미기 screen.
+  const shareDay = () => {
+    if (!hasHome(excluded)) return onNeedHome();
+    onShare(
+      daySubject(
+        date,
+        pingsForDate(date),
+        (ping) => days.shapes[pingKey(date, ping)] ?? 'pin',
+        (from, to) => days.edges[edgeKey(date, from, to)] ?? 'solid',
+        excluded,
+        days.decor[date] ?? EMPTY_DECOR,
+      ),
+    );
+  };
+  if (shareRef) shareRef.current = shareDay;
+
   const changeDecor = (next: DayDecor) => {
     setHistory((h) => ({ ...h, [shownDate]: recordChange(dayHistory, dayDecor) }));
     setDayDecor(next);
@@ -667,20 +685,6 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
               const { hideTimes, ...rest } = dayDecor;
               changeDecor(hideTimes ? rest : { ...rest, hideTimes: true });
             },
-          }}
-          onShare={() => {
-            // 공유 at the foot of the rail: the day's card, its 꾸미기 carried along, opened there.
-            if (!hasHome(excluded)) return onNeedHome();
-            onShare(
-              daySubject(
-                date,
-                pingsForDate(date),
-                (ping) => days.shapes[pingKey(date, ping)] ?? 'pin',
-                (from, to) => days.edges[edgeKey(date, from, to)] ?? 'solid',
-                excluded,
-                days.decor[date] ?? EMPTY_DECOR,
-              ),
-            );
           }}
         />
         <div ref={curEl} className="cal-day">
