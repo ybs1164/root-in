@@ -211,8 +211,23 @@ function useSheetPull(onClose?: () => void) {
       el.style.height = '';
     }, SETTLE_MS);
   };
+  /** Back to the usual height (gliding, as a release does); no-op if it's there already. */
+  const collapse = () => {
+    const el = sheet.current;
+    if (!expanded || !el) return;
+    window.clearTimeout(settle.current);
+    el.style.height = `${el.offsetHeight}px`;
+    el.dataset.settling = '';
+    void el.offsetHeight;
+    el.style.height = `${normalHeight.current || el.offsetHeight}px`;
+    setExpanded(false);
+    settle.current = window.setTimeout(() => {
+      delete el.dataset.settling;
+      el.style.height = '';
+    }, SETTLE_MS);
+  };
   const handle = { onPointerDown, onPointerMove, onPointerUp: onPointerEnd, onPointerCancel: onPointerEnd };
-  return { sheet, expanded, closing, handle };
+  return { sheet, expanded, closing, handle, collapse };
 }
 
 const EFFECT_ICONS = { bold: Bold, italic: Italic, underline: Underline, strike: Strikethrough };
@@ -309,7 +324,22 @@ export function DecorTray(p: DecorTrayProps) {
               className={`decor-tray__sticker ${p.armed === sticker.id ? 'is-on' : ''}`}
               aria-label={`스티커 ${sticker.label}`}
               aria-pressed={p.armed === sticker.id}
-              onClick={() => p.onArm(p.armed === sticker.id ? null : sticker.id)}
+              onClick={(e) => {
+                const picking = p.armed !== sticker.id;
+                p.onArm(picking ? sticker.id : null);
+                if (!picking) return;
+                // Picked: the sheet goes back to its usual height and the
+                // sticker's row scrolls to the top of the grid, once the height has settled.
+                const btn = e.currentTarget;
+                const wasExpanded = pull.expanded;
+                pull.collapse();
+                window.setTimeout(() => {
+                  const grid = btn.parentElement;
+                  if (!grid) return;
+                  const top = grid.scrollTop + btn.getBoundingClientRect().top - grid.getBoundingClientRect().top;
+                  grid.scrollTo({ top, behavior: 'smooth' });
+                }, wasExpanded ? SETTLE_MS : 0);
+              }}
             >
               <img src={sticker.src} alt="" draggable={false} />
             </button>
