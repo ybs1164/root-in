@@ -53,11 +53,11 @@ export type PolaroidLayout = 'ticket' | 'bare' | 'stack' | 'single' | 'tape' | '
 export const POLAROID_LAYOUTS: { id: PolaroidLayout; label: string }[] = [
   { id: 'ticket', label: '탑승권' },
   { id: 'bare', label: '없음' },
-  { id: 'stack', label: '두 장' },
   { id: 'single', label: '한 장' },
-  { id: 'tape', label: '테이프' },
+  { id: 'stack', label: '두 장' },
   { id: 'map', label: '항로' },
   { id: 'notebook', label: '클립' },
+  { id: 'tape', label: '테이프' },
   { id: 'line', label: '빨랫줄' },
 ];
 

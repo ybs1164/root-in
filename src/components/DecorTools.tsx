@@ -422,6 +422,7 @@ export function DecorTray(p: DecorTrayProps) {
               key={id}
               className={`decor-tray__theme theme-card--${id} ${p.theme === id ? 'is-on' : ''}`}
               aria-pressed={p.theme === id}
+              aria-label={name}
               onClick={() => p.onTheme(id)}
             >
               <span className="theme-card" aria-hidden>
@@ -431,7 +432,6 @@ export function DecorTray(p: DecorTrayProps) {
                 </svg>
                 <i />
               </span>
-              {name}
             </button>
           ))}
         </div>
@@ -444,12 +444,12 @@ export function DecorTray(p: DecorTrayProps) {
               key={id}
               className={`decor-tray__theme ${p.layout === id ? 'is-on' : ''}`}
               aria-pressed={p.layout === id}
+              aria-label={name}
               onClick={() => p.onLayout?.(id)}
             >
               <span className="theme-card layout-card" aria-hidden>
                 {p.layoutPreviews?.[id] && <img src={p.layoutPreviews[id]} alt="" draggable={false} />}
               </span>
-              {name}
             </button>
           ))}
         </div>
@@ -462,12 +462,12 @@ export function DecorTray(p: DecorTrayProps) {
               key={id}
               className={`decor-tray__theme ${p.pattern === id ? 'is-on' : ''}`}
               aria-pressed={p.pattern === id}
+              aria-label={name}
               onClick={() => p.onPattern(id)}
             >
               <span className="theme-card pattern-card" aria-hidden>
                 <DayPattern pattern={id} className="day-pattern--preview" scale={PREVIEW_SCALE[id] ?? 1} />
               </span>
-              {name}
             </button>
           ))}
         </div>

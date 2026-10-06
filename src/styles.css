@@ -2167,9 +2167,10 @@ button:disabled {
   position: relative;
   width: min(100cqw, 100cqh * 1400 / 2000); /* SCENE in domain/polaroid.ts */
   /* No ground of its own: the screen's colour and pattern show through.
-     A thin grey line marks what gets saved. */
+     A thin, round-cornered grey line marks what gets saved. */
   outline: 1.5px solid var(--muted);
   outline-offset: 0;
+  border-radius: 14px;
 }
 
 .studio__image {
