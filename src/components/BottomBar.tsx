@@ -1,4 +1,5 @@
 import { CalendarDays, Crosshair, MapPin, Share } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import type { AppTab } from '../domain/appTabs';
 import { CalendarToday } from './icons';
 
@@ -27,6 +28,14 @@ interface BottomBarProps {
  */
 export default function BottomBar({ tab, calendarMode, onCalendar, onMap, onPin, onAim, onShare }: BottomBarProps) {
   const cal = tab === 'calendar';
+  // The crosshair slides off to the right on the way to the calendar, and on
+  // the way back grows up out of its bottom (an entrance played once).
+  const lastTab = useRef(tab);
+  const [aimBack, setAimBack] = useState(false);
+  useEffect(() => {
+    if (lastTab.current === 'calendar' && tab === 'pins') setAimBack(true);
+    lastTab.current = tab;
+  }, [tab]);
   return (
     <nav className={`bottom-bar ${cal ? 'bottom-bar--cal' : ''}`} aria-label="메뉴">
       <button className="bar-btn bar-pin" aria-label={cal ? '지도' : '지도에 핀 꽂기'} onClick={cal ? onMap : onPin}>
@@ -40,7 +49,14 @@ export default function BottomBar({ tab, calendarMode, onCalendar, onMap, onPin,
         {/* Shows where you are: today's date on the day screens, the month grid on the month. */}
         {cal && calendarMode === 'month' ? <CalendarDays strokeWidth={2.2} aria-hidden /> : <CalendarToday />}
       </button>
-      <button className="bar-btn bar-aim" aria-label="조준해서 핀 꽂기" onClick={onAim} tabIndex={cal ? -1 : undefined} aria-hidden={cal || undefined}>
+      <button
+        className={`bar-btn bar-aim ${aimBack && !cal ? 'is-back' : ''}`}
+        aria-label="조준해서 핀 꽂기"
+        onClick={onAim}
+        onAnimationEnd={() => setAimBack(false)}
+        tabIndex={cal ? -1 : undefined}
+        aria-hidden={cal || undefined}
+      >
         <Crosshair strokeWidth={2.2} aria-hidden />
       </button>
       {onShare && (
