@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Share } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'react';
 import { swipeCommits, SWIPE } from '../domain/appTabs';
 import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, pingsLandedMs, SAMPLE_PING_DATES } from '../domain/dayPings';
@@ -27,7 +27,6 @@ import DayPings from './DayPings';
 import DecorLayer, { type TextFocus } from './DecorLayer';
 import { DecorRail, DecorTray } from './DecorTools';
 import MonthCalendar from './MonthCalendar';
-import ShareTagButton from './ShareTagButton';
 import { hasHome, type ExcludedPlace } from '../domain/privacy';
 import { daySubject, type ShareSubject } from '../domain/shareSubject';
 
@@ -635,11 +634,11 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
             setTextFocus(null);
           }}
         />
-        {/* 공유, a luggage tag as on a route: makes the day's card, its 꾸미기 carried along, and opens it there. */}
+        {/* 공유, a round button as on a route: makes the day's card, its 꾸미기 carried along, and opens it there. */}
         {!tool && (
-          <ShareTagButton
-            className="share-tag--day"
-            label="공유"
+          <button
+            className="route-action route-action--share day-share"
+            aria-label="공유"
             onClick={() => {
               if (!hasHome(excluded)) return onNeedHome();
               onShare(
@@ -653,7 +652,9 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
                 ),
               );
             }}
-          />
+          >
+            <Share size={26} strokeWidth={2.2} aria-hidden />
+          </button>
         )}
         <div ref={curEl} className="cal-day">
           <button className="cal-zoom__title" aria-label={`${dayTitle(shownDate, today)}, 달력 보기`} onClick={() => toMonth()}>
