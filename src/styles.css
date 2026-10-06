@@ -4557,13 +4557,13 @@ button:disabled {
   z-index: 3;
 }
 
-/* A tag that appears (page landed, or the map uncovered) pops out of its edge. */
+/* A tag that appears (page landed, or the map uncovered) slides out of its edge, no overshoot. */
 .edge-tag--pop.edge-tag--left {
-  animation: tag-pop-left 340ms cubic-bezier(0.3, 1.5, 0.5, 1);
+  animation: tag-pop-left 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .edge-tag--pop.edge-tag--right {
-  animation: tag-pop-right 340ms cubic-bezier(0.3, 1.5, 0.5, 1);
+  animation: tag-pop-right 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 @keyframes tag-pop-left {
