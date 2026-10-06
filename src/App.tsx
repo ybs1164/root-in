@@ -1,11 +1,10 @@
-import { Pencil } from 'lucide-react';
+import { MapPin, Pencil, Share } from 'lucide-react';
 import type { PatternId, ThemeId } from './domain/decor';
 import DayPattern from './components/DayPattern';
 import ShareStudio from './components/ShareStudio';
 import ConfirmDialog from './components/ConfirmDialog';
-import ShareTagButton from './components/ShareTagButton';
 import { routeSubject, type ShareSubject } from './domain/shareSubject';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import BottomBar from './components/BottomBar';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
 import NewPinCard, { type NewPinInput } from './components/NewPinCard';
@@ -64,6 +63,7 @@ const FOLDER_LOWERED_PX = 324;
 const PINS_FADE_MS = 250;
 /** A route stepped to with < > glides over as fast as its name slides in (RouteTitle SLIDE_MS). */
 const STEP_GLIDE_MS = 260;
+
 
 export default function App() {
   const mapEl = useRef<HTMLDivElement | null>(null);
@@ -124,18 +124,21 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [preview, setPreview] = useState<PlaceRef | null>(null);
 
-  // The calendar page: its zoom level (reported by CalendarZoom), and the
-  // calendar button's commands sent down to it.
+  // The calendar page reports its zoom level (day or month); nothing reads it now.
   const [calendarMode, setCalendarMode] = useState<'day' | 'month'>('day');
   // A 꾸미기 tool is out on the calendar: the tab buttons step aside for its tray.
   const [decorating, setDecorating] = useState(false);
+  // Commands for the calendar page (there's no calendar button to send them now).
   const [calendarCommand, setCalendarCommand] = useState<CalendarCommand | null>(null);
-  const sendCalendar = (type: CalendarCommand['type']) => {
-    setCalendarCommand((prev) => ({ type, seq: (prev?.seq ?? 0) + 1 }));
-  };
+  // The calendar hands up how to share the day on screen (its 공유 sits in the bottom row).
+  const shareDay = useRef<(() => void) | null>(null);
   const [activePinId, setActivePinId] = useState<string | null>(null);
   // The round buttons under ⚙, and the categories picked in its 핀 list.
   const [railMode, setRailMode] = useState<PinRailMode>('menu');
+  // 조준: a crosshair in the middle of the map (with the name of the place
+  // under it) and only the pin button, to aim where a new pin goes.
+  const [aiming, setAiming] = useState(false);
+  const [aimName, setAimName] = useState<string | null>(null);
   // The saved route drawn on the map from the 경로 폴더.
   const [shownRouteId, setShownRouteId] = useState<string | null>(null);
   // The 경로 폴더's open tab (kept here: the sheet unmounts while it is down).
@@ -170,7 +173,14 @@ export default function App() {
 
   const sharedCourse = incomingCourse.status === 'ready' ? incomingCourse.course : null;
   const activePin = pins.find((p) => p.id === activePinId) ?? null;
+  const onPage = showsPage(tab, Boolean(searchOpen || preview));
+  // Swiping 달력 left slides the page off and uncovers the map (핀).
+  const swipe = usePageSwipe(onPage && !decorating && !studio ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
+  // While the page is swiped off, the map screen under it stays whole.
+  const pageMoving = swipe.moving;
   const onPinHome = tab === 'pins';
+  // The map's own things (pins, rail, row) show on the map, and under a moving page.
+  const mapUi = onPinHome || pageMoving;
   // On phones the pin screen's sheet drops down from the top, leaving the map's lower half clear.
   const sheetTop = tab === 'pins';
   // 경로 open on the pin map: the folder sheet takes the tab buttons' place.
@@ -232,7 +242,7 @@ export default function App() {
   const isEditing = !!editRoute;
   // Pin markers: a received set as its sender styled it, or my pins on the home tab.
   const pinMarkers = useMemo<PinMarker[]>(() => {
-    if (!onPinHome) return [];
+    if (!mapUi) return [];
     // A saved route on show has the map to itself: every pin steps aside
     // (its stops, shaped or numbered, stand in for the places).
     // Editing it, they come back to be picked.
@@ -249,7 +259,7 @@ export default function App() {
         selected: pin.id === activePinId,
       };
     });
-  }, [onPinHome, shownPins, categories, activePinId, shownRoute, isEditing, pinsGone]);
+  }, [mapUi, shownPins, categories, activePinId, shownRoute, isEditing, pinsGone]);
 
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
   // 제외 주소 are located with the same place search (search failing just leaves the address text to match).
@@ -463,7 +473,7 @@ export default function App() {
 
   mapEvents.current.longPress = async (center: [number, number]) => {
     // Making a route, or a saved one on show (its long presses restyle it): no place card.
-    if ((building && routeMode) || shownRoute) return;
+    if ((building && routeMode) || shownRoute || aiming) return;
     await openNewPinAt(center);
   };
 
@@ -763,17 +773,98 @@ export default function App() {
   // Stable, so the card's outside-touch listener isn't re-attached every render.
   const closeNewPin = useCallback(() => setPreview(null), []);
 
-  // 📍 again on the pin screen: a new pin right where the map is looking —
+  // The filled pin over the bar: a new pin right where the map is looking —
   // the same card a search pick or a long press opens (name, memo, group,
   // ✓ to pin). With a card already up, the press first closes it (a touch
   // outside the card), then opens a fresh one on the map's current centre.
   const startPinning = () => {
+    setAiming(false);
     changeTab('pins');
     // 경로 owns the map's taps while it's open; a new pin closes it.
     if (railMode === 'route') railAction('route');
     const center = mapRef.current?.getCenter();
     if (center) void openNewPinAt(center);
   };
+
+  const startAiming = () => {
+    if (railMode === 'route') railAction('route');
+    setRailMode('menu');
+    setPreview(null);
+    setActivePinId(null);
+    setAimName(null);
+    setAiming(true);
+  };
+
+  // While aiming: the place under the crosshair, looked up once the map settles.
+  useEffect(() => {
+    if (!aiming || !searchService) return;
+    const center = mapRef.current?.getCenter();
+    if (!center) return;
+    let alive = true;
+    const t = window.setTimeout(() => {
+      void searchService.reverse(center).then((named) => {
+        // Nothing found nearby: still say what the crosshair is on.
+        if (alive) setAimName(named?.name ?? '이름 없는 곳');
+      });
+    }, 200);
+    return () => {
+      alive = false;
+      window.clearTimeout(t);
+    };
+  }, [aiming, viewport, searchService]);
+
+  // Leaving aiming: Esc, another tab, or a quick tap on the map (a pan just moves the aim).
+  useEffect(() => {
+    if (!aiming) return;
+    if (tab !== 'pins') return setAiming(false);
+    const el = mapEl.current;
+    let tap: { x: number; y: number; at: number } | null = null;
+    const down = (e: PointerEvent) => {
+      tap = e.isPrimary && el?.contains(e.target as Node) ? { x: e.clientX, y: e.clientY, at: performance.now() } : null;
+    };
+    const up = (e: PointerEvent) => {
+      const t = tap;
+      tap = null;
+      if (!t || !e.isPrimary || !el?.contains(e.target as Node)) return;
+      if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > PRESS.slopPx || performance.now() - t.at >= PRESS.longMs) return;
+      setAiming(false);
+    };
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAiming(false);
+    };
+    document.addEventListener('pointerdown', down, true);
+    document.addEventListener('pointerup', up, true);
+    window.addEventListener('keydown', key);
+    return () => {
+      document.removeEventListener('pointerdown', down, true);
+      document.removeEventListener('pointerup', up, true);
+      window.removeEventListener('keydown', key);
+    };
+  }, [aiming, tab]);
+
+  // The calendar is a page on top of the map: the phone's back button goes
+  // back to the map. Opening it pushes a history entry; leaving it some other
+  // way takes that entry back off, so back on the map leaves the app as before.
+  const calendarEntry = useRef(false);
+  useEffect(() => {
+    if (tab === 'calendar' && !calendarEntry.current) {
+      calendarEntry.current = true;
+      history.pushState({ rootIn: 'calendar' }, '');
+    } else if (tab !== 'calendar' && calendarEntry.current) {
+      calendarEntry.current = false;
+      history.back();
+    }
+  }, [tab]);
+  useEffect(() => {
+    const pop = () => {
+      if (!calendarEntry.current) return;
+      calendarEntry.current = false;
+      if (onPage) swipe.leave();
+      else changeTab('pins');
+    };
+    window.addEventListener('popstate', pop);
+    return () => window.removeEventListener('popstate', pop);
+  });
 
   // ----- Render -----
 
@@ -790,12 +881,22 @@ export default function App() {
   }, [pins, categories]);
 
   const calendarZoom = tab === 'calendar';
-  const onPage = showsPage(tab, Boolean(searchOpen || preview));
-  // Swiping 달력 left slides the page off and uncovers the map (핀).
-  const swipe = usePageSwipe(onPage && !decorating && !studio ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
+
+  // The bottom row's buttons switch the screens at once. The big calendar
+  // button in the middle of the calendar screen, pressed again, goes to the
+  // month (or from the month back to TODAY).
+  const tagTab = (next: AppTab) => {
+    if (next === 'calendar' && tab === 'calendar' && onPage) {
+      const type = calendarAgain(calendarMode);
+      setCalendarCommand((c) => ({ type, seq: (c?.seq ?? 0) + 1 }));
+    } else changeTab(next);
+  };
 
   // The tab buttons step aside for a 꾸미기 tool's tray, for the 경로 폴더, and under the 꾸미기 screen.
-  const barAway = (decorating && calendarZoom && onPage) || routeMode || !!studio;
+  const barAway = (decorating && calendarZoom && onPage) || routeMode;
+  // Under the 꾸미기 screen the row is simply gone, so coming back it is just
+  // there again rather than sliding up.
+  const barGone = !!studio;
   // 공유 before 집 is set (it's required) opens the profile on 개인 정보 instead.
   const needHome = () => {
     setPrivacyNotice('공유하려면 집 주소를 먼저 입력하세요.');
@@ -803,7 +904,7 @@ export default function App() {
   };
 
   return (
-    <div className={`app ${searchOpen ? 'app--searching' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''}`}>
+    <div className={`app ${searchOpen ? 'app--searching' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''} ${aiming ? 'app--aiming' : ''} ${pageMoving ? 'app--page-moving' : ''}`}>
       <div ref={mapEl} className="map" aria-label="지도" />
 
       <SearchBar
@@ -825,7 +926,7 @@ export default function App() {
         <ProfileAvatar photo={profile.photo} size={52} />
       </button>
 
-      {onPinHome && !searchOpen && (
+      {mapUi && !searchOpen && (
         <PinRail
           mode={railMode}
           onAction={railAction}
@@ -844,6 +945,13 @@ export default function App() {
           }}
           onCategories={() => setCategoriesOpen(true)}
         />
+      )}
+
+      {/* 경로 open with nothing on show: dragging from a pin starts a new route (as + does). */}
+      {routeOpen && !shownRoute && (
+        <p className="route-build__hint" role="status">
+          드래그로 루트 추가
+        </p>
       )}
 
       {routeTrayShown && onPinHome && (
@@ -919,18 +1027,14 @@ export default function App() {
 
       {/* 공유 for the route on show: makes its card and opens the 꾸미기 screen on it. */}
       {shownRoute && !buildPins && !editRoute && routeTrayShown && onPinHome && (
-        <ShareTagButton
-          light
-          className="share-tag--edit"
-          label="루트 수정"
-          icon={<Pencil size={18} strokeWidth={2.2} />}
-          onClick={startEditing}
-        />
+        <button className="route-action route-action--edit" aria-label="루트 수정" onClick={startEditing}>
+          <Pencil size={20} strokeWidth={2.2} aria-hidden />
+        </button>
       )}
       {shownRoute && !buildPins && !editRoute && routeTrayShown && onPinHome && (
-        <ShareTagButton
-          className="share-tag--route"
-          label={`${shownRoute.title} 공유`}
+        <button
+          className="route-action route-action--share"
+          aria-label={`${shownRoute.title} 공유`}
           onClick={() => {
             if (!hasHome(privacy.excluded)) return needHome();
             setStudio(routeSubject(shownRoute, privacy.excluded, shownRoute.stops.map((s) => {
@@ -938,7 +1042,9 @@ export default function App() {
               return categoryStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id).icon;
             })));
           }}
-        />
+        >
+          <Share size={26} strokeWidth={2.2} aria-hidden />
+        </button>
       )}
 
       {/* A saved route on the map: long-press its stops or lines to restyle it (kept with the route). */}
@@ -1047,18 +1153,26 @@ export default function App() {
       )}
 
       {onPage ? (
-        <section className="page" aria-label={PAGE_TITLES[tab]} style={swipe.style} {...swipe.handlers}>
+        <section
+          className="page"
+          aria-label={PAGE_TITLES[tab]}
+          style={swipe.style}
+          {...swipe.handlers}
+        >
           {calendarZoom && <DayPattern pattern={dayPattern} />}
-          <header className="page__head">
-            {/* The calendar's own TODAY / DAY n heading takes the stage. */}
-            <h1 className={calendarZoom ? 'sr-only' : ''}>{PAGE_TITLES[tab]}</h1>
-            <button className="icon-btn page__profile" aria-label="프로필" onClick={() => setProfileOpen(true)}>
-              <ProfileAvatar photo={profile.photo} size={40} />
-            </button>
-          </header>
+          {/* The calendar has no head bar: its own TODAY / DAY n heading takes the
+              stage and the 꾸미기 rail runs up to the top corner. */}
+          {calendarZoom ? (
+            <h1 className="sr-only">{PAGE_TITLES[tab]}</h1>
+          ) : (
+            <header className="page__head">
+              <h1>{PAGE_TITLES[tab]}</h1>
+            </header>
+          )}
           {calendarZoom ? (
             <CalendarZoom
               command={calendarCommand}
+              shareRef={shareDay}
               excluded={privacy.excluded}
               onNeedHome={needHome}
               onShare={setStudio}
@@ -1071,14 +1185,37 @@ export default function App() {
         </section>
       ) : null}
 
-      <div ref={barEl} className={`bottom-bar-wrap ${barAway ? 'is-away' : ''}`} inert={barAway}>
+      {aiming && (
+        <div className="aim" aria-hidden={false}>
+          <p className="route-build__hint" role="status">핑을 찍을 위치를 조준해 주세요</p>
+          <div className="aim__mark">
+            {aimName && (
+              <span className="aim__name">
+                <span>{aimName}</span>
+              </span>
+            )}
+            <svg className="aim__cross" viewBox="0 0 48 48" aria-hidden>
+              <circle cx="24" cy="24" r="13" />
+              <path d="M24 2v12M24 34v12M2 24h12M34 24h12" />
+              <circle className="aim__dot" cx="24" cy="24" r="2.6" />
+            </svg>
+          </div>
+        </div>
+      )}
+
+      <div
+        ref={barEl}
+        className={`bottom-bar-wrap ${onPage ? 'bottom-bar-wrap--over' : ''} ${barAway ? 'is-away' : ''} ${barGone ? 'is-gone' : ''}`}
+        inert={barAway || barGone}
+      >
         <BottomBar
-          tab={swipe.leaving ? 'pins' : tab}
-          pinning={!!preview}
-          onTab={changeTab}
+          tab={pageMoving ? 'pins' : tab}
+          calendarMode={calendarMode}
+          onCalendar={() => tagTab('calendar')}
+          onMap={() => changeTab('pins')}
+          onShare={onPage && calendarZoom && calendarMode === 'day' ? () => shareDay.current?.() : undefined}
           onPin={startPinning}
-          onCalendarAgain={() => sendCalendar(calendarAgain(calendarMode))}
-          calendarIcon={tab === 'calendar' && calendarZoom && calendarMode === 'day' ? 'month' : 'today'}
+          onAim={startAiming}
         />
       </div>
 

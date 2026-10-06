@@ -53,6 +53,20 @@ describe('administrative area files', () => {
     expect(map?.others.map((a) => a.code)).toEqual(['1114052000']);
   });
 
+  it('shows the 읍면동 whole as its one section when its section file is missing', async () => {
+    const saved = files['/korea/admin/section/11140.json'];
+    delete files['/korea/admin/section/11140.json'];
+    try {
+      stubFiles();
+      const map = await new StaticAdminAreaService().fetchAreaMap({ bounds: { west: 127.085, south: 37.44, east: 127.098, north: 37.46 }, widthPx: 375 });
+      expect(map?.focus.code).toBe('1114051000');
+      expect(map?.parts.map((a) => a.code)).toEqual(['1114051000-0']);
+      expect(map?.parts[0].polygons).toEqual(map && (await new StaticAdminAreaService().fetchAreaMap({ bounds: { west: 127.04, south: 37.45, east: 127.15, north: 37.55 }, widthPx: 375 }))?.parts[0].polygons);
+    } finally {
+      files['/korea/admin/section/11140.json'] = saved;
+    }
+  });
+
   it('resolves to null instead of rejecting when files are missing', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
     await expect(new StaticAdminAreaService().fetchAreaMap({ bounds: { west: 127, south: 37, east: 127.1, north: 37.1 }, widthPx: 375 })).resolves.toBeNull();

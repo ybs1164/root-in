@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addDays } from './calendar';
+import { dateKey } from './diary';
 import { classifyPress, daySwipeTarget, dayTitle, EDGE_STYLES, edgeKey, latestPingIndex, layoutPings, pingKey, pinchOutcome, pinchProgress, pingsForDate, SAMPLE_TODAY_PINGS, pingsLandedMs } from './dayPings';
 
 describe('calendar day screen', () => {
@@ -16,6 +17,8 @@ describe('calendar day screen', () => {
     expect(pingsForDate('2026-09-28')).toEqual([]);
     // The next day starts empty; 9/30 keeps its places.
     expect(pingsForDate('2026-10-01')).toEqual([]);
+    // Temporary: whatever day the app opens on has its own sample walk.
+    expect(pingsForDate(dateKey())).toHaveLength(3);
   });
 
   it('pages days by swiping: left-to-right goes back, right-to-left goes forward except on TODAY', () => {

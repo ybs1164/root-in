@@ -31,7 +31,19 @@ export const SAMPLE_YESTERDAY_PINGS: DayPing[] = [
 ];
 
 /** Where the sample pings live (see above). */
+/**
+ * Temporary test data for whatever day it is when the app opens, so TODAY
+ * itself has something to draw and decorate (an 을지로·명동·남산 walk).
+ * Remove with the rest once real pings are stored.
+ */
+export const SAMPLE_NOW_PINGS: DayPing[] = [
+  { name: '을지로 노가리 골목', time: '12:10', center: [126.9911, 37.5662] },
+  { name: '명동성당', time: '14:30', center: [126.9873, 37.5633] },
+  { name: '남산서울타워', time: '18:20', center: [126.9882, 37.5512] },
+];
+
 export const SAMPLE_PING_DATES: Record<string, DayPing[]> = {
+  [dateKey()]: SAMPLE_NOW_PINGS,
   '2026-09-30': SAMPLE_TODAY_PINGS,
   '2026-09-29': SAMPLE_YESTERDAY_PINGS,
 };

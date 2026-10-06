@@ -12,6 +12,7 @@ import {
   placeRoutes,
   routesInTab,
   renameFolder,
+  neighborTab,
   type RouteFolders,
   type RouteTab,
 } from '../domain/routeFolders';
@@ -46,6 +47,8 @@ const NONE_ICON = <Inbox size={20} aria-hidden />;
 const LONG_PRESS_MS = 450;
 /** Moving this far before then is a scroll of the tab row, not a press. */
 const PRESS_SLOP_PX = 8;
+/** A sideways swipe on the list this long (and mostly sideways) goes to the next / previous folder. */
+const SWIPE_MIN_PX = 56;
 
 interface Press {
   id: string;
@@ -86,6 +89,8 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
   // A route about to be deleted from its row's trash (asked first), and
   // 다중 선택's folder chooser by its trash.
   const [deletingRoute, setDeletingRoute] = useState<Course | null>(null);
+  // 다중 선택's trash (tapped, or routes dropped on it): asks first, like one route's.
+  const [deletingPicked, setDeletingPicked] = useState<Course[] | null>(null);
   const [movingPicked, setMovingPicked] = useState(false);
   const tabsEl = useRef<HTMLDivElement | null>(null);
   // Long press: the tab being held / dragged, the one showing its ✕, and the
@@ -395,6 +400,49 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const pickedRoutes = routes.filter((c) => selected.has(c.id));
   useEffect(() => setSelected(new Set()), [current]);
+
+  // A sideways swipe on the list goes to the folder before (left → right) or
+  // after (right → left), wrapping round: from 전체, right → left is 미분류 and
+  // left → right the last folder. The list slides in from the swipe's side.
+  const swipeStart = useRef<{ id: number; x: number; y: number } | null>(null);
+  const swallowSwipeClick = useRef(false);
+  const swipeTo = (step: 1 | -1) => {
+    setMovingPicked(false);
+    if (shownId) onShow(null);
+    if (picking) onFolders(renameFolder(folders, picking, folderDraft));
+    setPicking(null);
+    setDeleting(null);
+    setTab(neighborTab(folders, current, step));
+    bodyEl.current?.animate(
+      [{ transform: `translateX(${step * 48}px)`, opacity: 0.3 }, { transform: 'none', opacity: 1 }],
+      { duration: 220, easing: 'cubic-bezier(0.2, 0.8, 0.3, 1)' },
+    );
+  };
+  const swipeHandlers = {
+    onPointerDown: (e: React.PointerEvent) => {
+      swipeStart.current = e.isPrimary ? { id: e.pointerId, x: e.clientX, y: e.clientY } : null;
+    },
+    onPointerUp: (e: React.PointerEvent) => {
+      const s0 = swipeStart.current;
+      swipeStart.current = null;
+      if (!s0 || s0.id !== e.pointerId || rowDragRef.current) return;
+      const dx = e.clientX - s0.x;
+      const dy = e.clientY - s0.y;
+      if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      swallowSwipeClick.current = true;
+      window.setTimeout(() => (swallowSwipeClick.current = false), 250);
+      swipeTo(dx < 0 ? 1 : -1);
+    },
+    onPointerCancel: () => {
+      swipeStart.current = null;
+    },
+    onClickCapture: (e: React.MouseEvent) => {
+      if (!swallowSwipeClick.current) return;
+      swallowSwipeClick.current = false;
+      e.stopPropagation();
+      e.preventDefault();
+    },
+  };
   const toggleSelecting = () => {
     setSelecting((on) => !on);
     setSelected(new Set());
@@ -514,15 +562,20 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     // stays picked (tap others to pick more).
     const moved = Math.hypot(d.dx, d.dy) > PRESS_SLOP_PX;
     if (!moved && d.ids.length === 1 && !d.overTab && !d.overTrash) return;
-    if (d.overTrash) onDeleteRoutes(courses.filter((c) => d.ids.includes(c.id)));
-    else if (d.overTab) {
+    if (d.overTrash) {
+      // Asked first: until then nothing is gone, and 다중 선택 is as it was.
+      setSelecting(d.before.selecting);
+      setSelected(d.before.selected);
+      setDeletingPicked(courses.filter((c) => d.ids.includes(c.id)));
+      return;
+    } else if (d.overTab) {
       const to = d.overTab === 'none' ? null : d.overTab;
       onFolders(d.ids.reduce((f, id) => moveRoute(f, id, to), folders));
     } else onFolders(placeRoutes(courses, folders, current, d.ids, d.to));
     // Moved, filed or deleted: the press only carried the route, so it doesn't
     // stay picked — 다중 선택 goes back to how it was (minus anything deleted).
     setSelecting(d.before.selecting);
-    setSelected(d.overTrash ? new Set([...d.before.selected].filter((id) => !d.ids.includes(id))) : d.before.selected);
+    setSelected(d.before.selected);
   };
   const swallowRowClick = useRef(false);
   const endRowPressRef = useRef(endRowPress);
@@ -618,6 +671,20 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
         />
       )}
 
+      {deletingPicked && (
+        <ConfirmDialog
+          label="선택한 루트 삭제"
+          message="선택된 루트들을 삭제합니다."
+          detail="삭제한 루트는 복구할 수 없어요."
+          onConfirm={() => {
+            const gone = new Set(deletingPicked.map((c) => c.id));
+            onDeleteRoutes(deletingPicked);
+            setSelected((sel) => new Set([...sel].filter((id) => !gone.has(id))));
+          }}
+          onClose={() => setDeletingPicked(null)}
+        />
+      )}
+
       <div ref={tabsEl} className="route-folders__tabs" role="tablist" aria-label="폴더">
         {tabButton('all', '전체', ALL_ICON)}
         {tabButton('none', '미분류', NONE_ICON)}
@@ -677,9 +744,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
           aria-label={`선택한 경로 ${pickedRoutes.length}개 삭제`}
           disabled={pickedRoutes.length === 0 && !rowDrag}
           onClick={() => {
-            if (!pickedRoutes.length) return;
-            onDeleteRoutes(pickedRoutes);
-            setSelected(new Set());
+            if (pickedRoutes.length) setDeletingPicked(pickedRoutes);
           }}
         >
           <Trash2 size={22} aria-hidden />
@@ -712,7 +777,9 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
       <div className="route-folders__head">
         <h2 className="route-folders__title">
           <span>ROUTES</span>
-          {current !== 'all' && current !== 'none' && <span className="route-folders__current-name">{folderName(current)}</span>}
+          <span className="route-folders__current-name">
+            {current === 'all' ? '전체' : current === 'none' ? '미분류' : folderName(current)}
+          </span>
         </h2>
         <div className="route-folders__tools">
           <button
@@ -732,6 +799,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
         ref={bodyEl}
         className={`route-folders__body ${rowDrag ? 'is-sorting' : ''} ${selecting ? 'is-selecting' : ''}`}
         role="tabpanel"
+        {...swipeHandlers}
         onClick={(e) => {
           // A tap on the sheet's empty space (not a row or a button) lets go of a route on show.
           if (shownId && !(e.target as Element).closest('button, a, input')) onShow(null);

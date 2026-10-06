@@ -2,7 +2,7 @@ import type { RouteEdgeStyle } from '../domain/routeStyle';
 import type { PinIcon } from '../types/pin';
 import { pinGlyphSvg } from './pinGlyphs';
 import { latestPingIndex, layoutPings, type DayPing, type EdgeStyle } from '../domain/dayPings';
-import { ERASER_SCALE, getSticker, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, textWeight, type DayDecor, type PlacedText, type ThemeId } from '../domain/decor';
+import { CRAYON_SCALE, ERASER_SCALE, getSticker, isCustomColor, PEN_WIDTHS, TEXT_LINE_HEIGHT, textFamily, textWeight, type DayDecor, type PlacedText, type ThemeId } from '../domain/decor';
 import { CLOTHESLINE, clotheslineY, DEFAULT_LAYOUT, DRAWING_BOX, LAYOUT_CARDS, POLAROID, SCENE, TICKET, type CardPose, type PolaroidLayout } from '../domain/polaroid';
 import type { CardStamp, StopMark } from '../domain/shareSubject';
 import { paintPattern } from './dayPatterns';
@@ -31,6 +31,12 @@ export interface ShareImageInput {
   stamp?: CardStamp;
   /** Drawn smaller (the layout picker's previews): a fraction of the full size. */
   scale?: number;
+  /**
+   * Leave the ground out (no page colour, no pattern): the 꾸미기 screen
+   * shows the cards over its own full-screen ground, so its pattern runs
+   * on unbroken around the shared area.
+   */
+  withoutGround?: boolean;
 }
 
 const W = SCENE.w;
@@ -43,7 +49,7 @@ function tokens() {
   const css = getComputedStyle(document.documentElement);
   const get = (name: string) => css.getPropertyValue(name).trim();
   return {
-    backdrop: get('--accent-soft'),
+    backdrop: get('--bg'),
     card: get('--polaroid'),
     cardShadow: get('--polaroid-shadow'),
     photo: get('--surface-2'),
@@ -76,7 +82,7 @@ const DASHES: Record<EdgeStyle, { width: number; dash: number[]; cap: CanvasLine
  * Drawn from the data rather than screenshotting the DOM: sharp at any
  * size, and no capture library needed.
  */
-export async function renderShareImage({ pings, marks, edges, decor, withoutPieces, photo, icons, stamp, scale = 1 }: ShareImageInput): Promise<string> {
+export async function renderShareImage({ pings, marks, edges, decor, withoutPieces, photo, icons, stamp, scale = 1, withoutGround }: ShareImageInput): Promise<string> {
   await document.fonts?.ready;
   // Web fonts load only once something shows them; make sure the strip's
   // hand and the text boxes' fonts are in before drawing (one that won't
@@ -116,9 +122,19 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
   const ctx = canvas.getContext('2d')!;
   ctx.scale(scale, scale);
 
-  drawBackdrop(ctx, c, layout);
+  drawBackdrop(ctx, c, layout, !withoutGround);
+  // 없음 on a day's card: the day's own ground (꾸미기 before sharing) covers
+  // the whole scene — its page colour and pattern hide this card's, which
+  // stay chosen for the other layouts.
+  const bare = layout === 'bare';
+  const over = bare && photo ? dayGround(photo) : null;
+  if (over && !withoutGround) {
+    ctx.fillStyle = over.page;
+    ctx.fillRect(0, 0, W, H);
+    if (photo?.pattern) paintPattern(ctx, photo.pattern, { w: W, h: H }, W / 390, over.accent);
+  }
   // The background pattern, as a still frame even if it flows on screen.
-  if (decor?.pattern) paintPattern(ctx, decor.pattern, { w: W, h: H }, W / 390, c.accent);
+  if (decor?.pattern && !over && !withoutGround) paintPattern(ctx, decor.pattern, { w: W, h: H }, W / 390, c.accent);
   if (layout === 'ticket') drawTicket(ctx, c, stamp);
 
   // The blank card behind (두 장), then the one with the photo.
@@ -129,8 +145,9 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
       ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
     });
   }
+  // 없음 (bare): no paper and no photo ground — the drawing sits on the scene's ground.
   onCard(ctx, cards.front, () => {
-    drawPaper(ctx, c);
+    if (!bare) drawPaper(ctx, c);
     ctx.save();
     ctx.beginPath();
     ctx.rect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
@@ -139,21 +156,22 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
     // pattern, pin colours and pieces, in its own theme.
     withTheme(photo ? (photo.theme ?? 'default') : null, () => {
       const p = tokens();
-      const bg = photo ? p.page : p.photo;
-      ctx.fillStyle = bg;
-      ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
-      if (photo?.pattern) {
+      const bg = bare ? (over?.page ?? c.backdrop) : photo ? p.page : p.photo;
+      if (!bare) {
+        ctx.fillStyle = bg;
+        ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
+      }
+      if (photo?.pattern && !bare) {
         ctx.save();
         ctx.translate(PHOTO.x, PHOTO.y);
         // Tiles at the size they have beside the day's drawing (its box is 360 css px at most).
         paintPattern(ctx, photo.pattern, { w: PHOTO.w, h: PHOTO.h }, BOX.size / 360, p.accent);
         ctx.restore();
       }
-      drawStops(ctx, p, bg, pings, marks, edges, pinImages);
+      drawStops(ctx, p, bg, pings, marks, edges, pinImages, { names: !photo?.hideNames, times: !photo?.hideTimes });
       if (photo) drawDecor(ctx, photo, BOX_FRAME, stickerImages);
     });
     ctx.restore();
-    // The strip's title is one of the card's text boxes (withCardTitle), drawn with the pieces.
     if (layout === 'tape') drawTape(ctx, c);
     if (layout === 'notebook') drawClip(ctx, c);
   });
@@ -183,6 +201,16 @@ function withTheme(theme: ThemeId | null, draw: () => void) {
   }
 }
 
+/** A day's own ground (its 꾸미기 before sharing) in its theme's colours: its page colour and the colour its pattern is drawn in. */
+export function dayGround(photo: DayDecor): { page: string; accent: string } {
+  let ground = { page: '', accent: '' };
+  withTheme(photo.theme ?? 'default', () => {
+    const p = tokens();
+    ground = { page: p.page, accent: p.accent };
+  });
+  return ground;
+}
+
 /** Draws in a card's own pixels (0..POLAROID.w/h), as the card lies on the scene. */
 function onCard(ctx: CanvasRenderingContext2D, pose: CardPose, draw: () => void) {
   ctx.save();
@@ -208,13 +236,16 @@ function faint(ctx: CanvasRenderingContext2D, alpha: number, draw: () => void) {
 }
 
 /**
- * What the cards lie on: plain white in every layout (the card paper's white,
- * whatever the theme); a background pattern goes over it. 항로 adds its
- * dashed flight and 빨랫줄 its line, behind the card.
+ * What the cards lie on: the theme's page colour (`--bg`), the same as the
+ * 꾸미기 screen around the card, so changing the theme recolours the whole
+ * saved image; no layout paints a ground of its own. A background pattern
+ * goes over it; 항로 adds its dashed flight and 빨랫줄 its line, behind the card.
  */
-function drawBackdrop(ctx: CanvasRenderingContext2D, c: Tokens, layout: PolaroidLayout) {
-  ctx.fillStyle = c.card;
-  ctx.fillRect(0, 0, W, H);
+function drawBackdrop(ctx: CanvasRenderingContext2D, c: Tokens, layout: PolaroidLayout, ground: boolean) {
+  if (ground) {
+    ctx.fillStyle = c.backdrop;
+    ctx.fillRect(0, 0, W, H);
+  }
   if (layout === 'map') drawFlight(ctx, c);
   if (layout === 'line') drawClothesline(ctx, c);
 }
@@ -444,7 +475,17 @@ function drawPaper(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>) 
 }
 
 /** Lines first, then the stops over them, laid out in the drawing box. */
-function drawStops(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, bg: string, pings: DayPing[], marks: StopMark[], edges: RouteEdgeStyle[], pinImages: (HTMLImageElement | null)[]) {
+function drawStops(
+  ctx: CanvasRenderingContext2D,
+  c: ReturnType<typeof tokens>,
+  bg: string,
+  pings: DayPing[],
+  marks: StopMark[],
+  edges: RouteEdgeStyle[],
+  pinImages: (HTMLImageElement | null)[],
+  // A day's 텍스트 / 시간 switches, as on its screen.
+  show: { names: boolean; times: boolean } = { names: true, times: true },
+) {
   const points = layoutPings(pings.map((p) => p.center)).map((p) => ({
     x: BOX.x + p.x * BOX.size,
     y: BOX.y + p.y * BOX.size,
@@ -527,7 +568,10 @@ function drawStops(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, 
     const top = mark === 'number' ? y - 34 : bottom - (mark === 'pin' ? (118 * k) : (84 * k));
     const half = mark === 'number' ? 34 : (mark === 'pin' ? (shapeBox('pin').w * (118 * k)) / shapeBox('pin').h : 84 * k) / 2;
     const mid = (top + bottom) / 2;
-    const lines = ping.time ? 2 : 1;
+    const name = show.names ? ping.name : '';
+    const time = show.times ? ping.time : undefined;
+    if (!name && !time) return;
+    const lines = name && time ? 2 : 1;
     let tx = x;
     let nameY = bottom + 46;
     if (side === 'above') nameY = top - (lines === 2 ? 54 : 14);
@@ -536,13 +580,15 @@ function drawStops(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>, 
       nameY = mid + (lines === 2 ? -6 : 12);
     }
     ctx.textAlign = side === 'right' ? 'left' : side === 'left' ? 'right' : 'center';
-    ctx.fillStyle = c.text;
-    ctx.font = `700 ${Math.round(36 * (k > 1 ? 1.15 : 1))}px ${c.font}`;
-    ctx.fillText(ping.name, tx, nameY);
-    if (ping.time) {
+    if (name) {
+      ctx.fillStyle = c.text;
+      ctx.font = `700 ${Math.round(36 * (k > 1 ? 1.15 : 1))}px ${c.font}`;
+      ctx.fillText(name, tx, nameY);
+    }
+    if (time) {
       ctx.fillStyle = c.muted;
       ctx.font = `600 32px ${c.font}`;
-      ctx.fillText(ping.time, tx, nameY + 42);
+      ctx.fillText(time, tx, name ? nameY + 42 : nameY);
     }
     ctx.textAlign = 'center';
   });
@@ -569,6 +615,31 @@ interface PieceFrame {
 const SCENE_FRAME: PieceFrame = { x: 0, y: 0, w: W, h: H, canvas: { w: W, h: H } };
 /** A day's pieces: its drawing box, in the card's pixels. */
 const BOX_FRAME: PieceFrame = { x: BOX.x, y: BOX.y, w: BOX.size, h: BOX.size, canvas: { w: POLAROID.w, h: POLAROID.h } };
+
+/**
+ * The crayon's tooth: soft specks of alpha at random, a few pixels across
+ * (scaled with the line's width), to rub out of a crayon line. Seeded, so
+ * an image comes out the same each time.
+ */
+function crayonGrain(width: number, height: number, lineWidth: number): HTMLCanvasElement {
+  const cell = Math.max(1.5, lineWidth / 7);
+  const gw = Math.ceil(width / cell);
+  const gh = Math.ceil(height / cell);
+  const small = document.createElement('canvas');
+  small.width = gw;
+  small.height = gh;
+  const sc = small.getContext('2d')!;
+  const img = sc.createImageData(gw, gh);
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (let i = 0; i < gw * gh; i++) {
+    const r = rnd();
+    // About a quarter of the cells show through, some only partly.
+    img.data[i * 4 + 3] = r < 0.2 ? 255 : r < 0.32 ? 120 : 0;
+  }
+  sc.putImageData(img, 0, 0);
+  return small;
+}
 
 /** Pen strokes, then stickers, then text boxes, laid out in `frame`. */
 function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, frame: PieceFrame, stickerImages: Map<string, HTMLImageElement>) {
@@ -608,6 +679,24 @@ function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, frame: PieceF
       ink.globalAlpha = 0.35;
       ink.lineWidth = w * 2.4;
       trace(stroke.points);
+    } else if (stroke.tool === 'crayon') {
+      // Drawn on its own sheet, then the grain is rubbed out of it, so the
+      // holes show what's under the crayon rather than eating earlier ink.
+      const sheet = document.createElement('canvas');
+      sheet.width = layer.width;
+      sheet.height = layer.height;
+      const c = sheet.getContext('2d')!;
+      c.lineCap = 'round';
+      c.lineJoin = 'round';
+      c.strokeStyle = color;
+      c.lineWidth = w * CRAYON_SCALE;
+      c.beginPath();
+      stroke.points.forEach(([x, y], i) => (i ? c.lineTo : c.moveTo).call(c, ...at(x, y)));
+      if (stroke.points.length === 1) c.lineTo(at(...stroke.points[0])[0] + 0.01, at(...stroke.points[0])[1]);
+      c.stroke();
+      c.globalCompositeOperation = 'destination-out';
+      c.drawImage(crayonGrain(layer.width, layer.height, w), 0, 0, layer.width, layer.height);
+      ink.drawImage(sheet, 0, 0);
     } else if (stroke.tool === 'neon') {
       ink.shadowColor = color;
       ink.shadowBlur = w * 2.5;

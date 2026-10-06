@@ -44,6 +44,9 @@ interface DayPingsProps {
   pressable: () => boolean;
   /** Drawn inside the same box, above the pins (stickers and pen strokes). */
   children?: ReactNode;
+  /** The day's 텍스트 / 시간 switches: the place names and visit times under the pings. */
+  showNames?: boolean;
+  showTimes?: boolean;
 }
 
 /** What a press is on: a ping, or the line leaving ping `index` for the next one. */
@@ -75,7 +78,7 @@ function EdgeSample({ style }: { style: EdgeStyle }) {
  * again. Long-press a ping to change its shape, or a line to change its
  * style; a short tap on a ping is reported through `onTap`.
  */
-export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, onTap, pressable, children }: DayPingsProps) {
+export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, onTap, pressable, children, showNames = true, showTimes = true }: DayPingsProps) {
   const latest = latestPingIndex(pings);
   const points = layoutPings(pings.map((p) => p.center));
   const maskId = `pings-reveal-${useId().replace(/:/g, '')}`;
@@ -220,10 +223,12 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
             >
               <PingIcon shape={shape} className="ping__icon" />
             </button>
-            <span className="ping__label" aria-hidden>
-              {ping.name}
-              <small>{ping.time}</small>
-            </span>
+            {(showNames || showTimes) && (
+              <span className="ping__label" aria-hidden>
+                {showNames && ping.name}
+                {showTimes && <small>{ping.time}</small>}
+              </span>
+            )}
           </div>
         );
       })}

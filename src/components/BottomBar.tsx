@@ -1,64 +1,53 @@
-import { CalendarDays, MapPin } from 'lucide-react';
-import type { ReactNode } from 'react';
-import { bottomBarAction, type AppTab } from '../domain/appTabs';
+import { CalendarDays, Crosshair, MapPin, Share } from 'lucide-react';
+import type { AppTab } from '../domain/appTabs';
 import { CalendarToday } from './icons';
 
 interface BottomBarProps {
   tab: AppTab;
-  pinning: boolean;
-  onTab: (tab: AppTab) => void;
+  /** Day screen or month: what the big calendar button does next. */
+  calendarMode: 'day' | 'month';
+  /** The calendar button: to the calendar, or (already there, big) on to the month / back to TODAY. */
+  onCalendar: () => void;
+  /** The pin, small on the calendar: back to the map. */
+  onMap: () => void;
+  /** The blue pin in the middle of the map's row: a new pin where the map is looking. */
   onPin: () => void;
-  /** Calendar button tapped while the calendar is showing. */
-  onCalendarAgain: () => void;
-  /**
-   * The calendar button shows where its next tap goes: a month grid on a
-   * day screen, today's date everywhere else (the month goes back to TODAY).
-   */
-  calendarIcon: 'today' | 'month';
+  /** The small crosshair at the pin's lower right: aim first, then pin. */
+  onAim: () => void;
+  /** A day on the calendar: 공유 at the row's right end. */
+  onShare?: () => void;
 }
 
-const BUTTONS: { tab: AppTab; label: string; icon: ReactNode }[] = [
-  { tab: 'calendar', label: '달력', icon: <CalendarToday /> },
-  { tab: 'pins', label: '핀', icon: <MapPin aria-hidden /> },
-];
-
 /**
- * One boarding-pass ticket torn into two halves (📅 · 📍), icon only. The
- * current screen's half is filled with the accent; that is the only
- * "selected" signal, so the labels live in aria-label instead of on screen.
- * Tapped again, the calendar button flips a day screen to the month and the
- * month to TODAY.
+ * The row along the bottom of both screens. On the map the blue pin sits big
+ * in the dead centre, the calendar and the crosshair small at its lower left
+ * and right. Switching to the calendar, everything moves right: the calendar
+ * button grows into the centre while the pin shrinks into the crosshair's
+ * place, where it is the way back; the crosshair slides on and fades. The buttons stay mounted so the swap is animated.
  */
-export default function BottomBar({ tab, pinning, onTab, onPin, onCalendarAgain, calendarIcon }: BottomBarProps) {
-  const press = (target: AppTab) => () => {
-    const action = bottomBarAction(target, tab);
-    if (action === 'switch') onTab(target);
-    else if (action === 'pin') onPin();
-    else if (action === 'calendar') onCalendarAgain();
-  };
-
+export default function BottomBar({ tab, calendarMode, onCalendar, onMap, onPin, onAim, onShare }: BottomBarProps) {
+  const cal = tab === 'calendar';
   return (
-    <nav className="bottom-bar" aria-label="메뉴">
-      <div className="bottom-bar__ticket">
-        <div className="bottom-bar__stub">
-          {BUTTONS.map(({ tab: target, label, icon }) => {
-            const on = tab === target;
-            const isPin = target === 'pins';
-            return (
-              <button
-                key={target}
-                className={`bottom-bar__btn ${on ? 'is-on' : ''} ${isPin && pinning ? 'is-pinning' : ''}`}
-                aria-label={isPin && on ? '지도에 핀 꽂기' : label}
-                aria-current={on ? 'page' : undefined}
-                aria-pressed={isPin && on ? pinning : undefined}
-                onClick={press(target)}
-              >
-                {target === 'calendar' && calendarIcon === 'month' ? <CalendarDays aria-hidden /> : icon}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+    <nav className={`bottom-bar ${cal ? 'bottom-bar--cal' : ''}`} aria-label="메뉴">
+      <button className="bar-btn bar-pin" aria-label={cal ? '지도' : '지도에 핀 꽂기'} onClick={cal ? onMap : onPin}>
+        <MapPin strokeWidth={2.2} aria-hidden />
+      </button>
+      <button
+        className="bar-btn bar-cal"
+        aria-label={cal ? (calendarMode === 'day' ? '월 달력' : '오늘') : '달력'}
+        onClick={onCalendar}
+      >
+        {/* Shows where you are: today's date on the day screens, the month grid on the month. */}
+        {cal && calendarMode === 'month' ? <CalendarDays strokeWidth={2.2} aria-hidden /> : <CalendarToday />}
+      </button>
+      <button className="bar-btn bar-aim" aria-label="조준해서 핀 꽂기" onClick={onAim} tabIndex={cal ? -1 : undefined} aria-hidden={cal || undefined}>
+        <Crosshair strokeWidth={2.2} aria-hidden />
+      </button>
+      {onShare && (
+        <button className="bar-share" aria-label="공유" onClick={onShare}>
+          <Share size={24} strokeWidth={2.2} aria-hidden />
+        </button>
+      )}
     </nav>
   );
 }

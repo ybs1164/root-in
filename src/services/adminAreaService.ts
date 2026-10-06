@@ -47,17 +47,24 @@ let warnedMissing = false;
 export class StaticAdminAreaService implements AdminAreaService {
   private cache = new Map<string, Promise<AdminArea[] | null>>();
 
+  /**
+   * `base` is where the files are. A worker passes the page's absolute URL:
+   * with a relative build base ('./'), a URL resolved inside the worker
+   * lands next to the worker script (in assets/), not next to the page.
+   */
+  constructor(private readonly base: string = BASE) {}
+
   private load(path: string, signal?: AbortSignal): Promise<AdminArea[] | null> {
     let entry = this.cache.get(path);
     if (!entry) {
       // Not tied to one request's signal: a cancelled pan must not poison the cache.
-      entry = fetch(`${BASE}${path}`)
+      entry = fetch(`${this.base}${path}`)
         .then(async (response) => {
           if (!response.ok) {
             // Without the top file the map stays an empty background: say why.
             if (path === 'sido.json' && response.status === 404 && !warnedMissing) {
               warnedMissing = true;
-              console.warn(`[root-in] 행정구역 지도 데이터(${BASE}sido.json)가 없어 빈 지도로 보입니다. public/korea/admin을 함께 배포하세요 (scripts/korea-data/README.md).`);
+              console.warn(`[root-in] 행정구역 지도 데이터(${this.base}sido.json)가 없어 빈 지도로 보입니다. public/korea/admin을 함께 배포하세요 (scripts/korea-data/README.md).`);
             }
             return null;
           }
@@ -114,7 +121,7 @@ export class StaticAdminAreaService implements AdminAreaService {
         this.load(`section/${focus.code}.json`, signal),
         ...sggWithDongs.map((s) => this.load(`dong/${s.code}.json`, signal)),
       ]);
-      if (signal?.aborted || !sections || !dongLists[0]) return null;
+      if (signal?.aborted || !dongLists[0]) return null;
       const dong = areaAt(dongLists[0], center);
       if (!dong) return null;
       const others = [
@@ -122,7 +129,10 @@ export class StaticAdminAreaService implements AdminAreaService {
         // 시군구 whose 읍면동 weren't loaded stay whole.
         ...sggNear.filter((s, i) => !dongLists[i + 1]),
       ];
-      const parts = sections.filter((a) => a.code.startsWith(`${dong.code}-`));
+      // No section file (it wasn't built or deployed): the 읍면동 stands whole as its one section.
+      const parts = sections
+        ? sections.filter((a) => a.code.startsWith(`${dong.code}-`))
+        : [{ ...dong, code: `${dong.code}-0` }];
       return { focus: { code: dong.code, name: dong.name }, parts, others };
     } catch (error) {
       if (import.meta.env.DEV && !signal?.aborted) console.warn('Admin areas loading failed', error);

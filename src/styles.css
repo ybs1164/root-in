@@ -140,6 +140,13 @@
 
 :root {
   /* Theme swatches in the 꾸미기 → 테마 tray: each theme's background and accent. */
+  /* The aiming crosshair: a hairline shadow so it reads on the map. */
+  --pin-drop-shadow: 0 1px 2px rgba(27, 36, 64, 0.28);
+  /* Round action buttons (공유, 수정): short enough to stay clear of what's below them. */
+  --round-btn-shadow: 0 3px 8px rgba(27, 36, 64, 0.22), 0 1px 2px rgba(27, 36, 64, 0.12);
+  /* The eraser's ring while rubbing (DecorLayer): reads on light and dark ink alike. */
+  --eraser-fill: rgba(255, 255, 255, 0.35);
+  --eraser-ring: rgba(40, 40, 40, 0.55);
   --swatch-default-bg: #ffffff;
   --swatch-default-accent: #2f6fe0;
   --swatch-matcha-bg: #eef1e3;
@@ -162,6 +169,20 @@
   --swatch-lovely-accent: #e8609a;
   --swatch-love-bg: #fdecec;
   --swatch-love-accent: #d7263d;
+  --swatch-tangerine-bg: #ffeedd;
+  --swatch-tangerine-accent: #f07a1a;
+  --swatch-ocean-bg: #e2f3f5;
+  --swatch-ocean-accent: #13879b;
+  --swatch-midnight-bg: #e4e8f3;
+  --swatch-midnight-accent: #283a7a;
+  --swatch-plum-bg: #f4e5f0;
+  --swatch-plum-accent: #8d3c80;
+  --swatch-wine-bg: #f4e3e7;
+  --swatch-wine-accent: #8a1f3d;
+  --swatch-cocoa-bg: #f0e7df;
+  --swatch-cocoa-accent: #6e4b36;
+  --swatch-sage-bg: #e8eee9;
+  --swatch-sage-accent: #5f8470;
 }
 
 /* Themes (꾸미기 → 테마), set on <html data-theme>. They win over the
@@ -174,6 +195,13 @@
 :root[data-theme='lovely'],
 :root[data-theme='love'],
 :root[data-theme='lavender'],
+:root[data-theme='tangerine'],
+:root[data-theme='ocean'],
+:root[data-theme='midnight'],
+:root[data-theme='plum'],
+:root[data-theme='wine'],
+:root[data-theme='cocoa'],
+:root[data-theme='sage'],
 :root[data-theme='sky'],
 :root[data-theme='mono'] {
   color-scheme: light;
@@ -293,6 +321,85 @@
   --route: #e6b400;
 }
 
+/* 귤: a bright tangerine orange. */
+:root[data-theme='tangerine'] {
+  --bg: #fff4ea;
+  --surface: #fffaf5;
+  --surface-2: #ffe6d0;
+  --accent: #f07a1a;
+  --accent-strong: #cf6210;
+  --accent-soft: #ffe1c7;
+  --route: #f07a1a;
+}
+
+/* 오션: deep sea teal, between 민트 and 하늘. */
+:root[data-theme='ocean'] {
+  --bg: #ecf7f8;
+  --surface: #f7fcfd;
+  --surface-2: #d9eff2;
+  --accent: #13879b;
+  --accent-strong: #0d6d7e;
+  --accent-soft: #d2edf1;
+  --route: #13879b;
+}
+
+/* 미드나잇: a deep night navy. */
+:root[data-theme='midnight'] {
+  --bg: #eef0f7;
+  --surface: #f8f9fc;
+  --surface-2: #dfe3f0;
+  --accent: #283a7a;
+  --accent-strong: #1b2a5e;
+  --accent-soft: #dbe0f1;
+  --route: #283a7a;
+}
+
+/* 플럼: a ripe plum, between 라벤더 and 러블리. */
+:root[data-theme='plum'] {
+  --bg: #f8eff6;
+  --surface: #fdf8fc;
+  --surface-2: #efdcea;
+  --accent: #8d3c80;
+  --accent-strong: #732e68;
+  --accent-soft: #f0d9eb;
+  --route: #8d3c80;
+}
+
+/* 와인: a dark wine red. */
+:root[data-theme='wine'] {
+  --bg: #f8eef0;
+  --surface: #fdf8f9;
+  --surface-2: #efdbe0;
+  --accent: #8a1f3d;
+  --accent-strong: #6e1630;
+  --accent-soft: #f0d6dd;
+  --route: #8a1f3d;
+}
+
+/* 코코아: a warm cocoa brown. */
+:root[data-theme='cocoa'] {
+  --bg: #f6f0eb;
+  --surface: #fcf9f6;
+  --surface-2: #ebe0d6;
+  --text: #33241b;
+  --muted: #8d7a6d;
+  --accent: #6e4b36;
+  --accent-strong: #563827;
+  --accent-soft: #eaddd2;
+  --route: #6e4b36;
+}
+
+/* 세이지: a soft grey green. */
+:root[data-theme='sage'] {
+  --bg: #f1f4f1;
+  --surface: #fafcfa;
+  --surface-2: #e2e9e3;
+  --accent: #5f8470;
+  --accent-strong: #4a6a59;
+  --accent-soft: #dbe6de;
+  --route: #5f8470;
+}
+
 /* Y2K: silver ground, bubblegum pink, sky blue lines. */
 :root[data-theme='y2k'] {
   --bg: #eef1f6;
@@ -365,6 +472,94 @@ button:disabled {
   position: absolute;
   inset: 0;
   background: var(--surface-2);
+}
+
+/* Aiming: everything but the map and the pin button steps away. */
+.app--aiming .search,
+.app--aiming .corner-btn,
+.app--aiming .pin-rail,
+.app--aiming .bar-cal,
+.app--aiming .bar-aim,
+.app--aiming .place-card {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.aim {
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  pointer-events: none;
+}
+
+/* The crosshair at the map's middle (the map fills the app), the place's name above it. */
+.aim__mark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  translate: -50% -50%;
+  animation: aim-in 0.2s ease-out both;
+}
+
+.aim__cross {
+  display: block;
+  width: 48px;
+  height: 48px;
+  overflow: visible;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  filter: drop-shadow(var(--pin-drop-shadow));
+}
+
+.aim__dot {
+  fill: var(--accent);
+  stroke: none;
+}
+
+.aim__name {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 12px);
+  translate: -50% 0;
+  max-width: 240px;
+  padding: 7px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--round-btn-shadow);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* A long name trims inside (the bubble itself can't clip, or its tail goes). */
+.aim__name > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The bubble's tail, pointing at the crosshair. */
+.aim__name::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  translate: -50% 0;
+  border: 7px solid transparent;
+  border-top-color: var(--surface);
+  border-bottom: 0;
+}
+
+@keyframes aim-in {
+  from {
+    opacity: 0;
+    scale: 1.3;
+  }
 }
 
 /* ---------- Search ---------- */
@@ -1098,6 +1293,10 @@ button:disabled {
 /* ---------- 꾸미기 (calendar day): stickers, pen, theme ---------- */
 
 /* While a tool's tray is up, the tab buttons slide away under it. */
+.bottom-bar-wrap.is-gone {
+  display: none;
+}
+
 .bottom-bar-wrap.is-away {
   translate: 0 120%;
   opacity: 0;
@@ -1130,7 +1329,8 @@ button:disabled {
   border-radius: 50%;
   /* Same round white buttons as the tab bar; the one in use only changes colour. */
   background: var(--surface);
-  color: var(--muted);
+  /* Black icons (the 꾸미기 pen black, the same in every theme). */
+  color: var(--ink-black);
   box-shadow: var(--shadow-sm);
   transition: color 0.15s ease;
 }
@@ -1139,7 +1339,94 @@ button:disabled {
   color: var(--accent);
 }
 
-/* 공유 isn't a tool: set a little apart, filled with the accent colour. */
+/* On the day screen the rail matches the map's 핀/경로 rail: 48px rounds,
+   10px apart, starting where the map's profile button is. */
+.cal-zoom .decor-rail {
+  /* Up in the top corner, where the map's profile sits. */
+  top: 12px;
+  right: 14px;
+  gap: 10px;
+}
+
+.cal-zoom .decor-rail {
+  /* Over the day arrows where a short screen brings them together. */
+  z-index: 15;
+}
+
+.cal-zoom .decor-rail__btn {
+  width: 48px;
+  height: 48px;
+}
+
+.cal-zoom .decor-rail__btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* The day rail's ↓ / ↑: shows the rest of the tools (name and time) or folds them away. */
+.decor-rail__more {
+  color: var(--muted);
+}
+
+/* Unfolding, the switches drop out one after another as the map's category
+   buttons do out of 핀 (pin-rail-in), and ↓ glides down past them; folding,
+   they tuck back up together and ↑ glides up into their place. Two rows of
+   48px + the 10px gap. */
+.decor-rail__switch {
+  animation: pin-rail-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+  animation-delay: calc(var(--i, 0) * 30ms);
+}
+
+.decor-rail__switch.is-leaving {
+  animation: pin-rail-out 0.16s ease-in both;
+  pointer-events: none;
+}
+
+.decor-rail__more.is-moved-down {
+  animation: rail-more-down 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.decor-rail__more.is-moved-up {
+  animation: rail-more-up 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes rail-more-down {
+  from {
+    translate: 0 -116px;
+  }
+}
+
+@keyframes rail-more-up {
+  from {
+    translate: 0 116px;
+  }
+}
+
+/* The day's name / time switches: off greys the icon and strikes it through. */
+.decor-rail__switch {
+  position: relative;
+}
+
+.decor-rail__switch.is-off {
+  color: var(--muted);
+}
+
+.decor-rail__switch.is-off::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  translate: -50% -50%;
+  rotate: -45deg;
+  box-shadow: 0 0 0 1.5px var(--surface);
+}
+
+/* 공유 isn't a tool: at the foot of the rail, set a little apart, filled
+   with the accent colour. */
 .decor-rail__share {
   margin-top: 8px;
   background: var(--accent);
@@ -1369,7 +1656,49 @@ button:disabled {
 /* A piece being dragged: the sheet steps down out of the way of the trash
    under the drawing (transform, so it doesn't fight the translate animations). */
 .decor-tray {
-  transition: transform 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    height 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+/* The card sheets' top edge: a wide strip to pull by (DecorTray useSheetPull). */
+.decor-tray__handle {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 28px;
+  margin: -6px -16px 0;
+  padding-top: 8px;
+  touch-action: none;
+  cursor: grab;
+}
+
+.decor-tray__handle .decor-tray__grip {
+  margin-bottom: 0;
+}
+
+/* Being pulled: it follows the finger (inline height), no easing. */
+.decor-tray[data-pulling] {
+  max-height: none;
+  transition: none;
+}
+
+/* Let go: gliding to its new height (inline px), unclamped until it lands. */
+.decor-tray[data-settling] {
+  max-height: none;
+}
+
+/* Pulled up: nearly the whole screen, a strip left clear at the top. */
+.decor-tray.is-expanded {
+  max-height: none;
+  height: calc(100dvh - 56px);
+}
+
+/* Pulled down shut: it slides away, then the tool closes. */
+.decor-tray.is-closing {
+  transform: translateY(100%);
+  pointer-events: none;
 }
 
 .decor-tray.is-away {
@@ -1732,14 +2061,17 @@ button:disabled {
 }
 
 .decor-tray__themes {
-  display: flex;
-  gap: 28px;
+  display: grid;
+  /* Three to a row, scrolling down. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 16px;
+  align-content: start;
   min-height: 0;
-  overflow-x: auto;
+  overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
   /* Room for the selected card's ring, which the scroller would clip. */
-  padding: 6px 6px 2px;
+  padding: 6px 6px 8px;
   margin: -6px -6px 0;
 }
 
@@ -1749,7 +2081,7 @@ button:disabled {
 }
 
 .decor-tray__theme {
-  flex: none;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1769,8 +2101,8 @@ button:disabled {
 .theme-card {
   position: relative;
   display: block;
-  /* As big as the theme sheet allows (label and padding take ~54px). */
-  height: min(132px, calc(30dvh - 54px));
+  /* A third of the sheet's width, three to a row. */
+  width: 100%;
   aspect-ratio: 10 / 13;
   border-radius: 14px;
   background: var(--card-bg);
@@ -1843,10 +2175,26 @@ button:disabled {
 .theme-card--lovely { --card-bg: var(--swatch-lovely-bg); --card-accent: var(--swatch-lovely-accent); }
 .theme-card--love { --card-bg: var(--swatch-love-bg); --card-accent: var(--swatch-love-accent); }
 .theme-card--mono { --card-bg: var(--swatch-mono-bg); --card-accent: var(--swatch-mono-accent); }
+.theme-card--tangerine { --card-bg: var(--swatch-tangerine-bg); --card-accent: var(--swatch-tangerine-accent); }
+.theme-card--ocean { --card-bg: var(--swatch-ocean-bg); --card-accent: var(--swatch-ocean-accent); }
+.theme-card--midnight { --card-bg: var(--swatch-midnight-bg); --card-accent: var(--swatch-midnight-accent); }
+.theme-card--plum { --card-bg: var(--swatch-plum-bg); --card-accent: var(--swatch-plum-accent); }
+.theme-card--wine { --card-bg: var(--swatch-wine-bg); --card-accent: var(--swatch-wine-accent); }
+.theme-card--cocoa { --card-bg: var(--swatch-cocoa-bg); --card-accent: var(--swatch-cocoa-accent); }
+.theme-card--sage { --card-bg: var(--swatch-sage-bg); --card-accent: var(--swatch-sage-accent); }
 
 /* Eraser masks: keep everything, except where the eraser rubbed. */
 .decor__mask-keep {
   fill: var(--mask-show);
+}
+
+/* The eraser's reach while rubbing: a soft disc with a thin ring. */
+.decor__eraser-ring {
+  fill: var(--eraser-fill);
+  stroke: var(--eraser-ring);
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
 }
 
 .decor__mask-rub {
@@ -1981,77 +2329,43 @@ button:disabled {
 
 /* ---------- 꾸미기 (share card) ---------- */
 
-/* 공유 as an upright luggage tag (ShareTagButton). */
-.share-tag {
-  position: relative;
-  display: block;
-  width: 60px;
-  height: 76px;
+/* A route on show: 공유 (accent) and 수정 (white) as plain round buttons at
+   the right, just above the lowered folder sheet (324px: .route-folders.is-lowered),
+   bottoms level. */
+.route-action {
+  position: absolute;
+  bottom: 336px;
+  z-index: 12;
+  display: grid;
+  place-items: center;
   padding: 0;
   border: 0;
-  background: transparent;
-  color: var(--on-accent);
-  /* drop-shadow follows the tag's outline (and leaves the eyelet clear). */
-  filter: drop-shadow(var(--ticket-shadow));
+  border-radius: 50%;
+  /* A short, tight shadow: a long one ran past what's below the button (the
+     day page's edge, the folder sheet's top) and showed cut off there. */
+  box-shadow: var(--round-btn-shadow);
+  animation: tag-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
   transition: scale 0.12s ease;
 }
 
-.share-tag:active {
+.route-action:active {
   scale: 0.95;
 }
 
-.share-tag__shape {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  fill: var(--accent);
+.route-action--share {
+  right: 14px;
+  width: 64px;
+  height: 64px;
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
-.share-tag__icon {
-  position: absolute;
-  left: 50%;
-  top: 62%; /* the middle of the face under the eyelet */
-  display: grid;
-  translate: -50% -50%;
-}
-
-/* The white one, a lesser action beside 공유 (a route's 수정). */
-.share-tag--light {
+.route-action--edit {
+  right: 88px;
+  width: 50px;
+  height: 50px;
+  background: var(--surface);
   color: var(--text);
-}
-
-.share-tag--light .share-tag__shape {
-  fill: var(--surface);
-}
-
-/* Small, standing just left of the route's 공유 tag, bottoms level. */
-.share-tag--edit {
-  position: absolute;
-  right: 84px;
-  bottom: 328px;
-  z-index: 12;
-  width: 44px;
-  height: 56px;
-  animation: tag-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
-}
-
-/* A route on show: the tag stands at the right, just above the lowered
-   folder sheet (324px: .route-folders.is-lowered). */
-.share-tag--route {
-  position: absolute;
-  right: 14px;
-  bottom: 328px;
-  z-index: 12;
-  animation: tag-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
-}
-
-/* The day screen's 공유: the same tag, at its bottom right (just above the tab bar). */
-.share-tag--day {
-  position: absolute;
-  right: 14px;
-  bottom: 12px;
-  z-index: 3;
 }
 
 @keyframes tag-in {
@@ -2072,6 +2386,14 @@ button:disabled {
   height: 100dvh;
   background: var(--bg);
   animation: studio-in 0.24s ease-out both;
+}
+
+/* A day's own ground in place of the screen's, under everything else (없음 layout). */
+.studio__day-ground {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  isolation: isolate;
 }
 
 @keyframes studio-in {
@@ -2121,9 +2443,11 @@ button:disabled {
 .studio__card {
   position: relative;
   width: min(100cqw, 100cqh * 1400 / 2000); /* SCENE in domain/polaroid.ts */
+  /* No ground of its own: the screen's colour and pattern show through.
+     A thin, faint, round-cornered grey line marks what gets saved. */
+  outline: 1.5px solid color-mix(in srgb, var(--muted) 40%, transparent);
+  outline-offset: 0;
   border-radius: 14px;
-  background: var(--accent-soft);
-  box-shadow: var(--shadow-sm);
 }
 
 .studio__image {
@@ -2143,13 +2467,9 @@ button:disabled {
   place-items: center;
 }
 
-/* A tool's sheet is up (a quarter of the screen, the theme's 30%): the card
-   shrinks to stay above it. */
+/* The scene always sits where it would with a tool's sheet up, so opening
+   a tool doesn't move it (the action buttons sit in the room below it). */
 .studio__stage {
-  transition: padding-bottom 0.24s ease;
-}
-
-.studio.is-tooling .studio__stage {
   padding-bottom: calc(30dvh + 12px);
 }
 
@@ -2174,9 +2494,11 @@ button:disabled {
 .studio__actions {
   position: absolute;
   left: 50%;
-  bottom: calc(var(--safe-bottom) + 18px);
+  /* Bottoms level: the small two stay where they were, 공유 rises to them. */
+  bottom: calc(var(--safe-bottom) + 28px);
   z-index: 3;
   display: flex;
+  align-items: flex-end;
   gap: 22px;
   translate: -50% 0;
   transition: transform 0.24s ease;
@@ -2187,20 +2509,24 @@ button:disabled {
   transform: translateY(calc(100% + 40px));
 }
 
+/* 사진 저장 (left) and 링크 복사 (right): plain white rounds, black icons;
+   공유 in the middle: the biggest, in the accent colour. */
 .studio__action {
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   padding: 0;
   border: 0;
   border-radius: 50%;
   background: var(--surface);
-  color: var(--text);
+  color: var(--ink-black);
   box-shadow: var(--shadow-sm);
 }
 
 .studio__action--primary {
+  width: 72px;
+  height: 72px;
   background: var(--accent);
   color: var(--on-accent);
 }
@@ -2408,8 +2734,12 @@ button:disabled {
   border: 0;
   border-radius: 14px 14px 0 0;
   background: var(--surface-2);
-  /* A hairline inside the tab (nothing spills out behind the row). */
-  box-shadow: inset 0 0 0 1px var(--border);
+  /* A hairline inside the tab along its top and sides; none along the
+     bottom, where it meets the sheet. */
+  box-shadow:
+    inset 1px 0 0 var(--border),
+    inset -1px 0 0 var(--border),
+    inset 0 1px 0 var(--border);
   color: var(--muted);
   font-size: 15px;
   font-weight: 700;
@@ -2494,6 +2824,8 @@ button:disabled {
 }
 
 .route-folders__body {
+  /* Up and down scroll the list; sideways swipes go between folders. */
+  touch-action: pan-y;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -3063,7 +3395,9 @@ button:disabled {
 /* The same < > beside a calendar day, paging days: level with the pings'
    drawing rather than the screen's middle, below the 꾸미기 rail on the right. */
 .route-step.day-step {
-  top: calc(50% + 60px);
+  /* Centred top to bottom on the day screen (the 꾸미기 rail stays over it
+     where they meet, z-index 15). */
+  top: 50%;
 }
 
 /* Paging names like the calendar pages days: the new one comes in from the
@@ -3388,7 +3722,29 @@ button:disabled {
   text-align: center;
   translate: -50% 0;
   pointer-events: none;
-  animation: picker-in 0.2s ease both;
+  /* Drops in from above and settles. Its own keyframes keep the -50% that
+     centres it (the shared picker-in animates translate from 0, so it slid in from the right). */
+  animation: hint-drop 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes hint-drop {
+  from {
+    opacity: 0;
+    translate: -50% -18px;
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    translate: -50% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-build__hint {
+    animation: none;
+  }
 }
 
 /* Making a route, two stops in: its sheet rises from the bottom.
@@ -4212,88 +4568,131 @@ button:disabled {
   transition:
     translate 0.22s ease,
     opacity 0.18s ease;
-  /* A little lift so the big pin button clears the screen edge. */
-  padding-bottom: calc(var(--safe-bottom) + 6px);
+  /* Lifted off the screen's edge, easier to reach. */
+  padding-bottom: calc(var(--safe-bottom) + 36px);
   /* No bar: only the round buttons take touches. */
   pointer-events: none;
 }
 
 .bottom-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
+  position: relative;
   height: var(--bar-h);
 }
 
-/* One boarding-pass ticket holding both tabs, icon only: a dashed tear line
-   between them with a notch top and bottom, and the current screen's half
-   filled with the accent. The shadow sits on a wrapper because the notches
-   are a mask, which would cut a box-shadow off with them. */
-.bottom-bar__ticket {
-  filter: drop-shadow(var(--ticket-shadow));
-}
-
-.bottom-bar__stub {
-  display: flex;
-  height: 54px;
-  border-radius: 14px;
-  overflow: hidden;
-  background: var(--surface);
-  -webkit-mask:
-    radial-gradient(circle 7px at 50% 0, transparent 98%, black) top / 100% 51% no-repeat,
-    radial-gradient(circle 7px at 50% 100%, transparent 98%, black) bottom / 100% 51% no-repeat;
-  mask:
-    radial-gradient(circle 7px at 50% 0, transparent 98%, black) top / 100% 51% no-repeat,
-    radial-gradient(circle 7px at 50% 100%, transparent 98%, black) bottom / 100% 51% no-repeat;
+.bottom-bar > * {
   pointer-events: auto;
 }
 
-.bottom-bar__btn {
+/* The row's three buttons, always there so a switch animates them: a big
+   accent round in the dead centre, small white rounds at its lower left and
+   right (a touch above its bottom; the big one hangs 8px below the row). Map:
+   the pin big, the calendar left, the crosshair right. Calendar: the calendar
+   big, the pin right (the way back), the crosshair gone. */
+.bar-btn {
+  position: absolute;
+  left: calc(50% - 92px);
+  bottom: -4px;
   display: grid;
   place-items: center;
-  width: 66px;
-  height: 100%;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--muted);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--round-btn-shadow);
+  /* On a switch the colours flip at once (no transition), the move and
+     resize start together with it. */
+  transition:
+    left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    bottom 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.2s ease,
+    scale 0.12s ease;
 }
 
-.bottom-bar__btn + .bottom-bar__btn {
-  border-left: 1.5px dashed var(--perforation);
+.bar-btn:active {
+  scale: 0.92;
 }
 
-.bottom-bar__btn svg {
+.bar-btn svg {
   width: 22px;
   height: 22px;
-  transition: transform 0.15s ease;
+  transition:
+    width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.bottom-bar__btn.is-on {
-  /* The current tab's half carries the accent colour, whichever it is. */
+.bottom-bar:not(.bottom-bar--cal) .bar-pin,
+.bottom-bar--cal .bar-cal {
+  left: calc(50% - 40px);
+  bottom: -8px;
+  width: 80px;
+  height: 80px;
   background: var(--accent);
   color: var(--on-accent);
 }
 
-.bottom-bar__btn:active svg {
-  transform: scale(0.88);
+.bottom-bar:not(.bottom-bar--cal) .bar-pin svg,
+.bottom-bar--cal .bar-cal svg {
+  width: 38px;
+  height: 38px;
+}
+
+.bar-aim {
+  left: calc(50% + 48px);
+}
+
+/* Everything moves right on the way to the calendar (and back left): the
+   pin shrinks into the crosshair's place, the crosshair slides on and fades. */
+.bottom-bar--cal .bar-pin {
+  left: calc(50% + 48px);
+}
+
+/* On the calendar all the row's bottoms line up: the small pin drops level
+   with the big calendar button, and so does 공유 at the bottom-right corner. */
+.bottom-bar--cal .bar-pin {
+  bottom: -8px;
+}
+
+.bar-share {
+  position: absolute;
+  right: 16px;
+  bottom: -8px;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--round-btn-shadow);
+  transition: scale 0.12s ease;
+}
+
+.bar-share:active {
+  scale: 0.92;
+}
+
+.bottom-bar--cal .bar-aim {
+  left: calc(50% + 100px);
+  opacity: 0;
+  scale: 0.6;
+  pointer-events: none;
+}
+
+/* Over the calendar page, the app's row sits above it (the page's own row
+   only holds 공유). */
+.bottom-bar-wrap--over {
+  z-index: 28;
 }
 
 .calendar-today text {
   font-family: inherit;
-}
-
-/* Pin-drop mode: the pin tilts as before. */
-.bottom-bar__btn.is-pinning svg {
-  transform: rotate(-12deg);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bottom-bar__btn svg {
-    transition: none;
-  }
 }
 
 /* ---------- Pins on the map ---------- */
@@ -4589,20 +4988,14 @@ button:disabled {
   object-fit: cover;
 }
 
-/* The profile buttons are the popup's round avatar itself, just smaller. */
-.corner-btn--profile,
-.page__profile {
+/* The profile button is the popup's round avatar itself, just smaller. */
+.corner-btn--profile {
   overflow: hidden;
   border-radius: 50%;
   background: var(--surface-2);
   color: var(--muted);
 }
 
-.page__profile {
-  width: 40px;
-  height: 40px;
-  margin: 2px;
-}
 
 .profile {
   display: flex;
@@ -5024,10 +5417,6 @@ button:disabled {
   padding: 0;
 }
 
-.cat-item {
-  border-bottom: 1px solid var(--border);
-}
-
 .cat-item__head {
   display: flex;
   align-items: center;
@@ -5408,7 +5797,7 @@ button:disabled {
 /* MapLibre fallback: keep attribution clear of the sheet on phones. */
 .maplibregl-ctrl-bottom-right,
 .maplibregl-ctrl-bottom-left {
-  bottom: calc(var(--sheet-peek) + var(--bar-h) + var(--safe-bottom));
+  bottom: calc(var(--sheet-peek) + var(--bar-h) + var(--safe-bottom) + 50px);
 }
 
 /* ---------- Tab pages (달력): full screens, no map ---------- */
@@ -5416,13 +5805,14 @@ button:disabled {
 .page {
   position: absolute;
   inset: 0;
-  z-index: 11; /* over the map, under the round buttons */
+  /* Over the whole map screen, its buttons too: sliding in or out, the
+     calendar always passes over the map's UI. */
+  z-index: 26;
   display: flex;
   flex-direction: column;
   padding-top: var(--safe-top);
   padding-bottom: calc(var(--bar-h) + var(--safe-bottom) + 6px);
   background: var(--surface);
-  box-shadow: var(--shadow); /* shows as the page slides off the map */
   /* Vertical scrolling stays native; sideways moves are the swipe home. */
   touch-action: pan-y;
 }
@@ -5455,8 +5845,8 @@ button:disabled {
 }
 
 /* The map's own controls belong to the map screen. */
-.app--page .search,
-.app--page .corner-btn {
+.app--page:not(.app--page-moving) .search,
+.app--page:not(.app--page-moving) .corner-btn {
   display: none;
 }
 
@@ -5506,7 +5896,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 16px 16px 12dvh;
+  padding: 72px 16px 12dvh; /* top: 16px + the head bar the calendar no longer has */
 }
 
 .cal-zoom__month .calendar {
@@ -5526,7 +5916,8 @@ button:disabled {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 36px 24px 0;
+  /* The calendar has no head bar: 56px of it kept here so TODAY stays put. */
+  padding: 92px 24px 0;
 }
 
 /* 꾸미기 → background pattern (DayPattern), faint, across the whole page
@@ -5930,7 +6321,8 @@ button:disabled {
 
   .app--sheet-top .maplibregl-ctrl-bottom-right,
   .app--sheet-top .maplibregl-ctrl-bottom-left {
-    bottom: calc(var(--bar-h) + var(--safe-bottom));
+    /* Above the lifted row of round buttons (the big pin). */
+    bottom: calc(var(--bar-h) + var(--safe-bottom) + 50px);
   }
 }
 
@@ -5981,14 +6373,15 @@ button:disabled {
   .sheet--full {
     /* Ends above the button row: at narrow desktop widths the centred
        buttons pass under the panel, and the big pin is taller than the row. */
-    bottom: calc(12px + var(--bar-h) + 8px);
+    bottom: calc(28px + var(--bar-h) + 8px);
     border-radius: var(--radius);
   }
 
   /* The round buttons stay centred on the window at every width (the
      left panel keeps clear of them by ending above the button row). */
   .bottom-bar-wrap {
-    bottom: 12px;
+    /* The big pin hangs 8px below the row: clear of the window edge. */
+    bottom: 28px;
     padding-bottom: 0;
   }
 

@@ -1,8 +1,7 @@
 import type { RouteEdgeStyle, RouteStopShape } from './routeStyle';
 import type { PinIcon } from '../types/pin';
 import type { Course } from '../types/course';
-import type { DayDecor, PlacedText } from './decor';
-import { cardToScene, DEFAULT_LAYOUT, LAYOUT_CARDS, POLAROID, SCENE, sceneToCard, STRIP, type PolaroidLayout } from './polaroid';
+import type { DayDecor } from './decor';
 import { addressArea, addressRoute } from './addressRoute';
 import type { DayPing, EdgeStyle, PingShape } from './dayPings';
 import { withoutExcluded, type ExcludedPlace } from './privacy';
@@ -18,8 +17,6 @@ export type StopMark = RouteStopShape | 'number';
 export interface ShareSubject {
   /** Handwritten on the strip under the photo. */
   title: string;
-  /** Where the title goes by default: the strip's middle, or its right end (a day's date, like a print's). */
-  titleAt?: TitlePlace;
   /** The saved image's name, without the extension. */
   fileName: string;
   pings: DayPing[];
@@ -49,61 +46,6 @@ export interface CardStamp {
   to?: string;
   /** The neighbourhood in Korean, for the notebook. */
   area?: string;
-}
-
-export type TitlePlace = 'middle' | 'corner';
-
-/**
- * The card's title as a text box (scene fractions), where it's written by
- * default: handwritten on the front card's strip, in its middle or (a day's
- * date) toward its bottom right, turned with the card.
- */
-export function cardTitleText(title: string, layout: PolaroidLayout = DEFAULT_LAYOUT, place: TitlePlace = 'middle'): PlacedText {
-  const front = LAYOUT_CARDS[layout].front;
-  const at =
-    place === 'corner'
-      ? cardToScene(front, POLAROID.w * 0.8, STRIP.y + STRIP.h * 0.55)
-      : cardToScene(front, POLAROID.w / 2, STRIP.y + STRIP.h * 0.48);
-  return {
-    id: 'card-title',
-    text: title,
-    x: at.x / SCENE.w,
-    y: at.y / SCENE.h,
-    size: (110 * (front.scale ?? 1)) / SCENE.w,
-    rotate: front.angle,
-    font: 'pen',
-    color: 'ink-black',
-    align: place === 'corner' ? 'right' : 'center',
-  };
-}
-
-/** A card's 꾸미기 with its title put down once as a text box (left alone after that, even if it was thrown away). */
-export function withCardTitle(decor: DayDecor, title: string, place: TitlePlace = 'middle'): DayDecor {
-  if (decor.titled) return decor;
-  return { ...decor, texts: [...(decor.texts ?? []), cardTitleText(title, decor.layout, place)], titled: true };
-}
-
-/**
- * The card laid out another way: the title box (if it's still there) goes
- * with the photo card, keeping where it was on the card, its turn and size
- * relative to it. Everything else stays where it was on the scene.
- */
-export function withLayout(decor: DayDecor, layout: PolaroidLayout): DayDecor {
-  const from = LAYOUT_CARDS[decor.layout ?? DEFAULT_LAYOUT].front;
-  const to = LAYOUT_CARDS[layout].front;
-  const texts = decor.texts?.map((t) => {
-    if (t.id !== 'card-title') return t;
-    const onCard = sceneToCard(from, t.x * SCENE.w, t.y * SCENE.h);
-    const at = cardToScene(to, onCard.x, onCard.y);
-    return {
-      ...t,
-      x: Math.min(1, Math.max(0, at.x / SCENE.w)),
-      y: Math.min(1, Math.max(0, at.y / SCENE.h)),
-      size: (t.size * (to.scale ?? 1)) / (from.scale ?? 1),
-      rotate: (t.rotate ?? 0) - from.angle + to.angle,
-    };
-  });
-  return { ...decor, ...(texts ? { texts } : {}), layout };
 }
 
 /** A local YYYY-MM-DD for a saved time. */
@@ -138,7 +80,6 @@ export function daySubject(
   const kept = cut.kept.map((k) => k.index);
   return {
     title: dayCardTitle(date),
-    titleAt: 'corner',
     fileName: `root-in-${date}`,
     pings: cut.kept.map((k) => k.ping),
     marks: cut.kept.map((k) => shapeOf(k.ping)),

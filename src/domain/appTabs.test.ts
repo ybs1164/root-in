@@ -1,18 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { bottomBarAction, calendarAgain, homeSwipeDirection, showsPage, swipeCommits, tabForIncoming } from './appTabs';
+import { calendarAgain, homeSwipeDirection, showsPage, swipeCommits, tabForIncoming } from './appTabs';
 
 describe('bottom-bar tabs', () => {
   it('incoming #share= / #diary= / #pins= links open the matching tab', () => {
     expect(tabForIncoming('day')).toBe('calendar');
     expect(tabForIncoming('pins')).toBe('pins');
     expect(tabForIncoming('course')).toBe('pins');
-  });
-
-  it('every bottom-bar button switches to its screen; tapped again, pin drops a pin and calendar flips TODAY/month', () => {
-    expect(bottomBarAction('calendar', 'pins')).toBe('switch');
-    expect(bottomBarAction('pins', 'calendar')).toBe('switch');
-    expect(bottomBarAction('pins', 'pins')).toBe('pin');
-    expect(bottomBarAction('calendar', 'calendar')).toBe('calendar');
   });
 
   it('달력 is a full screen; the map shows through only when it is needed', () => {

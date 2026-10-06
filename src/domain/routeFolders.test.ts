@@ -1,12 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import type { Course } from '../types/course';
-import { addFolder, deleteFolder, EMPTY_ROUTE_FOLDERS, moveFolder, folderOf, moveRoute, neighborRoute, nextFolderName, renameFolder, ROUTE_FOLDER_LIMITS, routesInTab, placeRoute, placeRoutes, gatherPlace, setFolderIcon } from './routeFolders';
+import { addFolder, deleteFolder, EMPTY_ROUTE_FOLDERS, moveFolder, folderOf, moveRoute, neighborRoute, neighborTab, nextFolderName, renameFolder, ROUTE_FOLDER_LIMITS, routesInTab, placeRoute, placeRoutes, gatherPlace, setFolderIcon } from './routeFolders';
 
 const course = (id: string, createdAt: string): Course => ({
   id, userId: 'u', title: id, theme: 'date', travelMode: 'walk', stops: [], createdAt,
 });
 
 describe('route folders', () => {
+  it('swipe between tabs: 전체, 미분류, then the folders, wrapping round', () => {
+    const state = { ...EMPTY_ROUTE_FOLDERS, folders: [{ id: 'f1', name: '#1', icon: '📁' }, { id: 'f2', name: '#2', icon: '📁' }] };
+    expect(neighborTab(state, 'all', 1)).toBe('none');
+    expect(neighborTab(state, 'all', -1)).toBe('f2');
+    expect(neighborTab(state, 'none', 1)).toBe('f1');
+    expect(neighborTab(state, 'f2', 1)).toBe('all');
+    expect(neighborTab(state, 'gone', 1)).toBe('none');
+    expect(neighborTab(EMPTY_ROUTE_FOLDERS, 'none', 1)).toBe('all');
+  });
+
   it('names new folders #N, skipping taken names', () => {
     expect(nextFolderName([])).toBe('#1');
     const folders = ['#1', '#2'].map((name, i) => ({ id: `f${i}`, name, icon: '📁' }));

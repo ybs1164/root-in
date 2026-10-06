@@ -16,6 +16,14 @@ describe('calendar days', () => {
     expect(decor?.strokes).toHaveLength(1);
   });
 
+  it('keeps a day’s name / time switches across a reload, even with nothing else on it', () => {
+    saveDays({ decor: { '2026-09-29': { stickers: [], strokes: [], hideNames: true, hideTimes: true } }, shapes: {}, edges: {} });
+    const day = loadDays().decor['2026-09-29'];
+    expect(day.hideNames).toBe(true);
+    expect(day.hideTimes).toBe(true);
+    expect(readDecor({ stickers: [], strokes: [], hideNames: 'yes' })?.hideNames).toBeUndefined();
+  });
+
   it('keeps each day’s stickers, strokes, theme, ping shapes and line styles across a reload', () => {
     saveDays({
       decor: {

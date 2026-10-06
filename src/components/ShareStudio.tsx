@@ -1,5 +1,5 @@
 import { ChevronLeft, Download, Link, Share2 } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   canUndo,
   cleanTextStyle,
@@ -18,8 +18,9 @@ import {
   type ThemeId,
 } from '../domain/decor';
 import { DEFAULT_LAYOUT, POLAROID_LAYOUTS, SCENE, type PolaroidLayout } from '../domain/polaroid';
-import { withCardTitle, withLayout, type ShareSubject } from '../domain/shareSubject';
-import { canShareImage, downloadDataUrl, renderShareImage, shareImage } from '../lib/shareImage';
+import type { ShareSubject } from '../domain/shareSubject';
+import { canShareImage, dayGround, downloadDataUrl, renderShareImage, shareImage } from '../lib/shareImage';
+import DayPattern from './DayPattern';
 import DecorLayer, { type TextFocus } from './DecorLayer';
 import { DecorRail, DecorTray } from './DecorTools';
 
@@ -41,13 +42,12 @@ interface ShareStudioProps {
  * day screen as it looks there, with its own theme, pattern and pieces;
  * what's chosen here is apart from it); the bottom row
  * saves the finished card, copies its link or hands it to an SNS app.
- * Nothing here is kept: each visit starts from a fresh card (title only,
- * default layout), and leaving throws the decorations away. A day's own
+ * Nothing here is kept: each visit starts from a fresh, blank card (default
+ * layout, no title written on it), and leaving throws the decorations away. A day's own
  * 꾸미기 on its day screen is kept as ever and shows in the photo.
  */
 export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioProps) {
-  // The title is a text box like any other (it can be edited or thrown away).
-  const [decor, setDecor] = useState<DayDecor>(() => withCardTitle(EMPTY_DECOR, subject.title, subject.titleAt));
+  const [decor, setDecor] = useState<DayDecor>(EMPTY_DECOR);
 
   // Undo / redo, for this visit only.
   const [history, setHistory] = useState<DecorHistory>(EMPTY_HISTORY);
@@ -89,13 +89,13 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
   const [base, setBase] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
-    renderShareImage({ ...subject, decor: { ...EMPTY_DECOR, pattern: decor.pattern, layout: decor.layout }, withoutPieces: true }).then(
+    renderShareImage({ ...subject, decor: { ...EMPTY_DECOR, layout: decor.layout }, withoutPieces: true, withoutGround: true }).then(
       (url) => alive && setBase(url),
     );
     return () => {
       alive = false;
     };
-  }, [theme, decor.pattern, decor.layout]);
+  }, [theme, decor.layout]);
 
   // The 폴라로이드 sheet's cards: this card drawn small in every layout (with
   // its theme and pattern, without pieces), once the sheet is opened.
@@ -184,6 +184,11 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  const dayOver = useMemo(
+    () => ((decor.layout ?? DEFAULT_LAYOUT) === 'bare' && subject.photo ? dayGround(subject.photo) : null),
+    [decor.layout, subject.photo],
+  );
+
   const [busy, setBusy] = useState(false);
   const finished = () => renderShareImage({ ...subject, decor });
   const fileName = `${subject.fileName}.png`;
@@ -191,6 +196,17 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
 
   return (
     <div className={`studio ${tool ? 'is-tooling' : ''}`} role="dialog" aria-modal="true" aria-label={`${subject.title} 꾸미기`}>
+      {/* The ground (theme colour and pattern) runs under the whole screen;
+          the shared area is only outlined. The saved image paints the same ground. */}
+      {/* 없음 on a day's card: the day's own ground (colour, pattern) covers this
+          card's, which stays chosen for the other layouts. */}
+      {dayOver ? (
+        <div className="studio__day-ground" style={{ background: dayOver.page }}>
+          <DayPattern pattern={subject.photo?.pattern ?? 'none'} accent={dayOver.accent} />
+        </div>
+      ) : (
+        <DayPattern pattern={decor.pattern ?? 'none'} />
+      )}
       <button className="studio__back" aria-label="닫기" onClick={onClose}>
         <ChevronLeft size={26} strokeWidth={2.2} aria-hidden />
       </button>
@@ -233,7 +249,7 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
       {/* Where the tab buttons sit elsewhere: what to do with the finished card. */}
       <div className={`studio__actions ${tool ? 'is-away' : ''}`} role="group" aria-label="공유" inert={!!tool}>
         <button
-          className="studio__action studio__action--primary"
+          className="studio__action"
           aria-label="사진 저장"
           disabled={busy}
           onClick={async () => {
@@ -247,13 +263,9 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
         >
           <Download size={22} aria-hidden />
         </button>
-        {/* TODO: decide what 링크 복사 copies, then wire it up. */}
-        <button className="studio__action" aria-label="링크 복사" disabled>
-          <Link size={22} aria-hidden />
-        </button>
-        {/* One button for every SNS: the system share sheet, where there is one. */}
+        {/* The big one in the middle: the system share sheet, where there is one (one button for every SNS). */}
         <button
-          className="studio__action"
+          className="studio__action studio__action--primary"
           aria-label="SNS 공유"
           disabled={busy || !canShare}
           onClick={async () => {
@@ -265,7 +277,11 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
             }
           }}
         >
-          <Share2 size={22} aria-hidden />
+          <Share2 size={30} aria-hidden />
+        </button>
+        {/* TODO: decide what 링크 복사 copies, then wire it up. */}
+        <button className="studio__action" aria-label="링크 복사" disabled>
+          <Link size={22} aria-hidden />
         </button>
       </div>
 
@@ -291,8 +307,9 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
           onPattern={(next) => setDecor({ ...decor, pattern: next === 'none' ? undefined : next })}
           textStyle={sheetTextStyle}
           onTextStyle={changeTextStyle}
+          onClose={() => setTool(null)}
           layout={decor.layout ?? DEFAULT_LAYOUT}
-          onLayout={(next) => next !== (decor.layout ?? DEFAULT_LAYOUT) && changeDecor(withLayout(decor, next))}
+          onLayout={(next) => next !== (decor.layout ?? DEFAULT_LAYOUT) && changeDecor({ ...decor, layout: next })}
           layoutPreviews={layoutPreviews}
         />
       )}

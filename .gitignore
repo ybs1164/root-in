@@ -10,3 +10,5 @@ ui-shots
 data/korea/
 __pycache__/
 public/korea/
+# Stray screenshots dropped at the repo root
+/*.png

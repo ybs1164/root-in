@@ -1,5 +1,5 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'react';
+import { ChevronLeft, ChevronRight, Share } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, type TouchEvent } from 'react';
 import { swipeCommits, SWIPE } from '../domain/appTabs';
 import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, pingsLandedMs, SAMPLE_PING_DATES } from '../domain/dayPings';
 import { addDays } from '../domain/calendar';
@@ -27,7 +27,6 @@ import DayPings from './DayPings';
 import DecorLayer, { type TextFocus } from './DecorLayer';
 import { DecorRail, DecorTray } from './DecorTools';
 import MonthCalendar from './MonthCalendar';
-import ShareTagButton from './ShareTagButton';
 import { hasHome, type ExcludedPlace } from '../domain/privacy';
 import { daySubject, type ShareSubject } from '../domain/shareSubject';
 
@@ -109,12 +108,16 @@ interface CalendarZoomProps {
   onNeedHome: () => void;
   /** 공유: the day as a card (its 꾸미기 carried along), for the app's 꾸미기 screen. */
   onShare: (subject: ShareSubject) => void;
+  /** The page is still sliding in: the day's pins, lines and 꾸미기 wait to play until it lands. */
+  holdIntro?: boolean;
+  /** Filled with this calendar's way to share the day on screen (the page head's 공유 calls it). */
+  shareRef?: MutableRefObject<(() => void) | null>;
 }
 
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
 
-export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme, onDayPattern, excluded, onNeedHome, onShare }: CalendarZoomProps) {
+export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme, onDayPattern, excluded, onNeedHome, onShare, holdIntro = false, shareRef }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
   const [date, setDate] = useState(today);
@@ -170,7 +173,14 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
   const shownDate = preview ?? date;
   // While a pinch-out is only previewing the day, its pins stay out: they
   // drop in once the zoom lands, like every other way of opening a day.
-  const pings = preview ? [] : pingsForDate(shownDate);
+  const pings = preview || holdIntro ? [] : pingsForDate(shownDate);
+  // Landed: remount the drawing so the pins drop, the lines draw and the
+  // 꾸미기 settles now, not unseen under the sliding page.
+  const held = useRef(holdIntro);
+  useEffect(() => {
+    if (held.current && !holdIntro) setVisit((v) => v + 1);
+    held.current = holdIntro;
+  }, [holdIntro]);
   const counts = new Map(
     Object.entries(SAMPLE_PING_DATES).map(([key, pings]) => [key, pings.length] as [string, number]),
   );
@@ -192,8 +202,22 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
     }
   };
 
-  // Resting positions; with the live class gone this animates to them.
-  useLayoutEffect(() => paint(null, origin), [mode, origin]);
+  // Resting positions; with the live class gone this animates to them. The
+  // first one lands without a transition: the layers start unstyled (the
+  // month full size), and animating from there showed a zoom on every open.
+  const painted = useRef(false);
+  useLayoutEffect(() => {
+    if (painted.current) return paint(null, origin);
+    painted.current = true;
+    const layers = [dayEl.current, monthEl.current];
+    layers.forEach((el) => el && (el.style.transition = 'none'));
+    paint(null, origin);
+    layers.forEach((el) => {
+      if (!el) return;
+      void el.offsetWidth;
+      el.style.transition = '';
+    });
+  }, [mode, origin]);
 
   // Offsets ignore transforms, so this is the cell's resting position even
   // while the month layer is scaled up and hidden.
@@ -246,6 +270,22 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
   const dayHistory = history[shownDate] ?? EMPTY_HISTORY;
   const setDayDecor = (next: DayDecor) => setDays((d) => ({ ...d, decor: { ...d.decor, [shownDate]: next } }));
   // A drawing change: undo can bring back what was there; redo is forgotten.
+  // 공유: the day's card, its 꾸미기 carried along, opened on the 꾸미기 screen.
+  const shareDay = () => {
+    if (!hasHome(excluded)) return onNeedHome();
+    onShare(
+      daySubject(
+        date,
+        pingsForDate(date),
+        (ping) => days.shapes[pingKey(date, ping)] ?? 'pin',
+        (from, to) => days.edges[edgeKey(date, from, to)] ?? 'solid',
+        excluded,
+        days.decor[date] ?? EMPTY_DECOR,
+      ),
+    );
+  };
+  if (shareRef) shareRef.current = shareDay;
+
   const changeDecor = (next: DayDecor) => {
     setHistory((h) => ({ ...h, [shownDate]: recordChange(dayHistory, dayDecor) }));
     setDayDecor(next);
@@ -634,27 +674,19 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
             setArmed(null);
             setTextFocus(null);
           }}
+          labels={{
+            names: !dayDecor.hideNames,
+            times: !dayDecor.hideTimes,
+            onNames: () => {
+              const { hideNames, ...rest } = dayDecor;
+              changeDecor(hideNames ? rest : { ...rest, hideNames: true });
+            },
+            onTimes: () => {
+              const { hideTimes, ...rest } = dayDecor;
+              changeDecor(hideTimes ? rest : { ...rest, hideTimes: true });
+            },
+          }}
         />
-        {/* 공유, a luggage tag as on a route: makes the day's card, its 꾸미기 carried along, and opens it there. */}
-        {!tool && (
-          <ShareTagButton
-            className="share-tag--day"
-            label="공유"
-            onClick={() => {
-              if (!hasHome(excluded)) return onNeedHome();
-              onShare(
-                daySubject(
-                  date,
-                  pingsForDate(date),
-                  (ping) => days.shapes[pingKey(date, ping)] ?? 'pin',
-                  (from, to) => days.edges[edgeKey(date, from, to)] ?? 'solid',
-                  excluded,
-                  days.decor[date] ?? EMPTY_DECOR,
-                ),
-              );
-            }}
-          />
-        )}
         <div ref={curEl} className="cal-day">
           <button className="cal-zoom__title" aria-label={`${dayTitle(shownDate, today)}, 달력 보기`} onClick={() => toMonth()}>
             {dayTitle(shownDate, today)}
@@ -673,19 +705,23 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
                 // Recognised on purpose; what a tap opens is decided later.
               }}
               pressable={() => gesture.current === null && daySwipe.current?.axis !== 'x' && !toolRef.current}
+              showNames={!dayDecor.hideNames}
+              showTimes={!dayDecor.hideTimes}
             >
-              <DecorLayer
-                decor={dayDecor}
-                tool={tool}
-                armed={armed}
-                pen={pen}
-                onChange={changeDecor}
-                enterDelayMs={pingsLandedMs(pings.length)}
-                textFocus={textFocus}
-                onTextFocus={setTextFocus}
-                textStyle={textStyle}
-                onDragging={setDraggingPiece}
-              />
+              {!holdIntro && (
+                <DecorLayer
+                  decor={dayDecor}
+                  tool={tool}
+                  armed={armed}
+                  pen={pen}
+                  onChange={changeDecor}
+                  enterDelayMs={pingsLandedMs(pings.length)}
+                  textFocus={textFocus}
+                  onTextFocus={setTextFocus}
+                  textStyle={textStyle}
+                  onDragging={setDraggingPiece}
+                />
+              )}
             </DayPings>
           </div>
         </div>
@@ -724,6 +760,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
           onPattern={(pattern) => setDayDecor({ ...dayDecor, pattern: pattern === 'none' ? undefined : pattern })}
           textStyle={sheetTextStyle}
           onTextStyle={changeTextStyle}
+          onClose={() => setTool(null)}
         />
       )}
 

@@ -26,7 +26,7 @@ export interface PlacedSticker {
  * kept in order, so ink drawn after them isn't erased and undo brings the
  * rubbed-out part back.
  */
-export type PenTool = 'pen' | 'highlighter' | 'neon' | 'eraser';
+export type PenTool = 'pen' | 'crayon' | 'highlighter' | 'neon' | 'eraser';
 export type InkTool = Exclude<PenTool, 'eraser'>;
 export type PenWidth = 'thin' | 'medium' | 'thick';
 
@@ -143,6 +143,10 @@ export interface DayDecor {
   titled?: true;
   /** Share cards only: how the polaroid lies on the image (absent = DEFAULT_LAYOUT). */
   layout?: PolaroidLayout;
+  /** Days only: the pings' place names turned off (absent = shown). */
+  hideNames?: true;
+  /** Days only: the pings' visit times turned off (absent = shown). */
+  hideTimes?: true;
 }
 
 export const EMPTY_DECOR: DayDecor = { stickers: [], strokes: [] };
@@ -209,6 +213,7 @@ export const getSticker = (id: string) => STICKERS.find((sticker) => sticker.id 
 
 export const PEN_TOOLS: { tool: PenTool; label: string }[] = [
   { tool: 'pen', label: '일반펜' },
+  { tool: 'crayon', label: '크레용' },
   { tool: 'highlighter', label: '형광펜' },
   { tool: 'neon', label: '네온펜' },
   { tool: 'eraser', label: '지우개' },
@@ -230,6 +235,9 @@ export const inkCss = (color: InkColor): string => (isCustomColor(color) ? color
 
 /** Stroke widths as fractions of the box width (~3 / 5 / 10px on a phone). */
 export const PEN_WIDTHS: Record<PenWidth, number> = { thin: 0.009, medium: 0.016, thick: 0.03 };
+
+/** A crayon line is a little wider than a pen's, and grainy (see DecorLayer / shareImage). */
+export const CRAYON_SCALE = 1.35;
 
 export const STICKER_SIZE = 0.26;
 /** How small and big a pinch can make a sticker (box fractions). */
@@ -312,7 +320,10 @@ export function extendStroke(points: [number, number][], x: number, y: number, m
 }
 
 /** Colour themes for the whole app (tokens in styles.css under :root[data-theme=…]). */
-export type ThemeId = 'default' | 'sky' | 'matcha' | 'mint' | 'custard' | 'yellow' | 'lovely' | 'love' | 'lavender' | 'y2k' | 'mono';
+export type ThemeId =
+  | 'default' | 'sky' | 'matcha' | 'mint' | 'custard' | 'yellow' | 'lovely' | 'love' | 'lavender'
+  | 'tangerine' | 'ocean' | 'midnight' | 'plum' | 'wine' | 'cocoa' | 'sage'
+  | 'y2k' | 'mono';
 
 /** In the 테마 sheet's order. (밤 is gone: a day saved in it reads as the default.) */
 export const THEMES: { id: ThemeId; label: string }[] = [
@@ -325,12 +336,21 @@ export const THEMES: { id: ThemeId; label: string }[] = [
   { id: 'lovely', label: '러블리' },
   { id: 'love', label: '러브' },
   { id: 'lavender', label: '라벤더' },
+  { id: 'tangerine', label: '귤' },
+  { id: 'ocean', label: '오션' },
+  { id: 'midnight', label: '미드나잇' },
+  { id: 'plum', label: '플럼' },
+  { id: 'wine', label: '와인' },
+  { id: 'cocoa', label: '코코아' },
+  { id: 'sage', label: '세이지' },
   { id: 'y2k', label: 'Y2K' },
   { id: 'mono', label: '모노' },
 ];
 
 /** Background patterns (꾸미기); some drift slowly on screen, the share image is a still. */
-export type PatternId = 'none' | 'notes' | 'grid' | 'stripes' | 'waves' | 'dots' | 'polka' | 'drops' | 'hearts' | 'stars' | 'snow';
+export type PatternId =
+  | 'none' | 'notes' | 'grid' | 'stripes' | 'waves' | 'check' | 'checker' | 'night'
+  | 'dots' | 'polka' | 'clouds' | 'drops' | 'hearts' | 'stars' | 'snow' | 'flowers';
 
 export const PATTERNS: { id: PatternId; label: string }[] = [
   { id: 'none', label: '없음' },
@@ -338,12 +358,17 @@ export const PATTERNS: { id: PatternId; label: string }[] = [
   { id: 'grid', label: '모눈' },
   { id: 'stripes', label: '사선' },
   { id: 'waves', label: '물결' },
+  { id: 'check', label: '체크무늬' },
+  { id: 'checker', label: '체크보드' },
+  { id: 'night', label: '밤하늘' },
   { id: 'dots', label: '도트' },
   { id: 'polka', label: '물방울' },
+  { id: 'clouds', label: '구름' },
   { id: 'drops', label: '빗방울' },
   { id: 'hearts', label: '하트' },
   { id: 'stars', label: '별' },
   { id: 'snow', label: '눈' },
+  { id: 'flowers', label: '꽃' },
 ];
 
 export const isPatternId = (value: unknown): value is PatternId => PATTERNS.some((p) => p.id === value);
