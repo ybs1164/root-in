@@ -22,7 +22,7 @@ function EdgeTag({ side, label, icon, onClick }: { side: 'left' | 'right'; label
   return (
     <button className={`edge-tag edge-tag--${side}`} aria-label={label} onClick={onClick}>
       <svg className="edge-tag__shape" viewBox="0 0 80 54" aria-hidden>
-        {/* A long body and a pointed end, corners just softened (round joins);
+        {/* A long body and a pointed end, every corner well rounded (a thick round-joined stroke);
             the eyelet a hole with a light ring round it. */}
         <defs>
           <mask id={hole} maskUnits="userSpaceOnUse" x="-20" y="-10" width="110" height="74">
@@ -30,7 +30,7 @@ function EdgeTag({ side, label, icon, onClick }: { side: 'left' | 'right'; label
             <circle cx="61" cy="27" r="3" fill="#000" />
           </mask>
         </defs>
-        <path className="edge-tag__body" d="M-8 3H50L76 27L50 51H-8Z" mask={`url(#${hole})`} />
+        <path className="edge-tag__body" d="M-8 6H47L70 27L47 48H-8Z" mask={`url(#${hole})`} />
         <circle className="edge-tag__eyelet" cx="61" cy="27" r="4.6" />
       </svg>
       <span className="edge-tag__icon" aria-hidden>

@@ -4504,8 +4504,8 @@ button:disabled {
    shadow on the outline (the eyelet stays clear). */
 .edge-tag {
   position: absolute;
-  /* Above the row of round buttons, clear of them. */
-  bottom: calc(100% + 12px);
+  /* Well above the row of round buttons. */
+  bottom: calc(100% + 32px);
   display: block;
   width: 80px;
   height: 54px;
@@ -4544,11 +4544,11 @@ button:disabled {
   overflow: visible;
 }
 
-/* Blue, the point's corners softened by a same-colour round-joined stroke. */
+/* Blue, every corner rounded by a thick same-colour round-joined stroke. */
 .edge-tag__body {
   fill: var(--accent);
   stroke: var(--accent);
-  stroke-width: 5;
+  stroke-width: 12;
   stroke-linejoin: round;
 }
 
@@ -4610,7 +4610,10 @@ button:disabled {
 }
 
 .bar-aim {
-  /* Just right of the blue pin. */
+  /* Just right of the blue pin, bottoms level (the pin hangs 4px below the row). */
+  top: auto;
+  bottom: -4px;
+  translate: none;
   left: calc(50% + 36px + 12px);
   width: 44px;
   height: 44px;
