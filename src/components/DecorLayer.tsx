@@ -1,7 +1,11 @@
 import { Trash2 } from 'lucide-react';
-import { useEffect, useId, useRef, useState, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
 import {
   CRAYON_SCALE,
+  bringDecorToFront,
+  decorPieces,
+  nextDecorOrder,
+  withDecorOrder,
   clamp01,
   getSticker,
   cleanTextStyle,
@@ -147,7 +151,7 @@ const newId = () =>
  * with the pen, a finger draws. Otherwise the layer is just a picture.
  */
 export default function DecorLayer({
-  decor,
+  decor: savedDecor,
   tool,
   armed,
   pen,
@@ -159,6 +163,15 @@ export default function DecorLayer({
   onDragging,
   aspect = 1,
 }: DecorLayerProps) {
+  const decor = useMemo(() => withDecorOrder(savedDecor), [savedDecor]);
+  const decorRef = useRef(decor);
+  decorRef.current = decor;
+  const changeRef = useRef(onChange);
+  changeRef.current = onChange;
+  const changeDecor = (next: DayDecor) => {
+    decorRef.current = next;
+    changeRef.current(next);
+  };
   const layer = useRef<HTMLDivElement | null>(null);
   const [drawing, setDrawing] = useState<Stroke | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -208,7 +221,7 @@ export default function DecorLayer({
     if (!e.isPrimary) return setDrawing(null);
     e.currentTarget.setPointerCapture(e.pointerId);
     const [x, y] = at(e);
-    setDrawing({ tool: pen.tool, color: pen.color, width: pen.width, points: extendStroke([], x, y) });
+    setDrawing({ order: nextDecorOrder(decor), tool: pen.tool, color: pen.color, width: pen.width, points: extendStroke([], x, y) });
   };
   const onPenMove = (e: PointerEvent) => {
     if (!drawing) return;
@@ -218,7 +231,7 @@ export default function DecorLayer({
   };
   const onPenUp = () => {
     if (!drawing) return;
-    onChange({ ...decor, strokes: [...decor.strokes, drawing] });
+    changeDecor({ ...decor, strokes: [...decor.strokes, drawing] });
     setDrawing(null);
   };
 
@@ -259,8 +272,8 @@ export default function DecorLayer({
     setSelected(null);
     if (!armed) return;
     const [x, y] = at(e);
-    const sticker = { id: newId(), stickerId: armed, x: clamp01(x), y: clamp01(y), size: STICKER_SIZE };
-    onChange({ ...decor, stickers: [...decor.stickers, sticker] });
+    const sticker = { order: nextDecorOrder(decor), id: newId(), stickerId: armed, x: clamp01(x), y: clamp01(y), size: STICKER_SIZE };
+    changeDecor({ ...decor, stickers: [...decor.stickers, sticker] });
     setSelected(sticker.id);
   };
 
@@ -273,6 +286,7 @@ export default function DecorLayer({
       return;
     }
     if (fingers.current.size >= 2) return;
+    changeDecor(bringDecorToFront(decorRef.current, 'sticker', id));
     setSelected(id);
     grab('sticker', id, e);
   };
@@ -333,18 +347,18 @@ export default function DecorLayer({
     if (e.type === 'pointercancel') return;
     if (landing(e) === 'trash') {
       if (g.kind === 'sticker') {
-        onChange({ ...decor, stickers: decor.stickers.filter((st) => st.id !== id) });
+        changeDecor({ ...decor, stickers: decor.stickers.filter((st) => st.id !== id) });
         setSelected(null);
       } else {
-        onChange({ ...decor, texts: (decor.texts ?? []).filter((t) => t.id !== id) });
+        changeDecor({ ...decor, texts: (decor.texts ?? []).filter((t) => t.id !== id) });
         onTextFocus(null);
       }
       return;
     }
     // On the box it stays where it is; off it, it comes to the nearest spot on it.
     const pose = { ...moved, x: clamp01(moved.x), y: clamp01(moved.y) };
-    if (g.kind === 'sticker') onChange({ ...decor, stickers: decor.stickers.map((st) => (st.id === id ? { ...st, ...pose } : st)) });
-    else onChange({ ...decor, texts: (decor.texts ?? []).map((t) => (t.id === id ? { ...t, ...pose } : t)) });
+    if (g.kind === 'sticker') changeDecor({ ...decor, stickers: decor.stickers.map((st) => (st.id === id ? { ...st, ...pose } : st)) });
+    else changeDecor({ ...decor, texts: (decor.texts ?? []).map((t) => (t.id === id ? { ...t, ...pose } : t)) });
   };
 
   // ----- Text -----
@@ -357,15 +371,11 @@ export default function DecorLayer({
     draftRef.current = next;
     setDraftState(next);
   };
-  const decorRef = useRef(decor);
-  decorRef.current = decor;
-  const changeRef = useRef(onChange);
-  changeRef.current = onChange;
   const focusRef = useRef(onTextFocus);
   focusRef.current = onTextFocus;
 
   const startTyping = (id: string) => {
-    const t = (decor.texts ?? []).find((x) => x.id === id);
+    const t = (decorRef.current.texts ?? []).find((x) => x.id === id);
     if (!t) return;
     setDraft({ ...t });
     onTextFocus({ id, editing: true });
@@ -381,11 +391,11 @@ export default function DecorLayer({
     const texts = now.texts ?? [];
     const old = texts.find((t) => t.id === d.id);
     if (isBlankText(d.text)) {
-      if (old) changeRef.current({ ...now, texts: texts.filter((t) => t.id !== d.id) });
+      if (old) changeDecor({ ...now, texts: texts.filter((t) => t.id !== d.id) });
       return;
     }
-    if (!old) changeRef.current({ ...now, texts: [...texts, d] });
-    else if (old.text !== d.text) changeRef.current({ ...now, texts: texts.map((t) => (t.id === d.id ? { ...t, text: d.text } : t)) });
+    if (!old) changeDecor({ ...now, texts: [...texts, d] });
+    else if (old.text !== d.text) changeDecor({ ...now, texts: texts.map((t) => (t.id === d.id ? { ...t, text: d.text } : t)) });
     // Written: the box stays picked, so its toolbar comes straight up.
     focusRef.current({ id: d.id, editing: false });
   };
@@ -429,7 +439,7 @@ export default function DecorLayer({
     }
     if (textFocus) return onTextFocus(null);
     const [x, y] = at(e);
-    const box: PlacedText = { id: newId(), text: '', x: clamp01(x), y: clamp01(y), size: TEXT_SIZE, ...cleanTextStyle(textStyle) };
+    const box: PlacedText = { order: nextDecorOrder(decorRef.current), id: newId(), text: '', x: clamp01(x), y: clamp01(y), size: TEXT_SIZE, ...cleanTextStyle(textStyle) };
     setDraft(box);
     onTextFocus({ id: box.id, editing: true });
   };
@@ -446,6 +456,7 @@ export default function DecorLayer({
       return;
     }
     if (fingers.current.size >= 2) return;
+    changeDecor(bringDecorToFront(decorRef.current, 'text', id));
     const picked = textFocus?.id === id && !textFocus.editing;
     onTextFocus({ id, editing: false });
     grab('text', id, e, picked);
@@ -458,6 +469,8 @@ export default function DecorLayer({
       ? savedTexts.map((t) => (t.id === draft.id ? draft : t))
       : [...savedTexts, draft]
     : savedTexts;
+  const pieces = decorPieces({ ...decor, strokes, texts });
+  const zIndex = new Map(pieces.map((p, i) => [`${p.kind}:${p.index}`, i + 1]));
   const uid = useId().replace(/:/g, '');
   const glowId = `neon-${uid}`;
 
@@ -472,24 +485,28 @@ export default function DecorLayer({
       style={{ animationDelay: `${enterDelayMs}ms` }}
       aria-hidden={!active}
     >
-      {strokes.length > 0 && (
-        <svg className="decor__ink" viewBox={`0 0 100 ${100 * aspect}`} preserveAspectRatio="none" aria-hidden>
+      {strokes.map((stroke, i) => stroke.tool !== 'eraser' && (
+        <svg key={i} className="decor__ink" style={{ zIndex: zIndex.get(`stroke:${i}`) }} viewBox={`0 0 100 ${100 * aspect}`} preserveAspectRatio="none" aria-hidden>
           <defs>
             {/* Filter region in box units, not the stroke's own bounds: a flat
                 stroke's bounds are too thin and would clip the glow square. */}
-            <filter id={glowId} filterUnits="userSpaceOnUse" x="-10" y="-10" width="120" height={100 * aspect + 20}>
+            <filter id={`${glowId}-${i}`} filterUnits="userSpaceOnUse" x="-10" y="-10" width="120" height={100 * aspect + 20}>
               <feGaussianBlur stdDeviation="1.4" />
             </filter>
             {/* Crayon: fractal noise both roughens the line's edges and, made
                 into an alpha grain, punches the paper's tooth through it. */}
-            <filter id={`${glowId}-crayon`} filterUnits="userSpaceOnUse" x="-10" y="-10" width="120" height={100 * aspect + 20}>
+            <filter id={`${glowId}-${i}-crayon`} filterUnits="userSpaceOnUse" x="-10" y="-10" width="120" height={100 * aspect + 20}>
               <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="7" result="noise" />
               <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -2.6 0 0 0 2.15" result="grain" />
               <feDisplacementMap in="SourceGraphic" in2="noise" scale="0.7" xChannelSelector="R" yChannelSelector="G" result="rough" />
               <feComposite in="rough" in2="grain" operator="in" />
             </filter>
           </defs>
-          {inkLayers(strokes, glowId, `rub-${uid}`, aspect)}
+          {inkLayers([stroke, ...strokes.slice(i + 1).filter((s) => s.tool === 'eraser')], `${glowId}-${i}`, `rub-${uid}-${i}`, aspect)}
+        </svg>
+      ))}
+      {drawing?.tool === 'eraser' && (
+        <svg className="decor__ink" style={{ zIndex: pieces.length + 1 }} viewBox={`0 0 100 ${100 * aspect}`} preserveAspectRatio="none" aria-hidden>
           {/* While rubbing: a ring the size of the eraser under the finger, so it shows how much it takes. */}
           {drawing?.tool === 'eraser' && drawing.points.length > 0 && (() => {
             const [x, y] = drawing.points[drawing.points.length - 1];
@@ -504,7 +521,7 @@ export default function DecorLayer({
           })()}
         </svg>
       )}
-      {decor.stickers.map((s) => {
+      {decor.stickers.map((s, i) => {
         const sticker = getSticker(s.stickerId);
         if (!sticker) return null;
         const pos = live?.id === s.id ? live : s;
@@ -517,6 +534,7 @@ export default function DecorLayer({
               left: `${pos.x * 100}%`,
               top: `${pos.y * 100}%`,
               width: `${pos.size * 78}cqw`,
+              zIndex: zIndex.get(`sticker:${i}`),
               rotate: `${pos.rotate ?? 0}deg`,
             }}
             onPointerDown={onStickerDown(s.id)}
@@ -525,7 +543,7 @@ export default function DecorLayer({
           </span>
         );
       })}
-      {texts.map((t) => {
+      {texts.map((t, i) => {
         const pos = live?.id === t.id ? live : t;
         const typing = draft?.id === t.id;
         const picked = tool === 'text' && textFocus?.id === t.id;
@@ -537,6 +555,7 @@ export default function DecorLayer({
               left: `${pos.x * 100}%`,
               top: `${pos.y * 100}%`,
               fontSize: `${pos.size * 100}cqw`,
+              zIndex: zIndex.get(`text:${i}`),
               rotate: `${pos.rotate ?? 0}deg`,
               ...textCss(t),
             }}
@@ -569,7 +588,7 @@ export default function DecorLayer({
       })}
       {(tool === 'sticker' || tool === 'text') && live && (
         // Drag a sticker or text box here to throw it away.
-        <span ref={trashEl} className={`decor__trash ${overTrash ? 'is-over' : ''}`} aria-hidden>
+        <span ref={trashEl} style={{ zIndex: pieces.length + 2 }} className={`decor__trash ${overTrash ? 'is-over' : ''}`} aria-hidden>
           <Trash2 size={22} />
         </span>
       )}

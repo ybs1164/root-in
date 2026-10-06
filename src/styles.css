@@ -1519,7 +1519,7 @@ button:disabled {
   position: absolute;
   left: 50%;
   top: calc(100% + 18px);
-  z-index: 3; /* over the pieces, even the one being dragged onto it */
+  /* Stacking order is set by the decoration layer. */
   display: grid;
   place-items: center;
   width: 52px;
@@ -1549,12 +1549,7 @@ button:disabled {
   scale: 1.25;
 }
 
-/* A piece being dragged goes over the others; over the trash it fades, about to go. */
-.decor__sticker.is-lifted,
-.decor__text.is-lifted {
-  z-index: 2;
-}
-
+/* The selected piece keeps its shared stacking order; over the trash it fades. */
 .decor__sticker.is-doomed,
 .decor__text.is-doomed {
   opacity: 0.45;

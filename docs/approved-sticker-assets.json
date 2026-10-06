@@ -12,7 +12,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "paper-cloud-layered",
-      "label": "콜라주 겹구름"
+      "label": "콜라주 겹구름",
+      "active": true
     },
     {
       "number": 6,
@@ -23,7 +24,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "paper-clover-layered",
-      "label": "콜라주 네잎클로버"
+      "label": "콜라주 네잎클로버",
+      "active": true
     },
     {
       "number": 7,
@@ -34,7 +36,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "paper-plane-layered",
-      "label": "콜라주 접힌 비행기"
+      "label": "콜라주 접힌 비행기",
+      "active": true
     },
     {
       "number": 12,
@@ -45,7 +48,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "pop-letter-pink",
-      "label": "팝 핑크 편지"
+      "label": "팝 핑크 편지",
+      "active": true
     },
     {
       "number": 15,
@@ -56,7 +60,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "pixel-game-pink",
-      "label": "픽셀 핑크 게임기"
+      "label": "픽셀 핑크 게임기",
+      "active": false
     },
     {
       "number": 17,
@@ -67,7 +72,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "pixel-ghost",
-      "label": "픽셀 유령"
+      "label": "픽셀 유령",
+      "active": false
     },
     {
       "number": 18,
@@ -78,7 +84,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "pixel-robot",
-      "label": "픽셀 로봇"
+      "label": "픽셀 로봇",
+      "active": false
     },
     {
       "number": 28,
@@ -89,7 +96,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "jelly-candy",
-      "label": "젤리 사탕"
+      "label": "젤리 사탕",
+      "active": true
     },
     {
       "number": 30,
@@ -100,7 +108,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "chrome-key",
-      "label": "크롬 열쇠"
+      "label": "크롬 열쇠",
+      "active": false
     },
     {
       "number": 35,
@@ -111,7 +120,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "chrome-heart-ornate",
-      "label": "크롬 장식 하트"
+      "label": "크롬 장식 하트",
+      "active": false
     },
     {
       "number": 36,
@@ -122,7 +132,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "crayon-gift-patterned",
-      "label": "크레용 패턴 선물상자"
+      "label": "크레용 패턴 선물상자",
+      "active": false
     },
     {
       "number": 37,
@@ -133,7 +144,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "crayon-ribbon-striped",
-      "label": "크레용 줄무늬 리본"
+      "label": "크레용 줄무늬 리본",
+      "active": false
     },
     {
       "number": 38,
@@ -144,7 +156,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "crayon-tulip",
-      "label": "크레용 튤립"
+      "label": "크레용 튤립",
+      "active": true
     },
     {
       "number": 39,
@@ -155,7 +168,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "crayon-coffee",
-      "label": "크레용 커피잔"
+      "label": "크레용 커피잔",
+      "active": true
     },
     {
       "number": 44,
@@ -166,7 +180,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "painted-drink-fruit",
-      "label": "페인팅 과일 음료"
+      "label": "페인팅 과일 음료",
+      "active": true
     },
     {
       "number": 46,
@@ -177,7 +192,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "painted-cat",
-      "label": "페인팅 고양이"
+      "label": "페인팅 고양이",
+      "active": true
     },
     {
       "number": 47,
@@ -188,7 +204,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "painted-dog",
-      "label": "페인팅 강아지"
+      "label": "페인팅 강아지",
+      "active": true
     },
     {
       "number": 50,
@@ -199,7 +216,8 @@
       "status": "accepted",
       "batch": "2026-10-06",
       "id": "painted-leaf",
-      "label": "페인팅 나뭇잎"
+      "label": "페인팅 나뭇잎",
+      "active": true
     },
     {
       "number": 4,
@@ -210,7 +228,8 @@
       "status": "accepted",
       "batch": "2026-10-07",
       "id": "paper-donut",
-      "label": "콜라주 도넛"
+      "label": "콜라주 도넛",
+      "active": true
     },
     {
       "number": 6,
@@ -221,7 +240,8 @@
       "status": "accepted",
       "batch": "2026-10-07",
       "id": "paper-map",
-      "label": "콜라주 접힌 지도"
+      "label": "콜라주 접힌 지도",
+      "active": true
     },
     {
       "number": 7,
@@ -232,7 +252,8 @@
       "status": "accepted",
       "batch": "2026-10-07",
       "id": "paper-mittens",
-      "label": "콜라주 벙어리장갑"
+      "label": "콜라주 벙어리장갑",
+      "active": false
     },
     {
       "number": 10,
@@ -243,7 +264,8 @@
       "status": "accepted",
       "batch": "2026-10-07",
       "id": "pop-ticket",
-      "label": "팝 티켓"
+      "label": "팝 티켓",
+      "active": true
     },
     {
       "number": 11,
@@ -254,7 +276,8 @@
       "status": "accepted",
       "batch": "2026-10-07",
       "id": "pop-phone",
-      "label": "팝 전화기"
+      "label": "팝 전화기",
+      "active": true
     },
     {
       "number": 18,
@@ -265,7 +288,8 @@
       "status": "accepted",
       "batch": "2026-10-07",
       "id": "pixel-sparkle",
-      "label": "픽셀 반짝임"
+      "label": "픽셀 반짝임",
+      "active": true
     },
     {
       "number": 20,
@@ -276,7 +300,8 @@
       "status": "accepted",
       "batch": "2026-10-07",
       "id": "pixel-cupcake",
-      "label": "픽셀 컵케이크"
+      "label": "픽셀 컵케이크",
+      "active": false
     },
     {
       "number": 21,
@@ -287,7 +312,8 @@
       "status": "accepted",
       "batch": "2026-10-07",
       "id": "jelly-bean",
-      "label": "젤리빈"
+      "label": "젤리빈",
+      "active": true
     },
     {
       "number": 22,
@@ -298,7 +324,8 @@
       "status": "accepted",
       "batch": "2026-10-07",
       "id": "jelly-bear",
-      "label": "젤리 곰"
+      "label": "젤리 곰",
+      "active": true
     },
     {
       "number": 28,
@@ -309,7 +336,8 @@
       "status": "accepted",
       "batch": "2026-10-07",
       "id": "chrome-safety-pin",
-      "label": "크롬 안전핀"
+      "label": "크롬 안전핀",
+      "active": false
     },
     {
       "number": 36,
@@ -320,7 +348,8 @@
       "status": "accepted",
       "batch": "2026-10-07",
       "id": "crayon-bouquet",
-      "label": "크레용 꽃다발"
+      "label": "크레용 꽃다발",
+      "active": false
     },
     {
       "number": 39,
@@ -331,7 +360,8 @@
       "status": "accepted",
       "batch": "2026-10-07",
       "id": "crayon-croissant",
-      "label": "크레용 크루아상"
+      "label": "크레용 크루아상",
+      "active": true
     },
     {
       "number": 40,
@@ -342,7 +372,8 @@
       "status": "accepted",
       "batch": "2026-10-07",
       "id": "crayon-envelope",
-      "label": "크레용 봉투"
+      "label": "크레용 봉투",
+      "active": true
     },
     {
       "number": 43,
@@ -353,7 +384,8 @@
       "status": "accepted",
       "batch": "2026-10-07",
       "id": "painted-bunny",
-      "label": "페인팅 토끼"
+      "label": "페인팅 토끼",
+      "active": true
     },
     {
       "number": 47,
@@ -364,7 +396,8 @@
       "status": "accepted",
       "batch": "2026-10-07",
       "id": "painted-pretzel",
-      "label": "페인팅 프레첼"
+      "label": "페인팅 프레첼",
+      "active": true
     }
   ]
 }

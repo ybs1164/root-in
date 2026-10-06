@@ -1,7 +1,36 @@
 import { describe, expect, it } from 'vitest';
-import { BASE_COLORS, EMPTY_HISTORY, recordChange, redoDecor, undoDecor, type DayDecor, type Stroke, STICKER_MAX, stickerGesture, clamp01, extendStroke, hexToHsv, hsvToHex, inkCss, isBlankText, cleanTextStyle, dropOutcome, textWeight, TEXT_MIN, TEXT_MAX, isThemeId, normalizeHex, PEN_TOOLS, STICKERS, THEMES, PATTERNS } from './decor';
+import { decorPieces, withDecorOrder, nextDecorOrder, bringDecorToFront, BASE_COLORS, EMPTY_HISTORY, recordChange, redoDecor, undoDecor, type DayDecor, type Stroke, STICKER_MAX, stickerGesture, clamp01, extendStroke, hexToHsv, hsvToHex, inkCss, isBlankText, cleanTextStyle, dropOutcome, textWeight, TEXT_MIN, TEXT_MAX, isThemeId, normalizeHex, PEN_TOOLS, STICKERS, THEMES, PATTERNS } from './decor';
 
 describe('day decorations', () => {
+  it('stacks different decoration kinds by creation order and raises selected pieces', () => {
+    const decor: DayDecor = {
+      stickers: [{ id: 's', stickerId: 'heart', x: .5, y: .5, size: .26, order: 0 }],
+      texts: [{ id: 't', text: 'hello', x: .5, y: .5, size: .07, font: 'sans', color: 'accent', align: 'center', order: 1 }],
+      strokes: [{ tool: 'pen', color: 'accent', width: 'thin', points: [[.5, .5]], order: 2 }],
+    };
+    expect(decorPieces(decor).map(p => p.kind)).toEqual(['sticker', 'text', 'stroke']);
+    const raised = bringDecorToFront(decor, 'sticker', 's');
+    expect(decorPieces(raised).map(p => p.kind)).toEqual(['text', 'stroke', 'sticker']);
+    const edited = bringDecorToFront(raised, 'text', 't');
+    expect(decorPieces(edited).map(p => p.kind)).toEqual(['stroke', 'sticker', 'text']);
+    expect(edited.stickers[0].x).toBe(.5);
+    const undone = undoDecor(recordChange(EMPTY_HISTORY, decor), raised)!;
+    expect(decorPieces(undone.decor).map(p => p.kind)).toEqual(['sticker', 'text', 'stroke']);
+    expect(decorPieces(redoDecor(undone.history, undone.decor)!.decor).map(p => p.kind)).toEqual(['text', 'stroke', 'sticker']);
+  });
+
+  it('keeps old artwork stacked as before, then places new ink above its text', () => {
+    const legacy: DayDecor = {
+      strokes: [{ tool: 'pen', color: 'accent', width: 'thin', points: [[.5, .5]] }],
+      stickers: [{ id: 's', stickerId: 'heart', x: .5, y: .5, size: .26 }],
+      texts: [{ id: 't', text: 'old', x: .5, y: .5, size: .07, font: 'sans', color: 'accent', align: 'center' }],
+    };
+    const ordered = withDecorOrder(legacy);
+    const newInk: Stroke = { tool: 'pen', color: 'accent', width: 'thin', points: [[.5, .5]], order: nextDecorOrder(ordered) };
+    expect(decorPieces({ ...ordered, strokes: [...ordered.strokes, newInk] }).map(p => p.kind)).toEqual(['stroke', 'sticker', 'text', 'stroke']);
+    expect(legacy.strokes[0].order).toBeUndefined();
+  });
+
   it('keeps stroke points inside the box and skips tiny moves', () => {
     let pts = extendStroke([], 0.5, 0.5);
     pts = extendStroke(pts, 0.501, 0.5); // too close: dropped
