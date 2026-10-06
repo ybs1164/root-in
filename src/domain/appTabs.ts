@@ -3,12 +3,11 @@ export type AppTab = 'calendar' | 'pins';
 
 /**
  * What a bottom-bar tap does. Every button switches to its screen. Tapped
- * again on its own screen, the pin button drops a pin (so the quick-drop
- * keeps its one-tap reach) and the calendar button flips TODAY ↔ month.
+ * again on its own screen, the calendar button flips TODAY ↔ month; the pin
+ * button does nothing (a new pin is the filled pin over the bar).
  */
-export function bottomBarAction(target: AppTab, current: AppTab): 'switch' | 'pin' | 'calendar' | 'none' {
+export function bottomBarAction(target: AppTab, current: AppTab): 'switch' | 'calendar' | 'none' {
   if (target !== current) return 'switch';
-  if (target === 'pins') return 'pin';
   if (target === 'calendar') return 'calendar';
   return 'none';
 }

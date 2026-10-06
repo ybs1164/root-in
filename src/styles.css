@@ -141,6 +141,8 @@
 :root {
   /* Theme swatches in the 꾸미기 → 테마 tray: each theme's background and accent. */
   /* Round action buttons (공유, 수정): short enough to stay clear of what's below them. */
+  /* The filled pin over the bar: a hairline shadow so it reads on the map. */
+  --pin-drop-shadow: 0 1px 2px rgba(27, 36, 64, 0.28);
   --round-btn-shadow: 0 3px 8px rgba(27, 36, 64, 0.22), 0 1px 2px rgba(27, 36, 64, 0.12);
   /* The eraser's ring while rubbing (DecorLayer): reads on light and dark ink alike. */
   --eraser-fill: rgba(255, 255, 255, 0.35);
@@ -4404,6 +4406,36 @@ button:disabled {
   height: var(--bar-h);
 }
 
+/* On the pin map, centred just over the ticket: a filled pin, no background,
+   that puts a new pin where the map is looking. */
+.pin-drop-btn {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 2px);
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  translate: -50% 0;
+  pointer-events: auto;
+  filter: drop-shadow(var(--pin-drop-shadow));
+  transition: scale 0.12s ease;
+}
+
+.pin-drop-btn svg {
+  width: 30px;
+  height: 38px;
+  fill: currentColor;
+}
+
+.pin-drop-btn:active {
+  scale: 0.9;
+}
+
 /* One boarding-pass ticket holding both tabs, icon only: a dashed tear line
    between them with a notch top and bottom, and the current screen's half
    filled with the accent. The shadow sits on a wrapper because the notches
@@ -4461,11 +4493,6 @@ button:disabled {
 
 .calendar-today text {
   font-family: inherit;
-}
-
-/* Pin-drop mode: the pin tilts as before. */
-.bottom-bar__btn.is-pinning svg {
-  transform: rotate(-12deg);
 }
 
 @media (prefers-reduced-motion: reduce) {

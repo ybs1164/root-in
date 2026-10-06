@@ -6,6 +6,7 @@ import ConfirmDialog from './components/ConfirmDialog';
 import { routeSubject, type ShareSubject } from './domain/shareSubject';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomBar from './components/BottomBar';
+import { PIN_BOX, PIN_PATH } from './lib/pingPaths';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
 import NewPinCard, { type NewPinInput } from './components/NewPinCard';
 import PinCard from './components/PinCard';
@@ -762,7 +763,7 @@ export default function App() {
   // Stable, so the card's outside-touch listener isn't re-attached every render.
   const closeNewPin = useCallback(() => setPreview(null), []);
 
-  // 📍 again on the pin screen: a new pin right where the map is looking —
+  // The filled pin over the bar: a new pin right where the map is looking —
   // the same card a search pick or a long press opens (name, memo, group,
   // ✓ to pin). With a card already up, the press first closes it (a touch
   // outside the card), then opens a fresh one on the map's current centre.
@@ -1076,11 +1077,17 @@ export default function App() {
       ) : null}
 
       <div ref={barEl} className={`bottom-bar-wrap ${barAway ? 'is-away' : ''}`} inert={barAway}>
+        {/* On the pin map: a new pin where the map is looking, from the filled pin over the bar's middle. */}
+        {tab === 'pins' && !swipe.leaving && (
+          <button className="pin-drop-btn" aria-label="지도에 핀 꽂기" onClick={startPinning}>
+            <svg viewBox={`${PIN_BOX.x} ${PIN_BOX.y} ${PIN_BOX.w} ${PIN_BOX.h}`} aria-hidden>
+              <path d={PIN_PATH} />
+            </svg>
+          </button>
+        )}
         <BottomBar
           tab={swipe.leaving ? 'pins' : tab}
-          pinning={!!preview}
           onTab={changeTab}
-          onPin={startPinning}
           onCalendarAgain={() => sendCalendar(calendarAgain(calendarMode))}
           calendarIcon={tab === 'calendar' && calendarZoom && calendarMode === 'day' ? 'month' : 'today'}
         />

@@ -5,9 +5,7 @@ import { CalendarToday } from './icons';
 
 interface BottomBarProps {
   tab: AppTab;
-  pinning: boolean;
   onTab: (tab: AppTab) => void;
-  onPin: () => void;
   /** Calendar button tapped while the calendar is showing. */
   onCalendarAgain: () => void;
   /**
@@ -29,11 +27,10 @@ const BUTTONS: { tab: AppTab; label: string; icon: ReactNode }[] = [
  * Tapped again, the calendar button flips a day screen to the month and the
  * month to TODAY.
  */
-export default function BottomBar({ tab, pinning, onTab, onPin, onCalendarAgain, calendarIcon }: BottomBarProps) {
+export default function BottomBar({ tab, onTab, onCalendarAgain, calendarIcon }: BottomBarProps) {
   const press = (target: AppTab) => () => {
     const action = bottomBarAction(target, tab);
     if (action === 'switch') onTab(target);
-    else if (action === 'pin') onPin();
     else if (action === 'calendar') onCalendarAgain();
   };
 
@@ -43,14 +40,12 @@ export default function BottomBar({ tab, pinning, onTab, onPin, onCalendarAgain,
         <div className="bottom-bar__stub">
           {BUTTONS.map(({ tab: target, label, icon }) => {
             const on = tab === target;
-            const isPin = target === 'pins';
             return (
               <button
                 key={target}
-                className={`bottom-bar__btn ${on ? 'is-on' : ''} ${isPin && pinning ? 'is-pinning' : ''}`}
-                aria-label={isPin && on ? '지도에 핀 꽂기' : label}
+                className={`bottom-bar__btn ${on ? 'is-on' : ''}`}
+                aria-label={label}
                 aria-current={on ? 'page' : undefined}
-                aria-pressed={isPin && on ? pinning : undefined}
                 onClick={press(target)}
               >
                 {target === 'calendar' && calendarIcon === 'month' ? <CalendarDays aria-hidden /> : icon}

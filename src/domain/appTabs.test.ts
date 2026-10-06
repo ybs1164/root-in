@@ -11,7 +11,8 @@ describe('bottom-bar tabs', () => {
   it('every bottom-bar button switches to its screen; tapped again, pin drops a pin and calendar flips TODAY/month', () => {
     expect(bottomBarAction('calendar', 'pins')).toBe('switch');
     expect(bottomBarAction('pins', 'calendar')).toBe('switch');
-    expect(bottomBarAction('pins', 'pins')).toBe('pin');
+    // 📍 again does nothing: a new pin is the filled pin button above the bar.
+    expect(bottomBarAction('pins', 'pins')).toBe('none');
     expect(bottomBarAction('calendar', 'calendar')).toBe('calendar');
   });
 
