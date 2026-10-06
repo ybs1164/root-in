@@ -5302,7 +5302,7 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 4px;
-  padding: 3px 5px;
+  padding: 5px;
   border-radius: 10px;
   background: var(--board);
 }
@@ -5337,6 +5337,8 @@ button:disabled {
   right: 0;
   top: 50%;
   height: 1px;
+  /* A hairline: the gap between the two flaps, kept as thin as the screen draws. */
+  transform: translateY(-50%) scaleY(0.5);
   background: var(--board-split);
   pointer-events: none;
 }
@@ -5349,6 +5351,9 @@ button:disabled {
 .alerts__flip {
   position: absolute;
   inset: 0;
+  border-radius: 6px;
+  /* The board shows through while a half is edge-on. */
+  background: var(--board);
   pointer-events: none;
 }
 
@@ -5368,49 +5373,50 @@ button:disabled {
   color: var(--on-accent);
 }
 
-/* Old bottom half: stays until the new one has dropped over it. */
-.alerts__face--old-bottom {
-  clip-path: inset(50% 0 0 0);
-  animation: alerts-hold 0.3s step-end both;
-}
-
-/* Old top half folds down on the middle line… */
-.alerts__face--old-top {
+/* Each half spins on its own middle: the top half on the upper quarter line,
+   the bottom on the lower one. */
+.alerts__face--top {
   clip-path: inset(0 0 50% 0);
-  animation: alerts-fold-down 0.15s ease-in both;
+  transform-origin: 50% 25%;
 }
 
-/* …then the new bottom half swings down from it and lands. */
-.alerts__face--new-bottom {
-  z-index: 1;
+.alerts__face--bottom {
   clip-path: inset(50% 0 0 0);
-  animation: alerts-drop 0.15s 0.15s ease-out both;
+  transform-origin: 50% 75%;
 }
 
-@keyframes alerts-fold-down {
+.alerts__face--out {
+  animation: alerts-spin-out 0.12s ease-in both;
+}
+
+.alerts__face--in {
+  animation: alerts-spin-in 0.12s 0.12s ease-out both;
+}
+
+/* The bottom half follows a beat behind the top. */
+.alerts__face--bottom.alerts__face--out {
+  animation-delay: 0.08s;
+}
+
+.alerts__face--bottom.alerts__face--in {
+  animation-delay: 0.2s;
+}
+
+@keyframes alerts-spin-out {
   from {
-    transform: perspective(120px) rotateX(0deg);
+    transform: perspective(80px) rotateX(0deg);
   }
   to {
-    transform: perspective(120px) rotateX(-90deg);
+    transform: perspective(80px) rotateX(90deg);
   }
 }
 
-@keyframes alerts-drop {
+@keyframes alerts-spin-in {
   from {
-    transform: perspective(120px) rotateX(90deg);
+    transform: perspective(80px) rotateX(-90deg);
   }
   to {
-    transform: perspective(120px) rotateX(0deg);
-  }
-}
-
-@keyframes alerts-hold {
-  from {
-    visibility: visible;
-  }
-  to {
-    visibility: hidden;
+    transform: perspective(80px) rotateX(0deg);
   }
 }
 

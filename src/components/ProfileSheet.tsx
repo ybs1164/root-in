@@ -104,23 +104,30 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
                   >
                     {hour}시
                     {flip && (
-                      // The split-flap turn: the old face's top half folds down over the
-                      // new one, then the new bottom half drops onto the old one.
+                      // The split-flap turn: the top and bottom halves each spin on their own
+                      // axis, old face out and new face in, the bottom just behind the top.
                       <span key={flip.key} className="alerts__flip" aria-hidden>
-                        <span className={`alerts__face alerts__face--old-bottom ${flip.from ? 'is-on' : ''}`}>{hour}시</span>
-                        <span className={`alerts__face alerts__face--old-top ${flip.from ? 'is-on' : ''}`}>{hour}시</span>
-                        <span
-                          className={`alerts__face alerts__face--new-bottom ${on ? 'is-on' : ''}`}
-                          onAnimationEnd={() =>
-                            setFlips((all) => {
-                              if (all[hour]?.key !== flip.key) return all;
-                              const { [hour]: _done, ...rest } = all;
-                              return rest;
-                            })
-                          }
-                        >
-                          {hour}시
-                        </span>
+                        {(['top', 'bottom'] as const).flatMap((half) => [
+                          <span key={`${half}-old`} className={`alerts__face alerts__face--${half} alerts__face--out ${flip.from ? 'is-on' : ''}`}>
+                            {hour}시
+                          </span>,
+                          <span
+                            key={`${half}-new`}
+                            className={`alerts__face alerts__face--${half} alerts__face--in ${on ? 'is-on' : ''}`}
+                            onAnimationEnd={
+                              half === 'bottom'
+                                ? () =>
+                                    setFlips((all) => {
+                                      if (all[hour]?.key !== flip.key) return all;
+                                      const { [hour]: _done, ...rest } = all;
+                                      return rest;
+                                    })
+                                : undefined
+                            }
+                          >
+                            {hour}시
+                          </span>,
+                        ])}
                       </span>
                     )}
                   </button>
