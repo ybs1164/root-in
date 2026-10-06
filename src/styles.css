@@ -4508,7 +4508,7 @@ button:disabled {
   /* Well above the row of round buttons. */
   bottom: calc(100% + 32px);
   display: block;
-  width: 64px;
+  width: 56px;
   height: 54px;
   padding: 0;
   border: 0;
@@ -4548,7 +4548,7 @@ button:disabled {
   overflow: hidden;
 }
 
-/* White, the eyelet a hole through it (even-odd), the map showing through. */
+/* White paper. */
 .edge-tag__body {
   fill: var(--surface);
 }
@@ -4590,11 +4590,11 @@ button:disabled {
 }
 
 .edge-tag--left .edge-tag__icon {
-  left: 11px;
+  left: 13px;
 }
 
 .edge-tag--right .edge-tag__icon {
-  right: 11px;
+  right: 13px;
 }
 
 .edge-tag__icon svg {
@@ -4623,21 +4623,22 @@ button:disabled {
 }
 
 .bar-pin {
+  /* Dead centre of the screen's width, centred on the row. */
   left: 50%;
   width: 80px;
   height: 80px;
-  margin-left: -40px;
+  translate: -50% -50%;
   background: var(--accent);
   color: var(--on-accent);
 }
 
 .bar-aim {
-  /* Just right of the blue pin, sitting a little higher than its bottom
-     (the pin hangs 8px below the row). */
+  /* At the blue pin's lower right: bottoms level (the pin hangs 8px
+     below the row), a small gap from its right side. */
   top: auto;
-  bottom: -1px;
+  bottom: -8px;
   translate: none;
-  left: calc(50% + 40px + 12px);
+  left: calc(50% + 40px + 8px);
   width: 44px;
   height: 44px;
   background: var(--surface);
@@ -6358,14 +6359,15 @@ button:disabled {
   .sheet--full {
     /* Ends above the button row: at narrow desktop widths the centred
        buttons pass under the panel, and the big pin is taller than the row. */
-    bottom: calc(12px + var(--bar-h) + 8px);
+    bottom: calc(28px + var(--bar-h) + 8px);
     border-radius: var(--radius);
   }
 
   /* The round buttons stay centred on the window at every width (the
      left panel keeps clear of them by ending above the button row). */
   .bottom-bar-wrap {
-    bottom: 12px;
+    /* The big pin hangs 8px below the row: clear of the window edge. */
+    bottom: 28px;
     padding-bottom: 0;
   }
 

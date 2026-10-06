@@ -28,8 +28,7 @@ interface EdgeTagProps {
 }
 
 /**
- * A luggage tag lying on its side, its flat end tucked off the screen's
- * edge and its rounded end (with the eyelet hole) pointing in.
+ * An index tab sticking out of the screen's edge, like a divider's tab.
  */
 export function EdgeTag({ side, label, icon, onClick, onPointerDown, ghost, style }: EdgeTagProps) {
   return (
@@ -42,13 +41,9 @@ export function EdgeTag({ side, label, icon, onClick, onPointerDown, ghost, styl
       onPointerDown={onPointerDown}
       style={style}
     >
-      <svg className="edge-tag__shape" viewBox="0 0 64 54" aria-hidden>
-        {/* A body ending in a half-circle arc, the eyelet a hole right through it. */}
-        <path
-          className="edge-tag__body"
-          fillRule="evenodd"
-          d="M-8 3H38A24 24 0 0 1 38 51H-8Z M43.5 27a4.5 4.5 0 1 0 9 0a4.5 4.5 0 1 0 -9 0Z"
-        />
+      <svg className="edge-tag__shape" viewBox="0 0 56 54" aria-hidden>
+        {/* An index tab like the 경로 folder tabs: flat against the edge, outer corners rounded 14. */}
+        <path className="edge-tag__body" d="M-8 0H42A14 14 0 0 1 56 14V40A14 14 0 0 1 42 54H-8Z" />
       </svg>
       <span className="edge-tag__icon" aria-hidden>
         {icon}
