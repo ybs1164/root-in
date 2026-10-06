@@ -846,6 +846,13 @@ export default function App() {
         />
       )}
 
+      {/* 경로 open with nothing on show: dragging from a pin starts a new route (as + does). */}
+      {routeOpen && !shownRoute && (
+        <p className="route-build__hint" role="status">
+          드래그로 루트 추가
+        </p>
+      )}
+
       {routeTrayShown && onPinHome && (
         <RouteFolderTray
           open={routeOpen}
