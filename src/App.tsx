@@ -1,4 +1,4 @@
-import { MapPin, Pencil, Share } from 'lucide-react';
+import { Crosshair, MapPin, Pencil, Share } from 'lucide-react';
 import type { PatternId, ThemeId } from './domain/decor';
 import DayPattern from './components/DayPattern';
 import ShareStudio from './components/ShareStudio';
@@ -135,6 +135,10 @@ export default function App() {
   const [activePinId, setActivePinId] = useState<string | null>(null);
   // The round buttons under ⚙, and the categories picked in its 핀 list.
   const [railMode, setRailMode] = useState<PinRailMode>('menu');
+  // 조준: a crosshair in the middle of the map (with the name of the place
+  // under it) and only the pin button, to aim where a new pin goes.
+  const [aiming, setAiming] = useState(false);
+  const [aimName, setAimName] = useState<string | null>(null);
   // The saved route drawn on the map from the 경로 폴더.
   const [shownRouteId, setShownRouteId] = useState<string | null>(null);
   // The 경로 폴더's open tab (kept here: the sheet unmounts while it is down).
@@ -462,7 +466,7 @@ export default function App() {
 
   mapEvents.current.longPress = async (center: [number, number]) => {
     // Making a route, or a saved one on show (its long presses restyle it): no place card.
-    if ((building && routeMode) || shownRoute) return;
+    if ((building && routeMode) || shownRoute || aiming) return;
     await openNewPinAt(center);
   };
 
@@ -767,12 +771,69 @@ export default function App() {
   // ✓ to pin). With a card already up, the press first closes it (a touch
   // outside the card), then opens a fresh one on the map's current centre.
   const startPinning = () => {
+    setAiming(false);
     changeTab('pins');
     // 경로 owns the map's taps while it's open; a new pin closes it.
     if (railMode === 'route') railAction('route');
     const center = mapRef.current?.getCenter();
     if (center) void openNewPinAt(center);
   };
+
+  const startAiming = () => {
+    if (railMode === 'route') railAction('route');
+    setRailMode('menu');
+    setPreview(null);
+    setActivePinId(null);
+    setAimName(null);
+    setAiming(true);
+  };
+
+  // While aiming: the place under the crosshair, looked up once the map settles.
+  useEffect(() => {
+    if (!aiming || !searchService) return;
+    const center = mapRef.current?.getCenter();
+    if (!center) return;
+    let alive = true;
+    const t = window.setTimeout(() => {
+      void searchService.reverse(center).then((named) => {
+        // Nothing found nearby: still say what the crosshair is on.
+        if (alive) setAimName(named?.name ?? '이름 없는 곳');
+      });
+    }, 200);
+    return () => {
+      alive = false;
+      window.clearTimeout(t);
+    };
+  }, [aiming, viewport, searchService]);
+
+  // Leaving aiming: Esc, another tab, or a quick tap on the map (a pan just moves the aim).
+  useEffect(() => {
+    if (!aiming) return;
+    if (tab !== 'pins') return setAiming(false);
+    const el = mapEl.current;
+    let tap: { x: number; y: number; at: number } | null = null;
+    const down = (e: PointerEvent) => {
+      tap = e.isPrimary && el?.contains(e.target as Node) ? { x: e.clientX, y: e.clientY, at: performance.now() } : null;
+    };
+    const up = (e: PointerEvent) => {
+      const t = tap;
+      tap = null;
+      if (!t || !e.isPrimary || !el?.contains(e.target as Node)) return;
+      if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > PRESS.slopPx || performance.now() - t.at >= PRESS.longMs) return;
+      setAiming(false);
+    };
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAiming(false);
+    };
+    document.addEventListener('pointerdown', down, true);
+    document.addEventListener('pointerup', up, true);
+    window.addEventListener('keydown', key);
+    return () => {
+      document.removeEventListener('pointerdown', down, true);
+      document.removeEventListener('pointerup', up, true);
+      window.removeEventListener('keydown', key);
+    };
+  }, [aiming, tab]);
 
   // ----- Render -----
 
@@ -802,7 +863,7 @@ export default function App() {
   };
 
   return (
-    <div className={`app ${searchOpen ? 'app--searching' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''}`}>
+    <div className={`app ${searchOpen ? 'app--searching' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''} ${aiming ? 'app--aiming' : ''}`}>
       <div ref={mapEl} className="map" aria-label="지도" />
 
       <SearchBar
@@ -1075,16 +1136,40 @@ export default function App() {
         </section>
       ) : null}
 
-      <div ref={barEl} className={`bottom-bar-wrap ${barAway ? 'is-away' : ''}`} inert={barAway}>
-        {/* On the pin map: a new pin where the map is looking, from the filled pin over the bar's middle. */}
-        {tab === 'pins' && !swipe.leaving && (
-          <button className="pin-drop-btn" aria-label="지도에 핀 꽂기" onClick={startPinning}>
-            {/* A small accent ticket (notched both sides) with a white pin on it. */}
-            <span className="pin-drop-btn__ticket">
-              <MapPin size={26} strokeWidth={2.2} aria-hidden />
-            </span>
+      {/* On the pin map, down the right: 조준 (white, a crosshair) over the pin
+          button (blue, bigger) that puts a new pin where the map is looking. */}
+      {tab === 'pins' && !swipe.leaving && !searchOpen && (!barAway || aiming) && (
+        <div className={`map-actions ${aiming ? 'is-aiming' : ''}`}>
+          {!aiming && (
+            <button className="map-actions__aim" aria-label="조준해서 핀 꽂기" onClick={startAiming}>
+              <Crosshair size={24} strokeWidth={2.2} aria-hidden />
+            </button>
+          )}
+          <button className="map-actions__pin" aria-label="지도에 핀 꽂기" onClick={startPinning}>
+            <MapPin size={30} strokeWidth={2.2} aria-hidden />
           </button>
-        )}
+        </div>
+      )}
+
+      {aiming && (
+        <div className="aim" aria-hidden={false}>
+          <p className="route-build__hint" role="status">핑을 찍을 위치를 조준해 주세요</p>
+          <div className="aim__mark">
+            {aimName && (
+              <span className="aim__name">
+                <span>{aimName}</span>
+              </span>
+            )}
+            <svg className="aim__cross" viewBox="0 0 48 48" aria-hidden>
+              <circle cx="24" cy="24" r="13" />
+              <path d="M24 2v12M24 34v12M2 24h12M34 24h12" />
+              <circle className="aim__dot" cx="24" cy="24" r="2.6" />
+            </svg>
+          </div>
+        </div>
+      )}
+
+      <div ref={barEl} className={`bottom-bar-wrap ${barAway ? 'is-away' : ''}`} inert={barAway}>
         <BottomBar
           tab={swipe.leaving ? 'pins' : tab}
           onTab={changeTab}
