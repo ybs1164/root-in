@@ -3365,12 +3365,9 @@ button:disabled {
 /* The same < > beside a calendar day, paging days: level with the pings'
    drawing rather than the screen's middle, below the 꾸미기 rail on the right. */
 .route-step.day-step {
-  /* Low on the screen, just above the bottom row: clear of the tall 꾸미기
-     rail on the right (tools, name/time switches, 공유). */
-  top: auto;
-  /* (Fixed, but the day layer's will-change makes it the box: its bottom is
-     the calendar area's, already above the page's bottom padding.) */
-  bottom: 48px;
+  /* Centred top to bottom on the day screen (the 꾸미기 rail stays over it
+     where they meet, z-index 15). */
+  top: 50%;
 }
 
 /* Paging names like the calendar pages days: the new one comes in from the
