@@ -11,18 +11,21 @@ export default function DayPattern({
   pattern,
   className = '',
   scale = 1,
+  accent,
 }: {
   pattern: PatternId;
   className?: string;
   /** Shrinks or grows the tile (the 꾸미기 sheet's previews); the loop scales with it. */
   scale?: number;
+  /** Draws in another theme's accent (a day's own pattern under the share screen's theme). */
+  accent?: string;
 }) {
   const id = `pattern-${useId().replace(/:/g, '')}`;
   if (pattern === 'none') return null;
   const tile = PATTERN_TILES[pattern];
   const flow = tile.flow;
   return (
-    <svg className={`day-pattern ${className}`} aria-hidden>
+    <svg className={`day-pattern ${className}`} style={accent ? ({ '--accent': accent } as CSSProperties) : undefined} aria-hidden>
       <defs>
         <pattern
           id={id}

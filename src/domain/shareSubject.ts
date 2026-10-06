@@ -2,7 +2,6 @@ import type { RouteEdgeStyle, RouteStopShape } from './routeStyle';
 import type { PinIcon } from '../types/pin';
 import type { Course } from '../types/course';
 import type { DayDecor } from './decor';
-import type { PolaroidLayout } from './polaroid';
 import { addressArea, addressRoute } from './addressRoute';
 import type { DayPing, EdgeStyle, PingShape } from './dayPings';
 import { withoutExcluded, type ExcludedPlace } from './privacy';
@@ -47,17 +46,6 @@ export interface CardStamp {
   to?: string;
   /** The neighbourhood in Korean, for the notebook. */
   area?: string;
-}
-
-/**
- * The card laid out another way. 없음 (no card) on a day's card takes on the
- * day's own ground too, its theme and pattern, so the whole screen becomes
- * the day as it was decorated before sharing (both can still be changed after).
- */
-export function withLayout(decor: DayDecor, layout: PolaroidLayout, photo?: DayDecor): DayDecor {
-  if (layout !== 'bare' || !photo) return { ...decor, layout };
-  const { theme: _t, pattern: _p, ...rest } = decor;
-  return { ...rest, layout, ...(photo.theme ? { theme: photo.theme } : {}), ...(photo.pattern ? { pattern: photo.pattern } : {}) };
 }
 
 /** A local YYYY-MM-DD for a saved time. */

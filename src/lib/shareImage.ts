@@ -123,8 +123,19 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
   ctx.scale(scale, scale);
 
   drawBackdrop(ctx, c, layout, !withoutGround);
+  // 없음 on a day's card: the day's own ground (꾸미기 before sharing) is laid
+  // over this card's across the whole scene — its theme colour (if it chose
+  // one) over this one's, and its pattern over this one's pattern, which
+  // still shows between its marks.
+  const bare = layout === 'bare';
+  const over = bare && photo ? dayGround(photo) : null;
+  if (over?.page && !withoutGround) {
+    ctx.fillStyle = over.page;
+    ctx.fillRect(0, 0, W, H);
+  }
   // The background pattern, as a still frame even if it flows on screen.
   if (decor?.pattern && !withoutGround) paintPattern(ctx, decor.pattern, { w: W, h: H }, W / 390, c.accent);
+  if (over && photo?.pattern && !withoutGround) paintPattern(ctx, photo.pattern, { w: W, h: H }, W / 390, over.accent);
   if (layout === 'ticket') drawTicket(ctx, c, stamp);
 
   // The blank card behind (두 장), then the one with the photo.
@@ -135,9 +146,7 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
       ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
     });
   }
-  // 없음 (bare): no paper and no photo ground — the drawing sits on the scene's own
-  // ground, which takes on a day's theme and pattern when 없음 is picked (withLayout).
-  const bare = layout === 'bare';
+  // 없음 (bare): no paper and no photo ground — the drawing sits on the scene's ground.
   onCard(ctx, cards.front, () => {
     if (!bare) drawPaper(ctx, c);
     ctx.save();
@@ -148,7 +157,7 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
     // pattern, pin colours and pieces, in its own theme.
     withTheme(photo ? (photo.theme ?? 'default') : null, () => {
       const p = tokens();
-      const bg = bare ? c.backdrop : photo ? p.page : p.photo;
+      const bg = bare ? (over?.page ?? c.backdrop) : photo ? p.page : p.photo;
       if (!bare) {
         ctx.fillStyle = bg;
         ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
@@ -191,6 +200,20 @@ function withTheme(theme: ThemeId | null, draw: () => void) {
     if (before === undefined) delete root.dataset.theme;
     else root.dataset.theme = before;
   }
+}
+
+/**
+ * A day's own ground (its 꾸미기 before sharing) in its theme's colours: the
+ * page colour only if it chose a theme (otherwise the card's shows through),
+ * and the colour its pattern is drawn in.
+ */
+export function dayGround(photo: DayDecor): { page?: string; accent: string } {
+  let ground: { page?: string; accent: string } = { accent: '' };
+  withTheme(photo.theme ?? 'default', () => {
+    const p = tokens();
+    ground = { ...(photo.theme && photo.theme !== 'default' ? { page: p.page } : {}), accent: p.accent };
+  });
+  return ground;
 }
 
 /** Draws in a card's own pixels (0..POLAROID.w/h), as the card lies on the scene. */

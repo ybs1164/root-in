@@ -3,7 +3,7 @@ import type { Course } from '../types/course';
 import type { DayPing } from './dayPings';
 import { BACK_CARD, cardToScene, CLOTHESLINE, clotheslineY, DEFAULT_LAYOUT, DRAWING_BOX, POLAROID_LAYOUTS, FRONT_CARD, LAYOUT_CARDS, POLAROID, SCENE, sceneToCard, STRIP } from './polaroid';
 import type { ExcludedPlace } from './privacy';
-import { dayCardTitle, daySubject, routeSubject, withLayout } from './shareSubject';
+import { dayCardTitle, daySubject, routeSubject } from './shareSubject';
 
 const home: ExcludedPlace = { id: 'home', kind: 'home', address: '서울 성동구 성수이로 88', center: [127.0557, 37.5431] };
 const place = (id: string, name: string, center: [number, number]) => ({ id, name, center, address: '' });
@@ -103,15 +103,6 @@ describe('share cards', () => {
 
   it('title a day’s card like a date on a print', () => {
     expect(dayCardTitle('2026-01-09')).toBe('01.09');
-  });
-
-  it('없음 on a day’s card takes on the day’s theme and pattern; other layouts and route cards leave them be', () => {
-    const studio = { stickers: [], strokes: [], theme: 'mint' as const, pattern: 'grid' as const };
-    const day = { stickers: [], strokes: [], theme: 'sky' as const, pattern: 'dots' as const };
-    expect(withLayout(studio, 'bare', day)).toMatchObject({ layout: 'bare', theme: 'sky', pattern: 'dots' });
-    expect(withLayout(studio, 'bare', { stickers: [], strokes: [] })).toEqual({ stickers: [], strokes: [], layout: 'bare' });
-    expect(withLayout(studio, 'single', day)).toEqual({ ...studio, layout: 'single' });
-    expect(withLayout(studio, 'bare')).toEqual({ ...studio, layout: 'bare' });
   });
 
   it('a new card is laid out as 탑승권, with 없음 (no card) right after it', () => {
