@@ -192,8 +192,22 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
     }
   };
 
-  // Resting positions; with the live class gone this animates to them.
-  useLayoutEffect(() => paint(null, origin), [mode, origin]);
+  // Resting positions; with the live class gone this animates to them. The
+  // first one lands without a transition: the layers start unstyled (the
+  // month full size), and animating from there showed a zoom on every open.
+  const painted = useRef(false);
+  useLayoutEffect(() => {
+    if (painted.current) return paint(null, origin);
+    painted.current = true;
+    const layers = [dayEl.current, monthEl.current];
+    layers.forEach((el) => el && (el.style.transition = 'none'));
+    paint(null, origin);
+    layers.forEach((el) => {
+      if (!el) return;
+      void el.offsetWidth;
+      el.style.transition = '';
+    });
+  }, [mode, origin]);
 
   // Offsets ignore transforms, so this is the cell's resting position even
   // while the month layer is scaled up and hidden.

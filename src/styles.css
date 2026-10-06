@@ -4541,7 +4541,8 @@ button:disabled {
   inset: 0;
   width: 100%;
   height: 100%;
-  overflow: visible;
+  /* The flat end stops at the box: riding a sliding page, nothing pokes past its edge. */
+  overflow: hidden;
 }
 
 /* White, the eyelet a hole through it (even-odd), the map showing through. */
@@ -4550,7 +4551,8 @@ button:disabled {
 }
 
 /* On the page: the same height as on the map's row (row lift + row + gap). */
-.page > .edge-tag {
+.page > .edge-tag,
+.page-rider > .edge-tag {
   bottom: calc(var(--safe-bottom) + 36px + var(--bar-h) + 32px);
   z-index: 3;
 }
@@ -4610,6 +4612,18 @@ button:disabled {
   translate: 0 -50%;
   box-shadow: var(--round-btn-shadow);
   transition: scale 0.12s ease;
+}
+
+.bar-pin,
+.bar-aim {
+  animation: bar-btn-pop 300ms cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+
+@keyframes bar-btn-pop {
+  from {
+    scale: 0.4;
+    opacity: 0;
+  }
 }
 
 .bar-pin:active,
@@ -5778,6 +5792,19 @@ body:has(.app--page-moving) .day-share {
 /* Opened from the map's left-edge tag: the page sweeps in from that side. */
 .page--enter {
   animation: page-in-left 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Under the incoming page, moving with it: the map's tag hangs off its right edge. */
+.page-rider {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  animation: page-in-left 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.page-rider > .edge-tag {
+  left: 100%;
 }
 
 @keyframes page-in-left {

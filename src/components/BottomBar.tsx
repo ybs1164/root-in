@@ -1,4 +1,5 @@
-import { CalendarDays, Crosshair, MapPin } from 'lucide-react';
+import { Crosshair, MapPin } from 'lucide-react';
+import { CalendarToday } from './icons';
 import type { CSSProperties, ReactNode } from 'react';
 import type { AppTab } from '../domain/appTabs';
 
@@ -9,8 +10,8 @@ interface BottomBarProps {
   onPin: () => void;
   /** The small crosshair at the map's bottom right: aim first, then pin. */
   onAim: () => void;
-  /** While the calendar page slides away the map's tag waits, then pops out. */
-  tagHidden?: boolean;
+  /** While the calendar page slides away the map's row waits, then pops out. */
+  hidden?: boolean;
 }
 
 interface EdgeTagProps {
@@ -52,7 +53,7 @@ export function EdgeTag({ side, label, icon, onClick, ghost, style }: EdgeTagPro
   );
 }
 
-export const CalendarTagIcon = () => <CalendarDays aria-hidden />;
+export const CalendarTagIcon = () => <CalendarToday />;
 export const MapTagIcon = () => <MapPin aria-hidden />;
 
 /**
@@ -61,11 +62,11 @@ export const MapTagIcon = () => <MapPin aria-hidden />;
  * The calendar's own tag (back to the map) rides on its page, so it slides
  * with it.
  */
-export default function BottomBar({ tab, onTab, onPin, onAim, tagHidden }: BottomBarProps) {
-  if (tab !== 'pins') return <nav className="bottom-bar" aria-label="메뉴" />;
+export default function BottomBar({ tab, onTab, onPin, onAim, hidden }: BottomBarProps) {
+  if (tab !== 'pins' || hidden) return <nav className="bottom-bar" aria-label="메뉴" />;
   return (
     <nav className="bottom-bar" aria-label="메뉴">
-      {!tagHidden && <EdgeTag side="left" label="달력" icon={<CalendarTagIcon />} onClick={() => onTab('calendar')} />}
+      <EdgeTag side="left" label="달력" icon={<CalendarTagIcon />} onClick={() => onTab('calendar')} />
       <button className="bar-pin" aria-label="지도에 핀 꽂기" onClick={onPin}>
         <MapPin size={38} strokeWidth={2.2} aria-hidden />
       </button>

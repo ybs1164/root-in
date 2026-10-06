@@ -1143,6 +1143,13 @@ export default function App() {
         />
       )}
 
+      {/* Coming in, the map's tag is pushed along by the page's right edge,
+          riding just under the page so its flat end stays hidden behind it. */}
+      {onPage && pageEnter && (
+        <div className="page-rider" aria-hidden>
+          <EdgeTag ghost side="left" label="달력" icon={<CalendarTagIcon />} />
+        </div>
+      )}
       {onPage ? (
         <section
           className={`page ${pageEnter ? 'page--enter' : ''}`}
@@ -1154,13 +1161,10 @@ export default function App() {
           {...swipe.handlers}
         >
           {calendarZoom && <DayPattern pattern={dayPattern} />}
-          {/* The tags ride on the page. Coming in, the map's tag is pushed along
-              by the page's right edge and the calendar's own pops out once it
-              has landed; going out, the calendar's tag leaves with the page. */}
-          {pageEnter ? (
-            <EdgeTag ghost side="left" label="달력" icon={<CalendarTagIcon />} style={{ left: '100%' }} />
-          ) : (
-            calendarZoom && !decorating && <EdgeTag side="right" label="지도" icon={<MapTagIcon />} onClick={() => tagTab('pins')} />
+          {/* The calendar's tag rides on the page: it pops out once the page has
+              landed and leaves with it. */}
+          {!pageEnter && calendarZoom && !decorating && (
+            <EdgeTag side="right" label="지도" icon={<MapTagIcon />} onClick={() => tagTab('pins')} />
           )}
           <header className="page__head">
             {/* The calendar's own TODAY / DAY n heading takes the stage. */}
@@ -1203,7 +1207,7 @@ export default function App() {
       )}
 
       <div ref={barEl} className={`bottom-bar-wrap ${barAway ? 'is-away' : ''}`} inert={barAway}>
-        <BottomBar tab={swipe.leaving ? 'pins' : tab} tagHidden={swipe.leaving} onTab={tagTab} onPin={startPinning} onAim={startAiming} />
+        <BottomBar tab={swipe.leaving ? 'pins' : tab} hidden={swipe.leaving} onTab={tagTab} onPin={startPinning} onAim={startAiming} />
       </div>
 
       {routeDeleting && course.courses.some((c) => c.id === routeDeleting) && (
