@@ -4550,12 +4550,12 @@ button:disabled {
   color: var(--text);
 }
 
-/* The way between the screens: an index tab standing in the bottom-left
-   corner, flush with both edges, rounded only where it is free; the icon at
-   the top. Inside the row's wrapper, whose padding reaches the screen's bottom. */
+/* The way between the screens: an index tab standing on the bottom edge a
+   little in from the left, both top corners rounded; the icon at the top.
+   Inside the row's wrapper, whose padding reaches the screen's bottom. */
 .corner-tab {
   position: absolute;
-  left: 0;
+  left: 14px;
   bottom: 0;
   display: flex;
   justify-content: center;
@@ -4564,7 +4564,7 @@ button:disabled {
   height: calc(88px + var(--safe-bottom));
   padding: 16px 0 0;
   border: 0;
-  border-radius: 0 18px 0 0;
+  border-radius: 18px 18px 0 0;
   background: var(--surface);
   color: var(--accent);
   box-shadow: var(--round-btn-shadow);
