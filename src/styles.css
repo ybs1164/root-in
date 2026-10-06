@@ -478,7 +478,7 @@ button:disabled {
 .app--aiming .search,
 .app--aiming .corner-btn,
 .app--aiming .pin-rail,
-.app--aiming .bar-cal,
+.app--aiming .corner-tab,
 .app--aiming .bar-aim,
 .app--aiming .place-card {
   visibility: hidden;
@@ -4550,10 +4550,37 @@ button:disabled {
   color: var(--text);
 }
 
-.bar-cal {
-  right: calc(50% + 40px + 8px);
-  /* Draggable to the right (pulls the calendar in): no browser pan on it. */
+/* The way between the screens: an index tab standing in the bottom-left
+   corner, flush with both edges, rounded only where it is free; the icon at
+   the top. Inside the row's wrapper, whose padding reaches the screen's bottom. */
+.corner-tab {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 56px;
+  height: calc(88px + var(--safe-bottom));
+  padding: 16px 0 0;
+  border: 0;
+  border-radius: 0 18px 0 0;
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--round-btn-shadow);
+  pointer-events: auto;
+  /* Draggable up (pulls the calendar in): no browser pan on it. */
   touch-action: none;
+  transition: background 0.12s ease;
+}
+
+.corner-tab:active {
+  background: var(--surface-2);
+}
+
+.corner-tab svg {
+  width: 26px;
+  height: 26px;
 }
 
 .bar-aim {
@@ -4563,6 +4590,29 @@ button:disabled {
 .bar-side svg {
   width: 22px;
   height: 22px;
+}
+
+/* The corner tab: TODAY rises from the bottom over the map… */
+.page--rise {
+  animation: page-rise 340ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes page-rise {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+/* …and going back lifts off the top, the map showing from below. It stays
+   gone at the end until the page is taken down. */
+.page--lift {
+  animation: page-lift 340ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
+}
+
+@keyframes page-lift {
+  to {
+    transform: translateY(-100%);
+  }
 }
 
 /* The calendar's bottom row: the map's row again, on the page (over its content). */
@@ -6273,6 +6323,10 @@ button:disabled {
     /* The big pin hangs 8px below the row: clear of the window edge. */
     bottom: 28px;
     padding-bottom: 0;
+  }
+
+  .corner-tab {
+    bottom: -28px;
   }
 
   .search.search--open {
