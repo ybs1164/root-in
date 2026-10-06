@@ -2238,6 +2238,14 @@ button:disabled {
   filter: drop-shadow(var(--dialog-shadow));
 }
 
+/* With its toggles open the profile can outgrow the screen: it scrolls
+   inside instead of running past the bottom where nothing can reach it. */
+.profile-sheet.ticket-dialog {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
 .ticket-dialog[open] {
   animation: mac-open 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
 }
@@ -5269,6 +5277,43 @@ button:disabled {
   margin: 0;
   color: var(--danger);
   font-size: 13px;
+}
+
+/* 알림 설정 → 핑 알림: a label, then one chip per hour that flips on / off. */
+.alerts__row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.alerts__label {
+  font-size: 14px;
+}
+
+.alerts__hours {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.alerts__hour {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.alerts__hour.is-on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 /* Long lists scroll inside the popup rather than past the screen. */

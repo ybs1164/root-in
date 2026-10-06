@@ -39,3 +39,18 @@ export function defaultHandle(userId: string): string {
   const tail = userId.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6);
   return `user${tail || '000000'}`;
 }
+
+// 알림 설정 → 핑 알림: the hours of the day a ping reminder may come. Each can
+// be switched on or off on its own; all are on until switched off.
+export const PING_ALERT_HOURS = [7, 9, 12, 16, 20, 23] as const;
+
+/** Stored hours, kept only if they're among PING_ALERT_HOURS, in that order, once each. */
+export function sanitizePingAlerts(value: unknown): number[] | null {
+  if (!Array.isArray(value)) return null;
+  return PING_ALERT_HOURS.filter((hour) => value.includes(hour));
+}
+
+/** The hours with `hour` switched the other way. */
+export function togglePingAlert(hours: readonly number[], hour: number): number[] {
+  return PING_ALERT_HOURS.filter((h) => (h === hour ? !hours.includes(h) : hours.includes(h)));
+}

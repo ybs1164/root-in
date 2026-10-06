@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultHandle, handleProblem, isValidHandle, sanitizeHandleInput } from './profile';
+import { defaultHandle, handleProblem, isValidHandle, sanitizeHandleInput, togglePingAlert } from './profile';
 
 describe('profile handle', () => {
   it('keeps only URL-safe characters while typing, lower-cased and capped', () => {
@@ -26,5 +26,12 @@ describe('profile handle', () => {
     expect(defaultHandle('8c706adb-05d4-40c1')).toBe('user8c706a');
     expect(isValidHandle(defaultHandle('anonymous'))).toBe(true);
     expect(defaultHandle('---')).toBe('user000000');
+  });
+});
+
+describe('ping alert hours', () => {
+  it('switches one hour at a time, keeping the hours in order', () => {
+    expect(togglePingAlert([7, 9, 12, 16, 20, 23], 12)).toEqual([7, 9, 16, 20, 23]);
+    expect(togglePingAlert([20, 7], 12)).toEqual([7, 12, 20]);
   });
 });
