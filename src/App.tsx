@@ -891,7 +891,10 @@ export default function App() {
   };
 
   // The tab buttons step aside for a 꾸미기 tool's tray, for the 경로 폴더, and under the 꾸미기 screen.
-  const barAway = (decorating && calendarZoom && onPage) || routeMode || !!studio;
+  const barAway = (decorating && calendarZoom && onPage) || routeMode;
+  // Under the 꾸미기 screen the row is simply gone, so coming back it is just
+  // there again rather than sliding up.
+  const barGone = !!studio;
   // 공유 before 집 is set (it's required) opens the profile on 개인 정보 instead.
   const needHome = () => {
     setPrivacyNotice('공유하려면 집 주소를 먼저 입력하세요.');
@@ -1203,7 +1206,11 @@ export default function App() {
         </div>
       )}
 
-      <div ref={barEl} className={`bottom-bar-wrap ${onPage ? 'bottom-bar-wrap--over' : ''} ${barAway ? 'is-away' : ''}`} inert={barAway}>
+      <div
+        ref={barEl}
+        className={`bottom-bar-wrap ${onPage ? 'bottom-bar-wrap--over' : ''} ${barAway ? 'is-away' : ''} ${barGone ? 'is-gone' : ''}`}
+        inert={barAway || barGone}
+      >
         <BottomBar
           tab={pageMoving ? 'pins' : tab}
           calendarMode={calendarMode}

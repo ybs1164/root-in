@@ -1293,6 +1293,10 @@ button:disabled {
 /* ---------- 꾸미기 (calendar day): stickers, pen, theme ---------- */
 
 /* While a tool's tray is up, the tab buttons slide away under it. */
+.bottom-bar-wrap.is-gone {
+  display: none;
+}
+
 .bottom-bar-wrap.is-away {
   translate: 0 120%;
   opacity: 0;
