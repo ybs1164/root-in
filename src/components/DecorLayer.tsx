@@ -490,6 +490,18 @@ export default function DecorLayer({
             </filter>
           </defs>
           {inkLayers(strokes, glowId, `rub-${uid}`, aspect)}
+          {/* While rubbing: a ring the size of the eraser under the finger, so it shows how much it takes. */}
+          {drawing?.tool === 'eraser' && drawing.points.length > 0 && (() => {
+            const [x, y] = drawing.points[drawing.points.length - 1];
+            return (
+              <circle
+                className="decor__eraser-ring"
+                cx={x * 100}
+                cy={y * 100 * aspect}
+                r={(PEN_WIDTHS[drawing.width] * ERASER_SCALE * 100) / 2}
+              />
+            );
+          })()}
         </svg>
       )}
       {decor.stickers.map((s) => {

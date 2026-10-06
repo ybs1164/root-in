@@ -140,6 +140,9 @@
 
 :root {
   /* Theme swatches in the 꾸미기 → 테마 tray: each theme's background and accent. */
+  /* The eraser's ring while rubbing (DecorLayer): reads on light and dark ink alike. */
+  --eraser-fill: rgba(255, 255, 255, 0.35);
+  --eraser-ring: rgba(40, 40, 40, 0.55);
   --swatch-default-bg: #ffffff;
   --swatch-default-accent: #2f6fe0;
   --swatch-matcha-bg: #eef1e3;
@@ -1999,6 +2002,15 @@ button:disabled {
 /* Eraser masks: keep everything, except where the eraser rubbed. */
 .decor__mask-keep {
   fill: var(--mask-show);
+}
+
+/* The eraser's reach while rubbing: a soft disc with a thin ring. */
+.decor__eraser-ring {
+  fill: var(--eraser-fill);
+  stroke: var(--eraser-ring);
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
 }
 
 .decor__mask-rub {
