@@ -4507,90 +4507,101 @@ button:disabled {
   pointer-events: auto;
 }
 
-/* The map row: the blue pin in the middle, small white rounds either side. */
-.bar-pin,
-.bar-side {
+/* The row's three buttons, always there so a switch animates them: a big
+   accent round in the dead centre, small white rounds at its lower left and
+   right (a touch above its bottom; the big one hangs 8px below the row). Map:
+   the pin big, the calendar left, the crosshair right. Calendar: the calendar
+   big, the pin left (the way back), the crosshair gone. */
+.bar-btn {
   position: absolute;
-  top: 50%;
+  left: calc(50% - 92px);
+  bottom: -4px;
   display: grid;
   place-items: center;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 0;
   border-radius: 50%;
-  translate: 0 -50%;
+  background: var(--surface);
+  color: var(--text);
   box-shadow: var(--round-btn-shadow);
-  transition: scale 0.12s ease;
+  transition:
+    left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    bottom 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background 0.3s ease,
+    color 0.3s ease,
+    opacity 0.2s ease,
+    scale 0.12s ease;
 }
 
-.bar-pin:active,
-.bar-side:active {
+.bar-btn:active {
   scale: 0.92;
 }
 
-.bar-pin {
-  /* Dead centre of the screen's width, centred on the row. */
-  left: 50%;
+.bar-btn svg {
+  width: 22px;
+  height: 22px;
+  transition:
+    width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.bottom-bar:not(.bottom-bar--cal) .bar-pin,
+.bottom-bar--cal .bar-cal {
+  left: calc(50% - 40px);
+  bottom: -8px;
   width: 80px;
   height: 80px;
-  translate: -50% -50%;
   background: var(--accent);
   color: var(--on-accent);
 }
 
-/* The small white rounds either side of the pin, a touch above its bottom
-   (the pin hangs 8px below the row), a small gap from it: the calendar at
-   its lower left, the crosshair at its lower right. */
-.bar-side {
-  top: auto;
-  bottom: -4px;
-  translate: none;
-  width: 44px;
-  height: 44px;
-  background: var(--surface);
-  color: var(--text);
-}
-
-.bar-cal {
-  right: calc(50% + 40px + 8px);
-  /* Draggable up (pulls the calendar in): no browser pan on it. */
-  touch-action: none;
+.bottom-bar:not(.bottom-bar--cal) .bar-pin svg,
+.bottom-bar--cal .bar-cal svg {
+  width: 38px;
+  height: 38px;
 }
 
 .bar-aim {
-  left: calc(50% + 40px + 8px);
+  left: calc(50% + 48px);
 }
 
-.bar-side svg {
-  width: 22px;
-  height: 22px;
+.bottom-bar--cal .bar-aim {
+  opacity: 0;
+  scale: 0.6;
+  pointer-events: none;
 }
 
-/* The corner tab: TODAY rises from the bottom over the map… */
-.page--rise {
-  animation: page-rise 340ms cubic-bezier(0.2, 0.8, 0.2, 1);
+/* The day's 공유: an accent round at the bottom right, a size between the
+   row's small and big buttons. */
+.day-share {
+  position: absolute;
+  right: 16px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--round-btn-shadow);
+  transition: scale 0.12s ease;
 }
 
-@keyframes page-rise {
-  from {
-    transform: translateY(100%);
-  }
+.day-share:active {
+  scale: 0.92;
 }
 
-/* …and going back lifts off the top, the map showing from below. It stays
-   gone at the end until the page is taken down. */
-.page--lift {
-  animation: page-lift 340ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
-}
-
-@keyframes page-lift {
-  to {
-    transform: translateY(-100%);
-  }
-}
-
-/* The calendar's bottom row: the map's row again, on the page (over its content). */
-.page-bar {
-  z-index: 27;
+/* Over the calendar page, the app's row sits above it (the page's own row
+   only holds 공유). */
+.bottom-bar-wrap--over {
+  z-index: 28;
 }
 
 .calendar-today text {

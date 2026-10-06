@@ -665,11 +665,11 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
           }}
         />
         {/* 공유, a round button as on a route: makes the day's card, its 꾸미기 carried along, and opens it there.
-            In the page's bottom row (App), out of the clipped calendar area, exactly where
-            the map's pin button sits, and sliding with the page. */}
+            At the right end of the page's bottom row (App), out of the clipped calendar
+            area, sliding with the page. */}
         {!tool && createPortal(
           <button
-            className="bar-pin day-share"
+            className="day-share"
             aria-label="공유"
             onClick={() => {
               if (!hasHome(excluded)) return onNeedHome();
@@ -685,7 +685,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
               );
             }}
           >
-            <Share size={32} strokeWidth={2.2} aria-hidden />
+            <Share size={28} strokeWidth={2.2} aria-hidden />
           </button>,
           pageEl ?? document.body,
         )}

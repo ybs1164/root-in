@@ -21,7 +21,7 @@ import ProfileSheet, { ProfileAvatar } from './components/ProfileSheet';
 import CategorySheet from './components/CategorySheet';
 import SharedRouteDialog from './components/SharedRouteDialog';
 import { visibleCenter } from './domain/adminAreas';
-import { homeSwipeDirection, PAGE_TITLES, showsPage, SWIPE, swipeCommits, tabForIncoming, type AppTab } from './domain/appTabs';
+import { calendarAgain, homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { COURSE_LIMITS } from './domain/course';
 import type { MapViewport } from './domain/districtMap';
 import { categoryStyle, filterPinsByCategories, isUncategorized, UNCATEGORIZED } from './domain/pin';
@@ -64,8 +64,6 @@ const PINS_FADE_MS = 250;
 /** A route stepped to with < > glides over as fast as its name slides in (RouteTitle SLIDE_MS). */
 const STEP_GLIDE_MS = 260;
 
-/** How long a let-go tag-drag takes to land the calendar page or slide it back. */
-const PULL_GLIDE_MS = 260;
 
 export default function App() {
   const mapEl = useRef<HTMLDivElement | null>(null);
@@ -127,11 +125,11 @@ export default function App() {
   const [preview, setPreview] = useState<PlaceRef | null>(null);
 
   // The calendar page reports its zoom level (day or month); nothing reads it now.
-  const [, setCalendarMode] = useState<'day' | 'month'>('day');
+  const [calendarMode, setCalendarMode] = useState<'day' | 'month'>('day');
   // A 꾸미기 tool is out on the calendar: the tab buttons step aside for its tray.
   const [decorating, setDecorating] = useState(false);
   // Commands for the calendar page (there's no calendar button to send them now).
-  const [calendarCommand] = useState<CalendarCommand | null>(null);
+  const [calendarCommand, setCalendarCommand] = useState<CalendarCommand | null>(null);
   const [activePinId, setActivePinId] = useState<string | null>(null);
   // The round buttons under ⚙, and the categories picked in its 핀 list.
   const [railMode, setRailMode] = useState<PinRailMode>('menu');
@@ -176,17 +174,8 @@ export default function App() {
   const onPage = showsPage(tab, Boolean(searchOpen || preview));
   // Swiping 달력 left slides the page off and uncovers the map (핀).
   const swipe = usePageSwipe(onPage && !decorating && !studio ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
-  // The calendar page rising from the bottom (the calendar button tapped), or
-  // lifting off the top on the way back to the map.
-  const [pageRise, setPageRise] = useState(false);
-  const [pageLift, setPageLift] = useState(false);
-  // …or pulled up by dragging the calendar button: the page's offset from the top
-  // (px, ≥ 0), and whether it is gliding (released) rather than following the finger.
-  const [pull, setPull] = useState<{ y: number; glide: boolean } | null>(null);
-  // While the page is coming in, the day's intro waits.
-  const pageArriving = pageRise || pull !== null;
-  // While the page moves in or out, the map screen under it stays whole.
-  const pageMoving = pageArriving || pageLift || swipe.moving;
+  // While the page is swiped off, the map screen under it stays whole.
+  const pageMoving = swipe.moving;
   const onPinHome = tab === 'pins';
   // The map's own things (pins, rail, row) show on the map, and under a moving page.
   const mapUi = onPinHome || pageMoving;
@@ -891,67 +880,15 @@ export default function App() {
 
   const calendarZoom = tab === 'calendar';
 
-  // The calendar and map buttons switch the screens with an upward move: TODAY rises from
-  // the bottom over the map; going back, it lifts off the top and the map
-  // shows from below.
+  // The bottom row's buttons switch the screens at once. The big calendar
+  // button in the middle of the calendar screen, pressed again, goes to the
+  // month (or from the month back to TODAY).
   const tagTab = (next: AppTab) => {
-    if (next === 'calendar') {
-      setPageRise(true);
-      changeTab('calendar');
-    } else if (onPage) setPageLift(true);
-    else changeTab(next);
+    if (next === 'calendar' && tab === 'calendar' && onPage) {
+      const type = calendarAgain(calendarMode);
+      setCalendarCommand((c) => ({ type, seq: (c?.seq ?? 0) + 1 }));
+    } else changeTab(next);
   };
-
-  // Dragging the map's calendar button up pulls the calendar page up after it;
-  // let go far enough (or with a flick) and it lands, otherwise it drops back.
-  const tagDrag = (e: ReactPointerEvent) => {
-    if (e.button !== 0) return;
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const height = window.innerHeight;
-    let started = false;
-    let last = { y: startY, t: performance.now() };
-    let prev = last;
-    const move = (ev: PointerEvent) => {
-      if (ev.pointerId !== e.pointerId) return;
-      const dy = ev.clientY - startY;
-      if (!started) {
-        if (Math.abs(dy) < SWIPE.startPx && Math.abs(ev.clientX - startX) < SWIPE.startPx) return;
-        if (dy >= 0 || Math.abs(dy) < Math.abs(ev.clientX - startX)) return end();
-        started = true;
-        changeTab('calendar');
-      }
-      prev = last;
-      last = { y: ev.clientY, t: performance.now() };
-      setPull({ y: Math.max(0, Math.min(height, height + dy)), glide: false });
-    };
-    const up = (ev: PointerEvent) => {
-      if (ev.pointerId !== e.pointerId) return;
-      end();
-      if (!started) return;
-      const velocity = (last.y - prev.y) / Math.max(1, last.t - prev.t);
-      const lands = swipeCommits(-1, last.y - startY, height, velocity);
-      setPull({ y: lands ? 0 : height, glide: true });
-      window.setTimeout(() => {
-        setPull(null);
-        if (!lands) changeTab('pins');
-      }, PULL_GLIDE_MS);
-    };
-    function end() {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      window.removeEventListener('pointercancel', up);
-    }
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', up);
-  };
-  const pullStyle: CSSProperties | undefined = pull
-    ? {
-        transform: `translateY(${pull.y}px)`,
-        transition: pull.glide ? `transform ${PULL_GLIDE_MS}ms cubic-bezier(0.2, 0.8, 0.2, 1)` : 'none',
-      }
-    : undefined;
 
   // The tab buttons step aside for a 꾸미기 tool's tray, for the 경로 폴더, and under the 꾸미기 screen.
   const barAway = (decorating && calendarZoom && onPage) || routeMode || !!studio;
@@ -1212,32 +1149,18 @@ export default function App() {
 
       {onPage ? (
         <section
-          className={`page ${pageRise ? 'page--rise' : ''} ${pageLift ? 'page--lift' : ''}`}
+          className="page"
           aria-label={PAGE_TITLES[tab]}
-          style={pullStyle ?? swipe.style}
-          onAnimationEnd={(e) => {
-            if (e.target !== e.currentTarget) return;
-            if (pageLift) {
-              setPageLift(false);
-              changeTab('pins');
-            } else setPageRise(false);
-          }}
+          style={swipe.style}
           {...swipe.handlers}
         >
           {calendarZoom && <DayPattern pattern={dayPattern} />}
-          {/* The calendar's bottom row, built like the map's so its buttons sit
-              exactly where the map's do: 공유 in the pin's place (CalendarZoom
-              puts it in here), the way back to the map in the calendar button's.
-              On the page, so it moves with it. */}
+          {/* The calendar's own row, built like the map's, holds just 공유 at its
+              right end (CalendarZoom puts it in here); the switching buttons are
+              the app's row, laid over the page. */}
           {calendarZoom && (
             <div className="bottom-bar-wrap page-bar">
-              <nav className="bottom-bar page-bar__row" aria-label="달력 메뉴">
-                {!decorating && (
-                  <button className="bar-side bar-cal day-map" aria-label="지도" onClick={() => tagTab('pins')}>
-                    <MapPin size={21} strokeWidth={2.2} aria-hidden />
-                  </button>
-                )}
-              </nav>
+              <nav className="bottom-bar page-bar__row" aria-label="달력 메뉴" />
             </div>
           )}
           <header className="page__head">
@@ -1257,7 +1180,6 @@ export default function App() {
               onDayTheme={setDayTheme}
               onDayPattern={setDayPattern}
               onMode={setCalendarMode}
-              holdIntro={pageArriving}
             />
           ) : null}
         </section>
@@ -1281,8 +1203,15 @@ export default function App() {
         </div>
       )}
 
-      <div ref={barEl} className={`bottom-bar-wrap ${barAway ? 'is-away' : ''}`} inert={barAway}>
-        <BottomBar tab={pageMoving ? 'pins' : tab} onTab={tagTab} onTagDrag={tagDrag} onPin={startPinning} onAim={startAiming} />
+      <div ref={barEl} className={`bottom-bar-wrap ${onPage ? 'bottom-bar-wrap--over' : ''} ${barAway ? 'is-away' : ''}`} inert={barAway}>
+        <BottomBar
+          tab={pageMoving ? 'pins' : tab}
+          calendarMode={calendarMode}
+          onCalendar={() => tagTab('calendar')}
+          onMap={() => changeTab('pins')}
+          onPin={startPinning}
+          onAim={startAiming}
+        />
       </div>
 
       {routeDeleting && course.courses.some((c) => c.id === routeDeleting) && (
