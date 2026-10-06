@@ -158,6 +158,9 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
   const nbEl = useRef<HTMLDivElement | null>(null);
 
   const stageEl = useRef<HTMLDivElement | null>(null);
+  // The page this calendar sits on: 공유 goes there (see below).
+  const [pageEl, setPageEl] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => setPageEl(stageEl.current?.closest<HTMLElement>('.page') ?? null), []);
   const monthEl = useRef<HTMLDivElement | null>(null);
   const dayEl = useRef<HTMLElement | null>(null);
   const gesture = useRef<Gesture | null>(null);
@@ -650,7 +653,8 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
           }}
         />
         {/* 공유, a round button as on a route: makes the day's card, its 꾸미기 carried along, and opens it there.
-            Out on the body, so it can sit in the bottom row: the page clips above it. */}
+            Straight on the page, out of the clipped calendar area, so it can sit in the
+            bottom row and still slide with the page. */}
         {!tool && createPortal(
           <button
             className="route-action route-action--share day-share"
@@ -671,7 +675,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
           >
             <Share size={26} strokeWidth={2.2} aria-hidden />
           </button>,
-          document.body,
+          pageEl ?? document.body,
         )}
         <div ref={curEl} className="cal-day">
           <button className="cal-zoom__title" aria-label={`${dayTitle(shownDate, today)}, 달력 보기`} onClick={() => toMonth()}>

@@ -2279,7 +2279,8 @@ button:disabled {
 /* The day screen's 공유: the same round button, at its bottom right (just above the tab bar). */
 .route-action.day-share {
   /* In the middle of the bottom row, level with the map's blue pin and the
-     tag back to the map (rendered on the body: the page clips above that row). */
+     tag back to the map (rendered straight on the page, which is full screen:
+     fixed or not, it lands in the same place and moves with the page). */
   position: fixed;
   left: 50%;
   bottom: calc(var(--safe-bottom) + 36px);
@@ -5772,11 +5773,6 @@ button:disabled {
   box-shadow: var(--shadow); /* shows as the page slides off the map */
   /* Vertical scrolling stays native; sideways moves are the swipe home. */
   touch-action: pan-y;
-}
-
-/* 공유 lives outside the page (portal), so it can't slide with it: it waits out the move. */
-body:has(.app--page-moving) .day-share {
-  visibility: hidden;
 }
 
 /* Opened from the map's left-edge tag: the page sweeps in from that side. */
