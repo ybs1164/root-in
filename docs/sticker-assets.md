@@ -1,6 +1,6 @@
 # Generated decoration stickers
 
-All 48 PNGs in `public/stickers/` are original images generated with the built-in `image_gen` tool. No external images or stock assets were used. All images have transparent alpha. The active collection has 9 cut-paper collage stickers, 6 pop-art stickers, 10 pixel-art stickers, 4 glossy jelly stickers, 3 chrome stickers, 6 crayon stickers and 8 painted stickers, followed by 2 speech bubble stickers in one continuous grid without section labels.
+All 81 PNGs in `public/stickers/` are original images generated with the built-in `image_gen` tool. No external images or stock assets were used. All images have transparent alpha. The active collection has 15 cut-paper collage stickers, 9 pop-art stickers, 15 pixel-art stickers, 7 glossy jelly stickers, 6 chrome stickers, 13 crayon stickers and 14 painted stickers, followed by 2 speech bubble stickers in one continuous grid without section labels.
 
 ## Square crayon gift replacement
 
@@ -270,3 +270,7 @@ The round crayon gift was rejected. The final user-requested square gift is `pai
 Final prompt:
 
 Use case: stylized-concept. Generate one original transparent PNG diary decoration sticker: a SQUARE GIFT BOX seen front-on, clearly square sky-blue box, neat peach-apricot wrapping ribbon crossing vertically and horizontally, small tied peach bow on the top, a narrow soft blue line indicating the lid. Simple uncluttered classic square gift shape, no round or star-shaped container, no polka dots, no scalloped trim. Style: charming hand-painted watercolor and gouache illustration, soft organic pigment texture, matte cheerful pastel colors, refined softly imperfect hand-drawn contours, slim ivory die-cut rim. Flat illustrated view, no visible side planes, no glossy 3D or jelly, no crayon wax grain, no paper collage cut edges, no thick navy pop-art outlines. One complete cohesive isolated sticker centered in a square canvas filling 85% with transparent margin. Actual transparent alpha background. No floor, outside shadow, lettering, watermark, emoji glyph, brand or external artwork.
+
+## Adopted preview collections — 2026-10-07
+
+Added 18 approved stickers from the 2026-10-06 batch and 15 from the 2026-10-07 batch. Rejected previews were discarded. Existing IDs and artwork remain unchanged; additions follow the established paper → pop → pixel → jelly 3D → chrome → crayon → painted order. The original batch numbers, labels, asset IDs and exact generation prompts are recorded in [approved-sticker-assets.json](approved-sticker-assets.json). All 33 are original, separately generated transparent PNGs from the built-in image generation tool.
