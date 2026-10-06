@@ -4633,10 +4633,10 @@ button:disabled {
 }
 
 .bar-aim {
-  /* At the blue pin's lower right: bottoms level (the pin hangs 8px
-     below the row), a small gap from its right side. */
+  /* At the blue pin's lower right, a touch above its bottom (the pin hangs
+     8px below the row), a small gap from its right side. */
   top: auto;
-  bottom: -8px;
+  bottom: -4px;
   translate: none;
   left: calc(50% + 40px + 8px);
   width: 44px;
