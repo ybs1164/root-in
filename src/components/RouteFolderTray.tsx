@@ -12,6 +12,7 @@ import {
   placeRoutes,
   routesInTab,
   renameFolder,
+  neighborTab,
   type RouteFolders,
   type RouteTab,
 } from '../domain/routeFolders';
@@ -46,6 +47,8 @@ const NONE_ICON = <Inbox size={20} aria-hidden />;
 const LONG_PRESS_MS = 450;
 /** Moving this far before then is a scroll of the tab row, not a press. */
 const PRESS_SLOP_PX = 8;
+/** A sideways swipe on the list this long (and mostly sideways) goes to the next / previous folder. */
+const SWIPE_MIN_PX = 56;
 
 interface Press {
   id: string;
@@ -397,6 +400,49 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const pickedRoutes = routes.filter((c) => selected.has(c.id));
   useEffect(() => setSelected(new Set()), [current]);
+
+  // A sideways swipe on the list goes to the folder before (left → right) or
+  // after (right → left), wrapping round: from 전체, right → left is 미분류 and
+  // left → right the last folder. The list slides in from the swipe's side.
+  const swipeStart = useRef<{ id: number; x: number; y: number } | null>(null);
+  const swallowSwipeClick = useRef(false);
+  const swipeTo = (step: 1 | -1) => {
+    setMovingPicked(false);
+    if (shownId) onShow(null);
+    if (picking) onFolders(renameFolder(folders, picking, folderDraft));
+    setPicking(null);
+    setDeleting(null);
+    setTab(neighborTab(folders, current, step));
+    bodyEl.current?.animate(
+      [{ transform: `translateX(${step * 48}px)`, opacity: 0.3 }, { transform: 'none', opacity: 1 }],
+      { duration: 220, easing: 'cubic-bezier(0.2, 0.8, 0.3, 1)' },
+    );
+  };
+  const swipeHandlers = {
+    onPointerDown: (e: React.PointerEvent) => {
+      swipeStart.current = e.isPrimary ? { id: e.pointerId, x: e.clientX, y: e.clientY } : null;
+    },
+    onPointerUp: (e: React.PointerEvent) => {
+      const s0 = swipeStart.current;
+      swipeStart.current = null;
+      if (!s0 || s0.id !== e.pointerId || rowDragRef.current) return;
+      const dx = e.clientX - s0.x;
+      const dy = e.clientY - s0.y;
+      if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      swallowSwipeClick.current = true;
+      window.setTimeout(() => (swallowSwipeClick.current = false), 250);
+      swipeTo(dx < 0 ? 1 : -1);
+    },
+    onPointerCancel: () => {
+      swipeStart.current = null;
+    },
+    onClickCapture: (e: React.MouseEvent) => {
+      if (!swallowSwipeClick.current) return;
+      swallowSwipeClick.current = false;
+      e.stopPropagation();
+      e.preventDefault();
+    },
+  };
   const toggleSelecting = () => {
     setSelecting((on) => !on);
     setSelected(new Set());
@@ -731,7 +777,9 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
       <div className="route-folders__head">
         <h2 className="route-folders__title">
           <span>ROUTES</span>
-          {current !== 'all' && current !== 'none' && <span className="route-folders__current-name">{folderName(current)}</span>}
+          <span className="route-folders__current-name">
+            {current === 'all' ? 'ALL' : current === 'none' ? 'UNCATEGORIZED' : folderName(current)}
+          </span>
         </h2>
         <div className="route-folders__tools">
           <button
@@ -751,6 +799,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
         ref={bodyEl}
         className={`route-folders__body ${rowDrag ? 'is-sorting' : ''} ${selecting ? 'is-selecting' : ''}`}
         role="tabpanel"
+        {...swipeHandlers}
         onClick={(e) => {
           // A tap on the sheet's empty space (not a row or a button) lets go of a route on show.
           if (shownId && !(e.target as Element).closest('button, a, input')) onShow(null);

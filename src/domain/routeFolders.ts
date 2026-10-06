@@ -106,6 +106,16 @@ export function openRouteTab(state: RouteFolders, tab: RouteTab): RouteTab {
 }
 
 /**
+ * The tab one swipe away, in the tabs' order (전체, 미분류, then the user's
+ * folders), wrapping round at either end: +1 is the next tab, -1 the one before.
+ */
+export function neighborTab(state: RouteFolders, tab: RouteTab, step: 1 | -1): RouteTab {
+  const order: RouteTab[] = ['all', 'none', ...state.folders.map((f) => f.id)];
+  const at = Math.max(0, order.indexOf(openRouteTab(state, tab)));
+  return order[(at + step + order.length) % order.length];
+}
+
+/**
  * Every route in list order: ones not yet placed by a drag first, newest
  * first (a route just made shows at the top), then the dragged order.
  */
