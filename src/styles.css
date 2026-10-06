@@ -5079,10 +5079,6 @@ button:disabled {
   padding: 0;
 }
 
-.cat-item {
-  border-bottom: 1px solid var(--border);
-}
-
 .cat-item__head {
   display: flex;
   align-items: center;
