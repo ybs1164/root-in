@@ -5715,14 +5715,37 @@ button:disabled {
   touch-action: pan-y;
 }
 
-/* Opened from the map's calendar button: the page sweeps in from the left. */
-.page--enter {
-  animation: page-in-left 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+/* The calendar button: TODAY opens as a circle widening out of it. */
+.page--reveal {
+  animation: page-reveal 460ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@keyframes page-in-left {
+@keyframes page-reveal {
   from {
-    transform: translateX(-100%);
+    clip-path: circle(0 at var(--cx) var(--cy));
+  }
+  to {
+    clip-path: circle(var(--r) at var(--cx) var(--cy));
+  }
+}
+
+/* The calendar's map button: the map shows through a hole widening out of
+   it (a mask, so the page around the hole stays put); it stays gone at the end
+   until the page is taken down. */
+@property --hole {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+.page--hide {
+  mask-image: radial-gradient(circle at var(--cx) var(--cy), transparent var(--hole), var(--text) calc(var(--hole) + 0.5px));
+  animation: page-hole 460ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes page-hole {
+  to {
+    --hole: var(--r);
   }
 }
 

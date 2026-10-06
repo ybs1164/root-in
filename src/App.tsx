@@ -183,8 +183,12 @@ export default function App() {
   const [pull, setPull] = useState<{ x: number; glide: boolean } | null>(null);
   // While the page is coming in, the calendar's own tag and the day's intro wait.
   const pageArriving = pageEnter || pull !== null;
+  // The calendar's map button: the page goes away through a widening hole.
+  const [pageLeave, setPageLeave] = useState(false);
+  // Where the circle grows from (the button pressed) and how far it must reach.
+  const [reveal, setReveal] = useState<{ x: number; y: number; r: number } | null>(null);
   // While the page slides in or out, the map screen under it stays whole.
-  const pageMoving = pageArriving || swipe.moving;
+  const pageMoving = pageArriving || pageLeave || swipe.moving;
   const onPinHome = tab === 'pins';
   // The map's own things (pins, rail, row) show on the map, and under a moving page.
   const mapUi = onPinHome || pageMoving;
@@ -891,12 +895,27 @@ export default function App() {
 
   // The tags between the two screens slide the page rather than cut: in from
   // the left on the way to 달력, back off to the left on the way to the map.
+  // The buttons between the two screens switch them with a circle growing out
+  // of the button: TODAY inside it on the way in, the map on the way out.
+  const circleFrom = (selector: string) => {
+    const el = document.querySelector(selector);
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const box = el?.getBoundingClientRect();
+    const x = box ? box.left + box.width / 2 : w / 2;
+    const y = box ? box.top + box.height / 2 : h;
+    // Far enough to cover the farthest corner.
+    setReveal({ x, y, r: Math.ceil(Math.hypot(Math.max(x, w - x), Math.max(y, h - y))) });
+  };
   const tagTab = (next: AppTab) => {
     if (next === 'calendar') {
+      circleFrom('.bar-cal');
       setPageEnter(true);
       changeTab('calendar');
-    } else if (onPage) swipe.leave();
-    else changeTab(next);
+    } else if (onPage) {
+      circleFrom('.day-map');
+      setPageLeave(true);
+    } else changeTab(next);
   };
 
   // Dragging the map's tag to the right pulls the calendar page in after it;
@@ -1209,11 +1228,20 @@ export default function App() {
 
       {onPage ? (
         <section
-          className={`page ${pageEnter ? 'page--enter' : ''}`}
+          className={`page ${pageEnter ? 'page--reveal' : ''} ${pageLeave ? 'page--hide' : ''}`}
           aria-label={PAGE_TITLES[tab]}
-          style={pullStyle ?? swipe.style}
+          style={{
+            ...(pullStyle ?? swipe.style),
+            ...(reveal && (pageEnter || pageLeave)
+              ? ({ '--cx': `${reveal.x}px`, '--cy': `${reveal.y}px`, '--r': `${reveal.r}px` } as CSSProperties)
+              : null),
+          }}
           onAnimationEnd={(e) => {
-            if (e.target === e.currentTarget) setPageEnter(false);
+            if (e.target !== e.currentTarget) return;
+            if (pageLeave) {
+              setPageLeave(false);
+              changeTab('pins');
+            } else setPageEnter(false);
           }}
           {...swipe.handlers}
         >
