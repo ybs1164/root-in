@@ -35,7 +35,8 @@ export default function BottomBar({ tab, calendarMode, onCalendar, onMap, onPin,
         aria-label={cal ? (calendarMode === 'day' ? '월 달력' : '오늘') : '달력'}
         onClick={onCalendar}
       >
-        {cal && calendarMode === 'day' ? <CalendarDays strokeWidth={2.2} aria-hidden /> : <CalendarToday />}
+        {/* Shows where you are: today's date on the day screens, the month grid on the month. */}
+        {cal && calendarMode === 'month' ? <CalendarDays strokeWidth={2.2} aria-hidden /> : <CalendarToday />}
       </button>
       <button className="bar-btn bar-aim" aria-label="조준해서 핀 꽂기" onClick={onAim} tabIndex={cal ? -1 : undefined} aria-hidden={cal || undefined}>
         <Crosshair strokeWidth={2.2} aria-hidden />
