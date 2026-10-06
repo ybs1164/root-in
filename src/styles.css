@@ -4530,14 +4530,13 @@ button:disabled {
   background: var(--surface);
   color: var(--text);
   box-shadow: var(--round-btn-shadow);
+  /* On a switch the colours flip at once, then the buttons move and resize. */
   transition:
-    left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-    bottom 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-    width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-    height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-    background 0.3s ease,
-    color 0.3s ease,
-    opacity 0.2s ease,
+    left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s,
+    bottom 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s,
+    width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s,
+    height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s,
+    opacity 0.2s ease 0.1s,
     scale 0.12s ease;
 }
 
@@ -4549,8 +4548,8 @@ button:disabled {
   width: 22px;
   height: 22px;
   transition:
-    width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-    height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s,
+    height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s;
 }
 
 .bottom-bar:not(.bottom-bar--cal) .bar-pin,
