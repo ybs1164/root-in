@@ -1,9 +1,8 @@
-import { Pencil } from 'lucide-react';
+import { Pencil, Share } from 'lucide-react';
 import type { PatternId, ThemeId } from './domain/decor';
 import DayPattern from './components/DayPattern';
 import ShareStudio from './components/ShareStudio';
 import ConfirmDialog from './components/ConfirmDialog';
-import ShareTagButton from './components/ShareTagButton';
 import { routeSubject, type ShareSubject } from './domain/shareSubject';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomBar from './components/BottomBar';
@@ -926,18 +925,14 @@ export default function App() {
 
       {/* 공유 for the route on show: makes its card and opens the 꾸미기 screen on it. */}
       {shownRoute && !buildPins && !editRoute && routeTrayShown && onPinHome && (
-        <ShareTagButton
-          light
-          className="share-tag--edit"
-          label="루트 수정"
-          icon={<Pencil size={18} strokeWidth={2.2} />}
-          onClick={startEditing}
-        />
+        <button className="route-action route-action--edit" aria-label="루트 수정" onClick={startEditing}>
+          <Pencil size={20} strokeWidth={2.2} aria-hidden />
+        </button>
       )}
       {shownRoute && !buildPins && !editRoute && routeTrayShown && onPinHome && (
-        <ShareTagButton
-          className="share-tag--route"
-          label={`${shownRoute.title} 공유`}
+        <button
+          className="route-action route-action--share"
+          aria-label={`${shownRoute.title} 공유`}
           onClick={() => {
             if (!hasHome(privacy.excluded)) return needHome();
             setStudio(routeSubject(shownRoute, privacy.excluded, shownRoute.stops.map((s) => {
@@ -945,7 +940,9 @@ export default function App() {
               return categoryStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id).icon;
             })));
           }}
-        />
+        >
+          <Share size={26} strokeWidth={2.2} aria-hidden />
+        </button>
       )}
 
       {/* A saved route on the map: long-press its stops or lines to restyle it (kept with the route). */}

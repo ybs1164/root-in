@@ -2070,25 +2070,41 @@ button:disabled {
   fill: var(--surface);
 }
 
-/* Small, standing just left of the route's 공유 tag, bottoms level. */
-.share-tag--edit {
+/* A route on show: 공유 (accent) and 수정 (white) as plain round buttons at
+   the right, just above the lowered folder sheet (324px: .route-folders.is-lowered),
+   bottoms level. */
+.route-action {
   position: absolute;
-  right: 84px;
   bottom: 328px;
   z-index: 12;
-  width: 44px;
-  height: 56px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  box-shadow: var(--shadow);
   animation: tag-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  transition: scale 0.12s ease;
 }
 
-/* A route on show: the tag stands at the right, just above the lowered
-   folder sheet (324px: .route-folders.is-lowered). */
-.share-tag--route {
-  position: absolute;
+.route-action:active {
+  scale: 0.95;
+}
+
+.route-action--share {
   right: 14px;
-  bottom: 328px;
-  z-index: 12;
-  animation: tag-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  width: 64px;
+  height: 64px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.route-action--edit {
+  right: 88px;
+  width: 50px;
+  height: 50px;
+  background: var(--surface);
+  color: var(--text);
 }
 
 /* The day screen's 공유: the same tag, at its bottom right (just above the tab bar). */
