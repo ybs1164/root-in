@@ -4511,7 +4511,7 @@ button:disabled {
    accent round in the dead centre, small white rounds at its lower left and
    right (a touch above its bottom; the big one hangs 8px below the row). Map:
    the pin big, the calendar left, the crosshair right. Calendar: the calendar
-   big, the pin left (the way back), the crosshair gone. */
+   big, the pin right (the way back), the crosshair gone. */
 .bar-btn {
   position: absolute;
   left: calc(50% - 92px);
@@ -4569,7 +4569,14 @@ button:disabled {
   left: calc(50% + 48px);
 }
 
+/* Everything moves right on the way to the calendar (and back left): the
+   pin shrinks into the crosshair's place, the crosshair slides on and fades. */
+.bottom-bar--cal .bar-pin {
+  left: calc(50% + 48px);
+}
+
 .bottom-bar--cal .bar-aim {
+  left: calc(50% + 100px);
   opacity: 0;
   scale: 0.6;
   pointer-events: none;

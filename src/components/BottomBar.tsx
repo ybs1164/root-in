@@ -19,9 +19,9 @@ interface BottomBarProps {
 /**
  * The row along the bottom of both screens. On the map the blue pin sits big
  * in the dead centre, the calendar and the crosshair small at its lower left
- * and right. Switching to the calendar, the calendar button grows into the
- * centre while the pin shrinks into its corner, where it is the way back; the
- * crosshair steps away. The buttons stay mounted so the swap is animated.
+ * and right. Switching to the calendar, everything moves right: the calendar
+ * button grows into the centre while the pin shrinks into the crosshair's
+ * place, where it is the way back; the crosshair slides on and fades. The buttons stay mounted so the swap is animated.
  */
 export default function BottomBar({ tab, calendarMode, onCalendar, onMap, onPin, onAim }: BottomBarProps) {
   const cal = tab === 'calendar';
