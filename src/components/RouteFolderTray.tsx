@@ -778,7 +778,7 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
         <h2 className="route-folders__title">
           <span>ROUTES</span>
           <span className="route-folders__current-name">
-            {current === 'all' ? 'ALL' : current === 'none' ? 'UNCATEGORIZED' : folderName(current)}
+            {current === 'all' ? 'ALL' : current === 'none' ? '미분류' : folderName(current)}
           </span>
         </h2>
         <div className="route-folders__tools">
