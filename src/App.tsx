@@ -1158,14 +1158,6 @@ export default function App() {
           {...swipe.handlers}
         >
           {calendarZoom && <DayPattern pattern={dayPattern} />}
-          {/* The calendar's own row, built like the map's, holds just 공유 at its
-              right end (CalendarZoom puts it in here); the switching buttons are
-              the app's row, laid over the page. */}
-          {calendarZoom && (
-            <div className="bottom-bar-wrap page-bar">
-              <nav className="bottom-bar page-bar__row" aria-label="달력 메뉴" />
-            </div>
-          )}
           <header className="page__head">
             {/* The calendar's own TODAY / DAY n heading takes the stage. */}
             <h1 className={calendarZoom ? 'sr-only' : ''}>{PAGE_TITLES[tab]}</h1>

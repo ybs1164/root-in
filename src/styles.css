@@ -1348,9 +1348,21 @@ button:disabled {
   gap: 10px;
 }
 
+.cal-zoom .decor-rail {
+  /* Centred on the 52px 공유, so 2px further right keeps the tools on the map rail's line. */
+  right: 12px;
+  align-items: center;
+}
+
 .cal-zoom .decor-rail__btn {
   width: 48px;
   height: 48px;
+}
+
+/* A touch bigger than the tools. */
+.cal-zoom .decor-rail__share {
+  width: 52px;
+  height: 52px;
 }
 
 .cal-zoom .decor-rail__btn svg {
@@ -1358,7 +1370,8 @@ button:disabled {
   height: 22px;
 }
 
-/* 공유 isn't a tool: set a little apart, filled with the accent colour. */
+/* 공유 isn't a tool: at the foot of the rail, set a little apart, filled
+   with the accent colour. */
 .decor-rail__share {
   margin-top: 8px;
   background: var(--accent);
@@ -4584,29 +4597,6 @@ button:disabled {
   opacity: 0;
   scale: 0.6;
   pointer-events: none;
-}
-
-/* The day's 공유: an accent round at the bottom right, just a little bigger
-   than the row's small buttons (bottoms level with them). */
-.day-share {
-  position: absolute;
-  right: 16px;
-  bottom: -4px;
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  box-shadow: var(--round-btn-shadow);
-  transition: scale 0.12s ease;
-}
-
-.day-share:active {
-  scale: 0.92;
 }
 
 /* Over the calendar page, the app's row sits above it (the page's own row

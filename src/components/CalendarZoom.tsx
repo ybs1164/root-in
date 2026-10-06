@@ -1,6 +1,5 @@
 import { ChevronLeft, ChevronRight, Share } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'react';
-import { createPortal } from 'react-dom';
 import { swipeCommits, SWIPE } from '../domain/appTabs';
 import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, pingsLandedMs, SAMPLE_PING_DATES } from '../domain/dayPings';
 import { addDays } from '../domain/calendar';
@@ -160,12 +159,6 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
   const nbEl = useRef<HTMLDivElement | null>(null);
 
   const stageEl = useRef<HTMLDivElement | null>(null);
-  // The page this calendar sits on: 공유 goes there (see below).
-  const [pageEl, setPageEl] = useState<HTMLElement | null>(null);
-  useLayoutEffect(() => {
-    const page = stageEl.current?.closest<HTMLElement>('.page');
-    setPageEl(page?.querySelector<HTMLElement>('.page-bar__row') ?? page ?? null);
-  }, []);
   const monthEl = useRef<HTMLDivElement | null>(null);
   const dayEl = useRef<HTMLElement | null>(null);
   const gesture = useRef<Gesture | null>(null);
@@ -663,32 +656,21 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
             setArmed(null);
             setTextFocus(null);
           }}
+          onShare={() => {
+            // 공유 at the foot of the rail: the day's card, its 꾸미기 carried along, opened there.
+            if (!hasHome(excluded)) return onNeedHome();
+            onShare(
+              daySubject(
+                date,
+                pingsForDate(date),
+                (ping) => days.shapes[pingKey(date, ping)] ?? 'pin',
+                (from, to) => days.edges[edgeKey(date, from, to)] ?? 'solid',
+                excluded,
+                days.decor[date] ?? EMPTY_DECOR,
+              ),
+            );
+          }}
         />
-        {/* 공유, a round button as on a route: makes the day's card, its 꾸미기 carried along, and opens it there.
-            At the right end of the page's bottom row (App), out of the clipped calendar
-            area, sliding with the page. */}
-        {!tool && createPortal(
-          <button
-            className="day-share"
-            aria-label="공유"
-            onClick={() => {
-              if (!hasHome(excluded)) return onNeedHome();
-              onShare(
-                daySubject(
-                  date,
-                  pingsForDate(date),
-                  (ping) => days.shapes[pingKey(date, ping)] ?? 'pin',
-                  (from, to) => days.edges[edgeKey(date, from, to)] ?? 'solid',
-                  excluded,
-                  days.decor[date] ?? EMPTY_DECOR,
-                ),
-              );
-            }}
-          >
-            <Share size={24} strokeWidth={2.2} aria-hidden />
-          </button>,
-          pageEl ?? document.body,
-        )}
         <div ref={curEl} className="cal-day">
           <button className="cal-zoom__title" aria-label={`${dayTitle(shownDate, today)}, 달력 보기`} onClick={() => toMonth()}>
             {dayTitle(shownDate, today)}
