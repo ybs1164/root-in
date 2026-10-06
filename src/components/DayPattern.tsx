@@ -34,15 +34,19 @@ export default function DayPattern({
           patternUnits="userSpaceOnUse"
           patternTransform={scale === 1 ? undefined : `scale(${scale})`}
         >
-          {tile.marks.map((m, i) => (
-            <path
-              key={i}
-              d={m.d}
-              transform={markTransform(m)}
-              className={tile.stroke ? 'day-pattern__line' : 'day-pattern__mark'}
-              style={tile.stroke ? { strokeWidth: tile.stroke } : undefined}
-            />
-          ))}
+          {tile.marks.map((m, i) => {
+            const stroke = m.stroke ?? tile.stroke;
+            return (
+              <path
+                key={i}
+                d={m.d}
+                transform={markTransform(m)}
+                opacity={m.alpha}
+                className={stroke ? 'day-pattern__line' : 'day-pattern__mark'}
+                style={stroke ? { strokeWidth: stroke } : undefined}
+              />
+            );
+          })}
         </pattern>
       </defs>
       {/* Oversized so it still covers the box wherever the loop has moved it. */}

@@ -162,6 +162,20 @@
   --swatch-lovely-accent: #e8609a;
   --swatch-love-bg: #fdecec;
   --swatch-love-accent: #d7263d;
+  --swatch-tangerine-bg: #ffeedd;
+  --swatch-tangerine-accent: #f07a1a;
+  --swatch-ocean-bg: #e2f3f5;
+  --swatch-ocean-accent: #13879b;
+  --swatch-midnight-bg: #e4e8f3;
+  --swatch-midnight-accent: #283a7a;
+  --swatch-plum-bg: #f4e5f0;
+  --swatch-plum-accent: #8d3c80;
+  --swatch-wine-bg: #f4e3e7;
+  --swatch-wine-accent: #8a1f3d;
+  --swatch-cocoa-bg: #f0e7df;
+  --swatch-cocoa-accent: #6e4b36;
+  --swatch-sage-bg: #e8eee9;
+  --swatch-sage-accent: #5f8470;
 }
 
 /* Themes (꾸미기 → 테마), set on <html data-theme>. They win over the
@@ -174,6 +188,13 @@
 :root[data-theme='lovely'],
 :root[data-theme='love'],
 :root[data-theme='lavender'],
+:root[data-theme='tangerine'],
+:root[data-theme='ocean'],
+:root[data-theme='midnight'],
+:root[data-theme='plum'],
+:root[data-theme='wine'],
+:root[data-theme='cocoa'],
+:root[data-theme='sage'],
 :root[data-theme='sky'],
 :root[data-theme='mono'] {
   color-scheme: light;
@@ -291,6 +312,85 @@
   --accent-soft: #fff0a6;
   --on-accent: #3a2f00;
   --route: #e6b400;
+}
+
+/* 귤: a bright tangerine orange. */
+:root[data-theme='tangerine'] {
+  --bg: #fff4ea;
+  --surface: #fffaf5;
+  --surface-2: #ffe6d0;
+  --accent: #f07a1a;
+  --accent-strong: #cf6210;
+  --accent-soft: #ffe1c7;
+  --route: #f07a1a;
+}
+
+/* 오션: deep sea teal, between 민트 and 하늘. */
+:root[data-theme='ocean'] {
+  --bg: #ecf7f8;
+  --surface: #f7fcfd;
+  --surface-2: #d9eff2;
+  --accent: #13879b;
+  --accent-strong: #0d6d7e;
+  --accent-soft: #d2edf1;
+  --route: #13879b;
+}
+
+/* 미드나잇: a deep night navy. */
+:root[data-theme='midnight'] {
+  --bg: #eef0f7;
+  --surface: #f8f9fc;
+  --surface-2: #dfe3f0;
+  --accent: #283a7a;
+  --accent-strong: #1b2a5e;
+  --accent-soft: #dbe0f1;
+  --route: #283a7a;
+}
+
+/* 플럼: a ripe plum, between 라벤더 and 러블리. */
+:root[data-theme='plum'] {
+  --bg: #f8eff6;
+  --surface: #fdf8fc;
+  --surface-2: #efdcea;
+  --accent: #8d3c80;
+  --accent-strong: #732e68;
+  --accent-soft: #f0d9eb;
+  --route: #8d3c80;
+}
+
+/* 와인: a dark wine red. */
+:root[data-theme='wine'] {
+  --bg: #f8eef0;
+  --surface: #fdf8f9;
+  --surface-2: #efdbe0;
+  --accent: #8a1f3d;
+  --accent-strong: #6e1630;
+  --accent-soft: #f0d6dd;
+  --route: #8a1f3d;
+}
+
+/* 코코아: a warm cocoa brown. */
+:root[data-theme='cocoa'] {
+  --bg: #f6f0eb;
+  --surface: #fcf9f6;
+  --surface-2: #ebe0d6;
+  --text: #33241b;
+  --muted: #8d7a6d;
+  --accent: #6e4b36;
+  --accent-strong: #563827;
+  --accent-soft: #eaddd2;
+  --route: #6e4b36;
+}
+
+/* 세이지: a soft grey green. */
+:root[data-theme='sage'] {
+  --bg: #f1f4f1;
+  --surface: #fafcfa;
+  --surface-2: #e2e9e3;
+  --accent: #5f8470;
+  --accent-strong: #4a6a59;
+  --accent-soft: #dbe6de;
+  --route: #5f8470;
 }
 
 /* Y2K: silver ground, bubblegum pink, sky blue lines. */
@@ -1888,6 +1988,13 @@ button:disabled {
 .theme-card--lovely { --card-bg: var(--swatch-lovely-bg); --card-accent: var(--swatch-lovely-accent); }
 .theme-card--love { --card-bg: var(--swatch-love-bg); --card-accent: var(--swatch-love-accent); }
 .theme-card--mono { --card-bg: var(--swatch-mono-bg); --card-accent: var(--swatch-mono-accent); }
+.theme-card--tangerine { --card-bg: var(--swatch-tangerine-bg); --card-accent: var(--swatch-tangerine-accent); }
+.theme-card--ocean { --card-bg: var(--swatch-ocean-bg); --card-accent: var(--swatch-ocean-accent); }
+.theme-card--midnight { --card-bg: var(--swatch-midnight-bg); --card-accent: var(--swatch-midnight-accent); }
+.theme-card--plum { --card-bg: var(--swatch-plum-bg); --card-accent: var(--swatch-plum-accent); }
+.theme-card--wine { --card-bg: var(--swatch-wine-bg); --card-accent: var(--swatch-wine-accent); }
+.theme-card--cocoa { --card-bg: var(--swatch-cocoa-bg); --card-accent: var(--swatch-cocoa-accent); }
+.theme-card--sage { --card-bg: var(--swatch-sage-bg); --card-accent: var(--swatch-sage-accent); }
 
 /* Eraser masks: keep everything, except where the eraser rubbed. */
 .decor__mask-keep {

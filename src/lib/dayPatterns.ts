@@ -19,6 +19,10 @@ export interface PatternMark {
   rotate?: number;
   /** The path's own centre (both axes), so it turns and scales in place. */
   origin?: number;
+  /** This mark as an outline at this width, whatever the tile does (a constellation's lines among filled stars). */
+  stroke?: number;
+  /** This mark's own strength (0..1) on top of the pattern's: where two such marks overlap it shows darker (a gingham check). */
+  alpha?: number;
 }
 
 export interface PatternTile {
@@ -30,6 +34,20 @@ export interface PatternTile {
   /** One upright rule at `x` from the area's left edge (not repeated): a notebook's margin. */
   margin?: { x: number; width: number };
 }
+
+/** A 4-point sparkle, in a 24-unit box. */
+const SPARKLE_PATH = 'M12 2Q13.6 10.4 22 12Q13.6 13.6 12 22Q10.4 13.6 2 12Q10.4 10.4 12 2Z';
+/** A puffy cloud, in a 24-unit box. */
+const CLOUD_PATH = 'M6.5 18.5a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 17.3 8.2a5.2 5.2 0 0 1 .9 10.3Z';
+/** Five round petals round an open middle, with a small centre dot, in a 24-unit box. */
+const FLOWER_PATH = [0, 1, 2, 3, 4]
+  .map((i) => {
+    const a = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+    const cx = 12 + 6.2 * Math.cos(a);
+    const cy = 12 + 6.2 * Math.sin(a);
+    return `M${(cx - 4.4).toFixed(2)} ${cy.toFixed(2)}a4.4 4.4 0 1 0 8.8 0a4.4 4.4 0 1 0 -8.8 0`;
+  })
+  .join('') + 'M10.2 12a1.8 1.8 0 1 0 3.6 0a1.8 1.8 0 1 0 -3.6 0';
 
 const dot = (cx: number, cy: number, r: number) => `M${cx - r} ${cy}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`;
 
@@ -87,6 +105,55 @@ function scatter(seed: number, size: number, groups: Scatter[]): PatternMark[] {
   return marks;
 }
 
+/**
+ * 밤하늘: a field of tiny stars and a few sparkles, two constellations (thin
+ * lines joining their stars), a ringed planet and a crescent moon, all kept
+ * inside one 320 tile so nothing is cut at a seam.
+ */
+function nightSky(): PatternMark[] {
+  const size = 320;
+  const marks: PatternMark[] = [];
+  // A constellation: its stars as dots, the lines between them as a thin outline.
+  const constellation = (pts: [number, number][]) => {
+    marks.push({ d: pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x} ${y}`).join(''), stroke: 1.4 });
+    for (const [x, y] of pts) marks.push({ d: dot(x, y, 2.6) });
+  };
+  constellation([[36, 52], [62, 40], [90, 58], [118, 46], [132, 76]]);
+  constellation([[214, 214], [238, 196], [262, 210], [252, 238], [226, 244]]);
+  // A planet with a tilted ring round it.
+  marks.push({ d: dot(250, 70, 13) });
+  marks.push({ d: 'M-24 0a24 7 0 1 0 48 0a24 7 0 1 0 -48 0', x: 250, y: 70, rotate: -18, stroke: 2.4 });
+  // A crescent moon.
+  marks.push({ d: 'M0 -16A16 16 0 1 0 0 16A12 13 0 1 1 0 -16Z', x: 76, y: 236, rotate: -20 });
+  // Tiny stars and sparkles in the gaps.
+  const rnd = seeded(23);
+  const taken: { x: number; y: number; r: number }[] = [
+    { x: 84, y: 58, r: 56 }, { x: 238, y: 220, r: 36 }, { x: 250, y: 70, r: 30 }, { x: 76, y: 236, r: 22 },
+  ];
+  const free = (x: number, y: number, r: number) =>
+    taken.every((t) => {
+      const dx = Math.min(Math.abs(t.x - x), size - Math.abs(t.x - x));
+      const dy = Math.min(Math.abs(t.y - y), size - Math.abs(t.y - y));
+      return Math.hypot(dx, dy) > t.r + r + 8;
+    });
+  const place = (count: number, r: [number, number], make: (x: number, y: number, r: number) => PatternMark) => {
+    for (let i = 0; i < count; i++) {
+      for (let tries = 0; tries < 60; tries++) {
+        const rr = r[0] + rnd() * (r[1] - r[0]);
+        const x = rr + 2 + rnd() * (size - 2 * rr - 4);
+        const y = rr + 2 + rnd() * (size - 2 * rr - 4);
+        if (!free(x, y, rr)) continue;
+        taken.push({ x, y, r: rr });
+        marks.push(make(x, y, rr));
+        break;
+      }
+    }
+  };
+  place(7, [5, 9], (x, y, r) => ({ d: SPARKLE_PATH, x, y, scale: r / 10, origin: 12 }));
+  place(30, [0.9, 1.9], (x, y, r) => ({ d: dot(x, y, r) }));
+  return marks;
+}
+
 // Spaced out and bold enough to read at a glance on the page, like the
 // previews in the 꾸미기 sheet, while staying a backdrop.
 export const PATTERN_TILES: Record<Exclude<PatternId, 'none'>, PatternTile> = {
@@ -105,6 +172,29 @@ export const PATTERN_TILES: Record<Exclude<PatternId, 'none'>, PatternTile> = {
     stroke: 4,
     marks: [{ d: 'M0 16Q16 6 32 16T64 16' }, { d: 'M0 48Q16 38 32 48T64 48' }],
     flow: { x: 64, y: 0, seconds: 5 },
+  },
+  // 체크무늬: see-through bands both ways, darker where they cross (gingham).
+  check: {
+    size: 40,
+    marks: [
+      { d: 'M0 0H40V16H0Z', alpha: 0.55 },
+      { d: 'M0 0H16V40H0Z', alpha: 0.55 },
+    ],
+  },
+  // 체크보드: a chessboard.
+  checker: { size: 48, marks: [{ d: 'M0 0H24V24H0ZM24 24H48V48H24Z' }] },
+  // 밤하늘: stars, constellations, a planet and the moon, drifting slowly.
+  night: { size: 320, marks: nightSky(), flow: { x: -320, y: 0, seconds: 90 } },
+  // 구름: puffy clouds drifting sideways.
+  clouds: {
+    size: 320,
+    marks: scatter(17, 320, [{ kind: { path: CLOUD_PATH }, count: 7, r: [16, 28] }]),
+    flow: { x: 320, y: 0, seconds: 70 },
+  },
+  // 꽃: flowers scattered at random sizes and turns.
+  flowers: {
+    size: 320,
+    marks: scatter(29, 320, [{ kind: { path: FLOWER_PATH }, count: 14, r: [8, 15], turn: 36 }]),
   },
   // Scattered over a big tile rather than in rows (see `scatter`).
   hearts: {
@@ -159,17 +249,21 @@ export function paintPattern(
   ctx.fillStyle = color;
   ctx.strokeStyle = color;
   ctx.lineCap = 'round';
-  if (tile.stroke) ctx.lineWidth = tile.stroke;
+  ctx.lineJoin = 'round';
   for (let ty = 0; ty < area.h / unit; ty += tile.size) {
     for (let tx = 0; tx < area.w / unit; tx += tile.size) {
       for (const { m, path } of paths) {
+        const stroke = m.stroke ?? tile.stroke;
         ctx.save();
+        ctx.globalAlpha = PATTERN_ALPHA * (m.alpha ?? 1);
         ctx.translate(tx + (m.x ?? 0), ty + (m.y ?? 0));
         ctx.rotate(((m.rotate ?? 0) * Math.PI) / 180);
         ctx.scale(m.scale ?? 1, m.scale ?? 1);
         ctx.translate(-(m.origin ?? 0), -(m.origin ?? 0));
-        if (tile.stroke) ctx.stroke(path);
-        else ctx.fill(path);
+        if (stroke) {
+          ctx.lineWidth = stroke;
+          ctx.stroke(path);
+        } else ctx.fill(path);
         ctx.restore();
       }
     }

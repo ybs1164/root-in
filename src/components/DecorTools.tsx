@@ -228,7 +228,9 @@ const PEN_ICONS: Record<PenTool, typeof PenLine> = {
 
 // Previews shrink some patterns to fit a small card: the grid reads as zoomed
 // in at full size, and the scattered ones would show only a mark or two.
-const PREVIEW_SCALE: Partial<Record<PatternId, number>> = { grid: 0.7, hearts: 0.55, stars: 0.55, snow: 0.55, drops: 0.55 };
+const PREVIEW_SCALE: Partial<Record<PatternId, number>> = {
+  grid: 0.7, check: 0.7, checker: 0.7, hearts: 0.55, stars: 0.55, snow: 0.55, drops: 0.55, night: 0.55, clouds: 0.55, flowers: 0.55,
+};
 
 const WIDTH_LABELS: Record<PenWidth, string> = { thin: '가늘게', medium: '보통', thick: '굵게' };
 
