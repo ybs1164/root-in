@@ -4500,8 +4500,8 @@ button:disabled {
 }
 
 /* A luggage tag on its side, stuck to the screen's edge: the map's way to
-   the calendar (left) and the calendar's way back (right). White, the
-   shadow on the outline (the eyelet stays clear). */
+   the calendar (left) and the calendar's way back (right). White with a
+   blue icon and eyelet, its inner end a round arc. */
 .edge-tag {
   position: absolute;
   /* Well above the row of round buttons. */
@@ -4512,7 +4512,7 @@ button:disabled {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--on-accent);
+  color: var(--accent);
   filter: drop-shadow(var(--ticket-shadow));
   transition: scale 0.12s ease;
 }
@@ -4544,16 +4544,16 @@ button:disabled {
   overflow: visible;
 }
 
-/* Blue, corners lightly rounded by a same-colour round-joined stroke. */
+/* White, the flat end's corners lightly rounded by a same-colour round-joined stroke. */
 .edge-tag__body {
-  fill: var(--accent);
-  stroke: var(--accent);
+  fill: var(--surface);
+  stroke: var(--surface);
   stroke-width: 5;
   stroke-linejoin: round;
 }
 
 .edge-tag__eyelet {
-  fill: var(--on-accent);
+  fill: var(--accent);
 }
 
 /* The icon on the tag's body, clear of the eyelet. */
@@ -4599,20 +4599,20 @@ button:disabled {
 
 .bar-pin {
   left: 50%;
-  width: 72px;
-  height: 72px;
-  margin-left: -36px;
+  width: 80px;
+  height: 80px;
+  margin-left: -40px;
   background: var(--accent);
   color: var(--on-accent);
 }
 
 .bar-aim {
   /* Just right of the blue pin, sitting a little higher than its bottom
-     (the pin hangs 4px below the row). */
+     (the pin hangs 8px below the row). */
   top: auto;
-  bottom: 6px;
+  bottom: 2px;
   translate: none;
-  left: calc(50% + 36px + 12px);
+  left: calc(50% + 40px + 12px);
   width: 44px;
   height: 44px;
   background: var(--surface);
@@ -5748,6 +5748,17 @@ button:disabled {
   box-shadow: var(--shadow); /* shows as the page slides off the map */
   /* Vertical scrolling stays native; sideways moves are the swipe home. */
   touch-action: pan-y;
+}
+
+/* Opened from the map's left-edge tag: the page sweeps in from that side. */
+.page--enter {
+  animation: page-in-left 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes page-in-left {
+  from {
+    transform: translateX(-100%);
+  }
 }
 
 .page__head {

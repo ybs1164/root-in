@@ -849,7 +849,8 @@ export default function App() {
     const pop = () => {
       if (!calendarEntry.current) return;
       calendarEntry.current = false;
-      changeTab('pins');
+      if (onPage) swipe.leave();
+      else changeTab('pins');
     };
     window.addEventListener('popstate', pop);
     return () => window.removeEventListener('popstate', pop);
@@ -873,6 +874,17 @@ export default function App() {
   const onPage = showsPage(tab, Boolean(searchOpen || preview));
   // Swiping 달력 left slides the page off and uncovers the map (핀).
   const swipe = usePageSwipe(onPage && !decorating && !studio ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
+
+  // The tags between the two screens slide the page rather than cut: in from
+  // the left on the way to 달력, back off to the left on the way to the map.
+  const [pageEnter, setPageEnter] = useState(false);
+  const tagTab = (next: AppTab) => {
+    if (next === 'calendar') {
+      setPageEnter(true);
+      changeTab('calendar');
+    } else if (onPage) swipe.leave();
+    else changeTab(next);
+  };
 
   // The tab buttons step aside for a 꾸미기 tool's tray, for the 경로 폴더, and under the 꾸미기 screen.
   const barAway = (decorating && calendarZoom && onPage) || routeMode || !!studio;
@@ -1132,7 +1144,15 @@ export default function App() {
       )}
 
       {onPage ? (
-        <section className="page" aria-label={PAGE_TITLES[tab]} style={swipe.style} {...swipe.handlers}>
+        <section
+          className={`page ${pageEnter ? 'page--enter' : ''}`}
+          aria-label={PAGE_TITLES[tab]}
+          style={swipe.style}
+          onAnimationEnd={(e) => {
+            if (e.target === e.currentTarget) setPageEnter(false);
+          }}
+          {...swipe.handlers}
+        >
           {calendarZoom && <DayPattern pattern={dayPattern} />}
           <header className="page__head">
             {/* The calendar's own TODAY / DAY n heading takes the stage. */}
@@ -1175,7 +1195,7 @@ export default function App() {
       )}
 
       <div ref={barEl} className={`bottom-bar-wrap ${barAway ? 'is-away' : ''}`} inert={barAway}>
-        <BottomBar tab={swipe.leaving ? 'pins' : tab} onTab={changeTab} onPin={startPinning} onAim={startAiming} />
+        <BottomBar tab={swipe.leaving ? 'pins' : tab} onTab={tagTab} onPin={startPinning} onAim={startAiming} />
       </div>
 
       {routeDeleting && course.courses.some((c) => c.id === routeDeleting) && (

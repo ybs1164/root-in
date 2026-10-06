@@ -90,6 +90,19 @@ export function usePageSwipe(dir: -1 | 0 | 1, onLeave: () => void) {
     }
   };
 
+  /** The same slide off, without a finger: the calendar's tag back to the map, or the phone's back button. */
+  const leave = () => {
+    if (phase === 'leaving') return;
+    track.current = null;
+    setPhase('leaving');
+    setDx((dir || -1) * width());
+    window.setTimeout(() => {
+      onLeave();
+      setPhase('idle');
+      setDx(0);
+    }, LEAVE_MS);
+  };
+
   const style: CSSProperties =
     phase === 'idle'
       ? {}
@@ -102,6 +115,7 @@ export function usePageSwipe(dir: -1 | 0 | 1, onLeave: () => void) {
     /** True from release until the page is gone: the bottom bar can move to 핀 already. */
     leaving: phase === 'leaving',
     style,
+    leave,
     handlers: { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel: reset },
   };
 }
