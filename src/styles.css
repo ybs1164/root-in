@@ -2464,10 +2464,11 @@ button:disabled {
 .studio__actions {
   position: absolute;
   left: 50%;
-  bottom: calc(var(--safe-bottom) + 18px);
+  /* Bottoms level: the small two stay where they were, 공유 rises to them. */
+  bottom: calc(var(--safe-bottom) + 28px);
   z-index: 3;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 22px;
   translate: -50% 0;
   transition: transform 0.24s ease;
