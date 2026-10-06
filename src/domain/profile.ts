@@ -40,7 +40,7 @@ export function defaultHandle(userId: string): string {
   return `user${tail || '000000'}`;
 }
 
-// 알림 설정 → 핑 알림: the hours of the day a ping reminder may come. Each can
+// 알림 설정 → 투데이 알림: the hours of the day a ping reminder may come. Each can
 // be switched on or off on its own; all are on until switched off.
 export const PING_ALERT_HOURS = [7, 9, 12, 16, 20, 23] as const;
 

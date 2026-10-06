@@ -63,6 +63,11 @@
   --hue-shade: #000000;
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
   --backdrop: rgba(0, 0, 0, 0.4);
+  /* 출발 안내판 (알림 설정's hour switches): a navy board of flip cells, the lit ones blue. */
+  --board: #1b2440;
+  --board-cell: #2a3456;
+  --board-off: rgba(255, 255, 255, 0.5);
+  --board-split: rgba(10, 14, 28, 0.55);
   --step-arrow: #c3cad8; /* the < > beside a route's name: light grey, no button behind */
 }
 
@@ -5279,7 +5284,9 @@ button:disabled {
   font-size: 13px;
 }
 
-/* 알림 설정 → 핑 알림: a label, then one chip per hour that flips on / off. */
+/* 알림 설정 → 투데이 알림: a 출발 안내판 — one navy board of flip cells, one
+   per hour. A thin line across each cell's middle reads as a split-flap
+   board; only the lit cells turn blue. */
 .alerts__row {
   display: flex;
   flex-direction: column;
@@ -5294,24 +5301,38 @@ button:disabled {
 .alerts__hours {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 6px;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 12px;
+  background: var(--board);
 }
 
 .alerts__hour {
+  position: relative;
   min-width: 0;
   min-height: 44px;
   padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--muted);
+  border: 0;
+  border-radius: 7px;
+  background: var(--board-cell);
+  color: var(--board-off);
   font: inherit;
   font-size: 14px;
   cursor: pointer;
 }
 
+.alerts__hour::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--board-split);
+  pointer-events: none;
+}
+
 .alerts__hour.is-on {
-  border-color: var(--accent);
   background: var(--accent);
   color: var(--on-accent);
 }

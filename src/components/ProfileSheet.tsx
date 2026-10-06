@@ -84,8 +84,8 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
         <section id="profile-alerts" className="privacy alerts" aria-label="알림 설정">
           <h3 className="privacy__title">알림 설정</h3>
           <p className="privacy__desc">특정 시간대의 알림을 켜거나 끌 수 있어요.</p>
-          <div className="alerts__row" role="group" aria-label="핑 알림">
-            <span className="alerts__label">핑 알림</span>
+          <div className="alerts__row" role="group" aria-label="투데이 알림">
+            <span className="alerts__label">투데이 알림</span>
             <div className="alerts__hours">
               {PING_ALERT_HOURS.map((hour) => {
                 const on = profile.pingAlerts.includes(hour);

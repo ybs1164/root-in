@@ -11,7 +11,7 @@ export interface Profile {
   photo: string | null;
   /** The popup's top-right switch: 소리 (false = 음소거). On until switched off. */
   sound: boolean;
-  /** 알림 설정 → 핑 알림: the hours switched on (PING_ALERT_HOURS), all until switched off. */
+  /** 알림 설정 → 투데이 알림: the hours switched on (PING_ALERT_HOURS), all until switched off. */
   pingAlerts: number[];
 }
 
