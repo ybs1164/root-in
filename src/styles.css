@@ -2282,7 +2282,7 @@ button:disabled {
      tag back to the map (rendered on the body: the page clips above that row). */
   position: fixed;
   left: 50%;
-  bottom: calc(var(--safe-bottom) + 20px);
+  bottom: calc(var(--safe-bottom) + 36px);
   z-index: 12;
   margin-left: -32px;
   animation: none;
@@ -4485,7 +4485,7 @@ button:disabled {
     translate 0.22s ease,
     opacity 0.18s ease;
   /* Lifted off the screen's edge, easier to reach. */
-  padding-bottom: calc(var(--safe-bottom) + 20px);
+  padding-bottom: calc(var(--safe-bottom) + 36px);
   /* No bar: only the round buttons take touches. */
   pointer-events: none;
 }
@@ -4544,19 +4544,16 @@ button:disabled {
   overflow: visible;
 }
 
-/* Blue, every corner rounded by a thick same-colour round-joined stroke. */
+/* Blue, corners lightly rounded by a same-colour round-joined stroke. */
 .edge-tag__body {
   fill: var(--accent);
   stroke: var(--accent);
-  stroke-width: 12;
+  stroke-width: 5;
   stroke-linejoin: round;
 }
 
 .edge-tag__eyelet {
-  fill: none;
-  stroke: var(--on-accent);
-  stroke-width: 1.8;
-  opacity: 0.75;
+  fill: var(--on-accent);
 }
 
 /* The icon on the tag's body, clear of the eyelet. */
@@ -4610,9 +4607,10 @@ button:disabled {
 }
 
 .bar-aim {
-  /* Just right of the blue pin, bottoms level (the pin hangs 4px below the row). */
+  /* Just right of the blue pin, sitting a little higher than its bottom
+     (the pin hangs 4px below the row). */
   top: auto;
-  bottom: -4px;
+  bottom: 6px;
   translate: none;
   left: calc(50% + 36px + 12px);
   width: 44px;
@@ -5733,7 +5731,7 @@ button:disabled {
 /* MapLibre fallback: keep attribution clear of the sheet on phones. */
 .maplibregl-ctrl-bottom-right,
 .maplibregl-ctrl-bottom-left {
-  bottom: calc(var(--sheet-peek) + var(--bar-h) + var(--safe-bottom) + 34px);
+  bottom: calc(var(--sheet-peek) + var(--bar-h) + var(--safe-bottom) + 50px);
 }
 
 /* ---------- Tab pages (달력): full screens, no map ---------- */
@@ -6256,7 +6254,7 @@ button:disabled {
   .app--sheet-top .maplibregl-ctrl-bottom-right,
   .app--sheet-top .maplibregl-ctrl-bottom-left {
     /* Above the lifted row of round buttons (the big pin). */
-    bottom: calc(var(--bar-h) + var(--safe-bottom) + 34px);
+    bottom: calc(var(--bar-h) + var(--safe-bottom) + 50px);
   }
 }
 

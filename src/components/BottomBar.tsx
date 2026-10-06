@@ -1,7 +1,6 @@
-import { Crosshair, MapPin } from 'lucide-react';
-import { useId, type ReactNode } from 'react';
+import { CalendarDays, Crosshair, MapPin } from 'lucide-react';
+import type { ReactNode } from 'react';
 import type { AppTab } from '../domain/appTabs';
-import { CalendarToday } from './icons';
 
 interface BottomBarProps {
   tab: AppTab;
@@ -14,24 +13,16 @@ interface BottomBarProps {
 
 /**
  * A luggage tag lying on its side, its flat end tucked off the screen's
- * edge and its pointed end (with the eyelet) pointing in. The eyelet is cut
- * out with a mask (a stroked hole would fill it), so the shadow follows the outline.
+ * edge and its pointed end (with the eyelet) pointing in.
  */
 function EdgeTag({ side, label, icon, onClick }: { side: 'left' | 'right'; label: string; icon: ReactNode; onClick: () => void }) {
-  const hole = `tag-hole-${useId().replace(/:/g, '')}`;
   return (
     <button className={`edge-tag edge-tag--${side}`} aria-label={label} onClick={onClick}>
       <svg className="edge-tag__shape" viewBox="0 0 80 54" aria-hidden>
-        {/* A long body and a pointed end, every corner well rounded (a thick round-joined stroke);
-            the eyelet a hole with a light ring round it. */}
-        <defs>
-          <mask id={hole} maskUnits="userSpaceOnUse" x="-20" y="-10" width="110" height="74">
-            <rect x="-20" y="-10" width="110" height="74" fill="#fff" />
-            <circle cx="61" cy="27" r="3" fill="#000" />
-          </mask>
-        </defs>
-        <path className="edge-tag__body" d="M-8 6H47L70 27L47 48H-8Z" mask={`url(#${hole})`} />
-        <circle className="edge-tag__eyelet" cx="61" cy="27" r="4.6" />
+        {/* A body and a short pointed end, corners lightly rounded (a round-joined
+            stroke of the same colour); the eyelet a plain white dot. */}
+        <path className="edge-tag__body" d="M-8 3H58L77 27L58 51H-8Z" />
+        <circle className="edge-tag__eyelet" cx="64" cy="27" r="4.2" />
       </svg>
       <span className="edge-tag__icon" aria-hidden>
         {icon}
@@ -51,7 +42,7 @@ export default function BottomBar({ tab, onTab, onPin, onAim }: BottomBarProps) 
     <nav className="bottom-bar" aria-label="메뉴">
       {tab === 'pins' ? (
         <>
-          <EdgeTag side="left" label="달력" icon={<CalendarToday />} onClick={() => onTab('calendar')} />
+          <EdgeTag side="left" label="달력" icon={<CalendarDays aria-hidden />} onClick={() => onTab('calendar')} />
           <button className="bar-pin" aria-label="지도에 핀 꽂기" onClick={onPin}>
             <MapPin size={34} strokeWidth={2.2} aria-hidden />
           </button>
