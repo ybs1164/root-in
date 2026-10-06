@@ -63,6 +63,11 @@
   --hue-shade: #000000;
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
   --backdrop: rgba(0, 0, 0, 0.4);
+  /* 출발 안내판 (알림 설정's hour switches): a navy board of flip cells, the lit ones blue. */
+  --board: #1b2440;
+  --board-cell: #2a3456;
+  --board-off: rgba(255, 255, 255, 0.5);
+  --board-split: rgba(10, 14, 28, 0.55);
   --step-arrow: #c3cad8; /* the < > beside a route's name: light grey, no button behind */
 }
 
@@ -2236,6 +2241,14 @@ button:disabled {
   background: transparent;
   color: var(--text);
   filter: drop-shadow(var(--dialog-shadow));
+}
+
+/* With its toggles open the profile can outgrow the screen: it scrolls
+   inside instead of running past the bottom where nothing can reach it. */
+.profile-sheet.ticket-dialog {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
 }
 
 .ticket-dialog[open] {
@@ -5269,6 +5282,178 @@ button:disabled {
   margin: 0;
   color: var(--danger);
   font-size: 13px;
+}
+
+/* 알림 설정 → 투데이 알림·공유수 알림: each a 출발 안내판 — one navy board of flip cells, one
+   per hour. A thin line across each cell's middle reads as a split-flap
+   board; only the lit cells turn blue. */
+.alerts__row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.alerts__head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.alerts__label {
+  flex: 1;
+  font-size: 14px;
+}
+
+/* 랜덤 · 전체: quiet text buttons at the row's right; the 44px target reaches past the small type. */
+.alerts__all {
+  position: relative;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.alerts__all::before {
+  content: '';
+  position: absolute;
+  inset: -10px -2px;
+}
+
+.alerts__all:active {
+  background: var(--accent-soft);
+}
+
+.alerts__hours {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  padding: 5px;
+  border-radius: 10px;
+  background: var(--board);
+}
+
+/* Short cells; the 44px touch target is made up by an invisible margin above and below. */
+.alerts__hour {
+  position: relative;
+  min-width: 0;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: var(--board-cell);
+  color: var(--board-off);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.alerts__hour::before {
+  content: '';
+  position: absolute;
+  inset: -7px 0;
+}
+
+/* The split line sits above the flaps, as on a real board. */
+.alerts__hour::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  /* A hairline: the gap between the two flaps, kept as thin as the screen draws. */
+  transform: translateY(-50%) scaleY(0.5);
+  background: var(--board-split);
+  pointer-events: none;
+}
+
+.alerts__hour.is-on {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.alerts__flip {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  /* The board shows through while a half is edge-on. */
+  background: var(--board);
+  pointer-events: none;
+}
+
+.alerts__face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--board-cell);
+  color: var(--board-off);
+  backface-visibility: hidden;
+}
+
+.alerts__face.is-on {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* Each half spins on its own middle: the top half on the upper quarter line,
+   the bottom on the lower one. */
+.alerts__face--top {
+  clip-path: inset(0 0 50% 0);
+  transform-origin: 50% 25%;
+}
+
+.alerts__face--bottom {
+  clip-path: inset(50% 0 0 0);
+  transform-origin: 50% 75%;
+}
+
+.alerts__face--out {
+  animation: alerts-spin-out 0.12s ease-in both;
+}
+
+.alerts__face--in {
+  animation: alerts-spin-in 0.12s 0.12s ease-out both;
+}
+
+/* The bottom half follows a beat behind the top. */
+.alerts__face--bottom.alerts__face--out {
+  animation-delay: 0.08s;
+}
+
+.alerts__face--bottom.alerts__face--in {
+  animation-delay: 0.2s;
+}
+
+@keyframes alerts-spin-out {
+  from {
+    transform: perspective(80px) rotateX(0deg);
+  }
+  to {
+    transform: perspective(80px) rotateX(90deg);
+  }
+}
+
+@keyframes alerts-spin-in {
+  from {
+    transform: perspective(80px) rotateX(-90deg);
+  }
+  to {
+    transform: perspective(80px) rotateX(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alerts__flip {
+    display: none;
+  }
 }
 
 /* Long lists scroll inside the popup rather than past the screen. */

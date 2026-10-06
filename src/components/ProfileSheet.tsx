@@ -1,12 +1,17 @@
-import { Bell, BellOff, ChevronDown, PenLine, UserRound, Volume2, VolumeX } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { handleProblem, PROFILE_LIMITS, sanitizeHandleInput } from '../domain/profile';
+import { ChevronDown, PenLine, UserRound, Volume2, VolumeX } from 'lucide-react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
+import { handleProblem, PING_ALERT_HOURS, PROFILE_LIMITS, sanitizeHandleInput, SHARE_ALERT_COUNTS, shareCountLabel } from '../domain/profile';
 import { avatarFromFile } from '../lib/avatarImage';
 import { getDisplayName, setDisplayName } from '../lib/currentUser';
 import type { Profile } from '../services/profileRepository';
 import { clearAppData } from '../services/settingsRepository';
 import { useBackdropTap } from '../hooks/useBackdropTap';
+import AlertBoard from './AlertBoard';
 import PrivacySection from './PrivacySection';
+
+/** 알림 설정's two boards: 투데이 알림 by hour, 공유수 알림 by share count. */
+const PING_STEPS = PING_ALERT_HOURS.map((hour) => ({ value: hour, text: `${hour}시` }));
+const SHARE_STEPS = SHARE_ALERT_COUNTS.map((count) => ({ value: count, text: shareCountLabel(count) }));
 
 interface ProfileSheetProps {
   profile: Profile;
@@ -39,6 +44,7 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
   const [note, setNote] = useState<string | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(!!privacyNotice);
+  const [alertsOpen, setAlertsOpen] = useState(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -65,6 +71,38 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
         <ChevronDown size={18} aria-hidden />
       </button>
       {privacyOpen && <PrivacySection {...privacy} notice={privacyNotice} />}
+    </>
+  );
+  // 알림 설정: which hours a ping reminder may come, each switched on its own.
+  const alertsPart = (
+    <>
+      <button
+        className={`profile__account ${alertsOpen ? 'is-open' : ''}`}
+        aria-expanded={alertsOpen}
+        aria-controls="profile-alerts"
+        onClick={() => setAlertsOpen((open) => !open)}
+      >
+        알림 설정
+        <ChevronDown size={18} aria-hidden />
+      </button>
+      {alertsOpen && (
+        <section id="profile-alerts" className="privacy alerts" aria-label="알림 설정">
+          <h3 className="privacy__title">알림 설정</h3>
+          <p className="privacy__desc">특정 알림을 켜거나 끌 수 있어요</p>
+          <AlertBoard
+            label="투데이 알림"
+            steps={PING_STEPS}
+            on={profile.pingAlerts}
+            onChange={(pingAlerts) => onChange({ ...profile, pingAlerts })}
+          />
+          <AlertBoard
+            label="공유수 알림"
+            steps={SHARE_STEPS}
+            on={profile.shareAlerts}
+            onChange={(shareAlerts) => onChange({ ...profile, shareAlerts })}
+          />
+        </section>
+      )}
     </>
   );
   // 로그아웃·탈퇴: folded away by default so they aren't one stray tap from the profile.
@@ -113,7 +151,7 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
       }}
     >
       <div className="profile ticket-dialog__main">
-        {/* Top right: 음소거 and 알림, each an icon that flips on / off. */}
+        {/* Top right: 음소거, an icon that flips on / off. */}
         <div className="profile__switches">
           <button
             className={`profile__switch ${profile.sound ? '' : 'is-off'}`}
@@ -122,14 +160,6 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
             onClick={() => onChange({ ...profile, sound: !profile.sound })}
           >
             {profile.sound ? <Volume2 size={20} aria-hidden /> : <VolumeX size={20} aria-hidden />}
-          </button>
-          <button
-            className={`profile__switch ${profile.alerts ? '' : 'is-off'}`}
-            aria-label="알림"
-            aria-pressed={profile.alerts}
-            onClick={() => onChange({ ...profile, alerts: !profile.alerts })}
-          >
-            {profile.alerts ? <Bell size={20} aria-hidden /> : <BellOff size={20} aria-hidden />}
           </button>
         </div>
         <div className="profile__photo">
@@ -185,21 +215,31 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
         {note && <p className="profile__note">{note}</p>}
       </div>
 
-      {/* Past the tear line: 제외 주소 설정, then 로그아웃·탈퇴. A toggle that's open
-          with another below it is torn off from it by a tear line of its own. */}
-      {privacyOpen ? (
-        <>
-          <div className="ticket-dialog__stub ticket-dialog__stub--mid profile__stub">{privacyPart}</div>
-          <div className="ticket-dialog__stub profile__stub">{accountPart}</div>
-        </>
-      ) : (
-        <div className="ticket-dialog__stub profile__stub">
-          {privacyPart}
-          {accountPart}
-        </div>
-      )}
+      {/* Past the tear line: 제외 주소 설정, 알림 설정, then 로그아웃·탈퇴. A toggle
+          that's open with another below it is torn off from it by a tear line of its own. */}
+      {tornStubs([
+        { part: privacyPart, open: privacyOpen },
+        { part: alertsPart, open: alertsOpen },
+        { part: accountPart, open: accountOpen },
+      ])}
     </dialog>
   );
+}
+
+/** The stub's toggles, grouped so each open one (but the last) ends its stub with a tear line. */
+function tornStubs(parts: { part: ReactNode; open: boolean }[]): ReactNode {
+  const stubs: ReactNode[][] = [[]];
+  parts.forEach(({ part, open }, i) => {
+    stubs[stubs.length - 1].push(part);
+    if (open && i < parts.length - 1) stubs.push([]);
+  });
+  return stubs.map((group, i) => (
+    <div key={i} className={`ticket-dialog__stub ${i < stubs.length - 1 ? 'ticket-dialog__stub--mid' : ''} profile__stub`}>
+      {group.map((part, j) => (
+        <Fragment key={j}>{part}</Fragment>
+      ))}
+    </div>
+  ));
 }
 
 interface EditLineProps {

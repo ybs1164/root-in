@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Course } from '../types/course';
-import { addFolder, deleteFolder, EMPTY_ROUTE_FOLDERS, moveFolder, folderOf, moveRoute, neighborRoute, neighborTab, nextFolderName, renameFolder, ROUTE_FOLDER_LIMITS, routesInTab, placeRoute, placeRoutes, gatherPlace, setFolderIcon } from './routeFolders';
+import { addFolder, centeredScrollLeft, deleteFolder, EMPTY_ROUTE_FOLDERS, moveFolder, folderOf, moveRoute, neighborRoute, neighborTab, nextFolderName, renameFolder, ROUTE_FOLDER_LIMITS, routesInTab, placeRoute, placeRoutes, gatherPlace, setFolderIcon } from './routeFolders';
 
 const course = (id: string, createdAt: string): Course => ({
   id, userId: 'u', title: id, theme: 'date', travelMode: 'walk', stops: [], createdAt,
@@ -123,5 +123,19 @@ describe('route folders', () => {
     expect(ids(placeRoutes(courses, state, 'all', picked, gatherPlace(courses, state, 'all', picked, '4')))).toEqual(['1', '3', '2', '4']);
     // Held 4, dragged above 1: the block goes to the top.
     expect(ids(placeRoutes(courses, state, 'all', picked, 0))).toEqual(['2', '4', '1', '3']);
+  });
+});
+
+describe('centeredScrollLeft', () => {
+  it('puts the tab in the middle of the row', () => {
+    // A 60px tab at 400 in a 300px view of 1000px: its centre (430) lands at 150.
+    expect(centeredScrollLeft(400, 60, 300, 1000)).toBe(280);
+  });
+  it('stops at either end when the middle is out of reach', () => {
+    expect(centeredScrollLeft(20, 60, 300, 1000)).toBe(0);
+    expect(centeredScrollLeft(930, 60, 300, 1000)).toBe(700);
+  });
+  it('stays put when every tab already fits', () => {
+    expect(centeredScrollLeft(200, 60, 300, 280)).toBe(0);
   });
 });
