@@ -1,4 +1,4 @@
-import { CalendarDays, Crosshair, MapPin } from 'lucide-react';
+import { CalendarDays, Crosshair, MapPin, Share } from 'lucide-react';
 import type { AppTab } from '../domain/appTabs';
 import { CalendarToday } from './icons';
 
@@ -14,6 +14,8 @@ interface BottomBarProps {
   onPin: () => void;
   /** The small crosshair at the pin's lower right: aim first, then pin. */
   onAim: () => void;
+  /** A day on the calendar: 공유 at the row's right end. */
+  onShare?: () => void;
 }
 
 /**
@@ -23,7 +25,7 @@ interface BottomBarProps {
  * button grows into the centre while the pin shrinks into the crosshair's
  * place, where it is the way back; the crosshair slides on and fades. The buttons stay mounted so the swap is animated.
  */
-export default function BottomBar({ tab, calendarMode, onCalendar, onMap, onPin, onAim }: BottomBarProps) {
+export default function BottomBar({ tab, calendarMode, onCalendar, onMap, onPin, onAim, onShare }: BottomBarProps) {
   const cal = tab === 'calendar';
   return (
     <nav className={`bottom-bar ${cal ? 'bottom-bar--cal' : ''}`} aria-label="메뉴">
@@ -41,6 +43,11 @@ export default function BottomBar({ tab, calendarMode, onCalendar, onMap, onPin,
       <button className="bar-btn bar-aim" aria-label="조준해서 핀 꽂기" onClick={onAim} tabIndex={cal ? -1 : undefined} aria-hidden={cal || undefined}>
         <Crosshair strokeWidth={2.2} aria-hidden />
       </button>
+      {onShare && (
+        <button className="bar-share" aria-label="공유" onClick={onShare}>
+          <Share size={24} strokeWidth={2.2} aria-hidden />
+        </button>
+      )}
     </nav>
   );
 }

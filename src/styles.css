@@ -1340,8 +1340,8 @@ button:disabled {
 }
 
 /* On the day screen the rail matches the map's 핀/경로 rail: 48px rounds,
-   10px apart, starting 12px under 공유 (in the profile's place; the calendar
-   area starts below the 56px page head). */
+   10px apart, in the same place (the calendar area starts below the 56px
+   page head). */
 .cal-zoom .decor-rail {
   top: 20px;
   right: 14px;
@@ -4623,6 +4623,33 @@ button:disabled {
   left: calc(50% + 48px);
 }
 
+/* On the calendar all the row's bottoms line up: the small pin drops level
+   with the big calendar button, and so does 공유 at the bottom-right corner. */
+.bottom-bar--cal .bar-pin {
+  bottom: -8px;
+}
+
+.bar-share {
+  position: absolute;
+  right: 16px;
+  bottom: -8px;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--round-btn-shadow);
+  transition: scale 0.12s ease;
+}
+
+.bar-share:active {
+  scale: 0.92;
+}
+
 .bottom-bar--cal .bar-aim {
   left: calc(50% + 100px);
   opacity: 0;
@@ -4941,29 +4968,6 @@ button:disabled {
   color: var(--muted);
 }
 
-/* The day screen's 공유 sits where the map's profile does (same size, same
-   corner), at the head of the 꾸미기 rail below it. */
-.page__share {
-  position: absolute;
-  top: calc(12px + var(--safe-top));
-  right: 12px;
-  z-index: 3;
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  box-shadow: var(--shadow-sm);
-  transition: scale 0.12s ease;
-}
-
-.page__share:active {
-  scale: 0.92;
-}
 
 .profile {
   display: flex;
