@@ -478,7 +478,7 @@ button:disabled {
 .app--aiming .search,
 .app--aiming .corner-btn,
 .app--aiming .pin-rail,
-.app--aiming .edge-tag,
+.app--aiming .bar-cal,
 .app--aiming .bar-aim,
 .app--aiming .place-card {
   visibility: hidden;
@@ -4500,111 +4500,9 @@ button:disabled {
   pointer-events: auto;
 }
 
-/* A luggage tag on its side, stuck to the screen's edge: the map's way to
-   the calendar (left) and the calendar's way back (right). White with a
-   blue icon and eyelet, its inner end a round arc. */
-.edge-tag {
-  position: absolute;
-  /* Well above the row of round buttons. */
-  bottom: calc(100% + 32px);
-  display: block;
-  width: 56px;
-  height: 54px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--accent);
-  filter: drop-shadow(var(--ticket-shadow));
-  transition: scale 0.12s ease;
-}
-
-.edge-tag--left {
-  left: 0;
-  transform-origin: left center;
-  /* Draggable to the right (pulls the calendar in): no browser pan on it. */
-  touch-action: none;
-}
-
-/* The same tag, turned to face in from the right edge. */
-.edge-tag--right {
-  right: 0;
-  transform-origin: right center;
-}
-
-.edge-tag--right .edge-tag__shape {
-  scale: -1 1;
-}
-
-.edge-tag:active {
-  scale: 0.95;
-}
-
-.edge-tag__shape {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  /* The flat end stops at the box: riding a sliding page, nothing pokes past its edge. */
-  overflow: hidden;
-}
-
-/* White paper. */
-.edge-tag__body {
-  fill: var(--surface);
-}
-
-/* On the page: the same height as on the map's row (row lift + row + gap). */
-.page > .edge-tag,
-.page-rider > .edge-tag {
-  bottom: calc(var(--safe-bottom) + 36px + var(--bar-h) + 32px);
-  z-index: 3;
-}
-
-/* A tag that appears (page landed, or the map uncovered) slides out of its edge, no overshoot. */
-.edge-tag--pop.edge-tag--left {
-  animation: tag-pop-left 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.edge-tag--pop.edge-tag--right {
-  animation: tag-pop-right 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-@keyframes tag-pop-left {
-  from {
-    translate: -100% 0;
-  }
-}
-
-@keyframes tag-pop-right {
-  from {
-    translate: 100% 0;
-  }
-}
-
-/* The icon on the tag's body, clear of the eyelet. */
-.edge-tag__icon {
-  position: absolute;
-  top: 50%;
-  display: grid;
-  translate: 0 -50%;
-}
-
-.edge-tag--left .edge-tag__icon {
-  left: 13px;
-}
-
-.edge-tag--right .edge-tag__icon {
-  right: 13px;
-}
-
-.edge-tag__icon svg {
-  width: 24px;
-  height: 24px;
-}
-
-/* The map row: the blue pin in the middle, the small white crosshair right beside it. */
+/* The map row: the blue pin in the middle, small white rounds either side. */
 .bar-pin,
-.bar-aim {
+.bar-side {
   position: absolute;
   top: 50%;
   display: grid;
@@ -4618,7 +4516,7 @@ button:disabled {
 }
 
 .bar-pin:active,
-.bar-aim:active {
+.bar-side:active {
   scale: 0.92;
 }
 
@@ -4632,17 +4530,57 @@ button:disabled {
   color: var(--on-accent);
 }
 
-.bar-aim {
-  /* At the blue pin's lower right, a touch above its bottom (the pin hangs
-     8px below the row), a small gap from its right side. */
+/* The small white rounds either side of the pin, a touch above its bottom
+   (the pin hangs 8px below the row), a small gap from it: the calendar at
+   its lower left, the crosshair at its lower right. */
+.bar-side {
   top: auto;
   bottom: -4px;
   translate: none;
-  left: calc(50% + 40px + 8px);
   width: 44px;
   height: 44px;
   background: var(--surface);
   color: var(--text);
+}
+
+.bar-cal {
+  right: calc(50% + 40px + 8px);
+  /* Draggable to the right (pulls the calendar in): no browser pan on it. */
+  touch-action: none;
+}
+
+.bar-aim {
+  left: calc(50% + 40px + 8px);
+}
+
+.bar-side svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* The calendar's way back, the same round left of its 공유 (64px, its
+   bottom 36px up): a touch above that bottom, a small gap from it. On the
+   full-screen page, so fixed lands where absolute would and it slides along. */
+.day-map {
+  position: fixed;
+  right: calc(50% + 32px + 8px);
+  bottom: calc(var(--safe-bottom) + 36px + 4px);
+  z-index: 27;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--round-btn-shadow);
+  transition: scale 0.12s ease;
+}
+
+.day-map:active {
+  scale: 0.92;
 }
 
 .calendar-today text {
@@ -5777,25 +5715,9 @@ button:disabled {
   touch-action: pan-y;
 }
 
-/* Opened from the map's left-edge tag: the page sweeps in from that side. */
+/* Opened from the map's calendar button: the page sweeps in from the left. */
 .page--enter {
   animation: page-in-left 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-/* Under the incoming page, moving with it: the map's tag hangs off its right edge. */
-.page-rider {
-  position: absolute;
-  inset: 0;
-  z-index: 25;
-  pointer-events: none;
-}
-
-.page-rider--enter {
-  animation: page-in-left 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.page-rider > .edge-tag {
-  left: 100%;
 }
 
 @keyframes page-in-left {

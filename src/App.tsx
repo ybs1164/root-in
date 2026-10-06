@@ -1,11 +1,11 @@
-import { Pencil, Share } from 'lucide-react';
+import { MapPin, Pencil, Share } from 'lucide-react';
 import type { PatternId, ThemeId } from './domain/decor';
 import DayPattern from './components/DayPattern';
 import ShareStudio from './components/ShareStudio';
 import ConfirmDialog from './components/ConfirmDialog';
 import { routeSubject, type ShareSubject } from './domain/shareSubject';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
-import BottomBar, { CalendarTagIcon, EdgeTag, MapTagIcon } from './components/BottomBar';
+import BottomBar from './components/BottomBar';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
 import NewPinCard, { type NewPinInput } from './components/NewPinCard';
 import PinCard from './components/PinCard';
@@ -1207,13 +1207,6 @@ export default function App() {
         />
       )}
 
-      {/* Coming in, the map's tag is pushed along by the page's right edge,
-          riding just under the page so its flat end stays hidden behind it. */}
-      {onPage && pageArriving && (
-        <div className={`page-rider ${pageEnter ? 'page-rider--enter' : ''}`} style={pullStyle} aria-hidden>
-          <EdgeTag ghost side="left" label="달력" icon={<CalendarTagIcon />} />
-        </div>
-      )}
       {onPage ? (
         <section
           className={`page ${pageEnter ? 'page--enter' : ''}`}
@@ -1225,10 +1218,12 @@ export default function App() {
           {...swipe.handlers}
         >
           {calendarZoom && <DayPattern pattern={dayPattern} />}
-          {/* The calendar's tag rides on the page: it pops out once the page has
-              landed and leaves with it. */}
-          {!pageArriving && calendarZoom && !decorating && (
-            <EdgeTag side="right" label="지도" icon={<MapTagIcon />} onClick={() => tagTab('pins')} />
+          {/* The way back to the map: a small white round left of 공유, on the
+              page so it slides with it. */}
+          {calendarZoom && !decorating && (
+            <button className="day-map" aria-label="지도" onClick={() => tagTab('pins')}>
+              <MapPin size={21} strokeWidth={2.2} aria-hidden />
+            </button>
           )}
           <header className="page__head">
             {/* The calendar's own TODAY / DAY n heading takes the stage. */}
@@ -1272,7 +1267,7 @@ export default function App() {
       )}
 
       <div ref={barEl} className={`bottom-bar-wrap ${barAway ? 'is-away' : ''}`} inert={barAway}>
-        <BottomBar tab={pageMoving ? 'pins' : tab} tagHidden={pageMoving} onTab={tagTab} onTagDrag={tagDrag} onPin={startPinning} onAim={startAiming} />
+        <BottomBar tab={pageMoving ? 'pins' : tab} onTab={tagTab} onTagDrag={tagDrag} onPin={startPinning} onAim={startAiming} />
       </div>
 
       {routeDeleting && course.courses.some((c) => c.id === routeDeleting) && (
