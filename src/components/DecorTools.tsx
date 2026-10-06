@@ -5,7 +5,6 @@ import {
   Bold,
   Brush,
   BrushCleaning,
-  Captions,
   ChevronDown,
   ChevronUp,
   Clock,
@@ -62,6 +61,17 @@ const RAIL: { tool: DecorTool; label: string; Icon: typeof Sticker }[] = [
   { tool: 'theme', label: '테마', Icon: Palette },
   { tool: 'pattern', label: '꾸미기', Icon: Wallpaper },
 ];
+/** 장소 이름 switch: a pin with a line of text above its head. */
+function PinName() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M7 3h10" />
+      <path d="M18 14c0 4-6 8-6 8s-6-4-6-8a6 6 0 0 1 12 0Z" />
+      <circle cx="12" cy="14" r="2" />
+    </svg>
+  );
+}
+
 /** The day screen's order: 텍스트 first. */
 const DAY_RAIL: typeof RAIL = ['text', 'sticker', 'pen', 'theme', 'pattern'].map((t) => RAIL.find((r) => r.tool === t)!);
 /** The share screen's own: how the polaroid lies on the image. */
@@ -108,7 +118,7 @@ export function DecorRail({
             aria-pressed={labels.names}
             onClick={labels.onNames}
           >
-            <Captions size={20} aria-hidden />
+            <PinName />
           </button>
           <button
             className={`decor-rail__btn decor-rail__switch ${labels.times ? '' : 'is-off'}`}

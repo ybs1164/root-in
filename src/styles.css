@@ -2433,13 +2433,9 @@ button:disabled {
   place-items: center;
 }
 
-/* A tool's sheet is up (a quarter of the screen, the theme's 30%): the card
-   shrinks to stay above it. */
+/* The scene always sits where it would with a tool's sheet up, so opening
+   a tool doesn't move it (the action buttons sit in the room below it). */
 .studio__stage {
-  transition: padding-bottom 0.24s ease;
-}
-
-.studio.is-tooling .studio__stage {
   padding-bottom: calc(30dvh + 12px);
 }
 
