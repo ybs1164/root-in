@@ -4638,6 +4638,21 @@ button:disabled {
 
 .bar-aim {
   left: calc(50% + 48px);
+  transform-origin: 50% 100%;
+}
+
+/* Back from the calendar it grows up from its own bottom as it slides in
+   from the right, fading in (played once, BottomBar's is-back). */
+.bar-aim.is-back {
+  animation: aim-back 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes aim-back {
+  from {
+    left: calc(50% + 100px);
+    opacity: 0;
+    scale: 0;
+  }
 }
 
 /* Everything moves right on the way to the calendar (and back left): the
@@ -4674,10 +4689,17 @@ button:disabled {
 }
 
 .bottom-bar--cal .bar-aim {
+  /* Off to the calendar: all at once it moves right, shrinks into its own
+     bottom-right corner and fades — the fade done before the shrink is. */
   left: calc(50% + 100px);
   opacity: 0;
-  scale: 0.6;
+  scale: 0;
+  transform-origin: 100% 100%;
   pointer-events: none;
+  transition:
+    left 0.3s cubic-bezier(0.4, 0, 0.6, 1),
+    scale 0.24s cubic-bezier(0.4, 0, 0.6, 1),
+    opacity 0.16s ease-out;
 }
 
 /* Over the calendar page, the app's row sits above it (the page's own row
