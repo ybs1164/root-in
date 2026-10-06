@@ -4,7 +4,7 @@ import DayPattern from './components/DayPattern';
 import ShareStudio from './components/ShareStudio';
 import ConfirmDialog from './components/ConfirmDialog';
 import { routeSubject, type ShareSubject } from './domain/shareSubject';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import BottomBar, { CalendarTagIcon, EdgeTag, MapTagIcon } from './components/BottomBar';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
 import NewPinCard, { type NewPinInput } from './components/NewPinCard';
@@ -21,7 +21,7 @@ import ProfileSheet, { ProfileAvatar } from './components/ProfileSheet';
 import CategorySheet from './components/CategorySheet';
 import SharedRouteDialog from './components/SharedRouteDialog';
 import { visibleCenter } from './domain/adminAreas';
-import { homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
+import { homeSwipeDirection, PAGE_TITLES, showsPage, SWIPE, swipeCommits, tabForIncoming, type AppTab } from './domain/appTabs';
 import { COURSE_LIMITS } from './domain/course';
 import type { MapViewport } from './domain/districtMap';
 import { categoryStyle, filterPinsByCategories, isUncategorized, UNCATEGORIZED } from './domain/pin';
@@ -63,6 +63,9 @@ const FOLDER_LOWERED_PX = 324;
 const PINS_FADE_MS = 250;
 /** A route stepped to with < > glides over as fast as its name slides in (RouteTitle SLIDE_MS). */
 const STEP_GLIDE_MS = 260;
+
+/** How long a let-go tag-drag takes to land the calendar page or slide it back. */
+const PULL_GLIDE_MS = 260;
 
 export default function App() {
   const mapEl = useRef<HTMLDivElement | null>(null);
@@ -175,8 +178,13 @@ export default function App() {
   const swipe = usePageSwipe(onPage && !decorating && !studio ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
   // The calendar page sliding in over the map (from the left-edge tag).
   const [pageEnter, setPageEnter] = useState(false);
+  // …or pulled in by dragging the map's tag: the page's offset (px, ≤ 0), and
+  // whether it is gliding (released) rather than following the finger.
+  const [pull, setPull] = useState<{ x: number; glide: boolean } | null>(null);
+  // While the page is coming in, the calendar's own tag and the day's intro wait.
+  const pageArriving = pageEnter || pull !== null;
   // While the page slides in or out, the map screen under it stays whole.
-  const pageMoving = pageEnter || swipe.moving;
+  const pageMoving = pageArriving || swipe.moving;
   const onPinHome = tab === 'pins';
   // The map's own things (pins, rail, row) show on the map, and under a moving page.
   const mapUi = onPinHome || pageMoving;
@@ -891,6 +899,57 @@ export default function App() {
     else changeTab(next);
   };
 
+  // Dragging the map's tag to the right pulls the calendar page in after it;
+  // let go far enough (or with a flick) and it lands, otherwise it slides back.
+  const tagDrag = (e: ReactPointerEvent) => {
+    if (e.button !== 0) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const width = window.innerWidth;
+    let started = false;
+    let last = { x: startX, t: performance.now() };
+    let prev = last;
+    const move = (ev: PointerEvent) => {
+      if (ev.pointerId !== e.pointerId) return;
+      const dx = ev.clientX - startX;
+      if (!started) {
+        if (Math.abs(dx) < SWIPE.startPx && Math.abs(ev.clientY - startY) < SWIPE.startPx) return;
+        if (dx <= 0 || Math.abs(dx) < Math.abs(ev.clientY - startY)) return end();
+        started = true;
+        changeTab('calendar');
+      }
+      prev = last;
+      last = { x: ev.clientX, t: performance.now() };
+      setPull({ x: Math.min(0, Math.max(-width, dx - width)), glide: false });
+    };
+    const up = (ev: PointerEvent) => {
+      if (ev.pointerId !== e.pointerId) return;
+      end();
+      if (!started) return;
+      const velocity = (last.x - prev.x) / Math.max(1, last.t - prev.t);
+      const lands = swipeCommits(1, last.x - startX, width, velocity);
+      setPull({ x: lands ? 0 : -width, glide: true });
+      window.setTimeout(() => {
+        setPull(null);
+        if (!lands) changeTab('pins');
+      }, PULL_GLIDE_MS);
+    };
+    function end() {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    }
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+  };
+  const pullStyle: CSSProperties | undefined = pull
+    ? {
+        transform: `translateX(${pull.x}px)`,
+        transition: pull.glide ? `transform ${PULL_GLIDE_MS}ms cubic-bezier(0.2, 0.8, 0.2, 1)` : 'none',
+      }
+    : undefined;
+
   // The tab buttons step aside for a 꾸미기 tool's tray, for the 경로 폴더, and under the 꾸미기 screen.
   const barAway = (decorating && calendarZoom && onPage) || routeMode || !!studio;
   // 공유 before 집 is set (it's required) opens the profile on 개인 정보 instead.
@@ -1150,8 +1209,8 @@ export default function App() {
 
       {/* Coming in, the map's tag is pushed along by the page's right edge,
           riding just under the page so its flat end stays hidden behind it. */}
-      {onPage && pageEnter && (
-        <div className="page-rider" aria-hidden>
+      {onPage && pageArriving && (
+        <div className={`page-rider ${pageEnter ? 'page-rider--enter' : ''}`} style={pullStyle} aria-hidden>
           <EdgeTag ghost side="left" label="달력" icon={<CalendarTagIcon />} />
         </div>
       )}
@@ -1159,7 +1218,7 @@ export default function App() {
         <section
           className={`page ${pageEnter ? 'page--enter' : ''}`}
           aria-label={PAGE_TITLES[tab]}
-          style={swipe.style}
+          style={pullStyle ?? swipe.style}
           onAnimationEnd={(e) => {
             if (e.target === e.currentTarget) setPageEnter(false);
           }}
@@ -1168,7 +1227,7 @@ export default function App() {
           {calendarZoom && <DayPattern pattern={dayPattern} />}
           {/* The calendar's tag rides on the page: it pops out once the page has
               landed and leaves with it. */}
-          {!pageEnter && calendarZoom && !decorating && (
+          {!pageArriving && calendarZoom && !decorating && (
             <EdgeTag side="right" label="지도" icon={<MapTagIcon />} onClick={() => tagTab('pins')} />
           )}
           <header className="page__head">
@@ -1188,7 +1247,7 @@ export default function App() {
               onDayTheme={setDayTheme}
               onDayPattern={setDayPattern}
               onMode={setCalendarMode}
-              holdIntro={pageEnter}
+              holdIntro={pageArriving}
             />
           ) : null}
         </section>
@@ -1213,7 +1272,7 @@ export default function App() {
       )}
 
       <div ref={barEl} className={`bottom-bar-wrap ${barAway ? 'is-away' : ''}`} inert={barAway}>
-        <BottomBar tab={pageMoving ? 'pins' : tab} tagHidden={pageMoving} onTab={tagTab} onPin={startPinning} onAim={startAiming} />
+        <BottomBar tab={pageMoving ? 'pins' : tab} tagHidden={pageMoving} onTab={tagTab} onTagDrag={tagDrag} onPin={startPinning} onAim={startAiming} />
       </div>
 
       {routeDeleting && course.courses.some((c) => c.id === routeDeleting) && (

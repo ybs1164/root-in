@@ -4521,6 +4521,8 @@ button:disabled {
 .edge-tag--left {
   left: 0;
   transform-origin: left center;
+  /* Draggable to the right (pulls the calendar in): no browser pan on it. */
+  touch-action: none;
 }
 
 /* The same tag, turned to face in from the right edge. */
@@ -5770,7 +5772,6 @@ button:disabled {
   padding-top: var(--safe-top);
   padding-bottom: calc(var(--bar-h) + var(--safe-bottom) + 6px);
   background: var(--surface);
-  box-shadow: var(--shadow); /* shows as the page slides off the map */
   /* Vertical scrolling stays native; sideways moves are the swipe home. */
   touch-action: pan-y;
 }
@@ -5786,6 +5787,9 @@ button:disabled {
   inset: 0;
   z-index: 25;
   pointer-events: none;
+}
+
+.page-rider--enter {
   animation: page-in-left 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 

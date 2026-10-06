@@ -1,11 +1,13 @@
 import { Crosshair, MapPin } from 'lucide-react';
 import { CalendarToday } from './icons';
-import type { CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, PointerEvent, ReactNode } from 'react';
 import type { AppTab } from '../domain/appTabs';
 
 interface BottomBarProps {
   tab: AppTab;
   onTab: (tab: AppTab) => void;
+  /** Pressing the map's tag: dragging it right pulls the calendar in. */
+  onTagDrag?: (e: PointerEvent) => void;
   /** The blue pin in the middle of the map's row: a new pin where the map is looking. */
   onPin: () => void;
   /** The small crosshair at the map's bottom right: aim first, then pin. */
@@ -19,6 +21,7 @@ interface EdgeTagProps {
   label: string;
   icon: ReactNode;
   onClick?: () => void;
+  onPointerDown?: (e: PointerEvent) => void;
   /** A stand-in riding on a sliding page: not a button, and no pop. */
   ghost?: boolean;
   style?: CSSProperties;
@@ -28,7 +31,7 @@ interface EdgeTagProps {
  * A luggage tag lying on its side, its flat end tucked off the screen's
  * edge and its rounded end (with the eyelet hole) pointing in.
  */
-export function EdgeTag({ side, label, icon, onClick, ghost, style }: EdgeTagProps) {
+export function EdgeTag({ side, label, icon, onClick, onPointerDown, ghost, style }: EdgeTagProps) {
   return (
     <button
       className={`edge-tag edge-tag--${side} ${ghost ? 'edge-tag--ghost' : 'edge-tag--pop'}`}
@@ -36,6 +39,7 @@ export function EdgeTag({ side, label, icon, onClick, ghost, style }: EdgeTagPro
       aria-hidden={ghost || undefined}
       tabIndex={ghost ? -1 : undefined}
       onClick={onClick}
+      onPointerDown={onPointerDown}
       style={style}
     >
       <svg className="edge-tag__shape" viewBox="0 0 64 54" aria-hidden>
@@ -62,11 +66,11 @@ export const MapTagIcon = () => <MapPin aria-hidden />;
  * The calendar's own tag (back to the map) rides on its page, so it slides
  * with it.
  */
-export default function BottomBar({ tab, onTab, onPin, onAim, tagHidden }: BottomBarProps) {
+export default function BottomBar({ tab, onTab, onTagDrag, onPin, onAim, tagHidden }: BottomBarProps) {
   if (tab !== 'pins') return <nav className="bottom-bar" aria-label="메뉴" />;
   return (
     <nav className="bottom-bar" aria-label="메뉴">
-      {!tagHidden && <EdgeTag side="left" label="달력" icon={<CalendarTagIcon />} onClick={() => onTab('calendar')} />}
+      {!tagHidden && <EdgeTag side="left" label="달력" icon={<CalendarTagIcon />} onClick={() => onTab('calendar')} onPointerDown={onTagDrag} />}
       <button className="bar-pin" aria-label="지도에 핀 꽂기" onClick={onPin}>
         <MapPin size={38} strokeWidth={2.2} aria-hidden />
       </button>
