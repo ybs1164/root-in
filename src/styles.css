@@ -4429,7 +4429,13 @@ button:disabled {
 .pin-drop-btn svg {
   width: 40px;
   height: 51px;
+  overflow: visible;
   fill: currentColor;
+  /* A white rim round the pin (and its hole), drawn under the fill so it sits outside it. */
+  stroke: var(--surface);
+  stroke-width: 1.3px;
+  stroke-linejoin: round;
+  paint-order: stroke;
 }
 
 .pin-drop-btn:active {
