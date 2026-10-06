@@ -135,8 +135,10 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
       ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
     });
   }
+  // 없음 (bare): no paper and no photo ground — the drawing sits on the scene's own ground.
+  const bare = layout === 'bare';
   onCard(ctx, cards.front, () => {
-    drawPaper(ctx, c);
+    if (!bare) drawPaper(ctx, c);
     ctx.save();
     ctx.beginPath();
     ctx.rect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
@@ -145,10 +147,12 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
     // pattern, pin colours and pieces, in its own theme.
     withTheme(photo ? (photo.theme ?? 'default') : null, () => {
       const p = tokens();
-      const bg = photo ? p.page : p.photo;
-      ctx.fillStyle = bg;
-      ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
-      if (photo?.pattern) {
+      const bg = bare ? c.backdrop : photo ? p.page : p.photo;
+      if (!bare) {
+        ctx.fillStyle = bg;
+        ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
+      }
+      if (photo?.pattern && !bare) {
         ctx.save();
         ctx.translate(PHOTO.x, PHOTO.y);
         // Tiles at the size they have beside the day's drawing (its box is 360 css px at most).

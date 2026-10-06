@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Course } from '../types/course';
 import type { DayPing } from './dayPings';
-import { BACK_CARD, cardToScene, CLOTHESLINE, clotheslineY, DEFAULT_LAYOUT, DRAWING_BOX, FRONT_CARD, LAYOUT_CARDS, POLAROID, SCENE, sceneToCard, STRIP } from './polaroid';
+import { BACK_CARD, cardToScene, CLOTHESLINE, clotheslineY, DEFAULT_LAYOUT, DRAWING_BOX, POLAROID_LAYOUTS, FRONT_CARD, LAYOUT_CARDS, POLAROID, SCENE, sceneToCard, STRIP } from './polaroid';
 import type { ExcludedPlace } from './privacy';
 import { cardTitleText, dayCardTitle, daySubject, routeSubject, withCardTitle, withLayout } from './shareSubject';
 
@@ -139,6 +139,8 @@ describe('share cards', () => {
     const front = LAYOUT_CARDS[DEFAULT_LAYOUT].front;
     const strip = cardToScene(front, POLAROID.w / 2, STRIP.y + STRIP.h / 2);
     expect(DEFAULT_LAYOUT).toBe('ticket');
+    // 없음 (no card) sits right after the default.
+    expect(POLAROID_LAYOUTS.slice(0, 2).map((l) => l.label)).toEqual(['탑승권', '없음']);
     expect(Math.abs(fresh.texts![0].x * SCENE.w - strip.x)).toBeLessThan(20);
     expect(Math.abs(fresh.texts![0].y * SCENE.h - strip.y)).toBeLessThan(20);
     expect(fresh.texts![0].rotate).toBe(front.angle);

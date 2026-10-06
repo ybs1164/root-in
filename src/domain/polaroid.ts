@@ -43,15 +43,16 @@ export const BACK_CARD: CardPose = { cx: 730, cy: 985, angle: 4 };
  * How the polaroid lies on the share image (the 꾸미기 screen's 폴라로이드
  * button), after the share card mock, always on plain white: 탑승권 (a
  * smaller card with a boarding pass under it — the default), 두 장, 한 장
- * 반듯하게, 테이프 at the corners, 항로 (a dashed flight past a tilted card),
+ * 반듯하게, 없음 (no card: the drawing straight on the ground), 테이프 at the corners, 항로 (a dashed flight past a tilted card),
  * 클립 (clipped, the date in hand under it), and 빨랫줄, hung straight from a
  * sagging line by two wooden pegs. The notebook page and the map that 클립
  * and 항로 lay on once are background patterns now (노트, 지도).
  */
-export type PolaroidLayout = 'ticket' | 'stack' | 'single' | 'tape' | 'map' | 'notebook' | 'line';
+export type PolaroidLayout = 'ticket' | 'bare' | 'stack' | 'single' | 'tape' | 'map' | 'notebook' | 'line';
 
 export const POLAROID_LAYOUTS: { id: PolaroidLayout; label: string }[] = [
   { id: 'ticket', label: '탑승권' },
+  { id: 'bare', label: '없음' },
   { id: 'stack', label: '두 장' },
   { id: 'single', label: '한 장' },
   { id: 'tape', label: '테이프' },
@@ -67,6 +68,8 @@ export const isPolaroidLayout = (v: unknown): v is PolaroidLayout => POLAROID_LA
 /** The photo card's pose in each layout, and the blank one behind it where there is one. */
 export const LAYOUT_CARDS: Record<PolaroidLayout, { front: CardPose; back?: CardPose }> = {
   ticket: { front: { cx: 590, cy: 790, angle: -3, scale: 0.7 } },
+  // 없음: no card at all, just the drawing (and the title) on the ground, a bit larger.
+  bare: { front: { cx: 700, cy: 940, angle: 0, scale: 1.12 } },
   stack: { front: FRONT_CARD, back: BACK_CARD },
   single: { front: { cx: 700, cy: 930, angle: 0, scale: 0.74 } },
   tape: { front: { cx: 700, cy: 1010, angle: -2, scale: 0.88 } },
