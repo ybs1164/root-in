@@ -2119,11 +2119,12 @@ button:disabled {
   animation: studio-in 0.24s ease-out both;
 }
 
-/* A day's own ground over the screen's, under everything else (없음 layout). */
+/* A day's own ground in place of the screen's, under everything else (없음 layout). */
 .studio__day-ground {
   position: absolute;
   inset: 0;
   z-index: -1;
+  isolation: isolate;
 }
 
 @keyframes studio-in {

@@ -123,19 +123,18 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
   ctx.scale(scale, scale);
 
   drawBackdrop(ctx, c, layout, !withoutGround);
-  // 없음 on a day's card: the day's own ground (꾸미기 before sharing) is laid
-  // over this card's across the whole scene — its theme colour (if it chose
-  // one) over this one's, and its pattern over this one's pattern, which
-  // still shows between its marks.
+  // 없음 on a day's card: the day's own ground (꾸미기 before sharing) covers
+  // the whole scene — its page colour and pattern hide this card's, which
+  // stay chosen for the other layouts.
   const bare = layout === 'bare';
   const over = bare && photo ? dayGround(photo) : null;
-  if (over?.page && !withoutGround) {
+  if (over && !withoutGround) {
     ctx.fillStyle = over.page;
     ctx.fillRect(0, 0, W, H);
+    if (photo?.pattern) paintPattern(ctx, photo.pattern, { w: W, h: H }, W / 390, over.accent);
   }
   // The background pattern, as a still frame even if it flows on screen.
-  if (decor?.pattern && !withoutGround) paintPattern(ctx, decor.pattern, { w: W, h: H }, W / 390, c.accent);
-  if (over && photo?.pattern && !withoutGround) paintPattern(ctx, photo.pattern, { w: W, h: H }, W / 390, over.accent);
+  if (decor?.pattern && !over && !withoutGround) paintPattern(ctx, decor.pattern, { w: W, h: H }, W / 390, c.accent);
   if (layout === 'ticket') drawTicket(ctx, c, stamp);
 
   // The blank card behind (두 장), then the one with the photo.
@@ -202,16 +201,12 @@ function withTheme(theme: ThemeId | null, draw: () => void) {
   }
 }
 
-/**
- * A day's own ground (its 꾸미기 before sharing) in its theme's colours: the
- * page colour only if it chose a theme (otherwise the card's shows through),
- * and the colour its pattern is drawn in.
- */
-export function dayGround(photo: DayDecor): { page?: string; accent: string } {
-  let ground: { page?: string; accent: string } = { accent: '' };
+/** A day's own ground (its 꾸미기 before sharing) in its theme's colours: its page colour and the colour its pattern is drawn in. */
+export function dayGround(photo: DayDecor): { page: string; accent: string } {
+  let ground = { page: '', accent: '' };
   withTheme(photo.theme ?? 'default', () => {
     const p = tokens();
-    ground = { ...(photo.theme && photo.theme !== 'default' ? { page: p.page } : {}), accent: p.accent };
+    ground = { page: p.page, accent: p.accent };
   });
   return ground;
 }

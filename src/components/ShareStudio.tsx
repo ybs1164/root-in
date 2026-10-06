@@ -198,11 +198,15 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
     <div className={`studio ${tool ? 'is-tooling' : ''}`} role="dialog" aria-modal="true" aria-label={`${subject.title} 꾸미기`}>
       {/* The ground (theme colour and pattern) runs under the whole screen;
           the shared area is only outlined. The saved image paints the same ground. */}
-      {/* 없음 on a day's card: the day's own ground lies over this one — its
-          colour over this colour, its pattern over this pattern. */}
-      {dayOver?.page && <div className="studio__day-ground" style={{ background: dayOver.page }} />}
-      <DayPattern pattern={decor.pattern ?? 'none'} />
-      {dayOver && <DayPattern pattern={subject.photo?.pattern ?? 'none'} accent={dayOver.accent} />}
+      {/* 없음 on a day's card: the day's own ground (colour, pattern) covers this
+          card's, which stays chosen for the other layouts. */}
+      {dayOver ? (
+        <div className="studio__day-ground" style={{ background: dayOver.page }}>
+          <DayPattern pattern={subject.photo?.pattern ?? 'none'} accent={dayOver.accent} />
+        </div>
+      ) : (
+        <DayPattern pattern={decor.pattern ?? 'none'} />
+      )}
       <button className="studio__back" aria-label="닫기" onClick={onClose}>
         <ChevronLeft size={26} strokeWidth={2.2} aria-hidden />
       </button>
