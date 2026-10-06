@@ -1081,7 +1081,8 @@ export default function App() {
         {tab === 'pins' && !swipe.leaving && (
           <button className="pin-drop-btn" aria-label="지도에 핀 꽂기" onClick={startPinning}>
             <svg viewBox={`${PIN_BOX.x} ${PIN_BOX.y} ${PIN_BOX.w} ${PIN_BOX.h}`} aria-hidden>
-              <path d={PIN_PATH} />
+              {/* The pin with its round hole cut through (evenodd), so the map shows in it. */}
+              <path fillRule="evenodd" d={`${PIN_PATH}M15 10a3 3 0 1 0-6 0a3 3 0 1 0 6 0`} />
             </svg>
           </button>
         )}
