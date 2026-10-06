@@ -1,4 +1,4 @@
-import { Pencil, Share } from 'lucide-react';
+import { MapPin, Pencil, Share } from 'lucide-react';
 import type { PatternId, ThemeId } from './domain/decor';
 import DayPattern from './components/DayPattern';
 import ShareStudio from './components/ShareStudio';
@@ -6,7 +6,6 @@ import ConfirmDialog from './components/ConfirmDialog';
 import { routeSubject, type ShareSubject } from './domain/shareSubject';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomBar from './components/BottomBar';
-import { PIN_BOX, PIN_PATH } from './lib/pingPaths';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
 import NewPinCard, { type NewPinInput } from './components/NewPinCard';
 import PinCard from './components/PinCard';
@@ -1080,10 +1079,10 @@ export default function App() {
         {/* On the pin map: a new pin where the map is looking, from the filled pin over the bar's middle. */}
         {tab === 'pins' && !swipe.leaving && (
           <button className="pin-drop-btn" aria-label="지도에 핀 꽂기" onClick={startPinning}>
-            <svg viewBox={`${PIN_BOX.x} ${PIN_BOX.y} ${PIN_BOX.w} ${PIN_BOX.h}`} aria-hidden>
-              {/* The pin with its round hole cut through (evenodd), so the map shows in it. */}
-              <path fillRule="evenodd" d={`${PIN_PATH}M15 10a3 3 0 1 0-6 0a3 3 0 1 0 6 0`} />
-            </svg>
+            {/* A small accent ticket (notched both sides) with a white pin on it. */}
+            <span className="pin-drop-btn__ticket">
+              <MapPin size={26} strokeWidth={2.2} aria-hidden />
+            </span>
           </button>
         )}
         <BottomBar

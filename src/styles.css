@@ -141,8 +141,6 @@
 :root {
   /* Theme swatches in the 꾸미기 → 테마 tray: each theme's background and accent. */
   /* Round action buttons (공유, 수정): short enough to stay clear of what's below them. */
-  /* The filled pin over the bar: a hairline shadow so it reads on the map. */
-  --pin-drop-shadow: 0 1px 2px rgba(27, 36, 64, 0.28);
   --round-btn-shadow: 0 3px 8px rgba(27, 36, 64, 0.22), 0 1px 2px rgba(27, 36, 64, 0.12);
   /* The eraser's ring while rubbing (DecorLayer): reads on light and dark ink alike. */
   --eraser-fill: rgba(255, 255, 255, 0.35);
@@ -4406,40 +4404,42 @@ button:disabled {
   height: var(--bar-h);
 }
 
-/* On the pin map, centred just over the ticket: a filled pin, no background,
-   that puts a new pin where the map is looking. */
+/* On the pin map, centred just over the tab ticket: a small accent ticket
+   with a half-round notch in each side and a white pin, that puts a new pin
+   where the map is looking. The shadow sits on the button because the
+   notches are a mask on the ticket inside. */
 .pin-drop-btn {
   position: absolute;
   left: 50%;
-  bottom: calc(100% + 2px);
-  display: grid;
-  place-items: center;
-  width: 60px;
-  height: 60px;
+  bottom: calc(100% + 10px);
+  display: block;
   padding: 0;
   border: 0;
   background: none;
-  color: var(--accent);
   translate: -50% 0;
   pointer-events: auto;
-  filter: drop-shadow(var(--pin-drop-shadow));
+  filter: drop-shadow(var(--ticket-shadow));
   transition: scale 0.12s ease;
 }
 
-.pin-drop-btn svg {
-  width: 40px;
-  height: 51px;
-  overflow: visible;
-  fill: currentColor;
-  /* A white rim round the pin (and its hole), drawn under the fill so it sits outside it. */
-  stroke: var(--surface);
-  stroke-width: 1.3px;
-  stroke-linejoin: round;
-  paint-order: stroke;
+.pin-drop-btn__ticket {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 50px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--on-accent);
+  -webkit-mask:
+    radial-gradient(circle 7px at 0 50%, transparent 98%, black) left / 51% 100% no-repeat,
+    radial-gradient(circle 7px at 100% 50%, transparent 98%, black) right / 51% 100% no-repeat;
+  mask:
+    radial-gradient(circle 7px at 0 50%, transparent 98%, black) left / 51% 100% no-repeat,
+    radial-gradient(circle 7px at 100% 50%, transparent 98%, black) right / 51% 100% no-repeat;
 }
 
 .pin-drop-btn:active {
-  scale: 0.9;
+  scale: 0.92;
 }
 
 /* One boarding-pass ticket holding both tabs, icon only: a dashed tear line
