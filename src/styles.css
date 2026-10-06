@@ -4895,54 +4895,7 @@ button:disabled {
 .calendar__head {
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 44px;
-}
-
-/* Months stacked top to bottom (MonthCalendar): this one in the middle, the
-   one before peeking faintly above and the one after below; the stack moves
-   by a month on a tap on a faint one or a drag. */
-.calendar-stack {
-  position: relative;
-  width: 100%;
-  max-width: 640px;
-  margin: 0 auto;
-  touch-action: none;
-}
-
-.calendar--peek {
-  position: absolute;
-  left: 0;
-  right: 0;
-  opacity: 0.32;
-  cursor: pointer;
-}
-
-.calendar--peek .calendar__day {
-  pointer-events: none;
-}
-
-.calendar--peek-above {
-  bottom: calc(100% + var(--stack-gap));
-}
-
-.calendar--peek-below {
-  top: calc(100% + var(--stack-gap));
-}
-
-/* Sliding by a month: the incoming one brightens as this one fades (only
-   then — the swap at the end is instant). */
-.calendar-stack.is-stepping .calendar {
-  transition: opacity 280ms ease;
-}
-
-.calendar-stack.is-step-prev .calendar--peek-above,
-.calendar-stack.is-step-next .calendar--peek-below {
-  opacity: 1;
-}
-
-.calendar-stack.is-stepping .calendar--current {
-  opacity: 0.32;
+  justify-content: space-between;
 }
 
 .calendar__grid {
