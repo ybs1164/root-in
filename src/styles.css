@@ -4644,14 +4644,12 @@ button:disabled {
 .bar-aim {
   left: calc(50% + 48px);
   /* Leaving for the calendar it shrinks down onto its own bottom as it goes
-     right, fading out at the end; coming back plays exactly that in reverse
-     (the curves mirrored: (x1, y1, x2, y2) → (1-x2, 1-y2, 1-x1, 1-y1)). The
-     transition used is the one of the state being entered. */
+     right (and grows back up from it), fading out only at the end. */
   transform-origin: 50% 100%;
   transition:
-    left 0.3s cubic-bezier(0.8, 0, 0.8, 0.2),
-    opacity 0.3s ease-out,
-    scale 0.3s cubic-bezier(0.8, 0, 0.8, 0.2);
+    left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.3s ease-in,
+    scale 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* Everything moves right on the way to the calendar (and back left): the
@@ -4692,10 +4690,6 @@ button:disabled {
   opacity: 0;
   scale: 0;
   pointer-events: none;
-  transition:
-    left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-    opacity 0.3s ease-in,
-    scale 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* Over the calendar page, the app's row sits above it (the page's own row
