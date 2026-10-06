@@ -245,40 +245,22 @@ export function buildPinSet(
 }
 
 /**
- * Saves a received pin set into my pins: categories are matched by name
- * and created when missing; pins are upserted by place.
- * When my category list is full, the rest land in 미분류.
+ * A received route's places joining my pins: each one not pinned yet goes in
+ * 미분류. A place already pinned keeps its own group (and memo).
  */
-export function importPinSet(
-  categories: PinCategory[],
+export function addPlacesAsPins(
   pins: Pin[],
-  set: SharedPinSet,
-  makeId: () => string,
+  places: PlaceRef[],
   makePin: () => Pick<Pin, 'id' | 'userId' | 'createdAt'>,
-): { categories: PinCategory[]; pins: Pin[]; added: number } {
-  let nextCategories = categories;
-  const resolved: string[] = [];
-  set.categories.forEach((incoming, i) => {
-    if (incoming.name === UNCATEGORIZED.name) return (resolved[i] = UNCATEGORIZED.id);
-    const match = nextCategories.find((c) => c.name === incoming.name);
-    if (match) return (resolved[i] = match.id);
-    const result = addCategory(nextCategories, { name: incoming.name, icon: incoming.icon, color: incoming.color }, makeId);
-    if ('problem' in result) return (resolved[i] = UNCATEGORIZED.id);
-    nextCategories = result.categories;
-    resolved[i] = result.category.id;
-  });
-
-  let nextPins = pins;
+): { pins: Pin[]; added: number } {
+  let next = pins;
   let added = 0;
-  for (const shared of set.pins) {
-    const result = upsertPin(
-      nextPins,
-      { place: shared.place, categoryId: resolved[shared.category] ?? UNCATEGORIZED.id, memo: shared.memo },
-      makePin,
-    );
+  for (const place of places) {
+    if (next.some((p) => p.place.id === place.id)) continue;
+    const result = upsertPin(next, { place, categoryId: UNCATEGORIZED.id }, makePin);
     if ('problem' in result) break;
-    nextPins = result.pins;
-    if (!result.existed) added += 1;
+    next = result.pins;
+    added += 1;
   }
-  return { categories: nextCategories, pins: nextPins, added };
+  return { pins: next, added };
 }

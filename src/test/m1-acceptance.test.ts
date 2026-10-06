@@ -11,7 +11,7 @@ import { describe, it } from 'vitest';
 //   1.3 map/courseMap.test.ts (long-press → place card; done with M2 P1.3)
 //   1.5 domain/geo.test.ts, lib/directionsLink.test.ts
 //   1.6 services/courseShareService.test.ts
-//   (extra) daily route diary + wishlist: domain/diary.test.ts,
+//   (extra) daily route diary: domain/diary.test.ts,
 //   services/diaryRepository.test.ts, services/diaryShareService.test.ts
 
 describe('1.7 Cleanup', () => {

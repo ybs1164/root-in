@@ -20,8 +20,7 @@ import StopLines from './components/StopLines';
 import SearchBar from './components/SearchBar';
 import ProfileSheet, { ProfileAvatar } from './components/ProfileSheet';
 import CategorySheet from './components/CategorySheet';
-import SharedCourseView from './components/SharedCourseView';
-import SharedPinsView from './components/SharedPinsView';
+import SharedRouteDialog from './components/SharedRouteDialog';
 import { visibleCenter } from './domain/adminAreas';
 import { calendarAgain, homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { COURSE_LIMITS } from './domain/course';
@@ -36,7 +35,6 @@ import { folderOf, moveRoute, neighborRoute, type RouteTab } from './domain/rout
 import { useCourses } from './hooks/useCourses';
 import { useAreaMap } from './hooks/useAreaMap';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
-import { useIncomingPins } from './hooks/useIncomingPins';
 import { usePageSwipe } from './hooks/usePageSwipe';
 import { usePins } from './hooks/usePins';
 import { useRouteFolders } from './hooks/useRouteFolders';
@@ -49,13 +47,14 @@ import { withRecentCategory } from './services/settingsRepository';
 import { loadProfile, saveProfile, type Profile } from './services/profileRepository';
 import { usePrivacy } from './hooks/usePrivacy';
 import { hasHome } from './domain/privacy';
-import type { CourseStop, PlaceRef, Course } from './types/course';
+import type { CourseStop, PlaceRef, Course, SharedCourse } from './types/course';
 import type { Pin } from './types/pin';
 
-type SheetSize = 'peek' | 'full';
 type Toast = { text: string; undo?: () => void };
 
 const DESKTOP_QUERY = '(min-width: 900px)';
+/** Shown on a shared route's popup until share counts are tracked somewhere. */
+const SHARE_COUNT_PLACEHOLDER = 1;
 
 /** Matches `tray-down` in styles.css: the 경로 폴더 sheet stays mounted while it slides away. */
 const ROUTE_TRAY_OUT_MS = 170;
@@ -68,7 +67,6 @@ const STEP_GLIDE_MS = 260;
 
 export default function App() {
   const mapEl = useRef<HTMLDivElement | null>(null);
-  const sheetEl = useRef<HTMLElement | null>(null);
   const barEl = useRef<HTMLDivElement | null>(null);
   const searchInput = useRef<HTMLInputElement | null>(null);
   const mapRef = useRef<CourseMap | null>(null);
@@ -110,10 +108,8 @@ export default function App() {
   const { pins, categories } = pinStore;
   const course = useCourses();
   const { incoming: incomingCourse, dismiss: dismissCourse } = useIncomingCourse();
-  const { incoming: incomingPins, dismiss: dismissPins } = useIncomingPins();
 
   const [tab, setTab] = useState<AppTab>('pins');
-  const [sheet, setSheet] = useState<SheetSize>('peek');
   const [profileOpen, setProfileOpen] = useState(false);
   const [profile, setProfile] = useState(loadProfile);
   const changeProfile = (next: Profile) => {
@@ -123,8 +119,6 @@ export default function App() {
   // 공유 before 집 is set opens the profile on 개인 정보 with this line.
   const [privacyNotice, setPrivacyNotice] = useState<string | null>(null);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
-  const [sharedSaved, setSharedSaved] = useState(false);
-  const [sharedPinsSaved, setSharedPinsSaved] = useState(false);
 
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -175,9 +169,8 @@ export default function App() {
   const [pinsHidden, setPinsHidden] = useState(false);
 
   const sharedCourse = incomingCourse.status === 'ready' ? incomingCourse.course : null;
-  const sharedPins = incomingPins.status === 'ready' ? incomingPins.set : null;
   const activePin = pins.find((p) => p.id === activePinId) ?? null;
-  const onPinHome = tab === 'pins' && !sharedCourse && !sharedPins;
+  const onPinHome = tab === 'pins';
   // On phones the pin screen's sheet drops down from the top, leaving the map's lower half clear.
   const sheetTop = tab === 'pins';
   // 경로 open on the pin map: the folder sheet takes the tab buttons' place.
@@ -228,32 +221,18 @@ export default function App() {
 
   // Numbered course markers + solid route line.
   const shownStops = useMemo(() => {
-    if (sharedCourse) return sharedCourse.stops.map((s) => s.place);
-    if (sharedPins) return [];
     if (buildPins) return buildPins.map((p) => p.place);
     if (editRoute) return editRoute.stops.map((s) => s.place);
     if (shownRoute) return shownRoute.stops.map((s) => s.place);
     return [];
-  }, [sharedCourse, sharedPins, buildPins, editRoute, shownRoute]);
+  }, [buildPins, editRoute, shownRoute]);
 
   // Only whether a route is being edited changes the markers, not each edit
   // (re-making them would drop every pin in again).
   const isEditing = !!editRoute;
   // Pin markers: a received set as its sender styled it, or my pins on the home tab.
   const pinMarkers = useMemo<PinMarker[]>(() => {
-    if (sharedPins) {
-      return sharedPins.pins.map((pin, i) => {
-        const category = sharedPins.categories[pin.category];
-        return {
-          id: `shared:${i}`,
-          center: pin.place.center,
-          name: pin.place.name,
-          icon: category?.icon ?? 'pin',
-          color: category?.color ?? 8,
-        };
-      });
-    }
-    if (sharedCourse || !onPinHome) return [];
+    if (!onPinHome) return [];
     // A saved route on show has the map to itself: every pin steps aside
     // (its stops, shaped or numbered, stand in for the places).
     // Editing it, they come back to be picked.
@@ -270,16 +249,14 @@ export default function App() {
         selected: pin.id === activePinId,
       };
     });
-  }, [sharedPins, sharedCourse, onPinHome, shownPins, categories, activePinId, shownRoute, isEditing, pinsGone]);
+  }, [onPinHome, shownPins, categories, activePinId, shownRoute, isEditing, pinsGone]);
 
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
   // 제외 주소 are located with the same place search (search failing just leaves the address text to match).
   const privacy = usePrivacy(async (address) => (await searchService?.search(address))?.[0]?.center ?? null);
 
-  // The sheet (and the bottom bar under it) cover part of the map; fit and
-  // focus around them. The cap keeps a full sheet from squeezing the map.
+  // The trays and the bottom bar cover part of the map; fit and focus around them.
   const mapPadding = useCallback((extraBottom = 0): MapPadding => {
-    const sheetBox = sheetEl.current;
     const desktop = window.matchMedia(DESKTOP_QUERY).matches;
     const barHeight = barEl.current?.offsetHeight ?? 0;
     const cap = (px: number) => Math.min(px, window.innerHeight * 0.5);
@@ -304,16 +281,11 @@ export default function App() {
       const side = lowered ? 80 : 40;
       return { top, right: side, bottom: covered + 30 + extraBottom, left: side };
     }
-    if (!desktop && sheetBox?.classList.contains('sheet--top')) {
-      // The pin screen's sheet hangs from the top instead (it includes the search bar area).
-      return { top: cap(sheetBox.offsetHeight) + 30, right: 40, bottom: barHeight + 30 + extraBottom, left: 40 };
-    }
-    const covered = cap((sheetBox?.offsetHeight ?? 0) + barHeight);
     return {
       top: 90,
       right: 40,
-      bottom: desktop ? 40 + extraBottom : covered + 30 + extraBottom,
-      left: desktop && sheetBox ? sheetBox.offsetWidth + 42 : 40,
+      bottom: desktop ? 40 + extraBottom : cap(barHeight) + 30 + extraBottom,
+      left: 40,
     };
   }, []);
 
@@ -436,15 +408,6 @@ export default function App() {
     });
   }, [editPlaces, pinMarkers, pins, mapProvider]);
 
-  const sharedPinsKey = sharedPins?.sharedAt ?? '';
-  useEffect(() => {
-    if (!sharedPins || !mapRef.current) return;
-    const points = sharedPins.pins.map((p) => p.place.center);
-    const id = requestAnimationFrame(() => mapRef.current?.fitPoints(points, mapPadding()));
-    return () => cancelAnimationFrame(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sharedPinsKey, mapProvider]);
-
   // Keyed by the spot, not the object: the address name landing a moment
   // later mustn't re-make the marker (and drop it in a second time).
   const previewSpot = preview ? `${preview.id}|${preview.center.join(',')}` : '';
@@ -466,25 +429,7 @@ export default function App() {
       notify('공유 링크를 열 수 없어요. 링크가 잘렸는지 확인해 주세요.');
       dismissCourse();
     }
-    if (incomingCourse.status === 'ready') {
-      setSharedSaved(false);
-      setTab(tabForIncoming('course'));
-      // Recipients should see the route on the map first; the list is one tap away.
-      setSheet('peek');
-    }
   }, [incomingCourse, dismissCourse, notify]);
-
-  useEffect(() => {
-    if (incomingPins.status === 'invalid') {
-      notify('공유받은 핀셋을 열 수 없어요. 링크가 잘렸는지 확인해 주세요.');
-      dismissPins();
-    }
-    if (incomingPins.status === 'ready') {
-      setSharedPinsSaved(false);
-      setTab(tabForIncoming('pins'));
-      setSheet('peek');
-    }
-  }, [incomingPins, dismissPins, notify]);
 
   useEffect(() => {
     if (!toast) return;
@@ -506,11 +451,6 @@ export default function App() {
   };
 
   mapEvents.current.pin = (id: string) => {
-    if (id.startsWith('shared:')) {
-      const pin = sharedPins?.pins[Number(id.slice(7))];
-      if (pin) mapRef.current?.focus(pin.place.center, mapPadding());
-      return;
-    }
     // Making a route: a tap adds the pin as the next stop (or takes it back out).
     if (building && routeMode) return setBuilding((b) => (b ? toggleBuildStop(b, id) : b));
     if (editRoute) {
@@ -523,7 +463,7 @@ export default function App() {
 
   mapEvents.current.longPress = async (center: [number, number]) => {
     // Making a route, or a saved one on show (its long presses restyle it): no place card.
-    if (sharedCourse || sharedPins || (building && routeMode) || shownRoute) return;
+    if ((building && routeMode) || shownRoute) return;
     await openNewPinAt(center);
   };
 
@@ -788,6 +728,22 @@ export default function App() {
     notify(`${saved.title} 경로를 저장했어요.`);
   };
 
+  // 루트 추가 on a shared link's popup: the route joins mine (no folder, so
+  // 미분류), its places join my pins in 미분류, and it opens straight into editing.
+  const addSharedRoute = async (shared: SharedCourse) => {
+    const saved = await course.save({
+      title: shared.title,
+      theme: shared.theme,
+      travelMode: shared.travelMode,
+      stops: shared.stops,
+      note: shared.note,
+      sharedBy: shared.sharedBy,
+    });
+    pinStore.addPlaces(shared.stops.map((s) => s.place));
+    changeTab(tabForIncoming('course'));
+    editRouteNow(saved);
+  };
+
   // ----- Pins -----
 
   const savePinAt = (place: PlaceRef, categoryId: string, memo?: string) => {
@@ -812,8 +768,6 @@ export default function App() {
   // ✓ to pin). With a card already up, the press first closes it (a touch
   // outside the card), then opens a fresh one on the map's current centre.
   const startPinning = () => {
-    if (sharedCourse) dismissCourse();
-    if (sharedPins) dismissPins();
     changeTab('pins');
     // 경로 owns the map's taps while it's open; a new pin closes it.
     if (railMode === 'route') railAction('route');
@@ -835,46 +789,8 @@ export default function App() {
     return counts;
   }, [pins, categories]);
 
-  const renderSheet = () => {
-    if (sharedCourse) {
-      return (
-        <div className="sheet__content">
-          <SharedCourseView
-            course={sharedCourse}
-            saved={sharedSaved}
-            onSave={async () => {
-              await course.save({ ...sharedCourse, sharedBy: sharedCourse.sharedBy ?? '익명' });
-              setSharedSaved(true);
-              notify('내 코스에 저장했어요.');
-            }}
-            onClose={dismissCourse}
-            onFocusStop={(i) => mapEvents.current.stop(i)}
-          />
-        </div>
-      );
-    }
-    if (sharedPins) {
-      return (
-        <div className="sheet__content">
-          <SharedPinsView
-            set={sharedPins}
-            saved={sharedPinsSaved}
-            onSave={() => {
-              const added = pinStore.importSet(sharedPins);
-              setSharedPinsSaved(true);
-              notify(added > 0 ? `${added}곳을 내 핀에 저장했어요.` : '이미 모두 저장된 핀이에요.');
-            }}
-            onFocus={(i) => mapEvents.current.pin(`shared:${i}`)}
-            onClose={dismissPins}
-          />
-        </div>
-      );
-    }
-    return null;
-  };
-
   const calendarZoom = tab === 'calendar';
-  const onPage = showsPage(tab, Boolean(sharedCourse || sharedPins || searchOpen || preview));
+  const onPage = showsPage(tab, Boolean(searchOpen || preview));
   // Swiping 달력 left slides the page off and uncovers the map (핀).
   const swipe = usePageSwipe(onPage && !decorating && !studio ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
 
@@ -1151,23 +1067,9 @@ export default function App() {
               onDayPattern={setDayPattern}
               onMode={setCalendarMode}
             />
-          ) : (
-            renderSheet()
-          )}
+          ) : null}
         </section>
-      ) : onPinHome ? null : (
-        <section ref={sheetEl} className={`sheet sheet--${sheet} ${sheetTop ? 'sheet--top' : ''}`} aria-label="패널">
-          <button
-            className="sheet__grip"
-            aria-label={sheet === 'full' ? '패널 줄이기' : '패널 펼치기'}
-            aria-expanded={sheet === 'full'}
-            onClick={() => setSheet((s) => (s === 'full' ? 'peek' : 'full'))}
-          >
-            <span aria-hidden />
-          </button>
-          {renderSheet()}
-        </section>
-      )}
+      ) : null}
 
       <div ref={barEl} className={`bottom-bar-wrap ${barAway ? 'is-away' : ''}`} inert={barAway}>
         <BottomBar
@@ -1223,6 +1125,17 @@ export default function App() {
             onClose={() => setPinDeleting(null)}
           />
         ))}
+
+      {sharedCourse && (
+        <SharedRouteDialog
+          sender={sharedCourse.sharedBy ?? '익명'}
+          // Not carried by the link yet: the sender's photo and the share count.
+          photo={null}
+          shareCount={SHARE_COUNT_PLACEHOLDER}
+          onAdd={() => void addSharedRoute(sharedCourse)}
+          onClose={dismissCourse}
+        />
+      )}
 
       {studio && <ShareStudio subject={studio} onTheme={setStudioTheme} onClose={() => setStudio(null)} />}
 
