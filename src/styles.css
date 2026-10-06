@@ -5284,7 +5284,7 @@ button:disabled {
   font-size: 13px;
 }
 
-/* 알림 설정 → 투데이 알림: a 출발 안내판 — one navy board of flip cells, one
+/* 알림 설정 → 투데이 알림·공유수 알림: each a 출발 안내판 — one navy board of flip cells, one
    per hour. A thin line across each cell's middle reads as a split-flap
    board; only the lit cells turn blue. */
 .alerts__row {

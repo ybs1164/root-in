@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultHandle, handleProblem, isValidHandle, sanitizeHandleInput, togglePingAlert } from './profile';
+import { defaultHandle, handleProblem, isValidHandle, sanitizeHandleInput, shareCountLabel, PING_ALERT_HOURS, toggleAlert } from './profile';
 
 describe('profile handle', () => {
   it('keeps only URL-safe characters while typing, lower-cased and capped', () => {
@@ -29,9 +29,13 @@ describe('profile handle', () => {
   });
 });
 
-describe('ping alert hours', () => {
-  it('switches one hour at a time, keeping the hours in order', () => {
-    expect(togglePingAlert([7, 9, 12, 16, 20, 23], 12)).toEqual([7, 9, 16, 20, 23]);
-    expect(togglePingAlert([20, 7], 12)).toEqual([7, 12, 20]);
+describe('alert steps', () => {
+  it('switches one step at a time, keeping the steps in order', () => {
+    expect(toggleAlert([7, 9, 12, 16, 20, 23], 12, PING_ALERT_HOURS)).toEqual([7, 9, 16, 20, 23]);
+    expect(toggleAlert([20, 7], 12, PING_ALERT_HOURS)).toEqual([7, 12, 20]);
+  });
+
+  it('labels share counts as the board reads them', () => {
+    expect([10, 100, 1_000, 10_000, 100_000, 1_000_000].map(shareCountLabel)).toEqual(['10', '100', '1.0k', '10k', '100k', '1M']);
   });
 });

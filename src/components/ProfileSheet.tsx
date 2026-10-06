@@ -1,12 +1,17 @@
 import { ChevronDown, PenLine, UserRound, Volume2, VolumeX } from 'lucide-react';
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
-import { handleProblem, PING_ALERT_HOURS, PROFILE_LIMITS, sanitizeHandleInput, togglePingAlert } from '../domain/profile';
+import { handleProblem, PING_ALERT_HOURS, PROFILE_LIMITS, sanitizeHandleInput, SHARE_ALERT_COUNTS, shareCountLabel, toggleAlert } from '../domain/profile';
 import { avatarFromFile } from '../lib/avatarImage';
 import { getDisplayName, setDisplayName } from '../lib/currentUser';
 import type { Profile } from '../services/profileRepository';
 import { clearAppData } from '../services/settingsRepository';
 import { useBackdropTap } from '../hooks/useBackdropTap';
+import AlertBoard from './AlertBoard';
 import PrivacySection from './PrivacySection';
+
+/** 알림 설정's two boards: 투데이 알림 by hour, 공유수 알림 by share count. */
+const PING_STEPS = PING_ALERT_HOURS.map((hour) => ({ value: hour, text: `${hour}시` }));
+const SHARE_STEPS = SHARE_ALERT_COUNTS.map((count) => ({ value: count, text: shareCountLabel(count) }));
 
 interface ProfileSheetProps {
   profile: Profile;
@@ -40,8 +45,6 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
   const [accountOpen, setAccountOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(!!privacyNotice);
   const [alertsOpen, setAlertsOpen] = useState(false);
-  // 투데이 알림 cells mid-flip: the face each one flips from, keyed to restart on a quick second tap.
-  const [flips, setFlips] = useState<Record<number, { from: boolean; key: number }>>({});
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -85,56 +88,19 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
       {alertsOpen && (
         <section id="profile-alerts" className="privacy alerts" aria-label="알림 설정">
           <h3 className="privacy__title">알림 설정</h3>
-          <p className="privacy__desc">특정 시간대의 알림을 켜거나 끌 수 있어요.</p>
-          <div className="alerts__row" role="group" aria-label="투데이 알림">
-            <span className="alerts__label">투데이 알림</span>
-            <div className="alerts__hours">
-              {PING_ALERT_HOURS.map((hour) => {
-                const on = profile.pingAlerts.includes(hour);
-                const flip = flips[hour];
-                return (
-                  <button
-                    key={hour}
-                    className={`alerts__hour ${on ? 'is-on' : ''}`}
-                    aria-pressed={on}
-                    onClick={() => {
-                      setFlips((all) => ({ ...all, [hour]: { from: on, key: (all[hour]?.key ?? 0) + 1 } }));
-                      onChange({ ...profile, pingAlerts: togglePingAlert(profile.pingAlerts, hour) });
-                    }}
-                  >
-                    {hour}시
-                    {flip && (
-                      // The split-flap turn: the top and bottom halves each spin on their own
-                      // axis, old face out and new face in, the bottom just behind the top.
-                      <span key={flip.key} className="alerts__flip" aria-hidden>
-                        {(['top', 'bottom'] as const).flatMap((half) => [
-                          <span key={`${half}-old`} className={`alerts__face alerts__face--${half} alerts__face--out ${flip.from ? 'is-on' : ''}`}>
-                            {hour}시
-                          </span>,
-                          <span
-                            key={`${half}-new`}
-                            className={`alerts__face alerts__face--${half} alerts__face--in ${on ? 'is-on' : ''}`}
-                            onAnimationEnd={
-                              half === 'bottom'
-                                ? () =>
-                                    setFlips((all) => {
-                                      if (all[hour]?.key !== flip.key) return all;
-                                      const { [hour]: _done, ...rest } = all;
-                                      return rest;
-                                    })
-                                : undefined
-                            }
-                          >
-                            {hour}시
-                          </span>,
-                        ])}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <p className="privacy__desc">특정 알림을 켜거나 끌 수 있어요</p>
+          <AlertBoard
+            label="투데이 알림"
+            steps={PING_STEPS}
+            on={profile.pingAlerts}
+            onToggle={(hour) => onChange({ ...profile, pingAlerts: toggleAlert(profile.pingAlerts, hour, PING_ALERT_HOURS) })}
+          />
+          <AlertBoard
+            label="공유수 알림"
+            steps={SHARE_STEPS}
+            on={profile.shareAlerts}
+            onToggle={(count) => onChange({ ...profile, shareAlerts: toggleAlert(profile.shareAlerts, count, SHARE_ALERT_COUNTS) })}
+          />
         </section>
       )}
     </>

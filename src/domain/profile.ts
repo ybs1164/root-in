@@ -40,17 +40,27 @@ export function defaultHandle(userId: string): string {
   return `user${tail || '000000'}`;
 }
 
-// 알림 설정 → 투데이 알림: the hours of the day a ping reminder may come. Each can
-// be switched on or off on its own; all are on until switched off.
+// 알림 설정: each row is a set of steps switched on or off one by one, all on
+// until switched off. 투데이 알림 — the hours of the day a ping reminder may
+// come; 공유수 알림 — the share counts a shared route is told about at.
 export const PING_ALERT_HOURS = [7, 9, 12, 16, 20, 23] as const;
+export const SHARE_ALERT_COUNTS = [10, 100, 1_000, 10_000, 100_000, 1_000_000] as const;
 
-/** Stored hours, kept only if they're among PING_ALERT_HOURS, in that order, once each. */
-export function sanitizePingAlerts(value: unknown): number[] | null {
-  if (!Array.isArray(value)) return null;
-  return PING_ALERT_HOURS.filter((hour) => value.includes(hour));
+/** A 공유수 알림 step as its board cell reads: 10, 100, 1.0k, 10k, 100k, 1M. */
+export function shareCountLabel(count: number): string {
+  if (count >= 1_000_000) return `${count / 1_000_000}M`;
+  if (count >= 10_000) return `${count / 1_000}k`;
+  if (count >= 1_000) return `${(count / 1_000).toFixed(1)}k`;
+  return String(count);
 }
 
-/** The hours with `hour` switched the other way. */
-export function togglePingAlert(hours: readonly number[], hour: number): number[] {
-  return PING_ALERT_HOURS.filter((h) => (h === hour ? !hours.includes(h) : hours.includes(h)));
+/** Stored steps, kept only if they're among `steps`, in that order, once each. */
+export function sanitizeAlerts(value: unknown, steps: readonly number[]): number[] | null {
+  if (!Array.isArray(value)) return null;
+  return steps.filter((step) => value.includes(step));
+}
+
+/** The steps with `step` switched the other way. */
+export function toggleAlert(on: readonly number[], step: number, steps: readonly number[]): number[] {
+  return steps.filter((s) => (s === step ? !on.includes(s) : on.includes(s)));
 }

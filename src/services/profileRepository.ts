@@ -1,4 +1,4 @@
-import { defaultHandle, isValidHandle, PING_ALERT_HOURS, PROFILE_LIMITS, sanitizePingAlerts } from '../domain/profile';
+import { defaultHandle, isValidHandle, PING_ALERT_HOURS, PROFILE_LIMITS, sanitizeAlerts, SHARE_ALERT_COUNTS } from '../domain/profile';
 import { getCurrentUserId } from '../lib/currentUser';
 
 const PROFILE_KEY = 'goodroot:profile:v1';
@@ -13,6 +13,8 @@ export interface Profile {
   sound: boolean;
   /** 알림 설정 → 투데이 알림: the hours switched on (PING_ALERT_HOURS), all until switched off. */
   pingAlerts: number[];
+  /** 알림 설정 → 공유수 알림: the share counts switched on (SHARE_ALERT_COUNTS), all until switched off. */
+  shareAlerts: number[];
 }
 
 function isPhoto(value: unknown): value is string {
@@ -20,7 +22,7 @@ function isPhoto(value: unknown): value is string {
 }
 
 export function loadProfile(): Profile {
-  const fallback: Profile = { handle: defaultHandle(getCurrentUserId()), photo: null, sound: true, pingAlerts: [...PING_ALERT_HOURS] };
+  const fallback: Profile = { handle: defaultHandle(getCurrentUserId()), photo: null, sound: true, pingAlerts: [...PING_ALERT_HOURS], shareAlerts: [...SHARE_ALERT_COUNTS] };
   try {
     const raw = window.localStorage.getItem(PROFILE_KEY);
     if (!raw) return fallback;
@@ -31,7 +33,8 @@ export function loadProfile(): Profile {
       // Saved before the switches existed (or anything but false): on.
       sound: parsed?.sound !== false,
       // Before the hours existed there was one 알림 switch: off meant none of them.
-      pingAlerts: sanitizePingAlerts(parsed?.pingAlerts) ?? (parsed?.alerts === false ? [] : [...PING_ALERT_HOURS]),
+      pingAlerts: sanitizeAlerts(parsed?.pingAlerts, PING_ALERT_HOURS) ?? (parsed?.alerts === false ? [] : [...PING_ALERT_HOURS]),
+      shareAlerts: sanitizeAlerts(parsed?.shareAlerts, SHARE_ALERT_COUNTS) ?? [...SHARE_ALERT_COUNTS],
     };
   } catch {
     return fallback;
