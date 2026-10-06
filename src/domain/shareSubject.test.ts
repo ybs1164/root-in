@@ -3,7 +3,7 @@ import type { Course } from '../types/course';
 import type { DayPing } from './dayPings';
 import { BACK_CARD, cardToScene, CLOTHESLINE, clotheslineY, DEFAULT_LAYOUT, DRAWING_BOX, POLAROID_LAYOUTS, FRONT_CARD, LAYOUT_CARDS, POLAROID, SCENE, sceneToCard, STRIP } from './polaroid';
 import type { ExcludedPlace } from './privacy';
-import { cardTitleText, dayCardTitle, daySubject, routeSubject, withCardTitle, withLayout } from './shareSubject';
+import { dayCardTitle, daySubject, routeSubject, withLayout } from './shareSubject';
 
 const home: ExcludedPlace = { id: 'home', kind: 'home', address: '서울 성동구 성수이로 88', center: [127.0557, 37.5431] };
 const place = (id: string, name: string, center: [number, number]) => ({ id, name, center, address: '' });
@@ -101,73 +101,22 @@ describe('share cards', () => {
     expect(cut.marks).toEqual(['transparent', 'transparent']);
   });
 
-  it('write a day’s date toward the strip’s bottom right, a route’s name in its middle', () => {
-    const front = LAYOUT_CARDS[DEFAULT_LAYOUT].front;
-    const date = withCardTitle({ stickers: [], strokes: [] }, '09.29', daySubject('2026-09-29', [], () => 'pin', () => 'solid', []).titleAt).texts![0];
-    const onCard = sceneToCard(front, date.x * SCENE.w, date.y * SCENE.h);
-    expect(onCard.x).toBeGreaterThan(POLAROID.w * 0.7);
-    expect(onCard.y).toBeGreaterThan(STRIP.y + STRIP.h / 2);
-    expect(date.align).toBe('right');
-    expect(date.rotate).toBe(front.angle);
-    const name = cardTitleText('성수 데이트');
-    expect(sceneToCard(front, name.x * SCENE.w, name.y * SCENE.h).x).toBeCloseTo(POLAROID.w / 2);
-  });
-
   it('title a day’s card like a date on a print', () => {
     expect(dayCardTitle('2026-01-09')).toBe('01.09');
   });
 
-  it('put the title down once as a text box on the front card’s strip, which can then be thrown away for good', () => {
-    const t = cardTitleText('성수 데이트', 'stack');
-    const strip = cardToScene(FRONT_CARD, POLAROID.w / 2, STRIP.y + STRIP.h / 2);
-    expect(t.text).toBe('성수 데이트');
-    // Around the middle of the strip.
-    expect(Math.abs(t.x * SCENE.w - strip.x)).toBeLessThan(20);
-    expect(Math.abs(t.y * SCENE.h - strip.y)).toBeLessThan(20);
-    expect(t.rotate).toBe(FRONT_CARD.angle);
-    const first = withCardTitle({ stickers: [], strokes: [] }, '성수 데이트');
-    expect(first.texts?.map((x) => x.text)).toEqual(['성수 데이트']);
-    expect(first.titled).toBe(true);
-    // Thrown away: it doesn't come back next time.
-    const gone = { ...first, texts: [] };
-    expect(withCardTitle(gone, '성수 데이트').texts).toEqual([]);
+  it('없음 on a day’s card takes on the day’s theme and pattern; other layouts and route cards leave them be', () => {
+    const studio = { stickers: [], strokes: [], theme: 'mint' as const, pattern: 'grid' as const };
+    const day = { stickers: [], strokes: [], theme: 'sky' as const, pattern: 'dots' as const };
+    expect(withLayout(studio, 'bare', day)).toMatchObject({ layout: 'bare', theme: 'sky', pattern: 'dots' });
+    expect(withLayout(studio, 'bare', { stickers: [], strokes: [] })).toEqual({ stickers: [], strokes: [], layout: 'bare' });
+    expect(withLayout(studio, 'single', day)).toEqual({ ...studio, layout: 'single' });
+    expect(withLayout(studio, 'bare')).toEqual({ ...studio, layout: 'bare' });
   });
 
-  it('a new card is laid out as 탑승권, its title on that smaller card', () => {
-    const fresh = withCardTitle({ stickers: [], strokes: [] }, '성수');
-    expect(fresh.layout).toBeUndefined();
-    const front = LAYOUT_CARDS[DEFAULT_LAYOUT].front;
-    const strip = cardToScene(front, POLAROID.w / 2, STRIP.y + STRIP.h / 2);
+  it('a new card is laid out as 탑승권, with 없음 (no card) right after it', () => {
     expect(DEFAULT_LAYOUT).toBe('ticket');
-    // 없음 (no card) sits right after the default.
     expect(POLAROID_LAYOUTS.slice(0, 2).map((l) => l.label)).toEqual(['탑승권', '없음']);
-    expect(Math.abs(fresh.texts![0].x * SCENE.w - strip.x)).toBeLessThan(20);
-    expect(Math.abs(fresh.texts![0].y * SCENE.h - strip.y)).toBeLessThan(20);
-    expect(fresh.texts![0].rotate).toBe(front.angle);
-  });
-
-  it('switching layouts carries the title box with the photo card (where it sat on the card, its turn and size); other pieces stay put', () => {
-    const sticker = { id: 's', stickerId: 'star', x: 0.1, y: 0.1, size: 0.1 };
-    const start = { ...withCardTitle({ stickers: [sticker], strokes: [], layout: 'stack' as const }, '성수') };
-    // Nudged a little on its card.
-    start.texts = start.texts!.map((t) => ({ ...t, x: t.x + 0.01, rotate: (t.rotate ?? 0) + 5 }));
-    const onStack = sceneToCard(FRONT_CARD, start.texts[0].x * SCENE.w, start.texts[0].y * SCENE.h);
-    for (const layout of ['map', 'notebook', 'ticket'] as const) {
-      const next = withLayout(start, layout);
-      const t = next.texts![0];
-      const to = LAYOUT_CARDS[layout].front;
-      const onCard = sceneToCard(to, t.x * SCENE.w, t.y * SCENE.h);
-      expect(next.layout).toBe(layout);
-      expect(Math.abs(onCard.x - onStack.x)).toBeLessThan(1);
-      expect(Math.abs(onCard.y - onStack.y)).toBeLessThan(1);
-      expect(t.rotate).toBeCloseTo(to.angle + 5);
-      expect(t.size).toBeCloseTo(start.texts[0].size * (to.scale ?? 1));
-      expect(next.stickers).toEqual([sticker]);
-      // And back again lands where it started.
-      const back = withLayout(next, 'stack').texts![0];
-      expect(back.x).toBeCloseTo(start.texts[0].x);
-      expect(back.y).toBeCloseTo(start.texts[0].y);
-    }
   });
 
   it('빨랫줄: the line sags over the card and each peg on it reaches down over the card’s top edge', () => {

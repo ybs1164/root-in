@@ -18,7 +18,7 @@ import {
   type ThemeId,
 } from '../domain/decor';
 import { DEFAULT_LAYOUT, POLAROID_LAYOUTS, SCENE, type PolaroidLayout } from '../domain/polaroid';
-import { withCardTitle, withLayout, type ShareSubject } from '../domain/shareSubject';
+import { withLayout, type ShareSubject } from '../domain/shareSubject';
 import { canShareImage, downloadDataUrl, renderShareImage, shareImage } from '../lib/shareImage';
 import DayPattern from './DayPattern';
 import DecorLayer, { type TextFocus } from './DecorLayer';
@@ -42,13 +42,12 @@ interface ShareStudioProps {
  * day screen as it looks there, with its own theme, pattern and pieces;
  * what's chosen here is apart from it); the bottom row
  * saves the finished card, copies its link or hands it to an SNS app.
- * Nothing here is kept: each visit starts from a fresh card (title only,
- * default layout), and leaving throws the decorations away. A day's own
+ * Nothing here is kept: each visit starts from a fresh, blank card (default
+ * layout, no title written on it), and leaving throws the decorations away. A day's own
  * 꾸미기 on its day screen is kept as ever and shows in the photo.
  */
 export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioProps) {
-  // The title is a text box like any other (it can be edited or thrown away).
-  const [decor, setDecor] = useState<DayDecor>(() => withCardTitle(EMPTY_DECOR, subject.title, subject.titleAt));
+  const [decor, setDecor] = useState<DayDecor>(EMPTY_DECOR);
 
   // Undo / redo, for this visit only.
   const [history, setHistory] = useState<DecorHistory>(EMPTY_HISTORY);
@@ -297,7 +296,7 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
           onTextStyle={changeTextStyle}
           onClose={() => setTool(null)}
           layout={decor.layout ?? DEFAULT_LAYOUT}
-          onLayout={(next) => next !== (decor.layout ?? DEFAULT_LAYOUT) && changeDecor(withLayout(decor, next))}
+          onLayout={(next) => next !== (decor.layout ?? DEFAULT_LAYOUT) && changeDecor(withLayout(decor, next, subject.photo))}
           layoutPreviews={layoutPreviews}
         />
       )}
