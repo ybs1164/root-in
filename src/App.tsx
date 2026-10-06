@@ -6,6 +6,8 @@ import ConfirmDialog from './components/ConfirmDialog';
 import ShareTagButton from './components/ShareTagButton';
 import { routeSubject, type ShareSubject } from './domain/shareSubject';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useBackButton } from './hooks/useBackButton';
+import { closeTopDialog } from './lib/native';
 import BottomBar from './components/BottomBar';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
 import NewPinCard, { type NewPinInput } from './components/NewPinCard';
@@ -22,7 +24,7 @@ import ProfileSheet, { ProfileAvatar } from './components/ProfileSheet';
 import CategorySheet from './components/CategorySheet';
 import SharedCourseView from './components/SharedCourseView';
 import SharedPinsView from './components/SharedPinsView';
-import { visibleCenter } from './domain/adminAreas';
+import { visibleRange } from './domain/adminAreas';
 import { calendarAgain, homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { COURSE_LIMITS } from './domain/course';
 import type { MapViewport } from './domain/districtMap';
@@ -354,30 +356,14 @@ export default function App() {
     const bar = barEl.current?.getBoundingClientRect();
     const underBar = bar && bar.height > 0 ? el.getBoundingClientRect().bottom - bar.top + 8 : 0;
     return {
-      focus: visibleCenter(viewport.bounds, { width: el.clientWidth, height: el.clientHeight }, cover),
+      range: visibleRange(viewport.bounds, { width: el.clientWidth, height: el.clientHeight }, cover),
       cover: { ...cover, bottom: Math.max(cover.bottom, underBar) },
     };
   }, [viewport, mapPadding]);
-  const areaMap = useAreaMap(viewport, areaView?.focus, areaView?.cover);
+  const areaMap = useAreaMap(viewport, areaView?.range, areaView?.cover);
   useEffect(() => {
     mapRef.current?.setAreaMap(areaMap);
   }, [areaMap, mapProvider]);
-  // Entering an area turns the map so the area looks most like a rectangle.
-  // Turning moves the screen center, which can pick a neighbor whose own
-  // angle would turn the map back; focus changes right after our own turn
-  // are taken as that and not followed.
-  const turnedFor = useRef({ code: '', until: 0 });
-  useEffect(() => {
-    const focus = areaMap?.focus;
-    const last = turnedFor.current;
-    if (!focus || focus.code === last.code) return;
-    last.code = focus.code;
-    const now = Date.now();
-    if (now < last.until) return;
-    last.until = now + 1500;
-    mapRef.current?.setBearing(focus.bearing);
-  }, [areaMap]);
-
   const stopsKey = shownStops.map((p) => p.id).join('|');
   useEffect(() => {
     mapRef.current?.setCourse(shownStops);
@@ -796,6 +782,23 @@ export default function App() {
   };
   // Stable, so the card's outside-touch listener isn't re-attached every render.
   const closeNewPin = useCallback(() => setPreview(null), []);
+
+  // Android's back button closes one layer at a time, innermost first.
+  useBackButton(() => {
+    if (closeTopDialog()) return true;
+    if (studio) return setStudio(null), true;
+    if (searchOpen) return setSearchOpen(false), setQuery(''), searchInput.current?.blur(), true;
+    if (preview) return setPreview(null), true;
+    if (activePinId) return setActivePinId(null), true;
+    if (sharedCourse) return dismissCourse(), true;
+    if (sharedPins) return dismissPins(), true;
+    if (editing) return setEditing(null), true;
+    if (building) return setBuilding(null), true;
+    if (shownRouteId) return setShownRouteId(null), true;
+    if (railMode !== 'menu') return railAction(railMode), true;
+    if (tab !== 'pins') return changeTab('pins'), true;
+    return false;
+  });
 
   // 📍 again on the pin screen: a new pin right where the map is looking —
   // the same card a search pick or a long press opens (name, memo, group,

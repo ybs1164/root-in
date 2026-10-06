@@ -47,11 +47,6 @@ export interface CourseMap {
   /** Turns one-finger / mouse dragging of the map on or off (off while a route is drawn over pins). */
   setPanEnabled(enabled: boolean): void;
   getCenter(): [number, number];
-  /**
-   * Turns the map so `bearing` (degrees clockwise from north) points up.
-   * Maps that can't rotate ignore it.
-   */
-  setBearing(bearing: number): void;
   /** Call after the container changes size (e.g. sheet resize, rotation). */
   resize(): void;
   destroy(): void;

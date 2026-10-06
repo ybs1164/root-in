@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { areaAt, DONG_FOCUS_MAX_MPP, focusLevel, polygonLike, rectangleBearing, renderAreaMap, SIDO_FOCUS_MIN_MPP, visibleCenter, type AdminArea } from './adminAreas';
+import { describe, expect, it, vi } from 'vitest';
+import { areaAt, areasInRange, BLOCK_FOCUS_MAX_MPP, ROAD_FOCUS_MAX_MPP, SECTION_FOCUS_MAX_MPP, AreaShapeCache, DONG_FOCUS_MAX_MPP, focusLevel, rectangleBearing, renderAreaDraft, renderAreaMap, SIDO_FOCUS_MIN_MPP, visibleCenter, visibleRange, type AdminArea } from './adminAreas';
 import type { MapViewport, Ring } from './districtMap';
 import { screenProjection } from './districtRendering';
 
@@ -16,6 +16,12 @@ describe('administrative area map', () => {
     expect(focusLevel(atScale(SIDO_FOCUS_MIN_MPP * 1.1))).toBe('sido');
     expect(focusLevel(atScale(DONG_FOCUS_MAX_MPP * 1.1))).toBe('sgg');
     expect(focusLevel(atScale(DONG_FOCUS_MAX_MPP * 0.9))).toBe('dong');
+    expect(focusLevel(atScale(SECTION_FOCUS_MAX_MPP * 1.1))).toBe('dong');
+    expect(focusLevel(atScale(SECTION_FOCUS_MAX_MPP * 0.9))).toBe('section');
+    expect(focusLevel(atScale(BLOCK_FOCUS_MAX_MPP * 1.1))).toBe('section');
+    expect(focusLevel(atScale(BLOCK_FOCUS_MAX_MPP * 0.9))).toBe('block');
+    expect(focusLevel(atScale(ROAD_FOCUS_MAX_MPP * 1.1))).toBe('block');
+    expect(focusLevel(atScale(ROAD_FOCUS_MAX_MPP * 0.9))).toBe('road');
   });
 
   it('picks the area under the center, or the nearest one over water', () => {
@@ -32,7 +38,26 @@ describe('administrative area map', () => {
     expect(lat).toBeCloseTo(37.05);
   });
 
-  it('keeps a polygon area straight along its edges, rounds its corners and opens a gap', () => {
+  it('takes the middle part of the uncovered map as the focus range', () => {
+    const bounds = { west: 127, south: 37, east: 127.1, north: 37.2 };
+    const r = visibleRange(bounds, { width: 375, height: 800 }, { top: 400, right: 40, bottom: 0, left: 40 }, 0.5);
+    expect((r.west + r.east) / 2).toBeCloseTo(127.05);
+    expect((r.south + r.north) / 2).toBeCloseTo(37.05);
+    // Half of the 295px-wide free strip (of 375px over 0.1deg) and of the 400px free height (of 800 over 0.2deg).
+    expect(r.east - r.west).toBeCloseTo(0.1 * (295 / 375) * 0.5);
+    expect(r.north - r.south).toBeCloseTo(0.2 * 0.5 * 0.5);
+  });
+
+  it('finds every area reaching into the range, the middle one first', () => {
+    const areas = [square('a', 127, 37, 0.02), square('b', 127.02, 37, 0.02), square('c', 127.04, 37, 0.02)];
+    const range = { west: 127.015, east: 127.03, south: 37.005, north: 37.015 };
+    expect(areasInRange(areas, range).map((a) => a.code)).toEqual(['b', 'a']);
+    expect(areasInRange(areas, { ...range, west: 127.022 }).map((a) => a.code)).toEqual(['b']);
+    expect(areasInRange(areas, range, 1).map((a) => a.code)).toEqual(['b']);
+    expect(areasInRange([], range)).toEqual([]);
+  });
+
+  it('keeps a polygon area straight along its edges, keeps its corners sharp and opens a gap', () => {
     const p = screenProjection(viewport);
     const shapes = renderAreaMap({
       focus: { code: 'f', name: 'f' },
@@ -44,8 +69,8 @@ describe('administrative area map', () => {
     const [a, b] = shapes.parts.map(([outer]) => outer.map(p.project));
     const minX = Math.min(...a.map((q) => q.X)), maxX = Math.max(...a.map((q) => q.X));
     const minY = Math.min(...a.map((q) => q.Y));
-    // The corner is an arc: no vertex at the bounding box corner.
-    expect(a.some((q) => Math.abs(q.X - minX) < 2 && Math.abs(q.Y - minY) < 2)).toBe(false);
+    // The corner stays sharp: a vertex sits at the bounding box corner.
+    expect(a.some((q) => Math.abs(q.X - minX) < 200 && Math.abs(q.Y - minY) < 200)).toBe(true);
     // But the edges stay straight: the whole left side sits on one line.
     const left = a.filter((q) => q.X - minX < 50);
     const span = Math.max(...left.map((q) => q.Y)) - Math.min(...left.map((q) => q.Y));
@@ -53,60 +78,6 @@ describe('administrative area map', () => {
     // The shared edge became a gap of 2×2px.
     const gap = Math.min(...b.map((q) => q.X)) - maxX;
     expect(gap / 100).toBeCloseTo(4, 0);
-  });
-
-  it('straightens small bumps along an edge into one line', () => {
-    const p = screenProjection(viewport);
-    // A 200px square whose top edge zigzags 3px every 8px.
-    const pts = [{ X: 10000, Y: 10000 }, { X: 30000, Y: 10000 }];
-    for (let x = 30000; x >= 10000; x -= 800) pts.push({ X: x, Y: 30000 + ((x / 800) % 2 ? 300 : 0) });
-    const ring: Ring = [...pts, pts[0]].map((q) => p.unproject(q));
-    const area: AdminArea = { code: 'z', name: 'z', bbox: viewport.bounds, polygons: [[ring]] };
-    const [outer] = renderAreaMap({ focus: { code: 'f', name: 'f' }, parts: [area], others: [] }, viewport).parts[0];
-    // The zigzag is gone: no vertices along the middle of the top edge, and
-    // the edge is one level line.
-    const top = outer.map(p.project).filter((q) => q.Y > 25000);
-    expect(top.filter((q) => q.X > 13000 && q.X < 27000)).toHaveLength(0);
-    const corners = top.filter((q) => q.X <= 13000 || q.X >= 27000).map((q) => q.Y);
-    expect((Math.max(...corners) - Math.min(...corners)) / 100).toBeLessThan(10);
-  });
-
-  it('draws an area that is no polygon of a few sides smooth, inside its own outline', () => {
-    const p = screenProjection(viewport);
-    // A 150px-radius disc with 12px bumps all around: a polygon would need
-    // far more than 12 sides to follow it.
-    const pts = Array.from({ length: 180 }, (_, i) => {
-      const t = (i / 180) * 2 * Math.PI;
-      const r = 15000 + (i % 2 ? 1200 : 0);
-      return { X: 20000 + r * Math.cos(t), Y: 20000 + r * Math.sin(t) };
-    });
-    const ring: Ring = [...pts, pts[0]].map((q) => p.unproject(q));
-    const area: AdminArea = { code: 'w', name: 'w', bbox: viewport.bounds, polygons: [[ring]] };
-    const [outer] = renderAreaMap({ focus: { code: 'f', name: 'f' }, parts: [area], others: [] }, viewport).parts[0];
-    const out = outer.map(p.project);
-    // Smooth: many short steps instead of a few long edges.
-    expect(out.length).toBeGreaterThan(40);
-    // The bumps are evened out: the radius varies far less than 12px.
-    const radii = out.map((q) => Math.hypot(q.X - 20000, q.Y - 20000) / 100);
-    expect(Math.max(...radii) - Math.min(...radii)).toBeLessThan(4);
-    // Never beyond the area's outline shrunk by 1px.
-    expect(Math.max(...radii)).toBeLessThan(162 - 1);
-  });
-
-  it('treats only outlines with few sides and at most two inside corners as polygons', () => {
-    const path = (pts: number[][]) => pts.map(([X, Y]) => ({ X, Y }));
-    expect(polygonLike(path([[0, 0], [200, 0], [200, 200], [0, 200]]))).toBe(true);
-    // An L (one inside corner) and a T (two) are still polygons.
-    expect(polygonLike(path([[0, 0], [200, 0], [200, 80], [80, 80], [80, 200], [0, 200]]))).toBe(true);
-    expect(polygonLike(path([[0, 0], [300, 0], [300, 80], [190, 80], [190, 200], [110, 200], [110, 80], [0, 80]]))).toBe(true);
-    // An E has only 12 sides but four inside corners: a zigzag, drawn smooth.
-    const e = [[0, 0], [200, 0], [200, 50], [70, 50], [70, 80], [200, 80], [200, 120], [70, 120], [70, 150], [200, 150], [200, 200], [0, 200]];
-    expect(polygonLike(path(e))).toBe(false);
-    // Winding direction doesn't matter.
-    expect(polygonLike(path([...e].reverse()))).toBe(false);
-    // Too many sides, even if convex.
-    const circle = Array.from({ length: 20 }, (_, i) => [Math.round(100 * Math.cos(i * 0.314)), Math.round(100 * Math.sin(i * 0.314))]);
-    expect(polygonLike(path(circle))).toBe(false);
   });
 
   it('turns the map so an area looks most like a rectangle', () => {
@@ -128,12 +99,58 @@ describe('administrative area map', () => {
     expect(shapes.focus?.bearing).toBeCloseTo(-30, 0);
   });
 
-  it('keeps an area smaller than the corner radius but drops specks', () => {
+  it('keeps even a tiny area', () => {
     // About 16px across on a 400px-wide, 0.04°-wide screen: kept.
     const small = renderAreaMap({ focus: { code: 'f', name: 'f' }, parts: [square('small', 127.02, 37.02, 0.0016)], others: [] }, viewport);
     expect(small.parts).toHaveLength(1);
-    // About 6px across: a speck, dropped as noise.
+    // About 6px across: still kept.
     const speck = renderAreaMap({ focus: { code: 'f', name: 'f' }, parts: [square('speck', 127.02, 37.02, 0.0006)], others: [] }, viewport);
-    expect(speck.parts).toHaveLength(0);
+    expect(speck.parts).toHaveLength(1);
+  });
+
+  it('reuses a cached shape after a pan, but not one cut at the edge or at another zoom', () => {
+    const map = {
+      focus: { code: 'f', name: 'f' },
+      parts: [square('a', 127.005, 37.005, 0.015)],
+      // Far larger than the screen: always cut at the drawn edge.
+      others: [square('big', 126.8, 36.8, 0.6)],
+    };
+    const cache = new AreaShapeCache();
+    const get = vi.spyOn(cache, 'get');
+    const set = vi.spyOn(cache, 'set');
+    const first = renderAreaMap(map, viewport, cache);
+    expect(set).toHaveBeenCalledTimes(1);
+    const panned: MapViewport = { ...viewport, bounds: { west: 127.003, south: 37.002, east: 127.043, north: 37.042 } };
+    const again = renderAreaMap(map, panned, cache);
+    expect(get.mock.results.filter((r) => r.value).length).toBe(1);
+    // The same outline as drawing it fresh, to within rounding.
+    const fresh = renderAreaMap(map, panned);
+    const p = screenProjection(panned);
+    const xs = (s: typeof first) => s.parts[0][0].map((q) => p.project(q).X);
+    expect(Math.min(...xs(again))).toBeCloseTo(Math.min(...xs(fresh)), -1);
+    expect(Math.max(...xs(again))).toBeCloseTo(Math.max(...xs(fresh)), -1);
+    get.mockClear();
+    const zoomedOut: MapViewport = { bounds: { west: 126.98, south: 36.98, east: 127.06, north: 37.06 }, widthPx: 400 };
+    renderAreaMap(map, zoomedOut, cache);
+    expect(get.mock.results.some((r) => r.value)).toBe(false);
+  });
+
+  it('drafts the same areas with the gap but sharp corners', () => {
+    const map = {
+      focus: { code: 'f', name: 'f' },
+      parts: [square('a', 127.005, 37.005, 0.015), square('b', 127.02, 37.005, 0.015)],
+      others: [square('c', 127.005, 37.02, 0.03)],
+    };
+    const draft = renderAreaDraft(map, viewport);
+    expect(draft.parts).toHaveLength(2);
+    expect(draft.others).toHaveLength(1);
+    expect(draft.partTags?.map((t) => t.key)).toEqual(['a', 'b']);
+    const p = screenProjection(viewport);
+    const [a, b] = draft.parts.map(([outer]) => outer.map(p.project));
+    const minX = Math.min(...a.map((q) => q.X)), maxX = Math.max(...a.map((q) => q.X));
+    const minY = Math.min(...a.map((q) => q.Y));
+    // A vertex right at the corner, unlike the full drawing.
+    expect(a.some((q) => Math.abs(q.X - minX) < 2 && Math.abs(q.Y - minY) < 2)).toBe(true);
+    expect((Math.min(...b.map((q) => q.X)) - maxX) / 100).toBeCloseTo(4, 0);
   });
 });

@@ -51,4 +51,33 @@ describe('area renderer', () => {
     const next = await renderer.render(at(127, 37));
     expect(next && 'shapes' in next).toBe(true);
   });
+
+  it('sends a draft first for a screen nothing was drawn for, then the finished shapes', async () => {
+    const renderer = new AreaRenderer(fakeService());
+    const onDraft = vi.fn();
+    const done = await renderer.render(at(127, 37), {}, () => true, onDraft);
+    expect(onDraft).toHaveBeenCalledTimes(1);
+    expect(onDraft.mock.calls[0][0].shapes.parts).toHaveLength(2);
+    expect(done && 'shapes' in done && done.shapes.parts).toHaveLength(2);
+    // Zooming in stays inside the drawing: the old shapes stay up, no draft.
+    onDraft.mockClear();
+    await renderer.render(at(127.01, 37.01, 0.02), {}, () => true, onDraft);
+    expect(onDraft).not.toHaveBeenCalled();
+  });
+
+  it('redraws in full after a draft whose finished shapes a newer screen replaced', async () => {
+    const renderer = new AreaRenderer(fakeService());
+    const onDraft = vi.fn();
+    expect(await renderer.render(at(127, 37), {}, () => false, onDraft)).toBeNull();
+    // The draft never reached the map (a newer screen took over before it).
+    expect(onDraft).not.toHaveBeenCalled();
+    // A newer screen arrives while the draft is out.
+    let current = true;
+    onDraft.mockImplementation(() => { current = false; });
+    expect(await renderer.render(at(127, 37), {}, () => current, onDraft)).toBeNull();
+    expect(onDraft).toHaveBeenCalledTimes(1);
+    // The map shows that draft, so the same screen must not count as drawn.
+    const next = await renderer.render(at(127.003, 37.002));
+    expect(next && 'shapes' in next).toBe(true);
+  });
 });

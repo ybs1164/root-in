@@ -254,11 +254,6 @@ export class MapLibreCourseMap implements CourseMap {
     this.map.easeTo({ center, duration: this.duration(400) });
   }
 
-  setBearing(bearing: number): void {
-    if (Math.abs(this.map.getBearing() - bearing) < 0.5) return;
-    this.map.easeTo({ bearing, duration: 700 });
-  }
-
   getCenter(): [number, number] {
     const c = this.map.getCenter();
     return [c.lng, c.lat];

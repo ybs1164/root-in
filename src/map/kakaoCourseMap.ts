@@ -213,10 +213,6 @@ export class KakaoCourseMap implements CourseMap {
     this.map.panTo(this.latLng(center));
   }
 
-  setBearing(): void {
-    // The Kakao JS SDK has no map rotation; the areas stay north-up.
-  }
-
   setPanEnabled(enabled: boolean): void {
     this.map.setDraggable(enabled);
   }

@@ -127,26 +127,29 @@ export function placeAreaLabels(
     top: -halfH + cover.bottom + EDGE_PX, bottom: halfH - cover.top - EDGE_PX,
   };
   if (!(screen.right > screen.left && screen.bottom > screen.top)) return [];
+  // Keyed by area alone: zoomed in past 읍면동, the focused 읍면동 is drawn
+  // both split (its focused section) and whole (its other sections), and
+  // still gets one label, a part's.
   const groups = new Map<string, { tag: AreaTag; part: boolean; polygons: PolygonRings[] }>();
   const gather = (polygons: PolygonRings[], tags: AreaTag[] | undefined, part: boolean) => {
     if (!tags || tags.length !== polygons.length) return;
     polygons.forEach((polygon, i) => {
-      const id = `${part ? 'p' : 'o'}:${tags[i].key}`;
-      const group = groups.get(id) ?? { tag: tags[i], part, polygons: [] };
+      const group = groups.get(tags[i].key) ?? { tag: tags[i], part, polygons: [] };
+      group.part ||= part;
       group.polygons.push(polygon);
-      groups.set(id, group);
+      groups.set(tags[i].key, group);
     });
   };
   gather(shapes.parts, shapes.partTags, true);
   gather(shapes.others, shapes.otherTags, false);
-  const before = new Map(previous.map((l) => [`${l.part ? 'p' : 'o'}:${l.key}`, l]));
+  const before = new Map(previous.map((l) => [l.key, l]));
   const labels: AreaLabel[] = [];
   for (const [id, { tag, part, polygons }] of groups) {
     if (!tag.name) continue;
     const w = labelWidthPx(tag.name);
     const rings = polygons.flatMap((polygon) => polygon.map((ring) => ring.map(px)));
     const old = before.get(id);
-    if (old && old.name === tag.name && fits(rings, px(old.at), w, screen)) {
+    if (old && old.name === tag.name && old.part === part && fits(rings, px(old.at), w, screen)) {
       labels.push(old);
       continue;
     }
