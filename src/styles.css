@@ -4504,7 +4504,8 @@ button:disabled {
    shadow on the outline (the eyelet stays clear). */
 .edge-tag {
   position: absolute;
-  top: 50%;
+  /* Above the row of round buttons, clear of them. */
+  bottom: calc(100% + 12px);
   display: block;
   width: 80px;
   height: 54px;
@@ -4512,7 +4513,6 @@ button:disabled {
   border: 0;
   background: none;
   color: var(--text);
-  translate: 0 -50%;
   filter: drop-shadow(var(--ticket-shadow));
   transition: scale 0.12s ease;
 }
@@ -4567,7 +4567,7 @@ button:disabled {
   height: 24px;
 }
 
-/* The map row: the blue pin in the middle, a small white crosshair at the right. */
+/* The map row: the blue pin in the middle, the small white crosshair right beside it. */
 .bar-pin,
 .bar-aim {
   position: absolute;
@@ -4597,7 +4597,8 @@ button:disabled {
 }
 
 .bar-aim {
-  right: 16px;
+  /* Just right of the blue pin. */
+  left: calc(50% + 31px + 12px);
   width: 44px;
   height: 44px;
   background: var(--surface);
