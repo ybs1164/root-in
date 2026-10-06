@@ -1,5 +1,6 @@
 import type { LabelCover } from '../domain/areaLabels';
 import type { LonLat, MapViewport } from '../domain/districtMap';
+import { StaticAdminAreaService } from './adminAreaService';
 import { AreaRenderer } from './areaRenderer';
 
 /**
@@ -7,10 +8,18 @@ import { AreaRenderer } from './areaRenderer';
  * the last drawing stay loaded between pans. Only the newest request is
  * worked on; older ones still waiting on files are dropped.
  */
-const renderer = new AreaRenderer();
+let renderer: AreaRenderer | null = null;
 let latest = 0;
 
-self.onmessage = async (event: MessageEvent<{ id: number; viewport: MapViewport; focusAt?: LonLat; cover?: LabelCover }>) => {
+type Message = { base: string } | { id: number; viewport: MapViewport; focusAt?: LonLat; cover?: LabelCover };
+
+self.onmessage = async (event: MessageEvent<Message>) => {
+  // First the page says where the area files are (an absolute URL).
+  if ('base' in event.data) {
+    renderer = new AreaRenderer(new StaticAdminAreaService(event.data.base));
+    return;
+  }
+  renderer ??= new AreaRenderer();
   const { id, viewport, focusAt, cover } = event.data;
   latest = id;
   try {

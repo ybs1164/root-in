@@ -47,17 +47,24 @@ let warnedMissing = false;
 export class StaticAdminAreaService implements AdminAreaService {
   private cache = new Map<string, Promise<AdminArea[] | null>>();
 
+  /**
+   * `base` is where the files are. A worker passes the page's absolute URL:
+   * with a relative build base ('./'), a URL resolved inside the worker
+   * lands next to the worker script (in assets/), not next to the page.
+   */
+  constructor(private readonly base: string = BASE) {}
+
   private load(path: string, signal?: AbortSignal): Promise<AdminArea[] | null> {
     let entry = this.cache.get(path);
     if (!entry) {
       // Not tied to one request's signal: a cancelled pan must not poison the cache.
-      entry = fetch(`${BASE}${path}`)
+      entry = fetch(`${this.base}${path}`)
         .then(async (response) => {
           if (!response.ok) {
             // Without the top file the map stays an empty background: say why.
             if (path === 'sido.json' && response.status === 404 && !warnedMissing) {
               warnedMissing = true;
-              console.warn(`[root-in] 행정구역 지도 데이터(${BASE}sido.json)가 없어 빈 지도로 보입니다. public/korea/admin을 함께 배포하세요 (scripts/korea-data/README.md).`);
+              console.warn(`[root-in] 행정구역 지도 데이터(${this.base}sido.json)가 없어 빈 지도로 보입니다. public/korea/admin을 함께 배포하세요 (scripts/korea-data/README.md).`);
             }
             return null;
           }
