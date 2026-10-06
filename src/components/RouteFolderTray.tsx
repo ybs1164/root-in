@@ -13,6 +13,7 @@ import {
   routesInTab,
   renameFolder,
   neighborTab,
+  centeredScrollLeft,
   type RouteFolders,
   type RouteTab,
 } from '../domain/routeFolders';
@@ -122,14 +123,31 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     setPicking(id);
   };
 
-  // Where the picker points: the picked tab's centre, across the sheet. A new
-  // tab sits at the end next to +, so it is scrolled into view first.
+  /** Scroll the tab row so a tab sits in its middle (or as near as the row's ends allow). */
+  const centerTab = (id: string, smooth: boolean) => {
+    const row = tabsEl.current;
+    const tabEl = row?.querySelector<HTMLElement>(`[data-tab="${id}"]`);
+    if (!row || !tabEl) return;
+    const left = tabEl.getBoundingClientRect().left - row.getBoundingClientRect().left + row.scrollLeft;
+    row.scrollTo({ left: centeredScrollLeft(left, tabEl.offsetWidth, row.clientWidth, row.scrollWidth), behavior: smooth ? 'smooth' : 'auto' });
+  };
+
+  // The open tab comes to the middle of the row: at once when the sheet opens,
+  // with a glide when another tab is picked (a tap, or a swipe on the list).
+  const centeredOnce = useRef(false);
+  useLayoutEffect(() => {
+    centerTab(current, centeredOnce.current);
+    centeredOnce.current = true;
+  }, [current]);
+
+  // Where the picker points: the picked tab's centre, across the sheet. The
+  // tab is centred first (at once, so the picker lines up with where it ends up).
   const sheetEl = useRef<HTMLElement | null>(null);
   const [pickerX, setPickerX] = useState<number | null>(null);
   useLayoutEffect(() => {
     if (!picking) return setPickerX(null);
+    centerTab(picking, false);
     const tabEl = tabsEl.current?.querySelector<HTMLElement>(`[data-tab="${picking}"]`);
-    tabEl?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
     const tab = tabEl?.getBoundingClientRect();
     const sheet = sheetEl.current?.getBoundingClientRect();
     setPickerX(tab && sheet ? tab.left + tab.width / 2 - sheet.left : null);
@@ -319,6 +337,8 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
             return;
           }
           setMovingPicked(false);
+          // Even the open tab comes back to the middle if the row was scrolled away.
+          centerTab(id, true);
           // Any tab lets go of a route on show (the sheet comes back up).
           if (shownId) onShow(null);
           // The second tap on an open folder brings out its name editor and,

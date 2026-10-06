@@ -106,6 +106,16 @@ export function openRouteTab(state: RouteFolders, tab: RouteTab): RouteTab {
 }
 
 /**
+ * Where a scrolling tab row should sit to put one tab in its middle. Near the
+ * ends the row can't scroll that far, so it stops at the end instead — the
+ * tab then sits as close to the middle as the row allows.
+ */
+export function centeredScrollLeft(tabLeft: number, tabWidth: number, viewWidth: number, contentWidth: number): number {
+  const max = Math.max(0, contentWidth - viewWidth);
+  return Math.min(max, Math.max(0, tabLeft + tabWidth / 2 - viewWidth / 2));
+}
+
+/**
  * The tab one swipe away, in the tabs' order (전체, 미분류, then the user's
  * folders), wrapping round at either end: +1 is the next tab, -1 the one before.
  */
