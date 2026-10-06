@@ -1,6 +1,6 @@
 import { ChevronDown, PenLine, UserRound, Volume2, VolumeX } from 'lucide-react';
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
-import { handleProblem, PING_ALERT_HOURS, PROFILE_LIMITS, sanitizeHandleInput, SHARE_ALERT_COUNTS, shareCountLabel, toggleAlert } from '../domain/profile';
+import { handleProblem, PING_ALERT_HOURS, PROFILE_LIMITS, sanitizeHandleInput, SHARE_ALERT_COUNTS, shareCountLabel } from '../domain/profile';
 import { avatarFromFile } from '../lib/avatarImage';
 import { getDisplayName, setDisplayName } from '../lib/currentUser';
 import type { Profile } from '../services/profileRepository';
@@ -93,13 +93,13 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
             label="투데이 알림"
             steps={PING_STEPS}
             on={profile.pingAlerts}
-            onToggle={(hour) => onChange({ ...profile, pingAlerts: toggleAlert(profile.pingAlerts, hour, PING_ALERT_HOURS) })}
+            onChange={(pingAlerts) => onChange({ ...profile, pingAlerts })}
           />
           <AlertBoard
             label="공유수 알림"
             steps={SHARE_STEPS}
             on={profile.shareAlerts}
-            onToggle={(count) => onChange({ ...profile, shareAlerts: toggleAlert(profile.shareAlerts, count, SHARE_ALERT_COUNTS) })}
+            onChange={(shareAlerts) => onChange({ ...profile, shareAlerts })}
           />
         </section>
       )}

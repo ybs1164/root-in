@@ -1,24 +1,48 @@
 import { useState } from 'react';
+import { randomAlerts, toggleAlert, toggleAllAlerts } from '../domain/profile';
 
 interface AlertBoardProps {
   /** The row's name, above the board (and its group's accessible name). */
   label: string;
   steps: readonly { value: number; text: string }[];
   on: readonly number[];
-  onToggle: (value: number) => void;
+  /** The steps switched on after a cell, 랜덤 or 전체 was pressed. */
+  onChange: (on: number[]) => void;
 }
 
 /**
  * 알림 설정's row: a 출발 안내판 — one navy board of flip cells, one per step,
- * the lit ones blue. Switching a cell turns it like a split-flap.
+ * the lit ones blue. Switching a cell turns it like a split-flap. At the
+ * row's right, 랜덤 tosses every cell and 전체 lights them all (or, when all
+ * are lit, puts them all out).
  */
-export default function AlertBoard({ label, steps, on, onToggle }: AlertBoardProps) {
+export default function AlertBoard({ label, steps, on, onChange }: AlertBoardProps) {
   // Cells mid-flip: the face each one flips from, keyed to restart on a quick second tap.
   const [flips, setFlips] = useState<Record<number, { from: boolean; key: number }>>({});
+  const values = steps.map((step) => step.value);
+
+  /** Saves `next`, turning over every cell it changes. */
+  const apply = (next: number[]) => {
+    const changed = values.filter((v) => on.includes(v) !== next.includes(v));
+    setFlips((all) => {
+      const flipped = { ...all };
+      for (const v of changed) flipped[v] = { from: on.includes(v), key: (all[v]?.key ?? 0) + 1 };
+      return flipped;
+    });
+    onChange(next);
+  };
 
   return (
     <div className="alerts__row" role="group" aria-label={label}>
-      <span className="alerts__label">{label}</span>
+      <div className="alerts__head">
+        <span className="alerts__label">{label}</span>
+        <button className="alerts__all" aria-label={`${label} 랜덤`} onClick={() => apply(randomAlerts(on, values))}>
+          랜덤
+        </button>
+        <button className="alerts__all" aria-label={`${label} 전체`} onClick={() => apply(toggleAllAlerts(on, values))}>
+          전체
+        </button>
+      </div>
       <div className="alerts__hours">
         {steps.map(({ value, text }) => {
           const lit = on.includes(value);
@@ -28,10 +52,7 @@ export default function AlertBoard({ label, steps, on, onToggle }: AlertBoardPro
               key={value}
               className={`alerts__hour ${lit ? 'is-on' : ''}`}
               aria-pressed={lit}
-              onClick={() => {
-                setFlips((all) => ({ ...all, [value]: { from: lit, key: (all[value]?.key ?? 0) + 1 } }));
-                onToggle(value);
-              }}
+              onClick={() => apply(toggleAlert(on, value, values))}
             >
               {text}
               {flip && (

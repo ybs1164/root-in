@@ -46,11 +46,10 @@ export function defaultHandle(userId: string): string {
 export const PING_ALERT_HOURS = [7, 9, 12, 16, 20, 23] as const;
 export const SHARE_ALERT_COUNTS = [10, 100, 1_000, 10_000, 100_000, 1_000_000] as const;
 
-/** A 공유수 알림 step as its board cell reads: 10, 100, 1.0k, 10k, 100k, 1M. */
+/** A 공유수 알림 step as its board cell reads: 10, 100, 1k, 10k, 100k, 1M. */
 export function shareCountLabel(count: number): string {
   if (count >= 1_000_000) return `${count / 1_000_000}M`;
-  if (count >= 10_000) return `${count / 1_000}k`;
-  if (count >= 1_000) return `${(count / 1_000).toFixed(1)}k`;
+  if (count >= 1_000) return `${count / 1_000}k`;
   return String(count);
 }
 
@@ -64,3 +63,23 @@ export function sanitizeAlerts(value: unknown, steps: readonly number[]): number
 export function toggleAlert(on: readonly number[], step: number, steps: readonly number[]): number[] {
   return steps.filter((s) => (s === step ? !on.includes(s) : on.includes(s)));
 }
+
+/** 전체: every step on — or, when they already all are, every step off. */
+export function toggleAllAlerts(on: readonly number[], steps: readonly number[]): number[] {
+  return steps.every((s) => on.includes(s)) ? [] : [...steps];
+}
+
+/**
+ * 랜덤: each step on or off by a coin toss. Tosses again (a few times) when
+ * the board would come out as it already is, so the press always shows.
+ */
+export function randomAlerts(on: readonly number[], steps: readonly number[], random: () => number = Math.random): number[] {
+  const same = (next: number[]) => next.length === on.length && next.every((s) => on.includes(s));
+  let next: number[] = [];
+  for (let tries = 0; tries < 8; tries += 1) {
+    next = steps.filter(() => random() < 0.5);
+    if (!same(next)) break;
+  }
+  return next;
+}
+

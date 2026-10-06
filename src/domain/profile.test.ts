@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultHandle, handleProblem, isValidHandle, sanitizeHandleInput, shareCountLabel, PING_ALERT_HOURS, toggleAlert } from './profile';
+import { defaultHandle, handleProblem, isValidHandle, sanitizeHandleInput, shareCountLabel, PING_ALERT_HOURS, randomAlerts, toggleAlert, toggleAllAlerts } from './profile';
 
 describe('profile handle', () => {
   it('keeps only URL-safe characters while typing, lower-cased and capped', () => {
@@ -36,6 +36,21 @@ describe('alert steps', () => {
   });
 
   it('labels share counts as the board reads them', () => {
-    expect([10, 100, 1_000, 10_000, 100_000, 1_000_000].map(shareCountLabel)).toEqual(['10', '100', '1.0k', '10k', '100k', '1M']);
+    expect([10, 100, 1_000, 10_000, 100_000, 1_000_000].map(shareCountLabel)).toEqual(['10', '100', '1k', '10k', '100k', '1M']);
+  });
+
+  it('전체 turns every step on, or off when all already are', () => {
+    expect(toggleAllAlerts([9, 20], PING_ALERT_HOURS)).toEqual([7, 9, 12, 16, 20, 23]);
+    expect(toggleAllAlerts([7, 9, 12, 16, 20, 23], PING_ALERT_HOURS)).toEqual([]);
+  });
+
+  it('랜덤 tosses each step, and again when nothing would change', () => {
+    const tosses = [0.1, 0.9, 0.1, 0.9, 0.1, 0.9];
+    let i = 0;
+    expect(randomAlerts([], PING_ALERT_HOURS, () => tosses[i++ % tosses.length])).toEqual([7, 12, 20]);
+    // First toss repeats the board as it is ([7, 12, 20]); the second differs.
+    const again = [...tosses, 0.9, 0.9, 0.9, 0.9, 0.9, 0.1];
+    i = 0;
+    expect(randomAlerts([7, 12, 20], PING_ALERT_HOURS, () => again[i++])).toEqual([23]);
   });
 });
