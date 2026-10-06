@@ -685,7 +685,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
               );
             }}
           >
-            <Share size={28} strokeWidth={2.2} aria-hidden />
+            <Share size={24} strokeWidth={2.2} aria-hidden />
           </button>,
           pageEl ?? document.body,
         )}

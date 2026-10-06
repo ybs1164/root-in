@@ -4586,16 +4586,16 @@ button:disabled {
   pointer-events: none;
 }
 
-/* The day's 공유: an accent round at the bottom right, a size between the
-   row's small and big buttons. */
+/* The day's 공유: an accent round at the bottom right, just a little bigger
+   than the row's small buttons (bottoms level with them). */
 .day-share {
   position: absolute;
   right: 16px;
   bottom: -4px;
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
+  width: 52px;
+  height: 52px;
   padding: 0;
   border: 0;
   border-radius: 50%;
