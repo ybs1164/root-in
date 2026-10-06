@@ -5393,13 +5393,13 @@ button:disabled {
   animation: alerts-spin-in 0.12s 0.12s ease-out both;
 }
 
-/* The bottom half turns at the same time, the other way round. */
+/* The bottom half follows a beat behind the top. */
 .alerts__face--bottom.alerts__face--out {
-  animation-name: alerts-spin-out-back;
+  animation-delay: 0.08s;
 }
 
 .alerts__face--bottom.alerts__face--in {
-  animation-name: alerts-spin-in-back;
+  animation-delay: 0.2s;
 }
 
 @keyframes alerts-spin-out {
@@ -5408,24 +5408,6 @@ button:disabled {
   }
   to {
     transform: perspective(80px) rotateX(90deg);
-  }
-}
-
-@keyframes alerts-spin-out-back {
-  from {
-    transform: perspective(80px) rotateX(0deg);
-  }
-  to {
-    transform: perspective(80px) rotateX(-90deg);
-  }
-}
-
-@keyframes alerts-spin-in-back {
-  from {
-    transform: perspective(80px) rotateX(90deg);
-  }
-  to {
-    transform: perspective(80px) rotateX(0deg);
   }
 }
 

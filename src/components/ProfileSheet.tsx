@@ -105,7 +105,7 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
                     {hour}시
                     {flip && (
                       // The split-flap turn: the top and bottom halves each spin on their own
-                      // axis, old face out and new face in, both at once but turning opposite ways.
+                      // axis, old face out and new face in, the bottom just behind the top.
                       <span key={flip.key} className="alerts__flip" aria-hidden>
                         {(['top', 'bottom'] as const).flatMap((half) => [
                           <span key={`${half}-old`} className={`alerts__face alerts__face--${half} alerts__face--out ${flip.from ? 'is-on' : ''}`}>
