@@ -114,6 +114,8 @@ export function usePageSwipe(dir: -1 | 0 | 1, onLeave: () => void) {
   return {
     /** True from release until the page is gone: the bottom bar can move to 핀 already. */
     leaving: phase === 'leaving',
+    /** Off its resting place: dragged, leaving, or springing back. */
+    moving: phase !== 'idle',
     style,
     leave,
     handlers: { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel: reset },

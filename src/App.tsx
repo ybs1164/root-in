@@ -170,7 +170,16 @@ export default function App() {
 
   const sharedCourse = incomingCourse.status === 'ready' ? incomingCourse.course : null;
   const activePin = pins.find((p) => p.id === activePinId) ?? null;
+  const onPage = showsPage(tab, Boolean(searchOpen || preview));
+  // Swiping 달력 left slides the page off and uncovers the map (핀).
+  const swipe = usePageSwipe(onPage && !decorating && !studio ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
+  // The calendar page sliding in over the map (from the left-edge tag).
+  const [pageEnter, setPageEnter] = useState(false);
+  // While the page slides in or out, the map screen under it stays whole.
+  const pageMoving = pageEnter || swipe.moving;
   const onPinHome = tab === 'pins';
+  // The map's own things (pins, rail, row) show on the map, and under a moving page.
+  const mapUi = onPinHome || pageMoving;
   // On phones the pin screen's sheet drops down from the top, leaving the map's lower half clear.
   const sheetTop = tab === 'pins';
   // 경로 open on the pin map: the folder sheet takes the tab buttons' place.
@@ -232,7 +241,7 @@ export default function App() {
   const isEditing = !!editRoute;
   // Pin markers: a received set as its sender styled it, or my pins on the home tab.
   const pinMarkers = useMemo<PinMarker[]>(() => {
-    if (!onPinHome) return [];
+    if (!mapUi) return [];
     // A saved route on show has the map to itself: every pin steps aside
     // (its stops, shaped or numbered, stand in for the places).
     // Editing it, they come back to be picked.
@@ -249,7 +258,7 @@ export default function App() {
         selected: pin.id === activePinId,
       };
     });
-  }, [onPinHome, shownPins, categories, activePinId, shownRoute, isEditing, pinsGone]);
+  }, [mapUi, shownPins, categories, activePinId, shownRoute, isEditing, pinsGone]);
 
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
   // 제외 주소 are located with the same place search (search failing just leaves the address text to match).
@@ -871,13 +880,9 @@ export default function App() {
   }, [pins, categories]);
 
   const calendarZoom = tab === 'calendar';
-  const onPage = showsPage(tab, Boolean(searchOpen || preview));
-  // Swiping 달력 left slides the page off and uncovers the map (핀).
-  const swipe = usePageSwipe(onPage && !decorating && !studio ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
 
   // The tags between the two screens slide the page rather than cut: in from
   // the left on the way to 달력, back off to the left on the way to the map.
-  const [pageEnter, setPageEnter] = useState(false);
   const tagTab = (next: AppTab) => {
     if (next === 'calendar') {
       setPageEnter(true);
@@ -895,7 +900,7 @@ export default function App() {
   };
 
   return (
-    <div className={`app ${searchOpen ? 'app--searching' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''} ${aiming ? 'app--aiming' : ''} ${pageEnter || swipe.leaving ? 'app--page-moving' : ''}`}>
+    <div className={`app ${searchOpen ? 'app--searching' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''} ${aiming ? 'app--aiming' : ''} ${pageMoving ? 'app--page-moving' : ''}`}>
       <div ref={mapEl} className="map" aria-label="지도" />
 
       <SearchBar
@@ -917,7 +922,7 @@ export default function App() {
         <ProfileAvatar photo={profile.photo} size={52} />
       </button>
 
-      {onPinHome && !searchOpen && (
+      {mapUi && !searchOpen && (
         <PinRail
           mode={railMode}
           onAction={railAction}
@@ -1207,7 +1212,7 @@ export default function App() {
       )}
 
       <div ref={barEl} className={`bottom-bar-wrap ${barAway ? 'is-away' : ''}`} inert={barAway}>
-        <BottomBar tab={swipe.leaving ? 'pins' : tab} hidden={swipe.leaving} onTab={tagTab} onPin={startPinning} onAim={startAiming} />
+        <BottomBar tab={pageMoving ? 'pins' : tab} tagHidden={pageMoving} onTab={tagTab} onPin={startPinning} onAim={startAiming} />
       </div>
 
       {routeDeleting && course.courses.some((c) => c.id === routeDeleting) && (

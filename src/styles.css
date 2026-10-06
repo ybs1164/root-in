@@ -2283,7 +2283,7 @@ button:disabled {
   position: fixed;
   left: 50%;
   bottom: calc(var(--safe-bottom) + 36px);
-  z-index: 12;
+  z-index: 27; /* over the calendar page it belongs to */
   margin-left: -32px;
   animation: none;
 }
@@ -4614,18 +4614,6 @@ button:disabled {
   transition: scale 0.12s ease;
 }
 
-.bar-pin,
-.bar-aim {
-  animation: bar-btn-pop 300ms cubic-bezier(0.3, 1.5, 0.5, 1);
-}
-
-@keyframes bar-btn-pop {
-  from {
-    scale: 0.4;
-    opacity: 0;
-  }
-}
-
 .bar-pin:active,
 .bar-aim:active {
   scale: 0.92;
@@ -5773,7 +5761,9 @@ button:disabled {
 .page {
   position: absolute;
   inset: 0;
-  z-index: 11; /* over the map, under the round buttons */
+  /* Over the whole map screen, its buttons too: sliding in or out, the
+     calendar always passes over the map's UI. */
+  z-index: 26;
   display: flex;
   flex-direction: column;
   padding-top: var(--safe-top);
@@ -5798,7 +5788,7 @@ body:has(.app--page-moving) .day-share {
 .page-rider {
   position: absolute;
   inset: 0;
-  z-index: 10;
+  z-index: 25;
   pointer-events: none;
   animation: page-in-left 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -5841,8 +5831,8 @@ body:has(.app--page-moving) .day-share {
 }
 
 /* The map's own controls belong to the map screen. */
-.app--page .search,
-.app--page .corner-btn {
+.app--page:not(.app--page-moving) .search,
+.app--page:not(.app--page-moving) .corner-btn {
   display: none;
 }
 
