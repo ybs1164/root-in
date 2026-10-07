@@ -1,6 +1,6 @@
 # Supabase 설정 (로그인·프로필 동기화)
 
-> 2026-10-07, DB 도입 1·2단계. 키가 없으면 앱은 예전처럼 이 기기에만 저장한다(로그인 버튼도 안 보임).
+> 2026-10-07~09, DB 도입 1·2·3단계. 키가 없으면 앱은 예전처럼 이 기기에만 저장한다(로그인 버튼도 안 보임).
 
 ## 지금 되는 것 (1단계)
 - 프로필 → 계정·약관·정책 → **카카오로 로그인** / 로그아웃 / 탈퇴(계정까지 삭제).
@@ -25,11 +25,19 @@
 - 로컬 행의 `userId`는 계속 이 기기 id(`getCurrentUserId()`), 서버 행은 계정 id(`user_id`, RLS). 그래서 로그인·로그아웃으로 로컬 데이터를 옮기거나 다시 쓸 일이 없다.
 - 저장소가 쓸 때 `syncBus.localWrote`로 알리고, 받아와서 바꾸면 `onPulled`로 화면(usePins·useCourses·useRouteFolders·CalendarZoom)이 다시 읽음. 받아 쓴 것은 다시 올리지 않음(`withoutEcho`).
 
+## 짧은 공유 링크·공유 횟수 (3단계)
+- 꾸미기 화면(경로 카드)의 **링크 복사**: 로그인 중이면 `shares`에 행을 만들고 `https://…/#s=<slug>`(10자) 복사. 같은 루트·같은 내용이면 이미 만든 링크를 다시 씀(횟수가 한 행에 모임). 로그인 안 했거나 실패하면 예전 긴 `#share=` 링크. 둘 다 제외 주소 정류장은 빠짐.
+- 행에는 긴 링크와 똑같은 토큰을 넣음(`snapshot = { token }`) — 받는 쪽은 긴 링크와 같은 디코드·검증을 거침.
+- **받기**: `#s=` 링크는 `open_share(slug, count_open)` RPC 하나로 엶 — 토큰, 연 횟수, 보낸 사람(닉네임·@아이디·사진 경로). 이 브라우저에서 처음 열 때만 셈(`goodroot:opened-shares:v1`), 주인이 열면 안 셈. 받은 루트 팝업에 보낸 사람 사진·닉네임과 '지금까지 n번 공유됐어요.'.
+- **공유 횟수**(`Course.shareCount`, 경로 줄 `N Shares`): 로그인 중 동기화 뒤와 앱이 다시 앞으로 올 때 내 `shares`의 `open_count`를 루트별로 더해 채움(`services/shareCounts.ts`). 서버 값이라 동기화 행에는 없음(올리지 않음).
+- 보안: `shares`·`profiles`는 이제 **본인만 select**(목록으로 남의 공유·설정을 볼 수 없음). 남이 보는 건 `open_share`가 돌려주는 공개 정보뿐. 링크를 여러 브라우저로 열어 횟수를 부풀리는 것은 막지 않음(익명 열기라 막을 신원이 없음).
+
 ## 처음 설정
 1. [supabase.com](https://supabase.com)에서 프로젝트 만들기 — 리전은 **Northeast Asia (Seoul)**.
 2. SQL Editor에서 `supabase/migrations/`의 파일을 이름 순서대로 실행 (또는 Supabase CLI `supabase db push`).
    `20261007000000_init.sql` — 테이블·RLS·`avatars` 버킷·`delete_my_account`·`open_share` 함수,
-   `20261008000000_sync.sql` — 동기화용 변경(`order` → `position`, 폴더 `icon`, 하루 `looks`, 길이 검사는 클라이언트로).
+   `20261008000000_sync.sql` — 동기화용 변경(`order` → `position`, 폴더 `icon`, 하루 `looks`, 길이 검사는 클라이언트로),
+   `20261009000000_shares.sql` — 공유·프로필 select를 본인만으로, `open_share(slug, count_open)`이 보낸 사람 정보까지.
 3. Project Settings → API의 Project URL과 **anon(public)** 키를 `.env.local`에:
    ```
    VITE_SUPABASE_URL=https://<ref>.supabase.co
@@ -54,8 +62,8 @@
 - `services/profileSync.ts` — 행 ↔ `Profile` 변환(서버 값도 저장소 값처럼 검증).
 - `services/accountSync.ts` — 로그인 때 합치기·변경 보내기 (React 밖, 테스트 있음).
 - `hooks/useAccount.ts` — App에 연결. `ProfileSheet`의 `account` prop. 프로필 동기화 뒤 `cloudSync`를 돌림.
+- `services/shareLinkService.ts`(짧은 링크 만들기·열기·횟수) · `shareCounts.ts`(횟수를 루트에) · `hooks/useIncomingCourse.ts`의 `resolveIncoming`.
 - `services/cloudSync.ts`(엔진) · `syncMerge.ts`(3방향 병합·해시) · `syncCollections.ts`(저장소 ↔ 행) · `remoteDataService.ts`(Supabase 읽기 1000행씩·쓰기 200행씩) · `syncBus.ts`(저장소 쓰기 알림).
 
 ## 다음 단계
-3. 짧은 공유 링크(`shares`, `open_share`)와 공유 횟수(`Course.shareCount`, 받은 루트 팝업의 보낸 사람 사진).
 4. 알림(트리거 → Edge Function → Web Push).

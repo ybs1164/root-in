@@ -3,6 +3,8 @@ import { getDisplayName, setDisplayName } from '../lib/currentUser';
 import { createAccountSync } from '../services/accountSync';
 import { createCloudSync } from '../services/cloudSync';
 import { remoteDataService as defaultData, type RemoteDataService } from '../services/remoteDataService';
+import { applyShareCounts } from '../services/shareCounts';
+import { shareLinkService as defaultLinks, type ShareLinkService } from '../services/shareLinkService';
 import { authService as defaultAuth, type AuthService, type AuthUser } from '../services/authService';
 import type { Profile } from '../services/profileRepository';
 import { remoteProfileService as defaultRemote, type RemoteProfileService } from '../services/remoteProfileService';
@@ -33,6 +35,7 @@ export function useAccount(
   auth: AuthService = defaultAuth,
   remote: RemoteProfileService = defaultRemote,
   data: RemoteDataService = defaultData,
+  links: ShareLinkService = defaultLinks,
 ): Account {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [busy, setBusy] = useState(false);
@@ -81,18 +84,24 @@ export function useAccount(
       cloud?.signedOut();
       return;
     }
+    // How often each route's links were opened (N Shares): after the routes themselves are in.
+    const pullCounts = async () => {
+      const totals = await links.counts(userId);
+      if (totals !== 'error') applyShareCounts(totals);
+    };
     setBusy(true);
     void sync
       .signedIn(userId)
       .then(() => cloud?.signedIn(userId))
+      .then(pullCounts)
       .finally(() => setBusy(false));
-    // Back to the front (another phone may have changed things meanwhile): pull again.
+    // Back to the front (another phone may have changed things, or someone opened a link): pull again.
     const onVisible = () => {
-      if (document.visibilityState === 'visible') void cloud?.refresh();
+      if (document.visibilityState === 'visible') void cloud?.refresh().then(pullCounts);
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [userId, sync, cloud]);
+  }, [userId, sync, cloud, links]);
 
   return {
     available: auth.available,

@@ -123,11 +123,12 @@ export const readShareToken = (url: string): string | null => {
   return new URLSearchParams(hash).get(SHARE_HASH_KEY);
 };
 
-/** Removes the `#share=…` fragment without adding a history entry. */
+/** Removes the `#share=…` (or short `#s=…`) fragment without adding a history entry. */
 export function clearShareFromLocation(): void {
   const url = new URL(window.location.href);
   const params = new URLSearchParams(url.hash.replace(/^#/, ''));
   params.delete(SHARE_HASH_KEY);
+  params.delete('s'); // a short link (#s=…, shareLinkService)
   const rest = params.toString();
   window.history.replaceState(null, '', `${url.pathname}${url.search}${rest ? `#${rest}` : ''}`);
 }

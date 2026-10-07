@@ -35,6 +35,10 @@ import { useCourses } from './hooks/useCourses';
 import { useAreaMap } from './hooks/useAreaMap';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
 import { useAccount } from './hooks/useAccount';
+import { getDisplayName } from './lib/currentUser';
+import { copyToClipboard } from './lib/clipboard';
+import { shareLinkService } from './services/shareLinkService';
+import { planShare } from './services/shareTargets';
 import { usePageSwipe } from './hooks/usePageSwipe';
 import { usePins } from './hooks/usePins';
 import { useRouteFolders } from './hooks/useRouteFolders';
@@ -54,7 +58,6 @@ type Toast = { text: string; undo?: () => void };
 
 const DESKTOP_QUERY = '(min-width: 900px)';
 /** Shown on a shared route's popup until share counts are tracked somewhere. */
-const SHARE_COUNT_PLACEHOLDER = 1;
 
 /** Matches `tray-down` in styles.css: the 경로 폴더 sheet stays mounted while it slides away. */
 const ROUTE_TRAY_OUT_MS = 170;
@@ -89,6 +92,8 @@ export default function App() {
   const [dayPattern, setDayPattern] = useState<PatternId>('none');
   // The card on the 꾸미기 screen (a calendar day's or a route's), while it's up.
   const [studio, setStudio] = useState<ShareSubject | null>(null);
+  // The route behind the 꾸미기 screen, when it's a route's card: its link is what 링크 복사 copies.
+  const [studioCourse, setStudioCourse] = useState<Course | null>(null);
   const [studioTheme, setStudioTheme] = useState<ThemeId>('default');
   const dayTheme = studio ? studioTheme : calendarTheme;
   useEffect(() => {
@@ -189,6 +194,7 @@ export default function App() {
   const [pinsHidden, setPinsHidden] = useState(false);
 
   const sharedCourse = incomingCourse.status === 'ready' ? incomingCourse.course : null;
+  const incomingMeta = incomingCourse.status === 'ready' ? incomingCourse.meta : undefined;
   const activePin = pins.find((p) => p.id === activePinId) ?? null;
   const onPage = showsPage(tab, Boolean(searchOpen || preview));
   // Swiping 달력 left slides the page off and uncovers the map (핀).
@@ -757,6 +763,16 @@ export default function App() {
 
   // 루트 추가 on a shared link's popup: the route joins mine (no folder, so
   // 미분류), its places join my pins in 미분류, and it opens straight into editing.
+  // 링크 복사 on a route's card: a short link (#s=, counts its opens) when signed in,
+  // else the long #share= link. Either way 제외 주소 stops are taken out first.
+  const copyRouteLink = async (route: Course): Promise<boolean> => {
+    const plan = planShare({ kind: 'course', draft: route }, getDisplayName(), undefined, privacy.excluded);
+    let url: string | null = null;
+    if (account.user && shareLinkService.available && plan.token) url = await shareLinkService.create(account.user.id, route.id, plan.token);
+    url ??= await plan.createUrl();
+    return copyToClipboard(url);
+  };
+
   const addSharedRoute = async (shared: SharedCourse) => {
     const saved = await course.save({
       title: shared.title,
@@ -1054,6 +1070,7 @@ export default function App() {
           aria-label={`${shownRoute.title} 공유`}
           onClick={() => {
             if (!hasHome(privacy.excluded)) return needHome();
+            setStudioCourse(shownRoute);
             setStudio(routeSubject(shownRoute, privacy.excluded, shownRoute.stops.map((s) => {
               const pin = pins.find((p) => p.place.id === s.place.id);
               return categoryStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id).icon;
@@ -1192,7 +1209,10 @@ export default function App() {
               shareRef={shareDay}
               excluded={privacy.excluded}
               onNeedHome={needHome}
-              onShare={setStudio}
+              onShare={(subject) => {
+                setStudioCourse(null); // a day's card: no link to copy yet
+                setStudio(subject);
+              }}
               onDecorating={setDecorating}
               onDayTheme={setDayTheme}
               onDayPattern={setDayPattern}
@@ -1282,10 +1302,10 @@ export default function App() {
 
       {sharedCourse && (
         <SharedRouteDialog
-          sender={sharedCourse.sharedBy ?? '익명'}
-          // Not carried by the link yet: the sender's photo and the share count.
-          photo={null}
-          shareCount={SHARE_COUNT_PLACEHOLDER}
+          // A short link brings the sharer's profile and the open count; a long one only the name in it.
+          sender={incomingMeta?.sender.nickname || sharedCourse.sharedBy || '익명'}
+          photo={incomingMeta?.sender.photo ?? null}
+          shareCount={incomingMeta?.openCount}
           onAdd={() => void addSharedRoute(sharedCourse)}
           onClose={dismissCourse}
         />
@@ -1295,7 +1315,11 @@ export default function App() {
         <ShareStudio
           subject={studio}
           onTheme={setStudioTheme}
-          onClose={() => setStudio(null)}
+          onCopyLink={studioCourse ? () => copyRouteLink(studioCourse) : undefined}
+          onClose={() => {
+            setStudio(null);
+            setStudioCourse(null);
+          }}
         />
       )}
 

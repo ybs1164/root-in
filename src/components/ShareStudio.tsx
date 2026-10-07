@@ -31,6 +31,8 @@ interface ShareStudioProps {
   subject: ShareSubject;
   /** The card's theme, which the app wears while this screen is up. */
   onTheme: (theme: ThemeId) => void;
+  /** 링크 복사 (a route's card): makes the link and copies it; false when that failed. Absent: the button stays off. */
+  onCopyLink?: () => Promise<boolean>;
   onClose: () => void;
 }
 
@@ -46,7 +48,7 @@ interface ShareStudioProps {
  * layout, no title written on it), and leaving throws the decorations away. A day's own
  * 꾸미기 on its day screen is kept as ever and shows in the photo.
  */
-export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioProps) {
+export default function ShareStudio({ subject, onTheme, onCopyLink, onClose }: ShareStudioProps) {
   const [decor, setDecor] = useState<DayDecor>(EMPTY_DECOR);
 
   // Undo / redo, for this visit only.
@@ -203,6 +205,7 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
   );
 
   const [busy, setBusy] = useState(false);
+  const [linkNote, setLinkNote] = useState<string | null>(null);
   const finished = () => renderShareImage({ ...subject, decor });
   const fileName = `${subject.fileName}.png`;
   const canShare = canShareImage();
@@ -257,6 +260,11 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
           </div>
         </div>
         {subject.removed > 0 && <p className="studio__note">제외 주소에 있는 {subject.removed}곳은 빠졌어요.</p>}
+        {linkNote && (
+          <p className="studio__note" role="status">
+            {linkNote}
+          </p>
+        )}
       </div>
 
       {/* Where the tab buttons sit elsewhere: what to do with the finished card. */}
@@ -293,8 +301,21 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
         >
           <Share2 size={30} aria-hidden />
         </button>
-        {/* TODO: decide what 링크 복사 copies, then wire it up. */}
-        <button className="studio__action" aria-label="링크 복사" disabled>
+        {/* A route's link (short, with a share count, when signed in); a day has no link yet (docs/todo.md). */}
+        <button
+          className="studio__action"
+          aria-label="링크 복사"
+          disabled={busy || !onCopyLink}
+          onClick={async () => {
+            if (!onCopyLink) return;
+            setBusy(true);
+            try {
+              setLinkNote((await onCopyLink()) ? '링크를 복사했어요.' : '링크를 복사하지 못했어요.');
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
           <Link size={22} aria-hidden />
         </button>
       </div>
