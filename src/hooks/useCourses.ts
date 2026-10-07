@@ -34,19 +34,11 @@ export function useCourses(repository: CourseRepository = courseRepository) {
     [repository, userId],
   );
 
-  const countShare = useCallback(
-    async (id: string) => {
-      const shared = await repository.countShare(id, userId);
-      if (shared) setCourses((prev) => prev.map((c) => (c.id === id ? shared : c)));
-    },
-    [repository, userId],
-  );
-
   // Newest first reads better on a phone list.
   const sorted = useMemo(
     () => [...courses].sort((a, b) => (b.updatedAt ?? b.createdAt).localeCompare(a.updatedAt ?? a.createdAt)),
     [courses],
   );
 
-  return { courses: sorted, save, remove, countShare };
+  return { courses: sorted, save, remove };
 }

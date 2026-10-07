@@ -37,7 +37,7 @@ export interface Course {
   /** How it is drawn on the map (long-press a stop or a line); see domain/routeStyle. */
   stopShapes?: (RouteStopShape | null)[];
   edgeStyles?: (RouteEdgeStyle | null)[];
-  /** How many times this route has been shared (absent = never). */
+  /** How many times other people have opened this route's share link (absent = none yet; needs a server to count). */
   shareCount?: number;
   createdAt: string;
   updatedAt?: string;
