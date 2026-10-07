@@ -34,7 +34,9 @@
 
 ## 처음 설정
 1. [supabase.com](https://supabase.com)에서 프로젝트 만들기 — 리전은 **Northeast Asia (Seoul)**.
-2. SQL Editor에서 `supabase/migrations/`의 파일을 이름 순서대로 실행 (또는 Supabase CLI `supabase db push`).
+2. **대시보드 SQL Editor에는 한 번에 100줄까지만 붙여 넣어진다** — 그보다 긴 파일(init은 169줄)은 잘려서 이상한 오류가 난다.
+   Supabase CLI(`supabase db push`)를 쓰거나, 잘라서 붙여 넣을 것. 처음 init이 중간에 멈춘 DB는 `supabase/repair/`(100줄 미만 세 파일)로 마무리.
+   SQL Editor에서 `supabase/migrations/`의 파일을 이름 순서대로 실행 (또는 Supabase CLI `supabase db push`).
    `20261007000000_init.sql` — 테이블·RLS·`avatars` 버킷·`delete_my_account`·`open_share` 함수,
    `20261008000000_sync.sql` — 동기화용 변경(`order` → `position`, 폴더 `icon`, 하루 `looks`, 길이 검사는 클라이언트로),
    `20261009000000_shares.sql` — 공유·프로필 select를 본인만으로, `open_share(slug, count_open)`이 보낸 사람 정보까지.

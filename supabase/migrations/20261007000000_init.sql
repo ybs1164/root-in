@@ -14,7 +14,7 @@ create table public.profiles (
   -- Same rule as domain/profile.ts: 3–20 of a-z 0-9 . _ -, starting and ending on a letter or digit.
   handle text not null unique
     check (handle ~ '^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$' and char_length(handle) between 3 and 20),
-  nickname text not null default '' check (char_length(nickname) <= 20),
+  nickname text not null check (char_length(nickname) <= 20),
   -- Path inside the avatars bucket (<uid>/avatar.jpg), null until a photo is set.
   avatar_path text,
   -- 소리·알림·디스플레이 (Profile.sound, pingAlerts, shareAlerts, scheme).
@@ -127,12 +127,12 @@ create policy "own shares insert" on public.shares for insert with check (owner_
 create policy "own shares delete" on public.shares for delete using (owner_id = auth.uid());
 
 -- Opening a short link counts once; anyone (even signed out) may call it, but
--- it can only add one, never set a value. The owner's own opens don't count.
+-- it can only add one, never set a value. The owner opening it does not count.
 create function public.open_share(share_slug text)
 returns jsonb
 language sql
 security definer
-set search_path = ''
+set search_path = pg_catalog
 as $$
   update public.shares
      set open_count = open_count + case when owner_id = auth.uid() then 0 else 1 end
@@ -148,7 +148,7 @@ create function public.delete_my_account()
 returns void
 language sql
 security definer
-set search_path = ''
+set search_path = pg_catalog
 as $$
   delete from auth.users where id = auth.uid();
 $$;

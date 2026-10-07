@@ -22,15 +22,16 @@ create policy "own profile read" on public.profiles for select using (id = auth.
 -- who shared it. Counts the open unless `count_open` is false (the opener
 -- has seen this link before) or the opener is its owner.
 drop function if exists public.open_share(text);
+-- No quotes or apostrophes around or inside the $$ body: the dashboard SQL
+-- Editor splits statements itself and loses track of $$ after an empty
+-- string literal. One statement: the CTE update is not visible to the outer
+-- select, so the new count comes from its RETURNING.
 create function public.open_share(share_slug text, count_open boolean default true)
 returns jsonb
 language sql
 security definer
-set search_path = ''
+set search_path = pg_catalog
 as $$
-  -- One statement, no inner semicolons: the dashboard's SQL Editor cuts
-  -- plpgsql bodies apart at them. The CTE's update isn't visible to the
-  -- outer select, hence the bumped count is taken from its RETURNING.
   with bumped as (
     update public.shares
        set open_count = open_count + 1
@@ -42,7 +43,7 @@ as $$
   select jsonb_build_object(
     'snapshot', s.snapshot,
     'open_count', coalesce((select b.open_count from bumped b), s.open_count),
-    'owner', jsonb_build_object('nickname', coalesce(p.nickname, ''), 'handle', p.handle, 'avatar_path', p.avatar_path)
+    'owner', jsonb_build_object('nickname', p.nickname, 'handle', p.handle, 'avatar_path', p.avatar_path)
   )
   from public.shares s
   left join public.profiles p on p.id = s.owner_id
