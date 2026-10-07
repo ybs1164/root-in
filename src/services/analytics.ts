@@ -105,6 +105,13 @@ function loadPostHog(): Promise<AnalyticsClient | null> {
         capture_pageview: false,
         capture_pageleave: false,
         disable_session_recording: true,
+        // Off here as well as in the dashboard, so a switch flipped there can't
+        // start them: heatmaps and dead clicks record where people press,
+        // surveys load an extra script, and web vitals aren't about the UI.
+        capture_heatmaps: false,
+        capture_dead_clicks: false,
+        capture_performance: false,
+        disable_surveys: true,
         persistence: 'localStorage',
         person_profiles: 'identified_only',
         before_send: (e) => (e ? scrubEvent(e) : e),
