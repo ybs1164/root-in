@@ -1377,16 +1377,16 @@ button:disabled {
 }
 
 /* Unfolding, the switches drop out one after another as the map's category
-   buttons do out of 핀 (pop-in), and ↓ glides down past them; folding,
+   buttons do out of 핀 (pin-rail-in), and ↓ glides down past them; folding,
    they tuck back up together and ↑ glides up into their place. Two rows of
    48px + the 10px gap. */
 .decor-rail__switch {
-  animation: pop-in 0.24s var(--pop-ease) backwards;
+  animation: pin-rail-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
   animation-delay: calc(var(--i, 0) * 30ms);
 }
 
 .decor-rail__switch.is-leaving {
-  animation: pop-out 0.16s ease-in both;
+  animation: pin-rail-out 0.16s ease-in both;
   pointer-events: none;
 }
 
@@ -4424,13 +4424,13 @@ button:disabled {
 
 /* Category buttons drop out of 핀 one after another… */
 .pin-rail__item {
-  animation: pop-in 0.24s var(--pop-ease) backwards;
+  animation: pin-rail-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
   animation-delay: calc(var(--i, 0) * 30ms);
 }
 
 /* …and tuck back up into it together (PinRail's OUT_MS waits for this). */
 .pin-rail__item.is-leaving {
-  animation: pop-out 0.16s ease-in both;
+  animation: pin-rail-out 0.16s ease-in both;
   pointer-events: none;
 }
 
@@ -5902,7 +5902,7 @@ button:disabled {
   position: relative;
 }
 
-/* In the category form the palette just appears, without the pen tray's pop-in. */
+/* In the category form the palette just appears, without the pen tray's drop. */
 .cat-form__colors .color-picker {
   animation: none;
 }
@@ -6662,6 +6662,21 @@ button:disabled {
   pointer-events: none;
 }
 
+/* Category buttons drop out of the 핀 button above them, growing as they come. */
+@keyframes pin-rail-in {
+  from {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.4);
+  }
+}
+
+@keyframes pin-rail-out {
+  to {
+    opacity: 0;
+    transform: translateY(-24px) scale(0.4);
+  }
+}
+
 /* Centre popups open with their own small grow (kept apart from pop-in). */
 @keyframes mac-open {
   from {
@@ -6687,12 +6702,6 @@ button:disabled {
   }
 }
 
-@keyframes pop-out {
-  to {
-    opacity: 0;
-    scale: 0.6;
-  }
-}
 
 @keyframes rise-in {
   from {
