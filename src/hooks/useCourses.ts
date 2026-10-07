@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getCurrentUserId } from '../lib/currentUser';
 import { courseRepository, type CourseRepository } from '../services/courseRepository';
+import { onPulled } from '../services/syncBus';
 import type { Course, CourseDraft } from '../types/course';
 
 export function useCourses(repository: CourseRepository = courseRepository) {
@@ -9,11 +10,17 @@ export function useCourses(repository: CourseRepository = courseRepository) {
 
   useEffect(() => {
     let cancelled = false;
-    repository.listByUser(userId).then((list) => {
-      if (!cancelled) setCourses(list);
+    const load = () =>
+      repository.listByUser(userId).then((list) => {
+        if (!cancelled) setCourses(list);
+      });
+    void load();
+    const stop = onPulled((changed) => {
+      if (changed.has('routes')) void load();
     });
     return () => {
       cancelled = true;
+      stop();
     };
   }, [repository, userId]);
 

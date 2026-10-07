@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getDisplayName, setDisplayName } from '../lib/currentUser';
 import { createAccountSync } from '../services/accountSync';
+import { createCloudSync } from '../services/cloudSync';
+import { remoteDataService as defaultData, type RemoteDataService } from '../services/remoteDataService';
 import { authService as defaultAuth, type AuthService, type AuthUser } from '../services/authService';
 import type { Profile } from '../services/profileRepository';
 import { remoteProfileService as defaultRemote, type RemoteProfileService } from '../services/remoteProfileService';
@@ -30,6 +32,7 @@ export function useAccount(
   apply: (profile: Profile) => void,
   auth: AuthService = defaultAuth,
   remote: RemoteProfileService = defaultRemote,
+  data: RemoteDataService = defaultData,
 ): Account {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [busy, setBusy] = useState(false);
@@ -53,6 +56,11 @@ export function useAccount(
     [remote],
   );
 
+  // 핀·루트·하루: merged with the account after the profile, then kept in step.
+  const [cloudProblem, setCloudProblem] = useState(false);
+  const cloud = useMemo(() => (auth.available ? createCloudSync({ remote: data, onProblem: setCloudProblem }) : null), [auth.available, data]);
+  useEffect(() => cloud?.watchLocal(), [cloud]);
+
   useEffect(() => {
     if (!auth.available) return;
     let alive = true;
@@ -70,17 +78,27 @@ export function useAccount(
   useEffect(() => {
     if (!userId) {
       sync.signedOut();
+      cloud?.signedOut();
       return;
     }
     setBusy(true);
-    void sync.signedIn(userId).finally(() => setBusy(false));
-  }, [userId, sync]);
+    void sync
+      .signedIn(userId)
+      .then(() => cloud?.signedIn(userId))
+      .finally(() => setBusy(false));
+    // Back to the front (another phone may have changed things meanwhile): pull again.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void cloud?.refresh();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [userId, sync, cloud]);
 
   return {
     available: auth.available,
     user,
     busy,
-    note,
+    note: note ?? (cloudProblem ? '핀·루트를 서버와 맞추지 못했어요. 이 기기에 저장한 것은 그대로고, 다시 열면 또 시도해요.' : null),
     signIn() {
       setBusy(true);
       void auth.signInWithKakao().then((started) => {

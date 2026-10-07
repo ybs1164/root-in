@@ -1,6 +1,6 @@
 # Supabase 설정 (로그인·프로필 동기화)
 
-> 2026-10-07, DB 도입 1단계. 키가 없으면 앱은 예전처럼 이 기기에만 저장한다(로그인 버튼도 안 보임).
+> 2026-10-07, DB 도입 1·2단계. 키가 없으면 앱은 예전처럼 이 기기에만 저장한다(로그인 버튼도 안 보임).
 
 ## 지금 되는 것 (1단계)
 - 프로필 → 계정·약관·정책 → **카카오로 로그인** / 로그아웃 / 탈퇴(계정까지 삭제).
@@ -9,13 +9,27 @@
   - 그 뒤 로그인(다른 기기 등): 계정 프로필이 이 기기 프로필을 덮음.
   - 로그인 중 바꾸면 바로 서버로 보냄(한 번에 하나씩, 가장 최근 것만). 다른 사람이 쓰는 @아이디면 원래 아이디로 되돌리고 안내.
   - 서버가 안 되면 이 기기 것은 그대로 두고 안내만.
-- 핀·루트·하루는 아직 이 기기에만 있다 (2단계에서 올림). 로그아웃해도 이 기기 데이터는 남는다.
 - 제외 주소(집 등)는 서버에 올리지 않는다 — 계속 기기에만.
+
+## 핀·루트·하루 동기화 (2단계)
+화면은 지금처럼 이 기기 저장소(localStorage)만 읽는다. 로그인해 있으면 그 저장소를 계정 행과 맞춘다 (`services/cloudSync.ts`).
+- 대상: 핀 카테고리 · 핀 · 루트 폴더 · 루트(코스 + 폴더 배정·순서) · 하루(날짜 화면 꾸미기, 핑 모양·선). 공유 횟수는 서버 몫이라 올리지 않음(3단계).
+- **언제**: 로그인할 때(프로필 다음), 앱이 다시 앞으로 올 때(`visibilitychange`) 서버에서 받아 합침. 이 기기에서 바꾸면 1.5초 뒤 바뀐 행만 보냄(`PUSH_DELAY_MS`, 펜 획처럼 잦은 쓰기를 모음).
+- **합치는 법**: 행마다 마지막으로 서버와 맞춘 내용의 해시(`goodroot:sync:v1`의 base)를 두고 3방향 비교 (`services/syncMerge.ts`).
+  한쪽만 바꾼 행은 그쪽, 둘 다 바꿨으면 `updated_at`이 나중인 쪽(없으면 서버), 지운 것도 양쪽으로 전달. 한쪽이 지우고 다른 쪽이 고쳤으면 고친 것을 살림.
+- **처음 로그인한 기기**: 이 기기의 핀·루트가 계정에 더해짐(합집합). 기본 카테고리는 계정에 이미 카테고리가 있으면 '이미 맞춘 것'으로 쳐서, 계정에서 지운 기본 카테고리가 되살아나지 않음.
+- **로그아웃**: 이 기기 데이터는 그대로. 같은 계정으로 다시 로그인하면 이어서 합침.
+  **다른 계정으로 로그인**하면 이 기기 데이터를 그 계정 것으로 바꿈(앞 계정 것은 그 계정 서버에 있음 — 단 보내지 못한 마지막 변경은 사라짐). 빈 계정이면 기본 카테고리부터.
+- 서버가 안 되면 이 기기 것은 그대로 두고 프로필 창에 안내, 다음에 앱을 다시 열면 또 시도. 반쯤 받아온 상태로 합치지 않음(모두 받은 뒤에만).
+- 서버에서 받은 행도 저장소 값처럼 검증한다 (`services/syncCollections.ts` — 카테고리·핀은 저장소 검사 그대로, 루트 정류장 좌표·글자 수, 하루는 `parseDays`). 다른 날짜의 키는 그 날 행으로 못 들어옴.
+- 로컬 행의 `userId`는 계속 이 기기 id(`getCurrentUserId()`), 서버 행은 계정 id(`user_id`, RLS). 그래서 로그인·로그아웃으로 로컬 데이터를 옮기거나 다시 쓸 일이 없다.
+- 저장소가 쓸 때 `syncBus.localWrote`로 알리고, 받아와서 바꾸면 `onPulled`로 화면(usePins·useCourses·useRouteFolders·CalendarZoom)이 다시 읽음. 받아 쓴 것은 다시 올리지 않음(`withoutEcho`).
 
 ## 처음 설정
 1. [supabase.com](https://supabase.com)에서 프로젝트 만들기 — 리전은 **Northeast Asia (Seoul)**.
-2. SQL Editor에서 `supabase/migrations/20261007000000_init.sql`을 실행 (또는 Supabase CLI `supabase db push`).
-   테이블·RLS·`avatars` 버킷·`delete_my_account`·`open_share` 함수가 만들어진다.
+2. SQL Editor에서 `supabase/migrations/`의 파일을 이름 순서대로 실행 (또는 Supabase CLI `supabase db push`).
+   `20261007000000_init.sql` — 테이블·RLS·`avatars` 버킷·`delete_my_account`·`open_share` 함수,
+   `20261008000000_sync.sql` — 동기화용 변경(`order` → `position`, 폴더 `icon`, 하루 `looks`, 길이 검사는 클라이언트로).
 3. Project Settings → API의 Project URL과 **anon(public)** 키를 `.env.local`에:
    ```
    VITE_SUPABASE_URL=https://<ref>.supabase.co
@@ -39,9 +53,9 @@
 - `services/remoteProfileService.ts` — `profiles` 행 + `avatars/<uid>/avatar.jpg`.
 - `services/profileSync.ts` — 행 ↔ `Profile` 변환(서버 값도 저장소 값처럼 검증).
 - `services/accountSync.ts` — 로그인 때 합치기·변경 보내기 (React 밖, 테스트 있음).
-- `hooks/useAccount.ts` — App에 연결. `ProfileSheet`의 `account` prop.
+- `hooks/useAccount.ts` — App에 연결. `ProfileSheet`의 `account` prop. 프로필 동기화 뒤 `cloudSync`를 돌림.
+- `services/cloudSync.ts`(엔진) · `syncMerge.ts`(3방향 병합·해시) · `syncCollections.ts`(저장소 ↔ 행) · `remoteDataService.ts`(Supabase 읽기 1000행씩·쓰기 200행씩) · `syncBus.ts`(저장소 쓰기 알림).
 
 ## 다음 단계
-2. 핀·카테고리·루트·폴더·하루 저장소의 Supabase 구현 (로컬 먼저, 서버로 동기화) + 첫 로그인 때 이 기기 데이터 올리기. 이때 `getCurrentUserId()`를 계정 id로 바꾼다.
 3. 짧은 공유 링크(`shares`, `open_share`)와 공유 횟수(`Course.shareCount`, 받은 루트 팝업의 보낸 사람 사진).
 4. 알림(트리거 → Edge Function → Web Push).

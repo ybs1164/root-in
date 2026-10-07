@@ -24,7 +24,8 @@ React 19 + Vite 7 + TypeScript. 지도는 **카카오맵 JS SDK**(키 없으면 
 ## Supabase (로그인·프로필, 2026-10-07)
 - 설정·구조·다음 단계: [docs/supabase.md](docs/supabase.md). 스키마는 `supabase/migrations/`(RLS로 자기 행만, 제외 주소는 서버에 안 올림).
 - `.env.local`에 `VITE_SUPABASE_URL`·`VITE_SUPABASE_ANON_KEY`. 없으면 로그인 버튼 없이 예전처럼 기기에만 저장 — 키 없이도 dev·테스트가 돌아야 한다. service_role 키는 프론트에 절대 넣지 않는다.
-- Supabase 호출은 `services/`의 인터페이스(`AuthService`, `RemoteProfileService`) 뒤에만, 실패해도 reject하지 않는다. 테스트는 가짜 클라이언트 객체.
+- Supabase 호출은 `services/`의 인터페이스(`AuthService`, `RemoteProfileService`, `RemoteDataService`) 뒤에만, 실패해도 reject하지 않는다. 테스트는 가짜 클라이언트 객체.
+- 핀·카테고리·루트·폴더·하루는 로그인 중 서버와 동기화(2단계, `services/cloudSync.ts` — 화면은 계속 localStorage만 읽음). 동기화되는 저장소를 새로 만들거나 저장 형식을 바꾸면 `syncCollections.ts`의 행 변환과 쓰기 알림(`syncBus.localWrote`)도 같이 맞출 것.
 
 ## 작업 규칙
 - 한 번에 계획의 작업 하나. 끝나면 `src/test/m1-acceptance.test.ts`의 해당 `it.todo`를 실제 테스트로 바꾼다.
