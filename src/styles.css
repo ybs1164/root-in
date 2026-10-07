@@ -41,7 +41,9 @@
   /* 꾸미기: fixed ink colours (not themed), the tool sheet and the palette rainbow. */
   --ink-black: #151515;
   --ink-white: #ffffff;
-  --tray-bg: rgba(14, 14, 14, 0.74);
+  /* A plain dark see-through fill, no backdrop blur: blurring re-ran every
+     frame while a sheet slid or a pattern flowed behind it. */
+  --tray-bg: rgba(14, 14, 14, 0.8);
   --tray-fg: #ffffff;
   --tray-dim: rgba(255, 255, 255, 0.55);
   --tray-line: rgba(255, 255, 255, 0.16);
@@ -1640,8 +1642,6 @@ button:disabled {
   padding: 6px 16px calc(var(--safe-bottom) + 12px);
   border-radius: 20px 20px 0 0;
   background: var(--tray-bg);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
-  backdrop-filter: blur(18px) saturate(1.4);
   color: var(--tray-fg);
   animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
@@ -1899,8 +1899,6 @@ button:disabled {
   padding: 14px;
   border-radius: 20px;
   background: var(--tray-bg);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
-  backdrop-filter: blur(18px) saturate(1.4);
   translate: -50% 0;
   /* Settles down from just above; --anim-x keeps the centring (an animation that
      sets translate without it sent the palette flying in from the side). */
@@ -3701,8 +3699,6 @@ button:disabled {
   border-radius: 999px;
   white-space: nowrap; /* one line; at 13px it stays clear of the rail on a 375px phone */
   background: var(--tray-bg);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
   color: var(--tray-fg);
   font-size: 13px;
   font-weight: 600;
