@@ -108,7 +108,7 @@ export default function App() {
     setProfile(next);
     return saveProfile(next);
   };
-  // 표시·언어 → 디스플레이: 기본 or 다크 on <html data-scheme>; not picked, the phone's setting decides.
+  // 디스플레이 및 언어 → 디스플레이: 기본 or 다크 on <html data-scheme>; not picked, the phone's setting decides.
   const scheme = profile.scheme;
   useEffect(() => {
     const root = document.documentElement;

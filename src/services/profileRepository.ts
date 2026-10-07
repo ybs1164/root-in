@@ -15,7 +15,7 @@ export interface Profile {
   pingAlerts: number[];
   /** 알림 설정 → 공유수 알림: the share counts switched on (SHARE_ALERT_COUNTS), all until switched off. */
   shareAlerts: number[];
-  /** 표시·언어 → 디스플레이: 기본 (light) or 다크. Null until picked: the phone's own setting decides. */
+  /** 디스플레이 및 언어 → 디스플레이: 기본 (light) or 다크. Null until picked: the phone's own setting decides. */
   scheme: ColorScheme | null;
 }
 
