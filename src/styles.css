@@ -40,6 +40,8 @@
   --mask-hide: #000; /* …and black = hidden (the eraser's rub) */
   /* 꾸미기: fixed ink colours (not themed), the tool sheet and the palette rainbow. */
   --ink-black: #151515;
+  /* Icons on the round white buttons (꾸미기 rail, the share screen's 저장·링크): black, white in dark mode. */
+  --round-icon: var(--ink-black);
   --ink-white: #ffffff;
   /* A plain dark see-through fill, no backdrop blur: blurring re-ran every
      frame while a sheet slid or a pattern flowed behind it. */
@@ -143,6 +145,7 @@
     --map-park: #22402f;
     --map-road: #3a434d;
     --map-road-major: #5f7894;
+    --round-icon: var(--ink-white);
   }
 }
 
@@ -182,6 +185,7 @@
   --map-park: #22402f;
   --map-road: #3a434d;
   --map-road-major: #5f7894;
+  --round-icon: var(--ink-white);
 }
 
 :root {
@@ -284,6 +288,7 @@
   --shadow-sm: 0 2px 10px rgba(47, 38, 34, 0.12);
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
   --backdrop: rgba(0, 0, 0, 0.4);
+  --round-icon: var(--ink-black);
 }
 
 :root[data-theme='mint'] {
@@ -1385,8 +1390,8 @@ button:disabled {
   border-radius: 50%;
   /* Same round white buttons as the tab bar; the one in use only changes colour. */
   background: var(--surface);
-  /* Black icons (the 꾸미기 pen black, the same in every theme). */
-  color: var(--ink-black);
+  /* Black icons (white in dark mode, where the round is dark too). */
+  color: var(--round-icon);
   box-shadow: var(--shadow-sm);
   transition: color 0.15s ease;
 }
@@ -2552,7 +2557,7 @@ button:disabled {
   border: 0;
   border-radius: 50%;
   background: var(--surface);
-  color: var(--ink-black);
+  color: var(--round-icon);
   box-shadow: var(--shadow-sm);
 }
 
