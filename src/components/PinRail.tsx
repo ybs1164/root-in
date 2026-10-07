@@ -21,7 +21,7 @@ interface PinRailProps {
   onCategories: () => void;
 }
 
-/** Matches `pin-rail-out` in styles.css; the category list stays mounted until it has gone. */
+/** Matches `pin-rail-out` in styles.css in styles.css; the category list stays mounted until it has gone. */
 const OUT_MS = 160;
 
 /** How long 경로 takes to glide to its new place when the list opens or closes. */

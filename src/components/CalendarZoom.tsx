@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Share } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, type TouchEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MutableRefObject, type TouchEvent } from 'react';
 import { swipeCommits, SWIPE } from '../domain/appTabs';
 import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, pingsLandedMs, SAMPLE_PING_DATES } from '../domain/dayPings';
 import { addDays } from '../domain/calendar';
@@ -154,6 +154,14 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
 
   // Paging days: the day sliding in beside the current one.
   const [neighbor, setNeighbor] = useState<{ date: string; side: -1 | 1 } | null>(null);
+  // The month view's year on its way out (and which way the months went: 1 = on to a later year).
+  const [yearOut, setYearOut] = useState<{ year: number; dir: -1 | 1 } | null>(null);
+  const yearShown = useRef(month.year);
+  useEffect(() => {
+    if (month.year === yearShown.current) return;
+    setYearOut({ year: yearShown.current, dir: month.year > yearShown.current ? 1 : -1 });
+    yearShown.current = month.year;
+  }, [month.year]);
   const daySwipe = useRef<DaySwipe | null>(null);
   const sliding = useRef(false);
   const resetSlide = useRef(false);
@@ -325,20 +333,33 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
     }
   };
 
-  // The app hides the tab buttons while a tool is out. Leaving the day
-  // screen (to the month) puts the tools away.
-  useEffect(() => onDecorating(tool !== null), [tool]);
   // The sheet shows `trayTool`, which trails `tool`: switching tools sends the
   // open sheet down first, then the new one comes up.
   const [trayTool, setTrayTool] = useState<DecorTool | null>(null);
   const [trayLeaving, setTrayLeaving] = useState(false);
+  // The app hides the tab buttons while a tool is out, and until its sheet
+  // has gone down after. (Leaving the day screen puts the tools away.)
+  useEffect(() => onDecorating(tool !== null || trayTool !== null), [tool, trayTool]);
+  // Putting a tool away (its button again, or a touch outside) sends the sheet
+  // down too, and the buttons below only come back once it's gone. A sheet
+  // pulled down by its edge has already slid away itself: it just goes.
+  const trayPulledAway = useRef(false);
   useEffect(() => {
-    if (!sheetTool || !trayTool) {
+    if (!trayTool) {
       setTrayTool(sheetTool);
       setTrayLeaving(false);
       return;
     }
-    if (sheetTool === trayTool) return;
+    if (sheetTool === trayTool) {
+      setTrayLeaving(false);
+      return;
+    }
+    if (!sheetTool && trayPulledAway.current) {
+      trayPulledAway.current = false;
+      setTrayTool(null);
+      setTrayLeaving(false);
+      return;
+    }
     setTrayLeaving(true);
     const swap = window.setTimeout(() => {
       setTrayTool(sheetTool);
@@ -645,6 +666,25 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
         aria-hidden={mode !== 'month'}
         inert={mode !== 'month'}
       >
+        {/* The year up top, where TODAY / DAY n stand on the day screen; the grid names only the month. */}
+        {/* Tapping the year goes back to TODAY, whichever year is showing. */}
+        <button className="cal-zoom__title cal-zoom__year" aria-label="오늘로" onClick={() => toDay(today)}>
+          {/* Crossing into another year, the old one slides off and the new one
+              in from the side the months went, as TODAY pages to DAY n. */}
+          {yearOut && (
+            <span
+              key={`out-${yearOut.year}`}
+              className="cal-zoom__year-num is-out"
+              style={{ '--dir': yearOut.dir } as CSSProperties}
+              onAnimationEnd={() => setYearOut(null)}
+            >
+              {yearOut.year}
+            </span>
+          )}
+          <span key={month.year} className={`cal-zoom__year-num ${yearOut ? 'is-in' : ''}`} style={{ '--dir': yearOut?.dir ?? 1 } as CSSProperties}>
+            {month.year}
+          </span>
+        </button>
         <MonthCalendar counts={counts} plans={NO_PLANS} onPick={(key) => toDay(key)} view={month} onView={setMonth} />
       </div>
 
@@ -760,7 +800,10 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
           onPattern={(pattern) => setDayDecor({ ...dayDecor, pattern: pattern === 'none' ? undefined : pattern })}
           textStyle={sheetTextStyle}
           onTextStyle={changeTextStyle}
-          onClose={() => setTool(null)}
+          onClose={() => {
+            trayPulledAway.current = true;
+            setTool(null);
+          }}
         />
       )}
 

@@ -17,11 +17,13 @@ describe('building a route from pins', () => {
     expect(toggleBuildStop(full, 'p0')).toHaveLength(COURSE_LIMITS.maxStops - 1);
   });
 
-  it("names new routes 'IN MY ROOT', then 2, 3, … when taken", () => {
+  it("names new routes 'IN MY ROOT', then #2, #3, … when taken", () => {
     expect(nextRouteName([])).toBe('IN MY ROOT');
-    expect(nextRouteName(['IN MY ROOT'])).toBe('IN MY ROOT 2');
-    expect(nextRouteName(['IN MY ROOT', 'IN MY ROOT 2', '산책'])).toBe('IN MY ROOT 3');
-    expect(nextRouteName(['IN MY ROOT 2'])).toBe('IN MY ROOT');
+    expect(nextRouteName(['IN MY ROOT'])).toBe('IN MY ROOT #2');
+    expect(nextRouteName(['IN MY ROOT', 'IN MY ROOT #2', '산책'])).toBe('IN MY ROOT #3');
+    expect(nextRouteName(['IN MY ROOT #2'])).toBe('IN MY ROOT');
+    // Routes named the old way ('IN MY ROOT 2') don't hold a number.
+    expect(nextRouteName(['IN MY ROOT', 'IN MY ROOT 2'])).toBe('IN MY ROOT #2');
   });
 
   it('shapes and line styles picked while making a route stay with their pins', () => {

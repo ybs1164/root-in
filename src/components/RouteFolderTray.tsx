@@ -434,10 +434,11 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
     setPicking(null);
     setDeleting(null);
     setTab(neighborTab(folders, current, step));
-    bodyEl.current?.animate(
-      [{ transform: `translateX(${step * 48}px)`, opacity: 0.3 }, { transform: 'none', opacity: 1 }],
-      { duration: 220, easing: 'cubic-bezier(0.2, 0.8, 0.3, 1)' },
-    );
+    // The same full-width slide as the route title and day steps (--slide-ease).
+    bodyEl.current?.animate([{ transform: `translateX(${step * 100}%)` }, { transform: 'none' }], {
+      duration: 220,
+      easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+    });
   };
   const swipeHandlers = {
     onPointerDown: (e: React.PointerEvent) => {

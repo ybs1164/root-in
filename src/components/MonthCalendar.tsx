@@ -36,8 +36,9 @@ export default function MonthCalendar({ counts, plans, onPick, view: controlled,
         <button className="icon-btn" aria-label="이전 달" onClick={() => setView(shiftMonth(view.year, view.month, -1))}>
           <ChevronLeft size={22} aria-hidden />
         </button>
-        <strong aria-live="polite">
-          {view.year}년 {view.month + 1}월
+        {/* Only the month: the year stands big above the calendar (CalendarZoom). */}
+        <strong aria-live="polite" aria-label={`${view.year}년 ${view.month + 1}월`}>
+          {view.month + 1}월
         </strong>
         <button className="icon-btn" aria-label="다음 달" onClick={() => setView(shiftMonth(view.year, view.month, 1))}>
           <ChevronRight size={22} aria-hidden />
