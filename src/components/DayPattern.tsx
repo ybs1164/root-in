@@ -24,8 +24,9 @@ export default function DayPattern({
   if (pattern === 'none') return null;
   const tile = PATTERN_TILES[pattern];
   const flow = tile.flow;
-  return (
-    <svg className={`day-pattern ${className}`} style={accent ? ({ '--accent': accent } as CSSProperties) : undefined} aria-hidden>
+  const pad = tile.size * scale;
+  const sheet = (
+    <svg className="day-pattern__sheet" aria-hidden>
       <defs>
         <pattern
           id={id}
@@ -49,29 +50,38 @@ export default function DayPattern({
           })}
         </pattern>
       </defs>
-      {/* Oversized so it still covers the box wherever the loop has moved it. */}
-      <rect
-        x={-tile.size * scale}
-        y={-tile.size * scale}
-        width="4000"
-        height="4000"
-        fill={`url(#${id})`}
-        className={flow ? 'day-pattern__flow' : undefined}
-        style={
-          flow
-            ? ({ '--flow-x': `${flow.x * scale}px`, '--flow-y': `${flow.y * scale}px`, animationDuration: `${flow.seconds}s` } as CSSProperties)
-            : undefined
-        }
-      />
-      {tile.margin && (
-        <rect
-          x={tile.margin.x * scale}
-          y="0"
-          width={tile.margin.width * scale}
-          height="100%"
-          className="day-pattern__mark"
-        />
-      )}
+      <rect width="100%" height="100%" fill={`url(#${id})`} />
     </svg>
+  );
+  return (
+    <div className={`day-pattern ${className}`} style={accent ? ({ '--accent': accent } as CSSProperties) : undefined} aria-hidden>
+      {flow ? (
+        // The loop moves an HTML box holding the pattern, not the SVG inside
+        // it: a transform on an HTML element runs on the compositor, while one
+        // on an SVG shape repainted the whole pattern every frame. The box
+        // reaches one tile past every edge (the most a loop moves it), and
+        // starting a whole tile out keeps the tiles where they were.
+        <div
+          className="day-pattern__flow"
+          style={
+            {
+              inset: `${-pad}px`,
+              '--flow-x': `${flow.x * scale}px`,
+              '--flow-y': `${flow.y * scale}px`,
+              animationDuration: `${flow.seconds}s`,
+            } as CSSProperties
+          }
+        >
+          {sheet}
+        </div>
+      ) : (
+        sheet
+      )}
+      {tile.margin && (
+        <svg className="day-pattern__sheet" aria-hidden>
+          <rect x={tile.margin.x * scale} y="0" width={tile.margin.width * scale} height="100%" className="day-pattern__mark" />
+        </svg>
+      )}
+    </div>
   );
 }

@@ -753,7 +753,6 @@ button:disabled {
   background: transparent;
   box-shadow: none;
   color: var(--pin-0);
-  filter: drop-shadow(0 0 1px var(--surface)) drop-shadow(0 0 1px var(--surface)) drop-shadow(var(--pin-shadow));
   /* Drops in from just above, like a route's stops. Not a transform
      animation: the map places markers with transform, so animating it made
      the pin fly in from the map's corner. */
@@ -4694,11 +4693,11 @@ button:disabled {
   width: 38px;
   height: 38px;
   /* On the map a pin is its category's glyph alone, in the pin colour: no
-     disc behind it. A thin halo of the surface keeps it off busy streets. */
+     disc behind it, and no halo or shadow either (a filter on every pin
+     redrew them all as the map moved). */
   background: transparent;
   box-shadow: none;
   color: var(--pin);
-  filter: drop-shadow(0 0 1px var(--surface)) drop-shadow(0 0 1px var(--surface)) drop-shadow(var(--pin-shadow));
 }
 
 .pin-glyph {
@@ -6084,6 +6083,23 @@ button:disabled {
   height: 100%;
   opacity: 0.22; /* PATTERN_ALPHA in lib/dayPatterns.ts, for the share image */
   pointer-events: none;
+}
+
+.day-pattern {
+  overflow: hidden;
+}
+
+.day-pattern__sheet {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Its inset (one tile past each edge) is set inline. */
+.day-pattern__flow {
+  position: absolute;
 }
 
 .day-pattern__mark {
