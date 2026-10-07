@@ -17,7 +17,13 @@ export interface CourseRepository {
   /** Creates a course, or updates it when `draft.id` belongs to this user. */
   save(userId: string, draft: CourseDraft): Promise<Course>;
   remove(id: string, userId: string): Promise<void>;
+  /** One more share of this user's course; leaves it otherwise untouched (no updatedAt, so it keeps its place in lists). */
+  countShare(id: string, userId: string): Promise<Course | undefined>;
 }
+
+/** A share count worth keeping: a whole number of 1 or more, within reason. */
+const cleanShareCount = (n: unknown): { shareCount?: number } =>
+  typeof n === 'number' && Number.isInteger(n) && n >= 1 ? { shareCount: Math.min(n, 1_000_000_000) } : {};
 
 const generateId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -94,11 +100,23 @@ export class LocalCourseRepository implements CourseRepository {
       note: draft.note?.trim() || undefined,
       sharedBy: draft.sharedBy?.trim() || undefined,
       ...cleanRouteLook(draft, draft.stops.length),
+      ...cleanShareCount(draft.shareCount ?? existing?.shareCount),
       createdAt: existing?.createdAt ?? now,
       updatedAt: existing ? now : undefined,
     };
     this.write(existing ? courses.map((c) => (c.id === course.id ? course : c)) : [...courses, course]);
     return course;
+  }
+
+  async countShare(id: string, userId: string): Promise<Course | undefined> {
+    let shared: Course | undefined;
+    const courses = this.read().map((c) => {
+      if (c.id !== id || c.userId !== userId) return c;
+      shared = { ...c, ...cleanShareCount((c.shareCount ?? 0) + 1) };
+      return shared;
+    });
+    if (shared) this.write(courses);
+    return shared;
   }
 
   async remove(id: string, userId: string): Promise<void> {

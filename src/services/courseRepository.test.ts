@@ -35,6 +35,27 @@ describe('LocalCourseRepository', () => {
     expect(all[0].title).toBe('수정');
   });
 
+  it('keeps a route’s share count through edits, and only whole counts of 1 or more', async () => {
+    const repo = new LocalCourseRepository();
+    const first = await repo.save('me', draft({ shareCount: 2 }));
+    expect(first.shareCount).toBe(2);
+    // An edit that doesn't mention it keeps the count.
+    const edited = await repo.save('me', draft({ id: first.id, title: '고침' }));
+    expect(edited.shareCount).toBe(2);
+    expect((await repo.save('me', draft({ shareCount: 0 }))).shareCount).toBeUndefined();
+    expect((await repo.save('me', draft({ shareCount: 1.5 }))).shareCount).toBeUndefined();
+  });
+
+  it('counts a share without moving the course in the list (no updatedAt)', async () => {
+    const repo = new LocalCourseRepository();
+    const saved = await repo.save('me', draft());
+    const shared = await repo.countShare(saved.id, 'me');
+    expect(shared?.shareCount).toBe(1);
+    expect(shared?.updatedAt).toBeUndefined();
+    expect((await repo.countShare(saved.id, 'me'))?.shareCount).toBe(2);
+    expect(await repo.countShare(saved.id, 'someone-else')).toBeUndefined();
+  });
+
   it('does not let another user overwrite a course', async () => {
     const repo = new LocalCourseRepository();
     const mine = await repo.save('me', draft());

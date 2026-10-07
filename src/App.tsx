@@ -89,6 +89,9 @@ export default function App() {
   // The card on the 꾸미기 screen (a calendar day's or a route's), while it's up.
   const [studio, setStudio] = useState<ShareSubject | null>(null);
   const [studioTheme, setStudioTheme] = useState<ThemeId>('default');
+  // The saved route a 꾸미기 card was made from (null for a day's): each time
+  // that card goes out, the route's share count goes up.
+  const [studioRouteId, setStudioRouteId] = useState<string | null>(null);
   const dayTheme = studio ? studioTheme : calendarTheme;
   useEffect(() => {
     const root = document.documentElement;
@@ -706,6 +709,10 @@ export default function App() {
     if (activePinId === pin.id) setActivePinId(null);
   };
 
+  const countRouteShare = () => {
+    if (studioRouteId) void course.countShare(studioRouteId);
+  };
+
   // ✓ on the edit sheet: keep the stops with their look, the description and the folder.
   const saveEdit = async () => {
     if (!editRoute || !shownRoute || editRoute.stops.length < COURSE_LIMITS.minStops) return;
@@ -1037,6 +1044,7 @@ export default function App() {
           aria-label={`${shownRoute.title} 공유`}
           onClick={() => {
             if (!hasHome(privacy.excluded)) return needHome();
+            setStudioRouteId(shownRoute.id);
             setStudio(routeSubject(shownRoute, privacy.excluded, shownRoute.stops.map((s) => {
               const pin = pins.find((p) => p.place.id === s.place.id);
               return categoryStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id).icon;
@@ -1274,7 +1282,17 @@ export default function App() {
         />
       )}
 
-      {studio && <ShareStudio subject={studio} onTheme={setStudioTheme} onClose={() => setStudio(null)} />}
+      {studio && (
+        <ShareStudio
+          subject={studio}
+          onTheme={setStudioTheme}
+          onClose={() => {
+            setStudio(null);
+            setStudioRouteId(null);
+          }}
+          onShared={countRouteShare}
+        />
+      )}
 
       {profileOpen && (
         <ProfileSheet

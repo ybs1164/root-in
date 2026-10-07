@@ -32,6 +32,8 @@ interface ShareStudioProps {
   /** The card's theme, which the app wears while this screen is up. */
   onTheme: (theme: ThemeId) => void;
   onClose: () => void;
+  /** The card went out: saved as an image, or handed to the share sheet. */
+  onShared?: () => void;
 }
 
 /**
@@ -46,7 +48,7 @@ interface ShareStudioProps {
  * layout, no title written on it), and leaving throws the decorations away. A day's own
  * 꾸미기 on its day screen is kept as ever and shows in the photo.
  */
-export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioProps) {
+export default function ShareStudio({ subject, onTheme, onClose, onShared }: ShareStudioProps) {
   const [decor, setDecor] = useState<DayDecor>(EMPTY_DECOR);
 
   // Undo / redo, for this visit only.
@@ -256,6 +258,7 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
             setBusy(true);
             try {
               downloadDataUrl(await finished(), fileName);
+              onShared?.();
             } finally {
               setBusy(false);
             }
@@ -271,7 +274,7 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
           onClick={async () => {
             setBusy(true);
             try {
-              await shareImage(await finished(), fileName, subject.title);
+              if (await shareImage(await finished(), fileName, subject.title)) onShared?.();
             } finally {
               setBusy(false);
             }

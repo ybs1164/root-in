@@ -37,6 +37,8 @@ export interface Course {
   /** How it is drawn on the map (long-press a stop or a line); see domain/routeStyle. */
   stopShapes?: (RouteStopShape | null)[];
   edgeStyles?: (RouteEdgeStyle | null)[];
+  /** How many times this route has been shared (absent = never). */
+  shareCount?: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -50,6 +52,8 @@ export interface CourseDraft {
   stops: CourseStop[];
   note?: string;
   sharedBy?: string;
+  /** Carried through edits; absent keeps the saved count. */
+  shareCount?: number;
   stopShapes?: (RouteStopShape | null)[];
   edgeStyles?: (RouteEdgeStyle | null)[];
 }
