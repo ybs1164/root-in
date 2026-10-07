@@ -101,8 +101,6 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
       </button>
       {alertsOpen && (
         <section id="profile-alerts" className="privacy alerts" aria-label="알림 설정">
-          <h3 className="privacy__title">알림 설정</h3>
-          <p className="privacy__desc">특정 알림을 켜거나 끌 수 있어요</p>
           <AlertBoard
             label="투데이 알림"
             steps={PING_STEPS}
@@ -163,8 +161,8 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
       )}
     </>
   );
-  // 계정·약관·정책: 로그아웃·탈퇴, then room kept for 개인정보처리방침 and the
-  // like — folded away by default so 탈퇴 isn't one stray tap from the profile.
+  // 계정·약관·정책: room kept for 개인정보처리방침 and the like, then 로그아웃·탈퇴
+  // at the very bottom — folded away by default so 탈퇴 isn't one stray tap from the profile.
   const accountPart = (
     <>
       <button
@@ -178,6 +176,8 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
       </button>
       {accountOpen && (
         <div id="profile-account">
+          {/* 약관 및 정책: nothing yet. */}
+          <section className="terms" aria-label="약관 및 정책" />
           <div className="profile__actions">
             {/* No accounts yet (everything lives on this device), so there's nothing to log out of. */}
             <button className="btn btn--secondary" disabled>
@@ -194,8 +194,6 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
               탈퇴
             </button>
           </div>
-          {/* 약관 및 정책: nothing yet. */}
-          <section className="terms" aria-label="약관 및 정책" />
         </div>
       )}
     </>
