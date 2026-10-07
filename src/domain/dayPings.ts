@@ -165,8 +165,15 @@ export function pinchOutcome(scale: number, released: boolean): PinchResult {
 /**
  * When a day's drawing has finished arriving, in ms after it mounts: the
  * last pin's drop (each starts 110ms after the one before, from 120ms, and
- * takes 450ms) and the lines drawing in (350ms + 700ms), as in styles.css.
- * The day's decorations settle in after this.
+ * takes 450ms) and the lines drawing in (from 350ms, 700ms with `ease`, as in
+ * styles.css). The day's decorations settle in right after this.
  */
 export const pingsLandedMs = (count: number): number =>
-  count === 0 ? 0 : Math.max(count > 1 ? 1050 : 0, 120 + (count - 1) * 110 + 450);
+  count === 0 ? 0 : Math.max(count > 1 ? LINES_DRAWN_MS : 0, 120 + (count - 1) * 110 + 450);
+
+/**
+ * The lines look drawn at 80% of their 700ms: `ease` has covered ~97% of
+ * the way by then and only creeps after, so waiting for the very end left a
+ * pause before the stickers came.
+ */
+const LINES_DRAWN_MS = 350 + 0.8 * 700;

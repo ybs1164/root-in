@@ -1,12 +1,5 @@
 
-  VITE v7.3.6  ready in 263 ms
+  VITE v7.3.6  ready in 313 ms
 
   ➜  Local:   http://localhost:5188/
   ➜  Network: use --host to expose
-9:53:01 AM [vite] (client) hmr update /src/styles.css
-9:54:58 AM [vite] (client) hmr update /src/styles.css
-9:56:57 AM [vite] (client) hmr update /src/components/RouteFolderTray.tsx
-10:05:48 AM [vite] (client) hmr update /src/App.tsx, /src/components/RouteFolderTray.tsx
-10:05:48 AM [vite] (client) hmr update /src/components/RouteFolderTray.tsx
-10:06:00 AM [vite] (client) hmr update /src/components/RouteFolderTray.tsx
-10:06:00 AM [vite] (client) hmr update /src/styles.css

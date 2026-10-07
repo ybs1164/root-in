@@ -52,7 +52,11 @@ export interface KakaoMapsNamespace {
     fillOpacity: number;
     zIndex?: number;
     map?: KakaoMapInstance;
-  }) => { setMap(map: KakaoMapInstance | null): void; setPath(path: KakaoLatLng[] | KakaoLatLng[][]): void };
+  }) => {
+    setMap(map: KakaoMapInstance | null): void;
+    setPath(path: KakaoLatLng[] | KakaoLatLng[][]): void;
+    setOptions(options: { fillColor?: string }): void;
+  };
   event: {
     addListener(target: unknown, type: string, handler: (...args: unknown[]) => void): void;
   };

@@ -40,6 +40,8 @@
   --mask-hide: #000; /* …and black = hidden (the eraser's rub) */
   /* 꾸미기: fixed ink colours (not themed), the tool sheet and the palette rainbow. */
   --ink-black: #151515;
+  /* Icons on the round white buttons (꾸미기 rail, the share screen's 저장·링크): black, white in dark mode. */
+  --round-icon: var(--ink-black);
   --ink-white: #ffffff;
   /* A plain dark see-through fill, no backdrop blur: blurring re-ran every
      frame while a sheet slid or a pattern flowed behind it. */
@@ -105,8 +107,9 @@
   --map-road-major: #8ca6c3;
 }
 
+/* Dark: the phone's setting, unless 디스플레이 및 언어 → 디스플레이 picked one (<html data-scheme>). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-scheme='light']) {
     color-scheme: dark;
     --bg: #0f1626;
     --surface: #172036;
@@ -142,7 +145,47 @@
     --map-park: #22402f;
     --map-road: #3a434d;
     --map-road-major: #5f7894;
+    --round-icon: var(--ink-white);
   }
+}
+
+:root[data-scheme='dark'] {
+  color-scheme: dark;
+  --bg: #0f1626;
+  --surface: #172036;
+  --surface-2: #1f2a42;
+  --text: #e8edf7;
+  --muted: #8d98b3;
+  --border: rgba(232, 237, 247, 0.12);
+  --accent: #5b8ff0;
+  --accent-strong: #7fa8f5;
+  --accent-soft: #1d2d52;
+  --on-accent: #ffffff;
+  --route: #5b8ff0;
+  --sage: #7cc39b;
+  --sage-soft: #23382c;
+  --sky: #7fb1e6;
+  --sky-soft: #1f3044;
+  --on-sky: #10161d;
+  --amber: #e3b25e;
+  --amber-soft: #3d3020;
+  --danger: #ff7b7b;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
+  --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.45);
+  --backdrop: rgba(0, 0, 0, 0.6);
+  --perforation: rgba(232, 237, 247, 0.22);
+  --ticket-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+  --dialog-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+  --map-bg: #141c2e;
+  --map-area: #2b3c5c;
+  --map-area-other: #212b42;
+  --map-land: #1f2225;
+  --map-water: #1d4656;
+  --map-park: #22402f;
+  --map-road: #3a434d;
+  --map-road-major: #5f7894;
+  --round-icon: var(--ink-white);
 }
 
 :root {
@@ -166,6 +209,11 @@
   /* The eraser's ring while rubbing (DecorLayer): reads on light and dark ink alike. */
   --eraser-fill: rgba(255, 255, 255, 0.35);
   --eraser-ring: rgba(40, 40, 40, 0.55);
+  /* 디스플레이 및 언어 → 디스플레이: samples of the light and dark pages (fixed, whatever is showing). */
+  --scheme-light-bg: #ffffff;
+  --scheme-light-accent: #2f6fe0;
+  --scheme-dark-bg: #0f1626;
+  --scheme-dark-accent: #5b8ff0;
   --swatch-default-bg: #ffffff;
   --swatch-default-accent: #2f6fe0;
   --swatch-matcha-bg: #eef1e3;
@@ -240,6 +288,7 @@
   --shadow-sm: 0 2px 10px rgba(47, 38, 34, 0.12);
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
   --backdrop: rgba(0, 0, 0, 0.4);
+  --round-icon: var(--ink-black);
 }
 
 :root[data-theme='mint'] {
@@ -1341,8 +1390,8 @@ button:disabled {
   border-radius: 50%;
   /* Same round white buttons as the tab bar; the one in use only changes colour. */
   background: var(--surface);
-  /* Black icons (the 꾸미기 pen black, the same in every theme). */
-  color: var(--ink-black);
+  /* Black icons (white in dark mode, where the round is dark too). */
+  color: var(--round-icon);
   box-shadow: var(--shadow-sm);
   transition: color 0.15s ease;
 }
@@ -2283,6 +2332,14 @@ button:disabled {
     radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black) right / 51% 100% no-repeat;
 }
 
+/* Each piece tucks 1px under the one above: two masked edges meeting at a
+   fractional pixel each let a little of the backdrop through, a grey hairline
+   along the tear line. */
+.ticket-dialog__main + .ticket-dialog__stub,
+.ticket-dialog__stub + .ticket-dialog__stub {
+  margin-top: -1px;
+}
+
 /* A stub torn in two (취소 | 확인), like the tab bar: the action's half is filled. */
 .ticket-dialog__split {
   display: flex;
@@ -2508,7 +2565,7 @@ button:disabled {
   border: 0;
   border-radius: 50%;
   background: var(--surface);
-  color: var(--ink-black);
+  color: var(--round-icon);
   box-shadow: var(--shadow-sm);
 }
 
@@ -5237,6 +5294,108 @@ button:disabled {
 /* 알림 설정 → 투데이 알림·공유수 알림: each a 출발 안내판 — one navy board of flip cells, one
    per hour. A thin line across each cell's middle reads as a split-flap
    board; only the lit cells turn blue. */
+/* 디스플레이: a small square sample of each mode with its name under it;
+   the one in use has an accent ring round its square. */
+.display__schemes {
+  display: flex;
+  gap: 16px;
+  margin-top: 6px;
+}
+
+.display__scheme {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 64px;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+}
+
+.display__scheme.is-on {
+  color: var(--text);
+}
+
+.display__swatch {
+  position: relative;
+  display: block;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px var(--border);
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+}
+
+.display__scheme.is-on .display__swatch {
+  outline-color: var(--accent);
+}
+
+.display__swatch--light {
+  background: var(--scheme-light-bg);
+  --swatch-accent: var(--scheme-light-accent);
+}
+
+.display__swatch--dark {
+  background: var(--scheme-dark-bg);
+  --swatch-accent: var(--scheme-dark-accent);
+}
+
+/* The accent: a pin and a bar under it, like the theme cards. */
+.display__swatch .pin-glyph {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  width: 22px;
+  height: 22px;
+  color: var(--swatch-accent);
+}
+
+.display__swatch i {
+  position: absolute;
+  left: 9px;
+  right: 9px;
+  bottom: 10px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--swatch-accent);
+}
+
+/* 언어 with its (only) choice on the same line, at its right. */
+.display__lang {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.display__lang-btn {
+  position: relative;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-size: 13px;
+}
+
+/* A 44px touch area round the small pill. */
+.display__lang-btn::before {
+  content: '';
+  position: absolute;
+  inset: -10px -4px;
+}
+
+/* 계정·약관·정책 → 약관 및 정책: room kept for the policies to come. */
+.terms {
+  min-height: 56px;
+}
+
 .alerts__row {
   display: flex;
   flex-direction: column;

@@ -6,6 +6,8 @@ interface AlertBoardProps {
   label: string;
   steps: readonly { value: number; text: string }[];
   on: readonly number[];
+  /** Whether the row offers 랜덤 (공유수 알림 doesn't). */
+  random?: boolean;
   /** The steps switched on after a cell, 랜덤 or 전체 was pressed. */
   onChange: (on: number[]) => void;
 }
@@ -13,10 +15,10 @@ interface AlertBoardProps {
 /**
  * 알림 설정's row: a 출발 안내판 — one navy board of flip cells, one per step,
  * the lit ones blue. Switching a cell turns it like a split-flap. At the
- * row's right, 랜덤 tosses every cell and 전체 lights them all (or, when all
+ * row's right, 랜덤 (where offered) tosses every cell and 전체 lights them all (or, when all
  * are lit, puts them all out).
  */
-export default function AlertBoard({ label, steps, on, onChange }: AlertBoardProps) {
+export default function AlertBoard({ label, steps, on, random = true, onChange }: AlertBoardProps) {
   // Cells mid-flip: the face each one flips from, keyed to restart on a quick second tap.
   const [flips, setFlips] = useState<Record<number, { from: boolean; key: number }>>({});
   const values = steps.map((step) => step.value);
@@ -36,9 +38,11 @@ export default function AlertBoard({ label, steps, on, onChange }: AlertBoardPro
     <div className="alerts__row" role="group" aria-label={label}>
       <div className="alerts__head">
         <span className="alerts__label">{label}</span>
-        <button className="alerts__all" aria-label={`${label} 랜덤`} onClick={() => apply(randomAlerts(on, values))}>
-          랜덤
-        </button>
+        {random && (
+          <button className="alerts__all" aria-label={`${label} 랜덤`} onClick={() => apply(randomAlerts(on, values))}>
+            랜덤
+          </button>
+        )}
         <button className="alerts__all" aria-label={`${label} 전체`} onClick={() => apply(toggleAllAlerts(on, values))}>
           전체
         </button>

@@ -34,6 +34,8 @@ export interface CourseMap {
    * labels-only update is cheap.
    */
   setAreaMap(shapes: AreaShapes | null): void;
+  /** Repaints the areas from the colour tokens (after the 기본/다크 switch). */
+  refreshColors(): void;
   /**
    * Resolves once the map has finished moving there (never rejects).
    * `glideMs` overrides how long the glide takes (e.g. to keep pace with the

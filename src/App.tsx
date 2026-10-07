@@ -94,14 +94,6 @@ export default function App() {
     const root = document.documentElement;
     if (dayTheme === 'default') delete root.dataset.theme;
     else root.dataset.theme = dayTheme;
-    // Phone browsers tint their own bars (and the strip under the page at the
-    // bottom edge) from theme-color; left alone it keeps the default theme's
-    // colour, a pale band under a themed page.
-    const metas = document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]');
-    metas.forEach((m) => {
-      m.dataset.base ??= m.content;
-      m.content = dayTheme === 'default' ? m.dataset.base : getComputedStyle(root).getPropertyValue('--surface').trim();
-    });
   }, [dayTheme]);
   const pinStore = usePins();
   const routeFolders = useRouteFolders();
@@ -116,6 +108,24 @@ export default function App() {
     setProfile(next);
     return saveProfile(next);
   };
+  // 디스플레이 및 언어 → 디스플레이: 기본 or 다크 on <html data-scheme>; not picked, the phone's setting decides.
+  const scheme = profile.scheme;
+  useEffect(() => {
+    const root = document.documentElement;
+    if (scheme) root.dataset.scheme = scheme;
+    else delete root.dataset.scheme;
+    // Phone browsers tint their own bars (and the strip under the page at the
+    // bottom edge) from theme-color; left alone it keeps the default theme's
+    // (and the phone's light/dark) colour, a pale band under a themed or dark page.
+    const metas = document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]');
+    metas.forEach((m) => {
+      m.dataset.base ??= m.content;
+      const token = dayTheme !== 'default' ? '--surface' : scheme ? '--bg' : null;
+      m.content = token ? getComputedStyle(root).getPropertyValue(token).trim() : m.dataset.base;
+    });
+    // The map painted its areas from the old tokens.
+    mapRef.current?.refreshColors();
+  }, [dayTheme, scheme]);
   // 공유 before 집 is set opens the profile on 개인 정보 with this line.
   const [privacyNotice, setPrivacyNotice] = useState<string | null>(null);
   const [categoriesOpen, setCategoriesOpen] = useState(false);

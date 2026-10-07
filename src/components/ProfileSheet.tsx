@@ -3,15 +3,28 @@ import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { handleProblem, PING_ALERT_HOURS, PROFILE_LIMITS, sanitizeHandleInput, SHARE_ALERT_COUNTS, shareCountLabel } from '../domain/profile';
 import { avatarFromFile } from '../lib/avatarImage';
 import { getDisplayName, setDisplayName } from '../lib/currentUser';
-import type { Profile } from '../services/profileRepository';
+import type { ColorScheme, Profile } from '../services/profileRepository';
 import { clearAppData } from '../services/settingsRepository';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import AlertBoard from './AlertBoard';
+import PinGlyph from './PinGlyph';
 import PrivacySection from './PrivacySection';
 
 /** 알림 설정's two boards: 투데이 알림 by hour, 공유수 알림 by share count. */
 const PING_STEPS = PING_ALERT_HOURS.map((hour) => ({ value: hour, text: `${hour}:00` }));
 const SHARE_STEPS = SHARE_ALERT_COUNTS.map((count) => ({ value: count, text: shareCountLabel(count) }));
+
+/** 디스플레이 및 언어 → 디스플레이's two choices. */
+const SCHEMES: { id: ColorScheme; label: string }[] = [
+  { id: 'light', label: '기본' },
+  { id: 'dark', label: '다크' },
+];
+
+/** The scheme on screen: the one picked, or the phone's own until then. */
+function shownScheme(picked: ColorScheme | null): ColorScheme {
+  if (picked) return picked;
+  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
 
 interface ProfileSheetProps {
   profile: Profile;
@@ -45,6 +58,7 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
   const [accountOpen, setAccountOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(!!privacyNotice);
   const [alertsOpen, setAlertsOpen] = useState(false);
+  const [displayOpen, setDisplayOpen] = useState(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -87,8 +101,6 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
       </button>
       {alertsOpen && (
         <section id="profile-alerts" className="privacy alerts" aria-label="알림 설정">
-          <h3 className="privacy__title">알림 설정</h3>
-          <p className="privacy__desc">특정 알림을 켜거나 끌 수 있어요</p>
           <AlertBoard
             label="투데이 알림"
             steps={PING_STEPS}
@@ -99,13 +111,58 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
             label="공유수 알림"
             steps={SHARE_STEPS}
             on={profile.shareAlerts}
+            random={false}
             onChange={(shareAlerts) => onChange({ ...profile, shareAlerts })}
           />
         </section>
       )}
     </>
   );
-  // 로그아웃·탈퇴: folded away by default so they aren't one stray tap from the profile.
+  // 디스플레이 및 언어: 기본 / 다크, and the language (한국어 only for now).
+  const scheme = shownScheme(profile.scheme);
+  const displayPart = (
+    <>
+      <button
+        className={`profile__account ${displayOpen ? 'is-open' : ''}`}
+        aria-expanded={displayOpen}
+        aria-controls="profile-display"
+        onClick={() => setDisplayOpen((open) => !open)}
+      >
+        디스플레이 및 언어
+        <ChevronDown size={18} aria-hidden />
+      </button>
+      {displayOpen && (
+        <section id="profile-display" className="privacy display" aria-label="디스플레이 및 언어">
+          <h3 className="privacy__title">디스플레이</h3>
+          <div className="display__schemes" role="group" aria-label="디스플레이">
+            {SCHEMES.map(({ id, label }) => (
+              <button
+                key={id}
+                className={`display__scheme ${scheme === id ? 'is-on' : ''}`}
+                aria-pressed={scheme === id}
+                onClick={() => onChange({ ...profile, scheme: id })}
+              >
+                {/* A small sample of that mode: its page colour, a pin and a bar in its accent. */}
+                <span className={`display__swatch display__swatch--${id}`} aria-hidden>
+                  <PinGlyph icon="pin" />
+                  <i />
+                </span>
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="display__lang">
+            <h3 className="privacy__title">언어</h3>
+            <button className="display__lang-btn" aria-label="언어: 한국어">
+              한국어
+            </button>
+          </div>
+        </section>
+      )}
+    </>
+  );
+  // 계정·약관·정책: room kept for 개인정보처리방침 and the like, then 로그아웃·탈퇴
+  // at the very bottom — folded away by default so 탈퇴 isn't one stray tap from the profile.
   const accountPart = (
     <>
       <button
@@ -114,25 +171,29 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
         aria-controls="profile-account"
         onClick={() => setAccountOpen((open) => !open)}
       >
-        로그아웃·탈퇴
+        계정·약관·정책
         <ChevronDown size={18} aria-hidden />
       </button>
       {accountOpen && (
-        <div id="profile-account" className="profile__actions">
-          {/* No accounts yet (everything lives on this device), so there's nothing to log out of. */}
-          <button className="btn btn--secondary" disabled>
-            로그아웃
-          </button>
-          <button
-            className="btn btn--ghost profile__leave"
-            onClick={() => {
-              if (!window.confirm('탈퇴하면 이 기기의 프로필·핀·코스·기록이 모두 지워져요. 되돌릴 수 없어요.')) return;
-              clearAppData();
-              window.location.reload();
-            }}
-          >
-            탈퇴
-          </button>
+        <div id="profile-account">
+          {/* 약관 및 정책: nothing yet. */}
+          <section className="terms" aria-label="약관 및 정책" />
+          <div className="profile__actions">
+            {/* No accounts yet (everything lives on this device), so there's nothing to log out of. */}
+            <button className="btn btn--secondary" disabled>
+              로그아웃
+            </button>
+            <button
+              className="btn btn--ghost profile__leave"
+              onClick={() => {
+                if (!window.confirm('탈퇴하면 이 기기의 프로필·핀·코스·기록이 모두 지워져요. 되돌릴 수 없어요.')) return;
+                clearAppData();
+                window.location.reload();
+              }}
+            >
+              탈퇴
+            </button>
+          </div>
         </div>
       )}
     </>
@@ -215,21 +276,27 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
         {note && <p className="profile__note">{note}</p>}
       </div>
 
-      {/* Past the tear line: 제외 주소 설정, 알림 설정, then 로그아웃·탈퇴. A toggle
+      {/* Past the tear line: 제외 주소 설정, 알림 설정, 디스플레이 및 언어, then 계정·약관·정책. A toggle
           that's open with another below it is torn off from it by a tear line of its own. */}
       {tornStubs([
         { part: privacyPart, open: privacyOpen },
         { part: alertsPart, open: alertsOpen },
+        { part: displayPart, open: displayOpen },
         { part: accountPart, open: accountOpen },
       ])}
     </dialog>
   );
 }
 
-/** The stub's toggles, grouped so each open one (but the last) ends its stub with a tear line. */
+/**
+ * The stub's toggles, grouped so each open one sits in a stub of its own: a
+ * tear line above its name (unless the profile's own tear line already is)
+ * and one below it (unless it's the last).
+ */
 function tornStubs(parts: { part: ReactNode; open: boolean }[]): ReactNode {
   const stubs: ReactNode[][] = [[]];
   parts.forEach(({ part, open }, i) => {
+    if (open && stubs[stubs.length - 1].length) stubs.push([]);
     stubs[stubs.length - 1].push(part);
     if (open && i < parts.length - 1) stubs.push([]);
   });

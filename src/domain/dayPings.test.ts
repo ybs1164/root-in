@@ -107,7 +107,7 @@ describe('calendar day screen', () => {
   it('knows when a day’s pins and lines have landed, for the decorations to follow', () => {
     expect(pingsLandedMs(0)).toBe(0);
     expect(pingsLandedMs(1)).toBe(570); // one pin, no line
-    expect(pingsLandedMs(3)).toBe(1050); // the lines finish last
+    expect(pingsLandedMs(3)).toBe(910); // the lines look drawn last
     expect(pingsLandedMs(8)).toBe(120 + 7 * 110 + 450); // many pins: the last drop
   });
 });
