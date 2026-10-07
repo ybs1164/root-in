@@ -2,6 +2,7 @@ import { defaultTitle } from '../domain/course';
 import { cleanRouteLook } from '../domain/routeStyle';
 import type { Course, CourseDraft } from '../types/course';
 import type { TravelRoute } from '../types/travelRoute';
+import { localWrote } from './syncBus';
 
 const STORAGE_KEY = 'goodroot:courses:v2';
 const LEGACY_ROUTES_KEY = 'goodroot:travel-routes:v1';
@@ -46,7 +47,7 @@ const fromLegacyRoute = (route: TravelRoute): Course => ({
 });
 
 export class LocalCourseRepository implements CourseRepository {
-  private read(): Course[] {
+  read(): Course[] {
     this.migrateLegacy();
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -56,9 +57,10 @@ export class LocalCourseRepository implements CourseRepository {
     }
   }
 
-  private write(courses: Course[]): void {
+  write(courses: Course[]): void {
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(courses));
+      localWrote('routes');
     } catch {
       // Storage full/disabled: in-memory state still shows the change until reload.
     }
@@ -115,4 +117,5 @@ export class LocalCourseRepository implements CourseRepository {
   }
 }
 
-export const courseRepository: CourseRepository = new LocalCourseRepository();
+export const localCourses = new LocalCourseRepository();
+export const courseRepository: CourseRepository = localCourses;

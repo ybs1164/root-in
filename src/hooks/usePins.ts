@@ -16,6 +16,7 @@ import {
   type PinCategoryRepository,
   type PinRepository,
 } from '../services/pinRepository';
+import { onPulled } from '../services/syncBus';
 import type { PlaceRef } from '../types/course';
 import type { Pin, PinCategory } from '../types/pin';
 
@@ -35,13 +36,21 @@ export function usePins(pinsRepo: PinRepository = pinRepository, categoriesRepo:
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([pinsRepo.listByUser(userId), categoriesRepo.list()]).then(([p, c]) => {
-      if (cancelled) return;
-      setPins(p);
-      setCategories(c);
+    const load = () =>
+      Promise.all([pinsRepo.listByUser(userId), categoriesRepo.list()]).then(([p, c]) => {
+        if (cancelled) return;
+        latest.current = { pins: p, categories: c };
+        setPins(p);
+        setCategories(c);
+      });
+    void load();
+    // Signed in, the account's pins may have replaced or joined these.
+    const stop = onPulled((changed) => {
+      if (changed.has('pins') || changed.has('categories')) void load();
     });
     return () => {
       cancelled = true;
+      stop();
     };
   }, [pinsRepo, categoriesRepo, userId]);
 

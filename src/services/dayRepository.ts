@@ -24,6 +24,7 @@ import {
   type Stroke,
 } from '../domain/decor';
 import type { EdgeStyle, PingShape } from '../domain/dayPings';
+import { localWrote } from './syncBus';
 
 /**
  * What a calendar day has been made into, kept per date so any day opened
@@ -144,7 +145,16 @@ const pick = <T>(raw: unknown, ok: (v: unknown) => v is T): Record<string, T> =>
 
 export function loadDays(): DayStore {
   try {
-    const raw = JSON.parse(window.localStorage.getItem(DAYS_KEY) ?? 'null') as Partial<DayStore> | null;
+    return parseDays(JSON.parse(window.localStorage.getItem(DAYS_KEY) ?? 'null'));
+  } catch {
+    return EMPTY_DAY_STORE;
+  }
+}
+
+/** A day store from untrusted JSON (storage or the server), every part checked. */
+export function parseDays(value: unknown): DayStore {
+  try {
+    const raw = value as Partial<DayStore> | null;
     if (!raw || typeof raw !== 'object') return EMPTY_DAY_STORE;
     const decor: Record<string, DayDecor> = {};
     for (const [date, v] of Object.entries(raw.decor ?? {})) {
@@ -184,6 +194,7 @@ export function saveDays(store: DayStore): void {
   }
   try {
     window.localStorage.setItem(DAYS_KEY, JSON.stringify({ ...store, decor }));
+    localWrote('days');
   } catch {
     // Storage full or off: the day still shows its decorations until reload.
   }

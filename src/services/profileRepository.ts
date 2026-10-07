@@ -21,26 +21,38 @@ export interface Profile {
 
 export type ColorScheme = 'light' | 'dark';
 
-function isPhoto(value: unknown): value is string {
+export function isPhoto(value: unknown): value is string {
   return typeof value === 'string' && value.startsWith('data:image/') && value.length <= PROFILE_LIMITS.photoChars;
 }
 
+export function defaultProfile(handle = defaultHandle(getCurrentUserId())): Profile {
+  return { handle, photo: null, sound: true, pingAlerts: [...PING_ALERT_HOURS], shareAlerts: [...SHARE_ALERT_COUNTS], scheme: null };
+}
+
+/**
+ * A profile from untrusted stored fields (this device's storage, or the
+ * account's row on the server): anything failing the checks falls back.
+ */
+export function profileFromRecord(parsed: Record<string, unknown> | null | undefined, fallback: Profile): Profile {
+  return {
+    handle: isValidHandle(parsed?.handle) ? parsed.handle : fallback.handle,
+    photo: isPhoto(parsed?.photo) ? parsed.photo : null,
+    // Saved before the switches existed (or anything but false): on.
+    sound: parsed?.sound !== false,
+    // Before the hours existed there was one 알림 switch: off meant none of them.
+    pingAlerts: sanitizeAlerts(parsed?.pingAlerts, PING_ALERT_HOURS) ?? (parsed?.alerts === false ? [] : [...PING_ALERT_HOURS]),
+    shareAlerts: sanitizeAlerts(parsed?.shareAlerts, SHARE_ALERT_COUNTS) ?? [...SHARE_ALERT_COUNTS],
+    scheme: parsed?.scheme === 'light' || parsed?.scheme === 'dark' ? parsed.scheme : null,
+  };
+}
+
 export function loadProfile(): Profile {
-  const fallback: Profile = { handle: defaultHandle(getCurrentUserId()), photo: null, sound: true, pingAlerts: [...PING_ALERT_HOURS], shareAlerts: [...SHARE_ALERT_COUNTS], scheme: null };
+  const fallback = defaultProfile();
   try {
     const raw = window.localStorage.getItem(PROFILE_KEY);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw) as Record<string, unknown> | null;
-    return {
-      handle: isValidHandle(parsed?.handle) ? parsed.handle : fallback.handle,
-      photo: isPhoto(parsed?.photo) ? parsed.photo : null,
-      // Saved before the switches existed (or anything but false): on.
-      sound: parsed?.sound !== false,
-      // Before the hours existed there was one 알림 switch: off meant none of them.
-      pingAlerts: sanitizeAlerts(parsed?.pingAlerts, PING_ALERT_HOURS) ?? (parsed?.alerts === false ? [] : [...PING_ALERT_HOURS]),
-      shareAlerts: sanitizeAlerts(parsed?.shareAlerts, SHARE_ALERT_COUNTS) ?? [...SHARE_ALERT_COUNTS],
-      scheme: parsed?.scheme === 'light' || parsed?.scheme === 'dark' ? parsed.scheme : null,
-    };
+    return profileFromRecord(parsed, fallback);
   } catch {
     return fallback;
   }

@@ -7,8 +7,8 @@ interface SharedRouteDialogProps {
   sender: string;
   /** The sharer's profile photo; null shows the person outline. */
   photo: string | null;
-  /** How many times the route has been shared so far. */
-  shareCount: number;
+  /** How many times the route's link has been opened; unknown for a long #share= link (no line then). */
+  shareCount?: number;
   /** 루트 추가: called before the dialog closes. */
   onAdd: () => void;
   /** Closed either way: after 루트 추가, 취소, Esc or a tap outside. */
@@ -50,7 +50,7 @@ export default function SharedRouteDialog({ sender, photo, shareCount, onAdd, on
         <p className="shared-route-dialog__who">
           <b>{sender}</b>님의 루트예요.
         </p>
-        <p className="shared-route-dialog__count">지금까지 {shareCount}번 공유됐어요.</p>
+        {shareCount !== undefined && shareCount > 0 && <p className="shared-route-dialog__count">지금까지 {shareCount}번 공유됐어요.</p>}
       </div>
       <div className="ticket-dialog__stub ticket-dialog__split">
         <button onClick={() => dialogRef.current?.close()}>취소</button>

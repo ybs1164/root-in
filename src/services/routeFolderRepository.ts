@@ -1,5 +1,7 @@
 import { DEFAULT_FOLDER_ICON, EMPTY_ROUTE_FOLDERS, isFolderIcon, ROUTE_FOLDER_LIMITS, type RouteFolder, type RouteFolders } from '../domain/routeFolders';
 
+import { localWrote } from './syncBus';
+
 const KEY = 'goodroot:route-folders:v1';
 
 const isFolder = (v: unknown): v is RouteFolder =>
@@ -36,6 +38,8 @@ export function loadRouteFolders(): RouteFolders {
 export function saveRouteFolders(state: RouteFolders): void {
   try {
     window.localStorage.setItem(KEY, JSON.stringify(state));
+    // Folder ids and names are folders; which folder and order belong to the route rows.
+    localWrote('folders', 'routes');
   } catch {
     // Losing folder sorting is harmless: routes all show under 전체 / 미분류.
   }

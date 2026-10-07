@@ -22,6 +22,7 @@ import {
   type ThemeId,
 } from '../domain/decor';
 import { loadDays, saveDays, type DayStore } from '../services/dayRepository';
+import { onPulled } from '../services/syncBus';
 import { dateKey } from '../domain/diary';
 import DayPings from './DayPings';
 import DecorLayer, { type TextFocus } from './DecorLayer';
@@ -137,6 +138,16 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
     }
     saveDays(days);
   }, [days]);
+  // Signed in, another phone's decorations can arrive: show them (without writing them back).
+  useEffect(
+    () =>
+      onPulled((changed) => {
+        if (!changed.has('days')) return;
+        loaded.current = true;
+        setDays(loadDays());
+      }),
+    [],
+  );
   // Undo / redo per day, for this visit only.
   const [history, setHistory] = useState<Record<string, DecorHistory>>({});
   // 꾸미기: which tool is out.

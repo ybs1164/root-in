@@ -26,6 +26,8 @@ export interface SharePlan {
   notice?: string;
   createUrl(): Promise<string>;
   text(url: string): string;
+  /** A course's `#share=` token: what a short link (shareLinkService) stores. */
+  token?: string;
 }
 
 const clean = (name: string) => name.trim() || undefined;
@@ -57,13 +59,15 @@ export function planShare(
       sharedBy: by,
       sharedAt: now,
     };
+    const encoded = encodeSharedCourse(course);
     return {
+      token: encoded.token,
       heading: '코스 공유',
       title: course.title,
       summary: course.stops.map((s, i) => `${i + 1}. ${s.place.name}`).join('  '),
       notice: joinNotices(
         excludedNotice(cut.removed),
-        encodeSharedCourse(course).memosTrimmed ? '링크가 너무 길어 장소별 메모는 빠졌어요.' : undefined,
+        encoded.memosTrimmed ? '링크가 너무 길어 장소별 메모는 빠졌어요.' : undefined,
       ),
       createUrl: () => courseShareService.createShareUrl(course),
       text: (url) => formatCourseShareText(course, url),

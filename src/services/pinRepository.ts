@@ -1,5 +1,6 @@
 import { DEFAULT_CATEGORIES, flattenLegacyCategories, isPinColor, isPinIcon } from '../domain/pin';
 import type { Pin, PinCategory } from '../types/pin';
+import { localWrote } from './syncBus';
 
 const PINS_KEY = 'goodroot:pins:v1';
 // v2 (2026-10-04): flat — sub-categories (v1's `parentId`) are gone.
@@ -31,6 +32,7 @@ function readJson(key: string): unknown {
 function writeJson(key: string, value: unknown): void {
   try {
     window.localStorage.setItem(key, JSON.stringify(value));
+    localWrote(key === PINS_KEY ? 'pins' : 'categories');
   } catch {
     // Storage full/disabled: in-memory state still shows the change until reload.
   }
@@ -38,7 +40,7 @@ function writeJson(key: string, value: unknown): void {
 
 // Stored data can be hand-edited or left over from a buggy build; drop rows
 // that would crash the map instead of failing the whole list.
-const isPin = (value: unknown): value is Pin => {
+export const isPin = (value: unknown): value is Pin => {
   const p = value as Pin;
   return (
     !!p &&
@@ -51,7 +53,7 @@ const isPin = (value: unknown): value is Pin => {
   );
 };
 
-const isCategory = (value: unknown): value is PinCategory => {
+export const isCategory = (value: unknown): value is PinCategory => {
   const c = value as PinCategory;
   return !!c && typeof c.id === 'string' && typeof c.name === 'string' && isPinIcon(c.icon) && isPinColor(c.color);
 };
@@ -91,6 +93,25 @@ export class LocalPinCategoryRepository implements PinCategoryRepository {
   async saveAll(categories: PinCategory[]): Promise<void> {
     writeJson(CATEGORIES_KEY, categories);
   }
+}
+
+/** Every pin on this device and its categories as stored (cloud sync reads and replaces them whole). */
+export function readStoredPins(): Pin[] {
+  const raw = readJson(PINS_KEY);
+  return (Array.isArray(raw) ? raw : []).filter(isPin);
+}
+
+export function writeStoredPins(pins: Pin[]): void {
+  writeJson(PINS_KEY, pins);
+}
+
+export function readStoredCategories(): PinCategory[] | null {
+  const raw = readJson(CATEGORIES_KEY);
+  return Array.isArray(raw) ? raw.filter(isCategory) : null;
+}
+
+export function writeStoredCategories(categories: PinCategory[]): void {
+  writeJson(CATEGORIES_KEY, categories);
 }
 
 export const pinRepository: PinRepository = new LocalPinRepository();
