@@ -98,14 +98,17 @@ create table public.days (
 -- 제외 주소 (집 등) is deliberately NOT here: it stays on the device
 -- (goodroot:privacy:v1) so the most sensitive data never leaves the phone.
 
-do $$
-declare t text;
-begin
-  foreach t in array array['pin_categories', 'pins', 'route_folders', 'courses', 'days'] loop
-    execute format('alter table public.%I enable row level security', t);
-    execute format('create policy "own rows" on public.%I for all using (user_id = auth.uid()) with check (user_id = auth.uid())', t);
-  end loop;
-end $$;
+-- Spelled out rather than a DO loop: the dashboard SQL Editor cuts $$ bodies at their semicolons.
+alter table public.pin_categories enable row level security;
+create policy "own rows" on public.pin_categories for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+alter table public.pins enable row level security;
+create policy "own rows" on public.pins for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+alter table public.route_folders enable row level security;
+create policy "own rows" on public.route_folders for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+alter table public.courses enable row level security;
+create policy "own rows" on public.courses for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+alter table public.days enable row level security;
+create policy "own rows" on public.days for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 -- ── 짧은 공유 링크 ────────────────────────────────────────────────────────
 create table public.shares (

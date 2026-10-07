@@ -84,31 +84,29 @@ drop function if exists public.open_share(text);
 drop function if exists public.open_share(text, boolean);
 create function public.open_share(share_slug text, count_open boolean default true)
 returns jsonb
-language plpgsql
+language sql
 security definer
 set search_path = ''
 as $$
-declare
-  s public.shares;
-  p public.profiles;
-begin
-  if count_open then
+  -- One statement, no inner semicolons: the dashboard's SQL Editor cuts
+  -- plpgsql bodies apart at them. The CTE's update isn't visible to the
+  -- outer select, hence the bumped count is taken from its RETURNING.
+  with bumped as (
     update public.shares
        set open_count = open_count + 1
      where slug = share_slug
-       and owner_id is distinct from auth.uid();
-  end if;
-  select * into s from public.shares where slug = share_slug;
-  if not found then
-    return null;
-  end if;
-  select * into p from public.profiles where id = s.owner_id;
-  return jsonb_build_object(
+       and count_open
+       and owner_id is distinct from auth.uid()
+    returning open_count
+  )
+  select jsonb_build_object(
     'snapshot', s.snapshot,
-    'open_count', s.open_count,
+    'open_count', coalesce((select b.open_count from bumped b), s.open_count),
     'owner', jsonb_build_object('nickname', coalesce(p.nickname, ''), 'handle', p.handle, 'avatar_path', p.avatar_path)
-  );
-end;
+  )
+  from public.shares s
+  left join public.profiles p on p.id = s.owner_id
+  where s.slug = share_slug
 $$;
 grant execute on function public.open_share(text, boolean) to anon, authenticated;
 
