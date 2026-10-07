@@ -99,6 +99,7 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
             label="공유수 알림"
             steps={SHARE_STEPS}
             on={profile.shareAlerts}
+            random={false}
             onChange={(shareAlerts) => onChange({ ...profile, shareAlerts })}
           />
         </section>
