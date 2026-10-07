@@ -1903,13 +1903,16 @@ button:disabled {
   -webkit-backdrop-filter: blur(18px) saturate(1.4);
   backdrop-filter: blur(18px) saturate(1.4);
   translate: -50% 0;
-  animation: picker-in 0.18s ease both;
+  /* Drops in from just above, like the 루트 hints (its own keyframes: the
+     shared picker-in moves translate, which used to undo the centring and
+     send the palette flying in from the side). */
+  animation: palette-drop 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-@keyframes picker-in {
+@keyframes palette-drop {
   from {
     opacity: 0;
-    scale: 0.94;
+    translate: -50% -16px;
   }
 }
 
