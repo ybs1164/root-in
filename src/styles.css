@@ -514,7 +514,7 @@ button:disabled {
   width: 48px;
   height: 48px;
   translate: -50% -50%;
-  animation: pop-in 0.2s var(--pop-ease) backwards;
+  animation: aim-in 0.2s ease-out both;
 }
 
 .aim__cross {
@@ -2244,7 +2244,7 @@ button:disabled {
 }
 
 .ticket-dialog[open] {
-  animation: pop-in 0.22s var(--pop-ease) backwards;
+  animation: mac-open 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
 }
 
 .ticket-dialog::backdrop {
@@ -5791,7 +5791,7 @@ button:disabled {
 .category-icon-picker[open] {
   display: flex;
   flex-direction: column;
-  animation: pop-in 0.22s var(--pop-ease) backwards;
+  animation: mac-open 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
 }
 
 .category-icon-picker::backdrop {
@@ -6660,6 +6660,22 @@ button:disabled {
   height: 56px;
   object-fit: contain;
   pointer-events: none;
+}
+
+/* Centre popups open with their own small grow (kept apart from pop-in). */
+@keyframes mac-open {
+  from {
+    opacity: 0;
+    scale: 0.94;
+  }
+}
+
+/* The crosshair settles in from a little larger, as if locking on. */
+@keyframes aim-in {
+  from {
+    opacity: 0;
+    scale: 1.3;
+  }
 }
 
 /* Shared motions, one per kind. --anim-x keeps an element's horizontal
