@@ -288,10 +288,15 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
   );
 }
 
-/** The stub's toggles, grouped so each open one (but the last) ends its stub with a tear line. */
+/**
+ * The stub's toggles, grouped so each open one sits in a stub of its own: a
+ * tear line above its name (unless the profile's own tear line already is)
+ * and one below it (unless it's the last).
+ */
 function tornStubs(parts: { part: ReactNode; open: boolean }[]): ReactNode {
   const stubs: ReactNode[][] = [[]];
   parts.forEach(({ part, open }, i) => {
+    if (open && stubs[stubs.length - 1].length) stubs.push([]);
     stubs[stubs.length - 1].push(part);
     if (open && i < parts.length - 1) stubs.push([]);
   });
