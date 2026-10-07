@@ -6211,18 +6211,18 @@ button:disabled {
 .cal-zoom__year {
   position: absolute;
   top: 92px;
-  left: 0;
-  right: 0;
+  left: 50%;
   display: grid;
-  pointer-events: none;
+  justify-items: center;
+  translate: -50% 0;
+  cursor: pointer;
 }
 
-/* Both years in the same spot, each the screen's width, so a change of year
-   pages across the whole screen like TODAY → DAY n (260ms, same curve). */
+/* Both years in the same spot; a change of year pages them a whole screen
+   width across like TODAY → DAY n (260ms, same curve). The button stays the
+   year's own size, so only the year itself is the way back to TODAY. */
 .cal-zoom__year-num {
   grid-area: 1 / 1;
-  width: 100%;
-  text-align: center;
 }
 
 .cal-zoom__year-num.is-out {
@@ -6235,13 +6235,13 @@ button:disabled {
 
 @keyframes year-out {
   to {
-    transform: translateX(calc(var(--dir) * -100%));
+    transform: translateX(calc(var(--dir) * -100vw));
   }
 }
 
 @keyframes year-in {
   from {
-    transform: translateX(calc(var(--dir) * 100%));
+    transform: translateX(calc(var(--dir) * 100vw));
   }
 }
 

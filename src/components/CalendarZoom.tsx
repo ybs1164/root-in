@@ -654,7 +654,8 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
         inert={mode !== 'month'}
       >
         {/* The year up top, where TODAY / DAY n stand on the day screen; the grid names only the month. */}
-        <div className="cal-zoom__title cal-zoom__year" aria-hidden>
+        {/* Tapping the year goes back to TODAY, whichever year is showing. */}
+        <button className="cal-zoom__title cal-zoom__year" aria-label="오늘로" onClick={() => toDay(today)}>
           {/* Crossing into another year, the old one slides off and the new one
               in from the side the months went, as TODAY pages to DAY n. */}
           {yearOut && (
@@ -670,7 +671,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
           <span key={month.year} className={`cal-zoom__year-num ${yearOut ? 'is-in' : ''}`} style={{ '--dir': yearOut?.dir ?? 1 } as CSSProperties}>
             {month.year}
           </span>
-        </div>
+        </button>
         <MonthCalendar counts={counts} plans={NO_PLANS} onPick={(key) => toDay(key)} view={month} onView={setMonth} />
       </div>
 
