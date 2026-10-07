@@ -27,6 +27,10 @@ React 19 + Vite 7 + TypeScript. 지도는 **카카오맵 JS SDK**(키 없으면 
 - Supabase 호출은 `services/`의 인터페이스(`AuthService`, `RemoteProfileService`, `RemoteDataService`, `ShareLinkService`) 뒤에만, 실패해도 reject하지 않는다. 테스트는 가짜 클라이언트 객체.
 - 핀·카테고리·루트·폴더·하루는 로그인 중 서버와 동기화(2단계, `services/cloudSync.ts` — 화면은 계속 localStorage만 읽음). 동기화되는 저장소를 새로 만들거나 저장 형식을 바꾸면 `syncCollections.ts`의 행 변환과 쓰기 알림(`syncBus.localWrote`)도 같이 맞출 것.
 
+## 사용 분석 (PostHog)
+- [docs/analytics.md](docs/analytics.md). `VITE_POSTHOG_KEY`가 없으면 아무것도 안 보냄. 컴포넌트는 `services/analytics.ts`의 `analytics.track()`만 부른다.
+- **좌표·주소·장소 이름·메모·닉네임은 이벤트에 넣지 않는다.** 새 이벤트는 `EventProps`에 타입으로 추가하고 문서 표도 고친다.
+
 ## 작업 규칙
 - 한 번에 계획의 작업 하나. 끝나면 `src/test/m1-acceptance.test.ts`의 해당 `it.todo`를 실제 테스트로 바꾼다.
 - 지도 SDK는 `src/map/`의 `CourseMap` 인터페이스 뒤에만 둔다. 컴포넌트에서 `kakao.maps.*`나 `maplibregl`을 직접 부르지 않는다.

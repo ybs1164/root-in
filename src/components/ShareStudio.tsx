@@ -19,6 +19,7 @@ import {
 } from '../domain/decor';
 import { DEFAULT_LAYOUT, POLAROID_LAYOUTS, SCENE, type PolaroidLayout } from '../domain/polaroid';
 import type { ShareSubject } from '../domain/shareSubject';
+import type { ShareMethod } from '../services/analytics';
 import { canShareImage, dayGround, downloadDataUrl, renderShareImage, shareImage } from '../lib/shareImage';
 import DayPattern from './DayPattern';
 import DecorLayer, { type TextFocus } from './DecorLayer';
@@ -33,6 +34,8 @@ interface ShareStudioProps {
   onTheme: (theme: ThemeId) => void;
   /** 링크 복사 (a route's card): makes the link and copies it; false when that failed. Absent: the button stays off. */
   onCopyLink?: () => Promise<boolean>;
+  /** After each of 사진 저장 · SNS 공유 · 링크 복사, whether it went through (for the 공유 funnel). */
+  onShared?: (method: ShareMethod, ok: boolean) => void;
   onClose: () => void;
 }
 
@@ -48,7 +51,7 @@ interface ShareStudioProps {
  * layout, no title written on it), and leaving throws the decorations away. A day's own
  * 꾸미기 on its day screen is kept as ever and shows in the photo.
  */
-export default function ShareStudio({ subject, onTheme, onCopyLink, onClose }: ShareStudioProps) {
+export default function ShareStudio({ subject, onTheme, onCopyLink, onShared, onClose }: ShareStudioProps) {
   const [decor, setDecor] = useState<DayDecor>(EMPTY_DECOR);
 
   // Undo / redo, for this visit only.
@@ -278,6 +281,9 @@ export default function ShareStudio({ subject, onTheme, onCopyLink, onClose }: S
             setBusy(true);
             try {
               downloadDataUrl(await finished(), fileName);
+              onShared?.('save_image', true);
+            } catch {
+              onShared?.('save_image', false);
             } finally {
               setBusy(false);
             }
@@ -293,7 +299,7 @@ export default function ShareStudio({ subject, onTheme, onCopyLink, onClose }: S
           onClick={async () => {
             setBusy(true);
             try {
-              await shareImage(await finished(), fileName, subject.title);
+              onShared?.('system_share', await shareImage(await finished(), fileName, subject.title));
             } finally {
               setBusy(false);
             }
@@ -310,7 +316,9 @@ export default function ShareStudio({ subject, onTheme, onCopyLink, onClose }: S
             if (!onCopyLink) return;
             setBusy(true);
             try {
-              setLinkNote((await onCopyLink()) ? '링크를 복사했어요.' : '링크를 복사하지 못했어요.');
+              const ok = await onCopyLink();
+              onShared?.('copy_link', ok);
+              setLinkNote(ok ? '링크를 복사했어요.' : '링크를 복사하지 못했어요.');
             } finally {
               setBusy(false);
             }
