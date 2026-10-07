@@ -140,13 +140,26 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
   // open sheet down first, then the new one comes up.
   const [trayTool, setTrayTool] = useState<DecorTool | null>(null);
   const [trayLeaving, setTrayLeaving] = useState(false);
+  // Putting a tool away (its button again, or a touch outside) sends the sheet
+  // down too, and the buttons below only come back once it's gone. A sheet
+  // pulled down by its edge has already slid away itself: it just goes.
+  const trayPulledAway = useRef(false);
   useEffect(() => {
-    if (!sheetTool || !trayTool) {
+    if (!trayTool) {
       setTrayTool(sheetTool);
       setTrayLeaving(false);
       return;
     }
-    if (sheetTool === trayTool) return;
+    if (sheetTool === trayTool) {
+      setTrayLeaving(false);
+      return;
+    }
+    if (!sheetTool && trayPulledAway.current) {
+      trayPulledAway.current = false;
+      setTrayTool(null);
+      setTrayLeaving(false);
+      return;
+    }
     setTrayLeaving(true);
     const swap = window.setTimeout(() => {
       setTrayTool(sheetTool);
@@ -247,7 +260,8 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
       </div>
 
       {/* Where the tab buttons sit elsewhere: what to do with the finished card. */}
-      <div className={`studio__actions ${tool ? 'is-away' : ''}`} role="group" aria-label="공유" inert={!!tool}>
+      {/* The share buttons come back once the tool's sheet has gone down. */}
+      <div className={`studio__actions ${tool || trayTool ? 'is-away' : ''}`} role="group" aria-label="공유" inert={!!(tool || trayTool)}>
         <button
           className="studio__action"
           aria-label="사진 저장"
@@ -307,7 +321,10 @@ export default function ShareStudio({ subject, onTheme, onClose }: ShareStudioPr
           onPattern={(next) => setDecor({ ...decor, pattern: next === 'none' ? undefined : next })}
           textStyle={sheetTextStyle}
           onTextStyle={changeTextStyle}
-          onClose={() => setTool(null)}
+          onClose={() => {
+            trayPulledAway.current = true;
+            setTool(null);
+          }}
           layout={decor.layout ?? DEFAULT_LAYOUT}
           onLayout={(next) => next !== (decor.layout ?? DEFAULT_LAYOUT) && changeDecor({ ...decor, layout: next })}
           layoutPreviews={layoutPreviews}

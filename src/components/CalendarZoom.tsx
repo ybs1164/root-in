@@ -333,20 +333,33 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
     }
   };
 
-  // The app hides the tab buttons while a tool is out. Leaving the day
-  // screen (to the month) puts the tools away.
-  useEffect(() => onDecorating(tool !== null), [tool]);
   // The sheet shows `trayTool`, which trails `tool`: switching tools sends the
   // open sheet down first, then the new one comes up.
   const [trayTool, setTrayTool] = useState<DecorTool | null>(null);
   const [trayLeaving, setTrayLeaving] = useState(false);
+  // The app hides the tab buttons while a tool is out, and until its sheet
+  // has gone down after. (Leaving the day screen puts the tools away.)
+  useEffect(() => onDecorating(tool !== null || trayTool !== null), [tool, trayTool]);
+  // Putting a tool away (its button again, or a touch outside) sends the sheet
+  // down too, and the buttons below only come back once it's gone. A sheet
+  // pulled down by its edge has already slid away itself: it just goes.
+  const trayPulledAway = useRef(false);
   useEffect(() => {
-    if (!sheetTool || !trayTool) {
+    if (!trayTool) {
       setTrayTool(sheetTool);
       setTrayLeaving(false);
       return;
     }
-    if (sheetTool === trayTool) return;
+    if (sheetTool === trayTool) {
+      setTrayLeaving(false);
+      return;
+    }
+    if (!sheetTool && trayPulledAway.current) {
+      trayPulledAway.current = false;
+      setTrayTool(null);
+      setTrayLeaving(false);
+      return;
+    }
     setTrayLeaving(true);
     const swap = window.setTimeout(() => {
       setTrayTool(sheetTool);
@@ -787,7 +800,10 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
           onPattern={(pattern) => setDayDecor({ ...dayDecor, pattern: pattern === 'none' ? undefined : pattern })}
           textStyle={sheetTextStyle}
           onTextStyle={changeTextStyle}
-          onClose={() => setTool(null)}
+          onClose={() => {
+            trayPulledAway.current = true;
+            setTool(null);
+          }}
         />
       )}
 
