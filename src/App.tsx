@@ -2,6 +2,7 @@ import { MapPin, Pencil, Share } from 'lucide-react';
 import type { PatternId, ThemeId } from './domain/decor';
 import DayPattern from './components/DayPattern';
 import ShareStudio from './components/ShareStudio';
+import { analytics, type PinSource, type ShareKind } from './services/analytics';
 import ConfirmDialog from './components/ConfirmDialog';
 import { routeSubject, type ShareSubject } from './domain/shareSubject';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
@@ -92,6 +93,12 @@ export default function App() {
   const [dayPattern, setDayPattern] = useState<PatternId>('none');
   // The card on the 꾸미기 screen (a calendar day's or a route's), while it's up.
   const [studio, setStudio] = useState<ShareSubject | null>(null);
+  // 공유 funnel: which card the 꾸미기 screen is on, and whether anything left it.
+  const studioFunnel = useRef<{ kind: ShareKind; completed: boolean }>({ kind: 'route', completed: false });
+  const openStudio = (kind: ShareKind) => {
+    studioFunnel.current = { kind, completed: false };
+    analytics.track('share_studio_opened', { kind });
+  };
   // The route behind the 꾸미기 screen, when it's a route's card: its link is what 링크 복사 copies.
   const [studioCourse, setStudioCourse] = useState<Course | null>(null);
   const [studioTheme, setStudioTheme] = useState<ThemeId>('default');
@@ -145,6 +152,18 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [preview, setPreview] = useState<PlaceRef | null>(null);
+  // 핀 꽂기 funnel: where the new pin's card came from, and whether it was pinned.
+  // A card that goes any other way (outside tap, Esc, another tab, a new search) counts as dismissed.
+  const pinSource = useRef<PinSource>('search');
+  const pinFunnel = useRef<{ id: string; source: PinSource; saved: boolean } | null>(null);
+  useEffect(() => {
+    const was = pinFunnel.current;
+    // A reverse-geocoded name keeps the id: still the same card.
+    if (was?.id === preview?.id) return;
+    if (was && !was.saved) analytics.track('pin_card_dismissed', { source: was.source });
+    pinFunnel.current = preview ? { id: preview.id, source: pinSource.current, saved: false } : null;
+    if (preview) analytics.track('pin_card_opened', { source: pinSource.current });
+  }, [preview?.id]);
 
   // The calendar page reports its zoom level (day or month); nothing reads it now.
   const [calendarMode, setCalendarMode] = useState<'day' | 'month'>('day');
@@ -182,6 +201,28 @@ export default function App() {
     }
     if (building.length > 0) buildHadStops.current = true;
     else if (buildHadStops.current) setBuilding(null);
+  }, [building]);
+  // 루트 만들기 funnel: started (from + or a drag off a pin) → 2 stops (the create
+  // sheet is up) → created, or cancelled with however many stops it got to.
+  const buildMethod = useRef<'plus' | 'drag'>('plus');
+  const buildFunnel = useRef<{ most: number; ready: boolean; saved: boolean } | null>(null);
+  useEffect(() => {
+    const f = buildFunnel.current;
+    if (!building) {
+      if (f && !f.saved) analytics.track('route_build_cancelled', { stops: f.most });
+      buildFunnel.current = null;
+      return;
+    }
+    if (!f) {
+      buildFunnel.current = { most: building.length, ready: false, saved: false };
+      analytics.track('route_build_started', { method: buildMethod.current });
+    }
+    const g = buildFunnel.current!;
+    g.most = Math.max(g.most, building.length);
+    if (!g.ready && building.length >= COURSE_LIMITS.minStops) {
+      g.ready = true;
+      analytics.track('route_build_ready', { stops: building.length });
+    }
   }, [building]);
   // Editing the route on show (the pen by its name): its stops, look, icon and description as they stand.
   const [editing, setEditing] = useState<RouteEdit | null>(null);
@@ -497,13 +538,14 @@ export default function App() {
   mapEvents.current.longPress = async (center: [number, number]) => {
     // Making a route, or a saved one on show (its long presses restyle it): no place card.
     if ((building && routeMode) || shownRoute || aiming) return;
-    await openNewPinAt(center);
+    await openNewPinAt(center, 'long_press');
   };
 
   // A new pin's card on a spot: centred, named by its address once that's known.
-  const openNewPinAt = async (center: [number, number]) => {
+  const openNewPinAt = async (center: [number, number], source: PinSource) => {
     const place = pointPlace(center);
     setActivePinId(null);
+    pinSource.current = source;
     setPreview(place);
     // Into the middle at the current zoom; the new pin's card stands above it.
     mapRef.current?.centerOn(center);
@@ -534,6 +576,7 @@ export default function App() {
     setSearchOpen(false);
     searchInput.current?.blur();
     setActivePinId(null);
+    pinSource.current = 'search';
     setPreview(place);
     // Into the middle at the current zoom; the new pin's card stands above it.
     mapRef.current?.centerOn(place.center);
@@ -609,6 +652,7 @@ export default function App() {
           s.drawing = true;
           setShownRouteId(null);
           setActivePinId(null);
+          buildMethod.current = 'drag';
           setBuilding([s.pin]);
         }
       }
@@ -687,6 +731,7 @@ export default function App() {
   const startBuilding = () => {
     setShownRouteId(null);
     setActivePinId(null);
+    buildMethod.current = 'plus';
     setBuilding([]);
   };
 
@@ -756,6 +801,8 @@ export default function App() {
     const saved = await course.save({ title, note: note || undefined, theme: 'etc', travelMode: 'walk', stops, ...look });
     // Into the folder picked on the create sheet (none = 미분류).
     if (folder) routeFolders.setFolders((f) => moveRoute(f, saved.id, folder));
+    if (buildFunnel.current) buildFunnel.current.saved = true;
+    analytics.track('route_created', { stops: stops.length, has_note: !!note, in_folder: !!folder });
     setBuilding(null);
     setShownRouteId(saved.id);
     notify(`${saved.title} 경로를 저장했어요.`);
@@ -800,6 +847,8 @@ export default function App() {
   const confirmNewPin = ({ name, memo, categoryId }: NewPinInput) => {
     if (!preview) return;
     savePinAt({ ...preview, name }, categoryId, memo || undefined);
+    if (pinFunnel.current) pinFunnel.current.saved = true;
+    analytics.track('pin_saved', { source: pinSource.current, uncategorized: categoryId === UNCATEGORIZED.id, has_memo: !!memo });
     setPreview(null);
     setQuery('');
   };
@@ -811,12 +860,13 @@ export default function App() {
   // ✓ to pin). With a card already up, the press first closes it (a touch
   // outside the card), then opens a fresh one on the map's current centre.
   const startPinning = () => {
+    const source: PinSource = aiming ? 'aim' : 'pin_button';
     setAiming(false);
     changeTab('pins');
     // 경로 owns the map's taps while it's open; a new pin closes it.
     if (railMode === 'route') railAction('route');
     const center = mapRef.current?.getCenter();
-    if (center) void openNewPinAt(center);
+    if (center) void openNewPinAt(center, source);
   };
 
   const startAiming = () => {
@@ -931,7 +981,8 @@ export default function App() {
   // there again rather than sliding up.
   const barGone = !!studio;
   // 공유 before 집 is set (it's required) opens the profile on 개인 정보 instead.
-  const needHome = () => {
+  const needHome = (kind: ShareKind) => {
+    analytics.track('share_blocked_need_home', { kind });
     setPrivacyNotice('공유하려면 집 주소를 먼저 입력하세요.');
     setProfileOpen(true);
   };
@@ -1069,7 +1120,9 @@ export default function App() {
           className="route-action route-action--share"
           aria-label={`${shownRoute.title} 공유`}
           onClick={() => {
-            if (!hasHome(privacy.excluded)) return needHome();
+            analytics.track('share_started', { kind: 'route' });
+            if (!hasHome(privacy.excluded)) return needHome('route');
+            openStudio('route');
             setStudioCourse(shownRoute);
             setStudio(routeSubject(shownRoute, privacy.excluded, shownRoute.stops.map((s) => {
               const pin = pins.find((p) => p.place.id === s.place.id);
@@ -1208,8 +1261,9 @@ export default function App() {
               command={calendarCommand}
               shareRef={shareDay}
               excluded={privacy.excluded}
-              onNeedHome={needHome}
+              onNeedHome={() => needHome('day')}
               onShare={(subject) => {
+                openStudio('day');
                 setStudioCourse(null); // a day's card: no link to copy yet
                 setStudio(subject);
               }}
@@ -1250,7 +1304,10 @@ export default function App() {
           calendarMode={calendarMode}
           onCalendar={() => tagTab('calendar')}
           onMap={() => changeTab('pins')}
-          onShare={onPage && calendarZoom && calendarMode === 'day' ? () => shareDay.current?.() : undefined}
+          onShare={onPage && calendarZoom && calendarMode === 'day' ? () => {
+            analytics.track('share_started', { kind: 'day' });
+            shareDay.current?.();
+          } : undefined}
           onPin={startPinning}
           onAim={startAiming}
         />
@@ -1316,7 +1373,12 @@ export default function App() {
           subject={studio}
           onTheme={setStudioTheme}
           onCopyLink={studioCourse ? () => copyRouteLink(studioCourse) : undefined}
+          onShared={(method, ok) => {
+            if (ok) studioFunnel.current.completed = true;
+            analytics.track('share_completed', { kind: studioFunnel.current.kind, method, ok });
+          }}
           onClose={() => {
+            analytics.track('share_studio_closed', { ...studioFunnel.current });
             setStudio(null);
             setStudioCourse(null);
           }}
