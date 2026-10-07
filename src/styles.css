@@ -2332,6 +2332,14 @@ button:disabled {
     radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black) right / 51% 100% no-repeat;
 }
 
+/* Each piece tucks 1px under the one above: two masked edges meeting at a
+   fractional pixel each let a little of the backdrop through, a grey hairline
+   along the tear line. */
+.ticket-dialog__main + .ticket-dialog__stub,
+.ticket-dialog__stub + .ticket-dialog__stub {
+  margin-top: -1px;
+}
+
 /* A stub torn in two (취소 | 확인), like the tab bar: the action's half is filled. */
 .ticket-dialog__split {
   display: flex;
