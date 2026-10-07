@@ -108,6 +108,19 @@ export class MapLibreCourseMap implements CourseMap {
     });
   }
 
+  refreshColors(): void {
+    if (!this.ready) return; // the layers take the tokens when they're added
+    const token = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    const paint = (id: string, prop: 'fill-color' | 'line-color', name: string) => {
+      const color = token(name);
+      if (color && this.map.getLayer(id)) this.map.setPaintProperty(id, prop, color);
+    };
+    paint(AREA_COVER, 'fill-color', '--map-bg');
+    paint(AREA_OTHERS, 'fill-color', '--map-area-other');
+    paint(AREA_PARTS, 'fill-color', '--map-area');
+    paint(GUIDE_SOURCE, 'line-color', '--muted');
+  }
+
   private guideData(): GeoJSON.Feature<GeoJSON.LineString> {
     return {
       type: 'Feature',

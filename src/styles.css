@@ -105,8 +105,9 @@
   --map-road-major: #8ca6c3;
 }
 
+/* Dark: the phone's setting, unless 표시·언어 → 디스플레이 picked one (<html data-scheme>). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-scheme='light']) {
     color-scheme: dark;
     --bg: #0f1626;
     --surface: #172036;
@@ -145,6 +146,44 @@
   }
 }
 
+:root[data-scheme='dark'] {
+  color-scheme: dark;
+  --bg: #0f1626;
+  --surface: #172036;
+  --surface-2: #1f2a42;
+  --text: #e8edf7;
+  --muted: #8d98b3;
+  --border: rgba(232, 237, 247, 0.12);
+  --accent: #5b8ff0;
+  --accent-strong: #7fa8f5;
+  --accent-soft: #1d2d52;
+  --on-accent: #ffffff;
+  --route: #5b8ff0;
+  --sage: #7cc39b;
+  --sage-soft: #23382c;
+  --sky: #7fb1e6;
+  --sky-soft: #1f3044;
+  --on-sky: #10161d;
+  --amber: #e3b25e;
+  --amber-soft: #3d3020;
+  --danger: #ff7b7b;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
+  --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.45);
+  --backdrop: rgba(0, 0, 0, 0.6);
+  --perforation: rgba(232, 237, 247, 0.22);
+  --ticket-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+  --dialog-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
+  --map-bg: #141c2e;
+  --map-area: #2b3c5c;
+  --map-area-other: #212b42;
+  --map-land: #1f2225;
+  --map-water: #1d4656;
+  --map-park: #22402f;
+  --map-road: #3a434d;
+  --map-road-major: #5f7894;
+}
+
 :root {
   /* Theme swatches in the 꾸미기 → 테마 tray: each theme's background and accent. */
   /* The aiming crosshair: a hairline shadow so it reads on the map. */
@@ -166,6 +205,11 @@
   /* The eraser's ring while rubbing (DecorLayer): reads on light and dark ink alike. */
   --eraser-fill: rgba(255, 255, 255, 0.35);
   --eraser-ring: rgba(40, 40, 40, 0.55);
+  /* 표시·언어 → 디스플레이: samples of the light and dark pages (fixed, whatever is showing). */
+  --scheme-light-bg: #ffffff;
+  --scheme-light-accent: #2f6fe0;
+  --scheme-dark-bg: #0f1626;
+  --scheme-dark-accent: #5b8ff0;
   --swatch-default-bg: #ffffff;
   --swatch-default-accent: #2f6fe0;
   --swatch-matcha-bg: #eef1e3;
@@ -5237,6 +5281,113 @@ button:disabled {
 /* 알림 설정 → 투데이 알림·공유수 알림: each a 출발 안내판 — one navy board of flip cells, one
    per hour. A thin line across each cell's middle reads as a split-flap
    board; only the lit cells turn blue. */
+/* 표시·언어: a row of choices, the one in use filled in the accent. */
+.display__title {
+  margin-top: 10px;
+}
+
+.display__options {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.display__option {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+}
+
+.display__option.is-on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* 디스플레이: a small square sample of each mode with its name under it;
+   the one in use has an accent ring round its square. */
+.display__schemes {
+  display: flex;
+  gap: 16px;
+  margin-top: 6px;
+}
+
+.display__scheme {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 64px;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+}
+
+.display__scheme.is-on {
+  color: var(--text);
+}
+
+.display__swatch {
+  position: relative;
+  display: block;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px var(--border);
+  outline: 2px solid transparent;
+  outline-offset: 3px;
+}
+
+.display__scheme.is-on .display__swatch {
+  outline-color: var(--accent);
+}
+
+.display__swatch--light {
+  background: var(--scheme-light-bg);
+  --swatch-accent: var(--scheme-light-accent);
+}
+
+.display__swatch--dark {
+  background: var(--scheme-dark-bg);
+  --swatch-accent: var(--scheme-dark-accent);
+}
+
+/* The accent: a dot and a bar, like the theme cards. */
+.display__swatch i {
+  position: absolute;
+  left: 9px;
+  right: 9px;
+  bottom: 10px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--swatch-accent);
+}
+
+.display__swatch i::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 14px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--swatch-accent);
+}
+
+/* 약관 및 정책: room kept for the policies to come. */
+.terms {
+  min-height: 56px;
+}
+
 .alerts__row {
   display: flex;
   flex-direction: column;

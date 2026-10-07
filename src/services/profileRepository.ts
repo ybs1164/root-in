@@ -15,14 +15,18 @@ export interface Profile {
   pingAlerts: number[];
   /** 알림 설정 → 공유수 알림: the share counts switched on (SHARE_ALERT_COUNTS), all until switched off. */
   shareAlerts: number[];
+  /** 표시·언어 → 디스플레이: 기본 (light) or 다크. Null until picked: the phone's own setting decides. */
+  scheme: ColorScheme | null;
 }
+
+export type ColorScheme = 'light' | 'dark';
 
 function isPhoto(value: unknown): value is string {
   return typeof value === 'string' && value.startsWith('data:image/') && value.length <= PROFILE_LIMITS.photoChars;
 }
 
 export function loadProfile(): Profile {
-  const fallback: Profile = { handle: defaultHandle(getCurrentUserId()), photo: null, sound: true, pingAlerts: [...PING_ALERT_HOURS], shareAlerts: [...SHARE_ALERT_COUNTS] };
+  const fallback: Profile = { handle: defaultHandle(getCurrentUserId()), photo: null, sound: true, pingAlerts: [...PING_ALERT_HOURS], shareAlerts: [...SHARE_ALERT_COUNTS], scheme: null };
   try {
     const raw = window.localStorage.getItem(PROFILE_KEY);
     if (!raw) return fallback;
@@ -35,6 +39,7 @@ export function loadProfile(): Profile {
       // Before the hours existed there was one 알림 switch: off meant none of them.
       pingAlerts: sanitizeAlerts(parsed?.pingAlerts, PING_ALERT_HOURS) ?? (parsed?.alerts === false ? [] : [...PING_ALERT_HOURS]),
       shareAlerts: sanitizeAlerts(parsed?.shareAlerts, SHARE_ALERT_COUNTS) ?? [...SHARE_ALERT_COUNTS],
+      scheme: parsed?.scheme === 'light' || parsed?.scheme === 'dark' ? parsed.scheme : null,
     };
   } catch {
     return fallback;

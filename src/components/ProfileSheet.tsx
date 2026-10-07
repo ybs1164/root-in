@@ -3,7 +3,7 @@ import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { handleProblem, PING_ALERT_HOURS, PROFILE_LIMITS, sanitizeHandleInput, SHARE_ALERT_COUNTS, shareCountLabel } from '../domain/profile';
 import { avatarFromFile } from '../lib/avatarImage';
 import { getDisplayName, setDisplayName } from '../lib/currentUser';
-import type { Profile } from '../services/profileRepository';
+import type { ColorScheme, Profile } from '../services/profileRepository';
 import { clearAppData } from '../services/settingsRepository';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import AlertBoard from './AlertBoard';
@@ -12,6 +12,18 @@ import PrivacySection from './PrivacySection';
 /** 알림 설정's two boards: 투데이 알림 by hour, 공유수 알림 by share count. */
 const PING_STEPS = PING_ALERT_HOURS.map((hour) => ({ value: hour, text: `${hour}:00` }));
 const SHARE_STEPS = SHARE_ALERT_COUNTS.map((count) => ({ value: count, text: shareCountLabel(count) }));
+
+/** 표시·언어 → 디스플레이's two choices. */
+const SCHEMES: { id: ColorScheme; label: string }[] = [
+  { id: 'light', label: '기본' },
+  { id: 'dark', label: '다크' },
+];
+
+/** The scheme on screen: the one picked, or the phone's own until then. */
+function shownScheme(picked: ColorScheme | null): ColorScheme {
+  if (picked) return picked;
+  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
 
 interface ProfileSheetProps {
   profile: Profile;
@@ -45,6 +57,8 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
   const [accountOpen, setAccountOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(!!privacyNotice);
   const [alertsOpen, setAlertsOpen] = useState(false);
+  const [displayOpen, setDisplayOpen] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -104,6 +118,64 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
           />
         </section>
       )}
+    </>
+  );
+  // 표시·언어: 기본 / 다크, and the language (한국어 only for now).
+  const scheme = shownScheme(profile.scheme);
+  const displayPart = (
+    <>
+      <button
+        className={`profile__account ${displayOpen ? 'is-open' : ''}`}
+        aria-expanded={displayOpen}
+        aria-controls="profile-display"
+        onClick={() => setDisplayOpen((open) => !open)}
+      >
+        표시·언어
+        <ChevronDown size={18} aria-hidden />
+      </button>
+      {displayOpen && (
+        <section id="profile-display" className="privacy display" aria-label="표시·언어">
+          <h3 className="privacy__title">디스플레이</h3>
+          <div className="display__schemes" role="group" aria-label="디스플레이">
+            {SCHEMES.map(({ id, label }) => (
+              <button
+                key={id}
+                className={`display__scheme ${scheme === id ? 'is-on' : ''}`}
+                aria-pressed={scheme === id}
+                onClick={() => onChange({ ...profile, scheme: id })}
+              >
+                {/* A small sample of that mode: its page colour with the accent on it. */}
+                <span className={`display__swatch display__swatch--${id}`} aria-hidden>
+                  <i />
+                </span>
+                {label}
+              </button>
+            ))}
+          </div>
+          <h3 className="privacy__title display__title">언어</h3>
+          <p className="privacy__desc">언어 설정을 변경할 수 있어요.</p>
+          <div className="display__options" role="group" aria-label="언어">
+            <button className="display__option is-on" aria-pressed>
+              한국어
+            </button>
+          </div>
+        </section>
+      )}
+    </>
+  );
+  // 약관 및 정책: room kept for 개인정보처리방침 and the like, nothing in it yet.
+  const termsPart = (
+    <>
+      <button
+        className={`profile__account ${termsOpen ? 'is-open' : ''}`}
+        aria-expanded={termsOpen}
+        aria-controls="profile-terms"
+        onClick={() => setTermsOpen((open) => !open)}
+      >
+        약관 및 정책
+        <ChevronDown size={18} aria-hidden />
+      </button>
+      {termsOpen && <section id="profile-terms" className="privacy terms" aria-label="약관 및 정책" />}
     </>
   );
   // 로그아웃·탈퇴: folded away by default so they aren't one stray tap from the profile.
@@ -216,11 +288,13 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
         {note && <p className="profile__note">{note}</p>}
       </div>
 
-      {/* Past the tear line: 제외 주소 설정, 알림 설정, then 로그아웃·탈퇴. A toggle
+      {/* Past the tear line: 제외 주소 설정, 알림 설정, 표시·언어, 약관 및 정책, then 로그아웃·탈퇴. A toggle
           that's open with another below it is torn off from it by a tear line of its own. */}
       {tornStubs([
         { part: privacyPart, open: privacyOpen },
         { part: alertsPart, open: alertsOpen },
+        { part: displayPart, open: displayOpen },
+        { part: termsPart, open: termsOpen },
         { part: accountPart, open: accountOpen },
       ])}
     </dialog>

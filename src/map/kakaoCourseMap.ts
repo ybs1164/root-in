@@ -66,6 +66,12 @@ export class KakaoCourseMap implements CourseMap {
     return getComputedStyle(document.documentElement).getPropertyValue(token).trim() || fallback;
   }
 
+  refreshColors(): void {
+    this.areaCover?.setOptions({ fillColor: this.routeColor('--map-bg', '#f7f9fc') });
+    this.otherPolygons.forEach((o) => o.setOptions({ fillColor: this.routeColor('--map-area-other', '#e1e7f1') }));
+    this.partPolygons.forEach((o) => o.setOptions({ fillColor: this.routeColor('--map-area', '#c9d7ee') }));
+  }
+
   setAreaMap(shapes: AreaShapes | null): void {
     const before = this.areas;
     this.areas = shapes;
