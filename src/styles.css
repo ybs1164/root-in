@@ -4125,6 +4125,18 @@ button:disabled {
   white-space: nowrap;
 }
 
+/* The open route's share count, on its own line just under its name
+   (lined up with the name, past the dot). */
+.route-row__shares {
+  flex-basis: 100%;
+  margin: -14px 0 0;
+  padding: 0 0 8px 32px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.2;
+  pointer-events: none;
+}
+
 /* The open route's tool, small, under its name at the right. */
 .route-row__tools {
   flex-basis: 100%;

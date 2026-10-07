@@ -17,6 +17,7 @@ import {
   type RouteFolders,
   type RouteTab,
 } from '../domain/routeFolders';
+import { shareCountLabel } from '../domain/profile';
 import type { Course } from '../types/course';
 import ConfirmDialog from './ConfirmDialog';
 
@@ -879,6 +880,10 @@ export default function RouteFolderTray({ open, lowered, courses, folders, onFol
                       </span>
                     )}
                   </button>
+                  {/* The open route's share count under its name, once it has been shared at all. */}
+                  {shown && !selecting && (c.shareCount ?? 0) >= 1 && (
+                    <p className="route-row__shares">{shareCountLabel(c.shareCount ?? 0)} Shares</p>
+                  )}
                   {/* The open route's tool: small, at its bottom right (delete asks first). */}
                   {shown && (
                     <div className="route-row__tools">

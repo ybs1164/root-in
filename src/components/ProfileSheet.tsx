@@ -10,7 +10,7 @@ import AlertBoard from './AlertBoard';
 import PrivacySection from './PrivacySection';
 
 /** 알림 설정's two boards: 투데이 알림 by hour, 공유수 알림 by share count. */
-const PING_STEPS = PING_ALERT_HOURS.map((hour) => ({ value: hour, text: `${hour}시` }));
+const PING_STEPS = PING_ALERT_HOURS.map((hour) => ({ value: hour, text: `${hour}:00` }));
 const SHARE_STEPS = SHARE_ALERT_COUNTS.map((count) => ({ value: count, text: shareCountLabel(count) }));
 
 interface ProfileSheetProps {

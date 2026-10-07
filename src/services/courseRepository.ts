@@ -19,6 +19,14 @@ export interface CourseRepository {
   remove(id: string, userId: string): Promise<void>;
 }
 
+/**
+ * A share count worth keeping: a whole number of 1 or more, within reason.
+ * It is how many times other people opened this route's link — counted by a
+ * server once there is one; nothing in the app raises it yet.
+ */
+const cleanShareCount = (n: unknown): { shareCount?: number } =>
+  typeof n === 'number' && Number.isInteger(n) && n >= 1 ? { shareCount: Math.min(n, 1_000_000_000) } : {};
+
 const generateId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
@@ -94,6 +102,7 @@ export class LocalCourseRepository implements CourseRepository {
       note: draft.note?.trim() || undefined,
       sharedBy: draft.sharedBy?.trim() || undefined,
       ...cleanRouteLook(draft, draft.stops.length),
+      ...cleanShareCount(draft.shareCount ?? existing?.shareCount),
       createdAt: existing?.createdAt ?? now,
       updatedAt: existing ? now : undefined,
     };
