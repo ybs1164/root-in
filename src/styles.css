@@ -6214,8 +6214,35 @@ button:disabled {
   left: 0;
   right: 0;
   display: grid;
-  place-items: center;
   pointer-events: none;
+}
+
+/* Both years in the same spot, each the screen's width, so a change of year
+   pages across the whole screen like TODAY → DAY n (260ms, same curve). */
+.cal-zoom__year-num {
+  grid-area: 1 / 1;
+  width: 100%;
+  text-align: center;
+}
+
+.cal-zoom__year-num.is-out {
+  animation: year-out 260ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.cal-zoom__year-num.is-in {
+  animation: year-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes year-out {
+  to {
+    transform: translateX(calc(var(--dir) * -100%));
+  }
+}
+
+@keyframes year-in {
+  from {
+    transform: translateX(calc(var(--dir) * 100%));
+  }
 }
 
 .pings {

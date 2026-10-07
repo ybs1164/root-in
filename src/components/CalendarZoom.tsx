@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Share } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, type TouchEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MutableRefObject, type TouchEvent } from 'react';
 import { swipeCommits, SWIPE } from '../domain/appTabs';
 import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, pingsLandedMs, SAMPLE_PING_DATES } from '../domain/dayPings';
 import { addDays } from '../domain/calendar';
@@ -154,6 +154,14 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
 
   // Paging days: the day sliding in beside the current one.
   const [neighbor, setNeighbor] = useState<{ date: string; side: -1 | 1 } | null>(null);
+  // The month view's year on its way out (and which way the months went: 1 = on to a later year).
+  const [yearOut, setYearOut] = useState<{ year: number; dir: -1 | 1 } | null>(null);
+  const yearShown = useRef(month.year);
+  useEffect(() => {
+    if (month.year === yearShown.current) return;
+    setYearOut({ year: yearShown.current, dir: month.year > yearShown.current ? 1 : -1 });
+    yearShown.current = month.year;
+  }, [month.year]);
   const daySwipe = useRef<DaySwipe | null>(null);
   const sliding = useRef(false);
   const resetSlide = useRef(false);
@@ -647,7 +655,21 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
       >
         {/* The year up top, where TODAY / DAY n stand on the day screen; the grid names only the month. */}
         <div className="cal-zoom__title cal-zoom__year" aria-hidden>
-          {month.year}
+          {/* Crossing into another year, the old one slides off and the new one
+              in from the side the months went, as TODAY pages to DAY n. */}
+          {yearOut && (
+            <span
+              key={`out-${yearOut.year}`}
+              className="cal-zoom__year-num is-out"
+              style={{ '--dir': yearOut.dir } as CSSProperties}
+              onAnimationEnd={() => setYearOut(null)}
+            >
+              {yearOut.year}
+            </span>
+          )}
+          <span key={month.year} className={`cal-zoom__year-num ${yearOut ? 'is-in' : ''}`} style={{ '--dir': yearOut?.dir ?? 1 } as CSSProperties}>
+            {month.year}
+          </span>
         </div>
         <MonthCalendar counts={counts} plans={NO_PLANS} onPick={(key) => toDay(key)} view={month} onView={setMonth} />
       </div>
