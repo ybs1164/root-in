@@ -645,6 +645,10 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
         aria-hidden={mode !== 'month'}
         inert={mode !== 'month'}
       >
+        {/* The year up top, where TODAY / DAY n stand on the day screen; the grid names only the month. */}
+        <div className="cal-zoom__title cal-zoom__year" aria-hidden>
+          {month.year}
+        </div>
         <MonthCalendar counts={counts} plans={NO_PLANS} onPick={(key) => toDay(key)} view={month} onView={setMonth} />
       </div>
 

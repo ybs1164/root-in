@@ -6110,7 +6110,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 72px 16px 12dvh; /* top: 16px + the head bar the calendar no longer has */
+  padding: 164px 16px 12dvh; /* top: clear of the year (92px down, 56px tall) + 16px */
 }
 
 .cal-zoom__month .calendar {
@@ -6204,6 +6204,18 @@ button:disabled {
   font-weight: 400;
   letter-spacing: 0.1em;
   line-height: 1;
+}
+
+/* The month view's year: TODAY's place and size (the day screen's title sits
+   92px down: no head bar + .cal-day's top padding). */
+.cal-zoom__year {
+  position: absolute;
+  top: 92px;
+  left: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
 }
 
 .pings {
