@@ -146,6 +146,10 @@
 :root {
   /* Theme swatches in the 꾸미기 → 테마 tray: each theme's background and accent. */
   /* The aiming crosshair: a hairline shadow so it reads on the map. */
+  /* The one "drop in from above" motion: pins, route stops, day pings, the
+     루트 hints and the pen palette all land with it. */
+  --drop-time: 0.45s;
+  --drop-ease: cubic-bezier(0.3, 1.4, 0.5, 1);
   --pin-drop-shadow: 0 1px 2px rgba(27, 36, 64, 0.28);
   /* Round action buttons (공유, 수정): short enough to stay clear of what's below them. */
   --round-btn-shadow: 0 3px 8px rgba(27, 36, 64, 0.22), 0 1px 2px rgba(27, 36, 64, 0.12);
@@ -749,7 +753,7 @@ button:disabled {
   /* Drops in from just above, like a route's stops. Not a transform
      animation: the map places markers with transform, so animating it made
      the pin fly in from the map's corner. */
-  animation: stop-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  animation: stop-drop var(--drop-time) var(--drop-ease) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1909,17 +1913,10 @@ button:disabled {
   -webkit-backdrop-filter: blur(18px) saturate(1.4);
   backdrop-filter: blur(18px) saturate(1.4);
   translate: -50% 0;
-  /* Drops in from just above, like the 루트 hints (its own keyframes: the
-     shared picker-in moves translate, which used to undo the centring and
-     send the palette flying in from the side). */
-  animation: palette-drop 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-@keyframes palette-drop {
-  from {
-    opacity: 0;
-    translate: -50% -16px;
-  }
+  /* Drops in like a pin; --drop-x keeps the centring (the shared picker-in
+     moves translate from 0, which sent the palette flying in from the side). */
+  --drop-x: -50%;
+  animation: stop-drop var(--drop-time) var(--drop-ease) both;
 }
 
 .color-picker__wheel {
@@ -3103,17 +3100,19 @@ button:disabled {
 
 .map-marker[data-drop],
 .stop-shape[data-drop] svg {
-  animation: stop-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  animation: stop-drop var(--drop-time) var(--drop-ease) both;
 }
 
+/* --drop-x keeps a horizontal centring translate (the hints, the palette)
+   while the drop moves only the vertical part. */
 @keyframes stop-drop {
   from {
     opacity: 0;
-    translate: 0 -36px;
+    translate: var(--drop-x, 0px) -36px;
   }
   to {
     opacity: 1;
-    translate: 0 0;
+    translate: var(--drop-x, 0px) 0;
   }
 }
 
@@ -3696,7 +3695,7 @@ button:disabled {
 
 /* Editing: the pins that stepped aside for the route drop back in to be picked. */
 .app--route-editing .map-marker--pin {
-  animation: stop-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  animation: stop-drop var(--drop-time) var(--drop-ease) both;
 }
 
 /* Making or editing a route: pins already stops of it are hidden, their
@@ -3739,23 +3738,10 @@ button:disabled {
   text-align: center;
   translate: -50% 0;
   pointer-events: none;
-  /* Drops in from above and settles. Its own keyframes keep the -50% that
-     centres it (the shared picker-in animates translate from 0, so it slid in from the right). */
-  animation: hint-drop 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes hint-drop {
-  from {
-    opacity: 0;
-    translate: -50% -18px;
-  }
-  60% {
-    opacity: 1;
-  }
-  to {
-    opacity: 1;
-    translate: -50% 0;
-  }
+  /* Drops in like a pin; --drop-x keeps the -50% that centres it (the
+     shared picker-in animates translate from 0, so it slid in from the right). */
+  --drop-x: -50%;
+  animation: stop-drop var(--drop-time) var(--drop-ease) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -6360,7 +6346,8 @@ button:disabled {
   flex-direction: column;
   align-items: center;
   transform: translate(-50%, var(--lift));
-  animation: ping-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+  /* translate adds to the placing transform, so the shared drop works here too. */
+  animation: stop-drop var(--drop-time) var(--drop-ease) both;
 }
 
 .ping--dot,
@@ -6518,17 +6505,6 @@ button:disabled {
   from {
     opacity: 0;
     translate: 0 6px;
-  }
-}
-
-@keyframes ping-drop {
-  from {
-    opacity: 0;
-    transform: translate(-50%, calc(var(--lift) - 36px));
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, var(--lift));
   }
 }
 
