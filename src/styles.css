@@ -1551,7 +1551,7 @@ button:disabled {
 /* On the day screen the trash sits just above the drawing instead (2026-10-07). */
 .cal-zoom .decor__trash {
   top: auto;
-  bottom: calc(100% + 18px);
+  bottom: calc(100% + 30px);
 }
 
 .decor__trash.is-over {
