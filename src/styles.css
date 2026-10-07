@@ -6110,7 +6110,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 164px 16px 12dvh; /* top: clear of the year (92px down, 56px tall) + 16px */
+  padding: 180px 16px 12dvh; /* top: clear of the year (108px down, 56px tall) + 16px */
 }
 
 .cal-zoom__month .calendar {
@@ -6130,8 +6130,8 @@ button:disabled {
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* The calendar has no head bar: 56px of it kept here so TODAY stays put. */
-  padding: 92px 24px 0;
+  /* The calendar has no head bar: its 56px kept here, plus 16px lower. */
+  padding: 108px 24px 0;
 }
 
 /* 꾸미기 → background pattern (DayPattern), faint, across the whole page
@@ -6207,10 +6207,10 @@ button:disabled {
 }
 
 /* The month view's year: TODAY's place and size (the day screen's title sits
-   92px down: no head bar + .cal-day's top padding). */
+   108px down: .cal-day's top padding). */
 .cal-zoom__year {
   position: absolute;
-  top: 92px;
+  top: 108px;
   left: 50%;
   display: grid;
   justify-items: center;
