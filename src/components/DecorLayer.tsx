@@ -313,7 +313,7 @@ export default function DecorLayer({
   };
 
   // Dragged pieces may go anywhere; where the finger lets go decides: the
-  // trash (just under the box, shown while dragging) deletes; anywhere else
+  // trash (just under the box — above it on the day screen — shown while dragging) deletes; anywhere else
   // the piece lands at the nearest spot on the box.
   const trashEl = useRef<HTMLSpanElement | null>(null);
   const [overTrash, setOverTrash] = useState(false);
