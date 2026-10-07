@@ -13,6 +13,7 @@
     "shots": "node scripts/ui-shots.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.3",
     "clipper-lib": "^6.4.2",
     "lucide-react": "^1.48.0",
     "maplibre-gl": "^5.4.0",

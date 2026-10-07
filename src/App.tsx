@@ -34,6 +34,7 @@ import { folderOf, moveRoute, neighborRoute, type RouteTab } from './domain/rout
 import { useCourses } from './hooks/useCourses';
 import { useAreaMap } from './hooks/useAreaMap';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
+import { useAccount } from './hooks/useAccount';
 import { usePageSwipe } from './hooks/usePageSwipe';
 import { usePins } from './hooks/usePins';
 import { useRouteFolders } from './hooks/useRouteFolders';
@@ -104,8 +105,14 @@ export default function App() {
   const [tab, setTab] = useState<AppTab>('pins');
   const [profileOpen, setProfileOpen] = useState(false);
   const [profile, setProfile] = useState(loadProfile);
+  // 로그인: the account's profile replaces this one on sign-in, and changes go up after.
+  const account = useAccount(profile, (next) => {
+    setProfile(next);
+    saveProfile(next);
+  });
   const changeProfile = (next: Profile) => {
     setProfile(next);
+    account.push(next);
     return saveProfile(next);
   };
   // 디스플레이 및 언어 → 디스플레이: 기본 or 다크 on <html data-scheme>; not picked, the phone's setting decides.
@@ -1296,6 +1303,8 @@ export default function App() {
         <ProfileSheet
           profile={profile}
           onChange={changeProfile}
+          onNickname={(nickname) => account.push(profile, nickname)}
+          account={account}
           privacy={{
             places: privacy.excluded,
             resolving: privacy.resolving,

@@ -5,6 +5,7 @@ import { avatarFromFile } from '../lib/avatarImage';
 import { getDisplayName, setDisplayName } from '../lib/currentUser';
 import type { ColorScheme, Profile } from '../services/profileRepository';
 import { clearAppData } from '../services/settingsRepository';
+import type { Account } from '../hooks/useAccount';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import AlertBoard from './AlertBoard';
 import PinGlyph from './PinGlyph';
@@ -29,6 +30,10 @@ function shownScheme(picked: ColorScheme | null): ColorScheme {
 interface ProfileSheetProps {
   profile: Profile;
   onChange: (profile: Profile) => boolean;
+  /** The nickname was changed (it's saved on this device already). */
+  onNickname?: (nickname: string) => void;
+  /** 로그인 state; absent or unavailable, 로그아웃 stays disabled as before accounts. */
+  account?: Account;
   /** 제외 주소 설정 (PrivacySection's props). */
   privacy: Omit<Parameters<typeof PrivacySection>[0], 'notice'>;
   /** Opened by 공유 before 집 was set: 제외 주소 설정 starts open, with this line in it. */
@@ -49,7 +54,7 @@ export function ProfileAvatar({ photo, size }: { photo: string | null; size: num
  * 프로필 팝업: centred, no close button — a tap on the empty space around it closes it.
  * Photo, nickname and @id each change in place behind their own small pen.
  */
-export default function ProfileSheet({ profile, onChange, privacy, privacyNotice, onClose }: ProfileSheetProps) {
+export default function ProfileSheet({ profile, onChange, onNickname, account, privacy, privacyNotice, onClose }: ProfileSheetProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const backdrop = useBackdropTap(dialogRef);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -179,14 +184,27 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
           {/* 약관 및 정책: nothing yet. */}
           <section className="terms" aria-label="약관 및 정책" />
           <div className="profile__actions">
-            {/* No accounts yet (everything lives on this device), so there's nothing to log out of. */}
-            <button className="btn btn--secondary" disabled>
-              로그아웃
-            </button>
+            {account?.available && !account.user ? (
+              <button className="btn btn--secondary" disabled={account.busy} onClick={account.signIn}>
+                카카오로 로그인
+              </button>
+            ) : (
+              // Without an account (no Supabase keys) there's nothing to log out of.
+              <button className="btn btn--secondary" disabled={!account?.user || account.busy} onClick={account?.signOut}>
+                로그아웃
+              </button>
+            )}
             <button
               className="btn btn--ghost profile__leave"
-              onClick={() => {
-                if (!window.confirm('탈퇴하면 이 기기의 프로필·핀·코스·기록이 모두 지워져요. 되돌릴 수 없어요.')) return;
+              disabled={account?.busy}
+              onClick={async () => {
+                const signedIn = !!account?.user;
+                const warning = signedIn
+                  ? '탈퇴하면 계정과 이 기기의 프로필·핀·코스·기록이 모두 지워져요. 되돌릴 수 없어요.'
+                  : '탈퇴하면 이 기기의 프로필·핀·코스·기록이 모두 지워져요. 되돌릴 수 없어요.';
+                if (!window.confirm(warning)) return;
+                // The account goes first: if that fails, this device keeps its data too.
+                if (signedIn && !(await account.deleteAccount())) return;
                 clearAppData();
                 window.location.reload();
               }}
@@ -194,6 +212,7 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
               탈퇴
             </button>
           </div>
+          {account?.user && <p className="profile__account-note">카카오 계정으로 로그인했어요.</p>}
         </div>
       )}
     </>
@@ -252,6 +271,7 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
             const trimmed = text.trim();
             setNickname(trimmed);
             setDisplayName(trimmed);
+            onNickname?.(trimmed);
             return true;
           }}
         />
@@ -273,7 +293,7 @@ export default function ProfileSheet({ profile, onChange, privacy, privacyNotice
           }}
         />
 
-        {note && <p className="profile__note">{note}</p>}
+        {(note ?? account?.note) && <p className="profile__note">{note ?? account?.note}</p>}
       </div>
 
       {/* Past the tear line: 제외 주소 설정, 알림 설정, 디스플레이 및 언어, then 계정·약관·정책. A toggle
