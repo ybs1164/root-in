@@ -5,6 +5,7 @@ import type { SharedCourse } from '../types/course';
 
 /** A short link also says who shared it and how often it's been opened; a long one doesn't. */
 export interface IncomingMeta {
+  slug: string;
   openCount: number;
   sender: ShareSender;
 }
@@ -24,7 +25,7 @@ export async function resolveIncoming(url: string, links: ShareLinkService = sha
     const opened = await links.open(slug, first);
     if (!opened || opened === 'error') return { status: 'invalid' };
     if (first) rememberOpened(slug);
-    return { status: 'ready', course: opened.course, meta: { openCount: opened.openCount, sender: opened.sender } };
+    return { status: 'ready', course: opened.course, meta: { slug, openCount: opened.openCount, sender: opened.sender } };
   }
   if (!new URL(url).hash.includes('share=')) return { status: 'none' };
   const course = await courseShareService.resolveFromUrl(url);

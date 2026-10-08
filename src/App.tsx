@@ -1363,7 +1363,10 @@ export default function App() {
           sender={incomingMeta?.sender.nickname || sharedCourse.sharedBy || '익명'}
           photo={incomingMeta?.sender.photo ?? null}
           shareCount={incomingMeta?.openCount}
-          onAdd={() => void addSharedRoute(sharedCourse)}
+          onAdd={() => {
+            if (incomingMeta) void shareLinkService.countAdd(incomingMeta.slug);
+            void addSharedRoute(sharedCourse);
+          }}
           onClose={dismissCourse}
         />
       )}

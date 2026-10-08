@@ -31,6 +31,7 @@
 - 행에는 긴 링크와 똑같은 토큰을 넣음(`snapshot = { token }`) — 받는 쪽은 긴 링크와 같은 디코드·검증을 거침.
 - **받기**: `#s=` 링크는 `open_share(slug, count_open)` RPC 하나로 엶 — 토큰, 연 횟수, 보낸 사람(닉네임·@아이디·사진 경로). 이 브라우저에서 처음 열 때만 셈(`goodroot:opened-shares:v1`), 주인이 열면 안 셈. 받은 루트 팝업에 보낸 사람 사진·닉네임과 '지금까지 n번 공유됐어요.'.
 - **공유 횟수**(`Course.shareCount`, 경로 줄 `N Shares`): 로그인 중 동기화 뒤와 앱이 다시 앞으로 올 때 내 `shares`의 `open_count`를 루트별로 더해 채움(`services/shareCounts.ts`). 서버 값이라 동기화 행에는 없음(올리지 않음).
+- **링크 끊기·추가 수** (2026-10-08, `20261011000000_shares_revoke.sql`): 루트를 지우면(지움 표시, 어느 기기에서든) 서버 트리거가 그 루트의 링크에 `revoked_at`을 찍어 끊음 — `open_share`가 아무것도 안 돌려줘 받는 쪽은 '공유 링크를 열 수 없어요'. 지운 루트가 되살아나도 링크는 끊긴 채이고, 링크 복사는 끊긴 링크를 다시 쓰지 않고 새로 만듦. 받은 루트 팝업의 '루트 추가'는 `count_share_add(slug)`로 `add_count`+1(주인 제외, 실패해도 추가는 됨, 같은 사람이 여러 번 누르면 여러 번 셈). 셀 때 `last_opened_at`도 찍음. `kind`(`route`·`day`·`pins`)는 나중의 하루·핀 묶음 짧은 링크용, 지금은 늘 `route`.
 - 보안: `shares`·`profiles`는 이제 **본인만 select**(목록으로 남의 공유·설정을 볼 수 없음). 남이 보는 건 `open_share`가 돌려주는 공개 정보뿐. 링크를 여러 브라우저로 열어 횟수를 부풀리는 것은 막지 않음(익명 열기라 막을 신원이 없음).
 
 ## 처음 설정
@@ -42,7 +43,8 @@
    `20261008000000_sync.sql` — 동기화용 변경(`order` → `position`, 폴더 `icon`, 하루 `looks`, 길이 검사는 클라이언트로),
    `20261009000000_shares.sql` — 공유·프로필 select를 본인만으로, `open_share(slug, count_open)`이 보낸 사람 정보까지,
    `20261010000000_sync_cursor.sql` — 동기화 테이블에 `server_updated_at`(트리거)·`deleted_at`, `pins.geom`을 서버가 `place.center`에서 채움(트리거), 행 크기 상한(NOT VALID — 새 쓰기만 검사), `purge_sync_tombstones()`.
-   **이 마이그레이션을 먼저 적용하고 나서 클라이언트를 배포**할 것 — 새 클라이언트는 이 열을 읽어서, 적용 전 DB에서는 동기화가 실패(프로필 창 안내)한다.
+   `20261011000000_shares_revoke.sql` — 공유에 `kind`·`revoked_at`·`add_count`·`last_opened_at`, 루트를 지우면 링크를 끊는 트리거, `open_share`가 끊긴 링크엔 null, `count_share_add`.
+   **이 마이그레이션들을 먼저 적용하고 나서 클라이언트를 배포**할 것 — 새 클라이언트는 이 열을 읽어서, 적용 전 DB에서는 동기화가 실패(프로필 창 안내)한다.
    지움 표시는 30일 뒤 지운다: Integrations → Cron(pg_cron)에 매일 `select public.purge_sync_tombstones();` 등록. 그 전까지 지운 핀·루트의 내용이 서버에 남아 있음.
 3. Project Settings → API의 Project URL과 **anon(public)** 키를 `.env.local`에:
    ```
@@ -72,4 +74,5 @@
 - `services/cloudSync.ts`(엔진) · `syncMerge.ts`(3방향 병합·해시) · `syncCollections.ts`(저장소 ↔ 행) · `remoteDataService.ts`(Supabase 읽기 1000행씩·쓰기 200행씩) · `syncBus.ts`(저장소 쓰기 알림).
 
 ## 다음 단계
+남은 스키마 설계(핑·공유 정리·알림): [schema-plan.md](schema-plan.md).
 4. 알림(트리거 → Edge Function → Web Push).

@@ -36,6 +36,8 @@ export interface ShareLinkService {
   open(slug: string, count: boolean): Promise<OpenedShare | null | 'error'>;
   /** Course id → times its links were opened, over all of this user's links. */
   counts(userId: string): Promise<Map<string, number> | 'error'>;
+  /** 루트 추가 was pressed on this short link (best effort, never fails loudly). */
+  countAdd(slug: string): Promise<void>;
 }
 
 export function shortLinkUrl(slug: string, base = `${window.location.origin}${window.location.pathname}`): string {
@@ -92,12 +94,13 @@ export function createSupabaseShareLinkService(
           .eq('owner_id', userId)
           .eq('course_id', courseId)
           .eq('snapshot->>token', token)
+          .is('revoked_at', null) // a deleted route's link stays dead, even if the route comes back
           .limit(1)
           .maybeSingle();
         if (existing && typeof existing.slug === 'string' && SLUG.test(existing.slug)) return shortLinkUrl(existing.slug);
         for (let attempt = 0; attempt < 3; attempt += 1) {
           const slug = newSlug();
-          const { error } = await client.from('shares').insert({ slug, owner_id: userId, course_id: courseId, snapshot: { token } });
+          const { error } = await client.from('shares').insert({ slug, owner_id: userId, kind: 'route', course_id: courseId, snapshot: { token } });
           if (!error) return shortLinkUrl(slug);
           if (error.code !== UNIQUE_VIOLATION) return null;
         }
@@ -134,6 +137,16 @@ export function createSupabaseShareLinkService(
         return totals;
       } catch {
         return 'error';
+      }
+    },
+
+    async countAdd(slug) {
+      try {
+        if (!SLUG.test(slug)) return;
+        const client = await getClient();
+        await client?.rpc('count_share_add', { share_slug: slug });
+      } catch {
+        // Uncounted: the route is added all the same.
       }
     },
   };
