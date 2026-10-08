@@ -14,7 +14,8 @@
 ## 핀·루트·하루 동기화 (2단계)
 화면은 지금처럼 이 기기 저장소(localStorage)만 읽는다. 로그인해 있으면 그 저장소를 계정 행과 맞춘다 (`services/cloudSync.ts`).
 - 대상: 핀 카테고리 · 핀 · 루트 폴더 · 루트(코스 + 폴더 배정·순서) · 하루(날짜 화면 꾸미기, 핑 모양·선). 공유 횟수는 서버 몫이라 올리지 않음(3단계).
-- **언제**: 로그인할 때(프로필 다음), 앱이 다시 앞으로 올 때(`visibilitychange`) 서버에서 받아 합침. 이 기기에서 바꾸면 1.5초 뒤 바뀐 행만 보냄(`PUSH_DELAY_MS`, 펜 획처럼 잦은 쓰기를 모음).
+- **언제**: 로그인할 때(프로필 다음), 앱이 다시 앞으로 올 때(`visibilitychange`) 서버에서 받아 합침.
+- **바뀐 것만 받기** (2026-10-08, `20261010000000_sync_cursor.sql`): 행마다 서버가 찍는 `server_updated_at`(트리거 — 폰 시계 아님)과 지움 표시 `deleted_at`. 지우기는 행을 지우지 않고 표시만 함. 컬렉션마다 마지막으로 받은 `server_updated_at`을 커서로 기억(`goodroot:sync:v1`의 `cursor`)해 다음엔 그 2분 전(`CURSOR_OVERLAP_MS`, 늦게 커밋된 쓰기 대비) 이후 행만 받음 — 지움 표시 포함, 받은 행만 3방향 병합하고 나머지는 이 기기 변경만 보냄(`mergeDelta`). 처음 동기화·다른 계정·커서가 21일보다 오래됨(`CURSOR_MAX_AGE_MS`)이면 전체를 읽음(지움 표시 없는 행만). 보내기에 실패하면 커서도 그대로라 다음에 같은 행을 다시 받음. 계정이 비어 있던 첫 동기화 뒤에는 찍힌 시각이 없어 한 번 더 전체를 읽음. 이 기기에서 바꾸면 1.5초 뒤 바뀐 행만 보냄(`PUSH_DELAY_MS`, 펜 획처럼 잦은 쓰기를 모음).
 - **합치는 법**: 행마다 마지막으로 서버와 맞춘 내용의 해시(`goodroot:sync:v1`의 base)를 두고 3방향 비교 (`services/syncMerge.ts`).
   한쪽만 바꾼 행은 그쪽, 둘 다 바꿨으면 `updated_at`이 나중인 쪽(없으면 서버), 지운 것도 양쪽으로 전달. 한쪽이 지우고 다른 쪽이 고쳤으면 고친 것을 살림.
 - **처음 로그인한 기기**: 이 기기의 핀·루트가 계정에 더해짐(합집합). 기본 카테고리는 계정에 이미 카테고리가 있으면 '이미 맞춘 것'으로 쳐서, 계정에서 지운 기본 카테고리가 되살아나지 않음.
@@ -30,6 +31,7 @@
 - 행에는 긴 링크와 똑같은 토큰을 넣음(`snapshot = { token }`) — 받는 쪽은 긴 링크와 같은 디코드·검증을 거침.
 - **받기**: `#s=` 링크는 `open_share(slug, count_open)` RPC 하나로 엶 — 토큰, 연 횟수, 보낸 사람(닉네임·@아이디·사진 경로). 이 브라우저에서 처음 열 때만 셈(`goodroot:opened-shares:v1`), 주인이 열면 안 셈. 받은 루트 팝업에 보낸 사람 사진·닉네임과 '지금까지 n번 공유됐어요.'.
 - **공유 횟수**(`Course.shareCount`, 경로 줄 `N Shares`): 로그인 중 동기화 뒤와 앱이 다시 앞으로 올 때 내 `shares`의 `open_count`를 루트별로 더해 채움(`services/shareCounts.ts`). 서버 값이라 동기화 행에는 없음(올리지 않음).
+- **링크 끊기·추가 수** (2026-10-08, `20261011000000_shares_revoke.sql`): 루트를 지우면(지움 표시, 어느 기기에서든) 서버 트리거가 그 루트의 링크에 `revoked_at`을 찍어 끊음 — `open_share`가 아무것도 안 돌려줘 받는 쪽은 '공유 링크를 열 수 없어요'. 지운 루트가 되살아나도 링크는 끊긴 채이고, 링크 복사는 끊긴 링크를 다시 쓰지 않고 새로 만듦. 받은 루트 팝업의 '루트 추가'는 `count_share_add(slug)`로 `add_count`+1(주인 제외, 실패해도 추가는 됨, 같은 사람이 여러 번 누르면 여러 번 셈). 셀 때 `last_opened_at`도 찍음. `kind`(`route`·`day`·`pins`)는 나중의 하루·핀 묶음 짧은 링크용, 지금은 늘 `route`.
 - 보안: `shares`·`profiles`는 이제 **본인만 select**(목록으로 남의 공유·설정을 볼 수 없음). 남이 보는 건 `open_share`가 돌려주는 공개 정보뿐. 링크를 여러 브라우저로 열어 횟수를 부풀리는 것은 막지 않음(익명 열기라 막을 신원이 없음).
 
 ## 처음 설정
@@ -39,7 +41,11 @@
    SQL Editor에서 `supabase/migrations/`의 파일을 이름 순서대로 실행 (또는 Supabase CLI `supabase db push`).
    `20261007000000_init.sql` — 테이블·RLS·`avatars` 버킷·`delete_my_account`·`open_share` 함수,
    `20261008000000_sync.sql` — 동기화용 변경(`order` → `position`, 폴더 `icon`, 하루 `looks`, 길이 검사는 클라이언트로),
-   `20261009000000_shares.sql` — 공유·프로필 select를 본인만으로, `open_share(slug, count_open)`이 보낸 사람 정보까지.
+   `20261009000000_shares.sql` — 공유·프로필 select를 본인만으로, `open_share(slug, count_open)`이 보낸 사람 정보까지,
+   `20261010000000_sync_cursor.sql` — 동기화 테이블에 `server_updated_at`(트리거)·`deleted_at`, `pins.geom`을 서버가 `place.center`에서 채움(트리거), 행 크기 상한(NOT VALID — 새 쓰기만 검사), `purge_sync_tombstones()`.
+   `20261011000000_shares_revoke.sql` — 공유에 `kind`·`revoked_at`·`add_count`·`last_opened_at`, 루트를 지우면 링크를 끊는 트리거, `open_share`가 끊긴 링크엔 null, `count_share_add`.
+   **이 마이그레이션들을 먼저 적용하고 나서 클라이언트를 배포**할 것 — 새 클라이언트는 이 열을 읽어서, 적용 전 DB에서는 동기화가 실패(프로필 창 안내)한다.
+   지움 표시는 30일 뒤 지운다: Integrations → Cron(pg_cron)에 매일 `select public.purge_sync_tombstones();` 등록. 그 전까지 지운 핀·루트의 내용이 서버에 남아 있음.
 3. Project Settings → API의 Project URL과 **anon(public)** 키를 `.env.local`에:
    ```
    VITE_SUPABASE_URL=https://<ref>.supabase.co
@@ -68,4 +74,5 @@
 - `services/cloudSync.ts`(엔진) · `syncMerge.ts`(3방향 병합·해시) · `syncCollections.ts`(저장소 ↔ 행) · `remoteDataService.ts`(Supabase 읽기 1000행씩·쓰기 200행씩) · `syncBus.ts`(저장소 쓰기 알림).
 
 ## 다음 단계
+남은 스키마 설계(핑·공유 정리·알림): [schema-plan.md](schema-plan.md).
 4. 알림(트리거 → Edge Function → Web Push).

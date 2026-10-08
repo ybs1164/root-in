@@ -23,9 +23,11 @@ const photoUrl = (path: string) => `https://cdn.test/${path}`;
 function fakeClient(opts: { existing?: string | null; insertErrors?: ({ code: string } | null)[]; rpc?: unknown; rpcError?: boolean; rows?: unknown[] } = {}) {
   const insert = vi.fn(async () => ({ error: opts.insertErrors?.shift() ?? null }));
   const rpc = vi.fn(async () => ({ data: opts.rpc ?? null, error: opts.rpcError ? { message: 'x' } : null }));
+  const filters: unknown[][] = [];
   const chain = {
     select: () => chain,
     eq: () => chain,
+    is: (...args: unknown[]) => (filters.push(['is', ...args]), chain),
     limit: () => chain,
     maybeSingle: async () => ({ data: opts.existing ? { slug: opts.existing } : null }),
     then: (resolve: (v: unknown) => void) => resolve({ data: opts.rows ?? [], error: null }),
@@ -35,7 +37,7 @@ function fakeClient(opts: { existing?: string | null; insertErrors?: ({ code: st
     rpc,
     storage: { from: () => ({ getPublicUrl: (path: string) => ({ data: { publicUrl: photoUrl(path) } }) }) },
   } as unknown as SupabaseClient;
-  return { client, insert, rpc };
+  return { client, insert, rpc, filters };
 }
 
 describe('shareLinkService', () => {
@@ -56,10 +58,11 @@ describe('shareLinkService', () => {
     const same = fakeClient({ existing: 'Existing01' });
     expect(await createSupabaseShareLinkService(async () => same.client, true).create(uid, 'c1', token)).toBe('https://root.in/#s=Existing01');
     expect(same.insert).not.toHaveBeenCalled();
+    expect(same.filters).toContainEqual(['is', 'revoked_at', null]); // a deleted route's dead link isn't handed out again
     const fresh = fakeClient({ insertErrors: [{ code: '23505' }, null] });
     expect(await createSupabaseShareLinkService(async () => fresh.client, true).create(uid, 'c1', token)).toMatch(/^https:\/\/root\.in\/#s=[A-Za-z0-9]{10}$/);
     expect(fresh.insert).toHaveBeenCalledTimes(2);
-    expect(fresh.insert).toHaveBeenLastCalledWith(expect.objectContaining({ owner_id: uid, course_id: 'c1', snapshot: { token } }));
+    expect(fresh.insert).toHaveBeenLastCalledWith(expect.objectContaining({ owner_id: uid, kind: 'route', course_id: 'c1', snapshot: { token } }));
     const broken = fakeClient({ insertErrors: [{ code: '42501' }] });
     expect(await createSupabaseShareLinkService(async () => broken.client, true).create(uid, 'c1', token)).toBeNull();
     vi.unstubAllGlobals();
@@ -87,6 +90,16 @@ describe('shareLinkService', () => {
     expect(totals).toEqual(new Map([['c1', 5], ['c2', 1]]));
   });
 
+  it('counts 루트 추가 on a short link, and never fails the add', async () => {
+    const fake = fakeClient();
+    const service = createSupabaseShareLinkService(async () => fake.client, true);
+    await service.countAdd('AbC123_-xy');
+    expect(fake.rpc).toHaveBeenCalledWith('count_share_add', { share_slug: 'AbC123_-xy' });
+    await service.countAdd('<bad>');
+    expect(fake.rpc).toHaveBeenCalledTimes(1);
+    await expect(createSupabaseShareLinkService(async () => { throw new Error('down'); }, true).countAdd('AbC123_-xy')).resolves.toBeUndefined();
+  });
+
   it('remembers links opened in this browser', () => {
     expect(hasOpened('AbC123_-xy')).toBe(false);
     rememberOpened('AbC123_-xy');
@@ -100,11 +113,12 @@ describe('resolveIncoming', () => {
     create: vi.fn(),
     open: vi.fn(async () => opened),
     counts: vi.fn(),
+    countAdd: vi.fn(),
   });
 
   it('opens a short link, counting it only the first time here', async () => {
     const service = links({ course, openCount: 3, sender: { nickname: '보낸이', handle: null, photo: null } });
-    expect(await resolveIncoming('https://root.in/#s=AbC123_-xy', service)).toMatchObject({ status: 'ready', meta: { openCount: 3 } });
+    expect(await resolveIncoming('https://root.in/#s=AbC123_-xy', service)).toMatchObject({ status: 'ready', meta: { slug: 'AbC123_-xy', openCount: 3 } });
     await resolveIncoming('https://root.in/#s=AbC123_-xy', service);
     expect(vi.mocked(service.open).mock.calls.map((c) => c[1])).toEqual([true, false]);
   });
