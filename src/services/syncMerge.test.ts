@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { diffRows, hashAll, mergeRows, rowHash, stableStringify, type Rows, type SyncRow } from './syncMerge';
+import { diffRows, hashAll, mergeDelta, mergeRows, rowHash, stableStringify, type Rows, type SyncRow } from './syncMerge';
 
 const rows = (...list: SyncRow[]): Rows => new Map(list.map((r) => [String(r.id), r]));
 
@@ -54,5 +54,33 @@ describe('syncMerge', () => {
   it('finds what changed here since the base', () => {
     const base = hashAll(rows(a, { id: 'b' }));
     expect(diffRows(rows(a2, { id: 'c' }), base)).toEqual({ upsert: [a2, { id: 'c' }], remove: ['b'] });
+  });
+});
+
+describe('mergeDelta', () => {
+  const r = (id: string, v: number): SyncRow => ({ id, v });
+
+  it('merges the fetched rows and sends only this side\'s changes for the rest', () => {
+    const base = hashAll(rows(r('same', 1), r('editedHere', 1), r('goneHere', 1), r('editedThere', 1), r('goneThere', 1)));
+    const local = rows(r('same', 1), r('editedHere', 2), r('editedThere', 1), r('goneThere', 1), r('newHere', 1));
+    const changed = rows(r('editedThere', 2), r('newThere', 1));
+    const out = mergeDelta(local, changed, new Set(['goneThere']), base);
+    expect([...out.rows.keys()]).toEqual(['same', 'editedHere', 'editedThere', 'newHere', 'newThere']);
+    expect(out.rows.get('editedThere')).toEqual(r('editedThere', 2));
+    expect(out.upsert.map((x) => x.id).sort()).toEqual(['editedHere', 'newHere']);
+    expect(out.remove).toEqual(['goneHere']);
+    expect(out.localChanged).toBe(true);
+  });
+
+  it('keeps an edit made here over a deletion there', () => {
+    const out = mergeDelta(rows(r('a', 2)), new Map(), new Set(['a']), hashAll(rows(r('a', 1))));
+    expect(out.rows.get('a')).toEqual(r('a', 2));
+    expect(out.upsert).toEqual([r('a', 2)]);
+  });
+
+  it('changes nothing when the delta is only what this side already has', () => {
+    const local = rows(r('a', 1));
+    const out = mergeDelta(local, rows(r('a', 1)), new Set(), hashAll(local));
+    expect(out).toEqual({ rows: local, upsert: [], remove: [], localChanged: false });
   });
 });

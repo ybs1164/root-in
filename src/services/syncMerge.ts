@@ -110,3 +110,25 @@ export function diffRows(local: Rows, base: Base): { upsert: SyncRow[]; remove: 
   const remove = Object.keys(base).filter((id) => !local.has(id));
   return { upsert, remove };
 }
+
+/**
+ * A pull that fetched only the server rows changed since last time (`changed`,
+ * plus `deleted` ids). Every other server row is still the one this device last
+ * agreed on, so those ids only need this device's own changes sent; the fetched
+ * ones go through the full three-way merge.
+ */
+export function mergeDelta(local: Rows, changed: Rows, deleted: ReadonlySet<string>, base: Base): MergeResult {
+  const touched = new Set([...changed.keys(), ...deleted]);
+  const pick = <T>(entries: Iterable<[string, T]>, inTouched: boolean) => [...entries].filter(([id]) => touched.has(id) === inTouched);
+  const merged = mergeRows(new Map(pick(local, true)), new Map([...changed].filter(([id]) => !deleted.has(id))), Object.fromEntries(pick(Object.entries(base), true)));
+  const rest = new Map(pick(local, false));
+  const own = diffRows(rest, Object.fromEntries(pick(Object.entries(base), false)));
+  // Keep this device's order (what mergeRows gives too): its rows first, then new ones.
+  const rows: Rows = new Map();
+  for (const id of local.keys()) {
+    const row = rest.get(id) ?? merged.rows.get(id);
+    if (row) rows.set(id, row);
+  }
+  merged.rows.forEach((row, id) => rows.has(id) || rows.set(id, row));
+  return { rows, upsert: [...merged.upsert, ...own.upsert], remove: [...merged.remove, ...own.remove], localChanged: merged.localChanged };
+}

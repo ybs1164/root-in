@@ -105,11 +105,7 @@ export const pinsCollection: SyncCollectionDef = {
     const pin = pinFrom(raw, '');
     return pin && pinRow(pin);
   },
-  // For nearby lookups on the server; place.center is [lng, lat].
-  toServer: (row) => {
-    const [lng, lat] = (row.place as Pin['place']).center;
-    return { ...row, geom: `SRID=4326;POINT(${lng} ${lat})` };
-  },
+  // geom (for nearby lookups) is filled by the server from place.center.
 };
 
 // ── 루트 폴더 ────────────────────────────────────────────────────────────
