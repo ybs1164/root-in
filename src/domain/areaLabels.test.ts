@@ -44,6 +44,16 @@ describe('area name labels', () => {
     expect(placeAreaLabels(shapes, panned, first)[0].at).toBe(first[0].at);
   });
 
+  it('gives a 읍면동 drawn both split and whole (zoomed past it) one label', () => {
+    const shapes: AreaShapes = {
+      parts: [[square(127.005, 37.005, 0.012)]],
+      others: [[square(127.019, 37.005, 0.012)]],
+      partTags: [{ key: 'd', name: '역삼1동' }],
+      otherTags: [{ key: 'd', name: '역삼1동' }],
+    };
+    expect(placeAreaLabels(shapes, viewport).map((l) => [l.key, l.part])).toEqual([['d', true]]);
+  });
+
   it('skips areas off screen and polygons without names', () => {
     const shapes: AreaShapes = {
       parts: [[square(127.2, 37.2, 0.02)], [square(127.005, 37.005, 0.015)]],
