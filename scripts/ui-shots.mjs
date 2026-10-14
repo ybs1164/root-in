@@ -95,9 +95,9 @@ const STATES = {
   },
   'new-pin': async (page) => { await click(page, '지도에 핀 꽂기'); },
   'calendar': async (page) => { await click(page, '달력'); },
-  'calendar-month': async (page) => { await click(page, '달력'); await page.locator('.cal-zoom__title').click(); },
+  'calendar-month': async (page) => { await click(page, '달력'); await page.getByRole('button', { name: /달력 보기$/ }).click(); },
   'profile': async (page) => { await click(page, '프로필'); },
-  'profile-account': async (page) => { await click(page, '프로필'); await click(page, '계정 정보'); },
+  'profile-account': async (page) => { await click(page, '프로필'); await click(page, '계정·약관·정책'); },
   'profile-edit': async (page) => {
     await click(page, '프로필');
     await click(page, '아이디 수정');
