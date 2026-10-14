@@ -1,17 +1,17 @@
 :root {
-  /* 여행 theme: white paper, one blue (#2f6fe0) and navy ink. */
+  /* 여행 theme (pastel): cream paper, one soft blue (#6c90d8) and navy ink. */
   color-scheme: light;
-  --bg: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #f1f4f9;
-  --text: #1b2440;
-  --muted: #8a93a8;
-  --border: rgba(27, 36, 64, 0.1);
-  --accent: #2f6fe0;
-  --accent-strong: #2459c0;
-  --accent-soft: #e3ecfc;
+  --bg: #fbf8f1;
+  --surface: #fffdf8;
+  --surface-2: #f1ede3;
+  --text: #2a3354;
+  --muted: #979bab;
+  --border: rgba(42, 51, 84, 0.09);
+  --accent: #6c90d8;
+  --accent-strong: #5576c2;
+  --accent-soft: #e5edfa;
   --on-accent: #ffffff;
-  --route: #2f6fe0;
+  --route: #6c90d8;
   --sage: #4f9a72;
   --sage-soft: #e1f1e7;
   --sky: #3f7fc4;
@@ -68,11 +68,11 @@
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
   --backdrop: rgba(0, 0, 0, 0.4);
   /* 출발 안내판 (알림 설정's hour switches): a navy board of flip cells, the lit ones blue. */
-  --board: #1b2440;
-  --board-cell: #2a3456;
+  --board: #2a3354;
+  --board-cell: #384369;
   --board-off: rgba(255, 255, 255, 0.5);
   --board-split: rgba(10, 14, 28, 0.55);
-  --step-arrow: #c3cad8; /* the < > beside a route's name: light grey, no button behind */
+  --step-arrow: #cdcfd8; /* the < > beside a route's name: light grey, no button behind */
 }
 
 /* Layout tokens and the pin palette (same in light and dark: a pin keeps
@@ -84,23 +84,23 @@
   --sheet-full: 78dvh;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --pin-1: #b8742f;
-  --pin-2: #e0564a;
-  --pin-3: #8e4fb8;
-  --pin-4: #2e86de;
-  --pin-5: #e84393;
-  --pin-6: #16a085;
-  --pin-7: #eaa21a;
-  --pin-8: #7f8c8d;
+  --pin-1: #d4995c;
+  --pin-2: #ec8177;
+  --pin-3: #a98bdb;
+  --pin-4: #6fa5e6;
+  --pin-5: #ee89b6;
+  --pin-6: #5fbda3;
+  --pin-7: #efb94f;
+  --pin-8: #9ea6ad;
   /* 미분류: the plain pin in whatever the accent is (a day theme included). */
   --pin-0: var(--accent);
   /* Area map: the focus's sub-areas over whole neighbors, gaps show the
-     background — in the travel theme's pale blue-greys. */
-  --map-bg: #f7f9fc;
-  --map-area: #c9d7ee;
-  --map-area-other: #e1e7f1;
+     background — in the travel theme's soft blues on cream. */
+  --map-bg: #f9f6ef;
+  --map-area: #d5dff3;
+  --map-area-other: #ebe8e0;
   /* Base map: land on water, parks on land, roads on top (tier 1 darker). */
-  --map-land: #f5f5f3;
+  --map-land: #f7f4ec;
   --map-water: #94d9ef;
   --map-park: #c4efd5;
   --map-road: #d8e0e7;
@@ -117,11 +117,11 @@
     --text: #e8edf7;
     --muted: #8d98b3;
     --border: rgba(232, 237, 247, 0.12);
-    --accent: #5b8ff0;
-    --accent-strong: #7fa8f5;
+    --accent: #6688cc;
+    --accent-strong: #8aa5dc;
     --accent-soft: #1d2d52;
     --on-accent: #ffffff;
-    --route: #5b8ff0;
+    --route: #6688cc;
     --sage: #7cc39b;
     --sage-soft: #23382c;
     --sky: #7fb1e6;
@@ -157,11 +157,11 @@
   --text: #e8edf7;
   --muted: #8d98b3;
   --border: rgba(232, 237, 247, 0.12);
-  --accent: #5b8ff0;
-  --accent-strong: #7fa8f5;
+  --accent: #6688cc;
+  --accent-strong: #8aa5dc;
   --accent-soft: #1d2d52;
   --on-accent: #ffffff;
-  --route: #5b8ff0;
+  --route: #6688cc;
   --sage: #7cc39b;
   --sage-soft: #23382c;
   --sky: #7fb1e6;
@@ -210,12 +210,12 @@
   --eraser-fill: rgba(255, 255, 255, 0.35);
   --eraser-ring: rgba(40, 40, 40, 0.55);
   /* 디스플레이 및 언어 → 디스플레이: samples of the light and dark pages (fixed, whatever is showing). */
-  --scheme-light-bg: #ffffff;
-  --scheme-light-accent: #2f6fe0;
+  --scheme-light-bg: #fbf8f1;
+  --scheme-light-accent: #6c90d8;
   --scheme-dark-bg: #0f1626;
-  --scheme-dark-accent: #5b8ff0;
-  --swatch-default-bg: #ffffff;
-  --swatch-default-accent: #2f6fe0;
+  --scheme-dark-accent: #6688cc;
+  --swatch-default-bg: #fbf8f1;
+  --swatch-default-accent: #6c90d8;
   --swatch-matcha-bg: #eef1e3;
   --swatch-matcha-accent: #6b8e3e;
   --swatch-custard-bg: #fdf3d8;
