@@ -60,6 +60,11 @@ export class KakaoCourseMap implements CourseMap {
       });
     };
     maps.event.addListener(this.map, 'idle', emitViewport);
+    maps.event.addListener(this.map, 'center_changed', () => {
+      if (!options.onMove) return;
+      const c = this.map.getCenter();
+      options.onMove([c.getLng(), c.getLat()]);
+    });
     // Not every SDK version fires idle for the first render.
     setTimeout(emitViewport, 0);
   }

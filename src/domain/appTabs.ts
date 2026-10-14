@@ -1,5 +1,32 @@
-/** The two screens: the map (핀) and the calendar page. */
-export type AppTab = 'calendar' | 'pins';
+/** The three screens: the map (핀), the calendar page and the people page (사람). */
+export type AppTab = 'calendar' | 'pins' | 'people';
+
+/** The bottom row's three round buttons, one per screen. */
+export type BarButton = 'calendar' | 'pins' | 'people';
+
+/** Where a button sits in the row: left, the big one in the centre, or right. */
+export type BarSlot = 'l' | 'c' | 'r';
+
+// The row turns like a wheel: map = 달력 핑 사람, calendar = 사람 달력 핑,
+// people = 핑 사람 달력. Each step to the next screen moves every button one
+// place right, the right one wrapping round to the left.
+const WHEEL: BarButton[] = ['calendar', 'pins', 'people'];
+const SLOTS: BarSlot[] = ['l', 'c', 'r'];
+const turnOf = (tab: AppTab) => ['pins', 'calendar', 'people'].indexOf(tab);
+
+/** The slot `button` takes on `tab`'s screen. */
+export function barSlot(button: BarButton, tab: AppTab): BarSlot {
+  return SLOTS[(WHEEL.indexOf(button) + turnOf(tab)) % 3];
+}
+
+/**
+ * Which way the row turns going `from` → `to`: 1 = every button one place
+ * right (the right one wraps to the left), -1 = left, 0 = no change.
+ */
+export function barTurn(from: AppTab, to: AppTab): -1 | 0 | 1 {
+  const d = (turnOf(to) - turnOf(from) + 3) % 3;
+  return d === 0 ? 0 : d === 1 ? 1 : -1;
+}
 
 /**
  * The calendar button tapped again on the calendar: a day screen zooms out
@@ -11,7 +38,7 @@ export function calendarAgain(mode: 'day' | 'month'): 'today' | 'month' {
 }
 
 /** Titles of the tabs that are their own full screens (not a sheet over the map). */
-export const PAGE_TITLES: Partial<Record<AppTab, string>> = { calendar: '달력' };
+export const PAGE_TITLES: Partial<Record<AppTab, string>> = { calendar: '달력', people: 'We Now' };
 
 /**
  * 달력 is a separate screen, like Instagram's or KakaoTalk's tabs; only
@@ -29,6 +56,8 @@ export function showsPage(tab: AppTab, mapNeeded: boolean): boolean {
  */
 export function homeSwipeDirection(tab: AppTab): -1 | 0 | 1 {
   if (tab === 'calendar') return -1;
+  // 사람 sits right of the map's big pin: its page goes off to the right.
+  if (tab === 'people') return 1;
   return 0;
 }
 

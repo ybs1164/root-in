@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calendarAgain, homeSwipeDirection, showsPage, swipeCommits, tabForIncoming } from './appTabs';
+import { barSlot, barTurn, calendarAgain, homeSwipeDirection, showsPage, swipeCommits, tabForIncoming, type AppTab, type BarButton } from './appTabs';
 
 describe('bottom-bar tabs', () => {
   it('incoming #share= / #diary= / #pins= links open the matching tab', () => {
@@ -31,5 +31,27 @@ describe('bottom-bar tabs', () => {
   it('calendar button again: a day screen goes straight to the month, the month back to TODAY', () => {
     expect(calendarAgain('day')).toBe('month');
     expect(calendarAgain('month')).toBe('today');
+  });
+
+  it('사람 is a full screen too, sliding off to the right', () => {
+    expect(showsPage('people', false)).toBe(true);
+    expect(homeSwipeDirection('people')).toBe(1);
+  });
+
+  it('the row turns like a wheel: 달력 핑 사람 / 사람 달력 핑 / 핑 사람 달력', () => {
+    const row = (tab: AppTab) =>
+      (['calendar', 'pins', 'people'] as BarButton[]).sort((a, b) => 'lcr'.indexOf(barSlot(a, tab)) - 'lcr'.indexOf(barSlot(b, tab)));
+    expect(row('pins')).toEqual(['calendar', 'pins', 'people']);
+    expect(row('calendar')).toEqual(['people', 'calendar', 'pins']);
+    expect(row('people')).toEqual(['pins', 'people', 'calendar']);
+  });
+
+  it('pressing the left button turns the row right, the right button left', () => {
+    expect(barTurn('pins', 'calendar')).toBe(1);
+    expect(barTurn('calendar', 'people')).toBe(1);
+    expect(barTurn('people', 'pins')).toBe(1);
+    expect(barTurn('pins', 'people')).toBe(-1);
+    expect(barTurn('calendar', 'pins')).toBe(-1);
+    expect(barTurn('pins', 'pins')).toBe(0);
   });
 });

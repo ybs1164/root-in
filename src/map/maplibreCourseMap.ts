@@ -85,6 +85,11 @@ export class MapLibreCourseMap implements CourseMap {
       this.ready = true;
     });
     this.map.on('moveend', emitViewport);
+    this.map.on('move', () => {
+      if (!options.onMove) return;
+      const c = this.map.getCenter();
+      options.onMove([c.lng, c.lat]);
+    });
     this.map.on('load', () => {
       const token = (name: string, fallback: string) =>
         getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
