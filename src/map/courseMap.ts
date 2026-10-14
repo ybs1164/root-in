@@ -74,6 +74,8 @@ export interface CourseMapOptions {
   onLongPress?: (center: [number, number]) => void;
   /** The visible area, once the map settles after a pan/zoom (and at start). */
   onViewportChange?: (viewport: MapViewport) => void;
+  /** The map's centre while it moves (every step of a pan, zoom or glide), before it settles. */
+  onMove?: (center: [number, number]) => void;
 }
 
 export const SEOUL_CENTER: [number, number] = [126.978, 37.5665];

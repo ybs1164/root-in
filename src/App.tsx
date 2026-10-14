@@ -51,6 +51,7 @@ import { usePlaceSearch } from './hooks/usePlaceSearch';
 import { useSettings } from './hooks/useSettings';
 import { SEOUL_CENTER, type CourseMap, type MapPadding, type PinMarker } from './map/courseMap';
 import { createMapStack } from './map/createCourseMap';
+import { haversineMeters as distanceMeters } from './domain/geo';
 import { pointPlace, type PlaceSearchService } from './services/placeSearch/placeSearchService';
 import { withRecentCategory } from './services/settingsRepository';
 import { loadProfile, saveProfile, type Profile } from './services/profileRepository';
@@ -62,6 +63,10 @@ import type { Pin } from './types/pin';
 type Toast = { text: string; undo?: () => void };
 
 const DESKTOP_QUERY = '(min-width: 900px)';
+// Dragging the map: how often the crosshair's place name is looked up while
+// it moves, and how far it must have moved to be worth asking again.
+const AIM_LOOKUP_MS = 300;
+const AIM_MIN_MOVE_M = 8;
 /** Shown on a shared route's popup until share counts are tracked somewhere. */
 
 /** Matches `tray-down` in styles.css: the 경로 폴더 sheet stays mounted while it slides away. */
@@ -186,7 +191,8 @@ export default function App() {
   const [railMode, setRailMode] = useState<PinRailMode>('menu');
   // 조준: a crosshair in the middle of the map (with the name of the place
   // under it) and only the pin button, to aim where a new pin goes.
-  const [aiming, setAiming] = useState(false);
+  // The crosshair and the place under it, up while the map is dragged.
+  const [panAim, setPanAim] = useState(false);
   const [aimName, setAimName] = useState<string | null>(null);
   // The saved route drawn on the map from the 경로 폴더.
   const [shownRouteId, setShownRouteId] = useState<string | null>(null);
@@ -371,7 +377,12 @@ export default function App() {
     };
   }, []);
 
-  const mapEvents = useRef({ stop: (_i: number) => {}, pin: (_id: string) => {}, longPress: (_c: [number, number]) => {} });
+  const mapEvents = useRef({
+    stop: (_i: number) => {},
+    pin: (_id: string) => {},
+    longPress: (_c: [number, number]) => {},
+    move: (_c: [number, number]) => {},
+  });
 
   useEffect(() => {
     if (!mapEl.current) return;
@@ -383,6 +394,7 @@ export default function App() {
       onPinClick: (id) => mapEvents.current.pin(id),
       onLongPress: (center) => mapEvents.current.longPress(center),
       onViewportChange: setViewport,
+      onMove: (center) => mapEvents.current.move(center),
     }).then(({ map, search: service }) => {
       if (disposed) return map.destroy();
       created = map;
@@ -430,7 +442,7 @@ export default function App() {
     // Not over something already on screen (a received route, a search result).
     // No padding: the pin button pins at the map's true center, so pressing it
     // right away lands on the dot.
-    if (!shownRoute && !preview && !aiming) map.focus(me.center);
+    if (!shownRoute && !preview) map.focus(me.center);
   }, [me, mapProvider]);
 
   const stopsKey = shownStops.map((p) => p.id).join('|');
@@ -544,7 +556,7 @@ export default function App() {
 
   mapEvents.current.longPress = async (center: [number, number]) => {
     // Making a route, or a saved one on show (its long presses restyle it): no place card.
-    if ((building && routeMode) || shownRoute || aiming) return;
+    if ((building && routeMode) || shownRoute) return;
     await openNewPinAt(center, 'long_press');
   };
 
@@ -889,8 +901,7 @@ export default function App() {
   // ✓ to pin). With a card already up, the press first closes it (a touch
   // outside the card), then opens a fresh one on the map's current centre.
   const startPinning = () => {
-    const source: PinSource = aiming ? 'aim' : 'pin_button';
-    setAiming(false);
+    const source: PinSource = 'pin_button';
     changeTab('pins');
     // 경로 owns the map's taps while it's open; a new pin closes it.
     if (railMode === 'route') railAction('route');
@@ -898,71 +909,104 @@ export default function App() {
     if (center) void openNewPinAt(center, source);
   };
 
-  const startAiming = () => {
-    if (railMode === 'route') railAction('route');
-    setRailMode('menu');
-    setPreview(null);
-    setActivePinId(null);
-    setAimName(null);
-    setAiming(true);
-  };
-
-  // While aiming: the place under the crosshair, looked up once the map settles.
+  // Dragging the map on the pin screen (nothing else open): a crosshair at
+  // its middle with the name of the place under it, kept up to date as it
+  // moves. Up the moment a press on the map starts moving it (a tap on a pin
+  // that centres the map doesn't), gone the moment the finger lifts. Names:
+  // one lookup at a time (overlapping ones get Photon to refuse some), at most
+  // every AIM_LOOKUP_MS; when an answer comes back it shows at once, and if
+  // the map has moved on the next lookup asks about where it is now.
+  const aimable = tab === 'pins' && !onPage && !routeMode && !searchOpen && !preview && !activePinId;
   useEffect(() => {
-    if (!aiming || !searchService) return;
-    const center = mapRef.current?.getCenter();
-    if (!center) return;
+    if (!aimable || !searchService) return;
+    const el = mapEl.current;
     let alive = true;
-    const t = window.setTimeout(() => {
+    let pressed = false;
+    let dragging = false;
+    let asked: [number, number] | null = null;
+    let wanted: [number, number] | null = null;
+    let lastAt = 0;
+    let busy = false;
+    let timer: number | undefined;
+    const next = () => {
+      if (!alive || !dragging || busy || timer !== undefined || !wanted) return;
+      if (asked && distanceMeters(asked, wanted) < AIM_MIN_MOVE_M) return;
+      const wait = AIM_LOOKUP_MS - (performance.now() - lastAt);
+      if (wait > 0) {
+        timer = window.setTimeout(() => {
+          timer = undefined;
+          next();
+        }, wait);
+        return;
+      }
+      const center = wanted;
+      asked = center;
+      lastAt = performance.now();
+      busy = true;
       void searchService.reverse(center).then((named) => {
+        busy = false;
+        if (!alive || !dragging) return;
         // Nothing found nearby: still say what the crosshair is on.
-        if (alive) setAimName(named?.name ?? '이름 없는 곳');
+        setAimName(named?.name ?? '이름 없는 곳');
+        next();
       });
-    }, 200);
+    };
+    const down = (e: Event) => {
+      const target = e.target as Element;
+      if (!el?.contains(target)) return;
+      // A tap on a pin or stop moves the map itself (centring it): not a drag.
+      if (target.closest('button, .map-marker, [data-pin-id]')) return;
+      pressed = true;
+    };
+    const up = (e?: Event) => {
+      if (e && 'touches' in e && (e as TouchEvent).touches.length > 0) return;
+      pressed = false;
+      if (!dragging) return;
+      dragging = false;
+      window.clearTimeout(timer);
+      timer = undefined;
+      setPanAim(false);
+    };
+    mapEvents.current.move = (center) => {
+      if (pressed && !dragging) {
+        dragging = true;
+        asked = null;
+        lastAt = 0;
+        setAimName(null);
+        setPanAim(true);
+      }
+      if (!dragging) return;
+      wanted = center;
+      next();
+    };
+    // Touch and mouse ends too: a map SDK that swallows the pointer events
+    // (or a lost pointer capture) must still never leave the crosshair up.
+    const starts = ['pointerdown', 'touchstart', 'mousedown'];
+    const ends = ['pointerup', 'pointercancel', 'touchend', 'touchcancel', 'mouseup'];
+    starts.forEach((t) => document.addEventListener(t, down, true));
+    ends.forEach((t) => document.addEventListener(t, up, true));
+    window.addEventListener('blur', up);
     return () => {
       alive = false;
-      window.clearTimeout(t);
+      window.clearTimeout(timer);
+      setPanAim(false);
+      mapEvents.current.move = () => {};
+      starts.forEach((t) => document.removeEventListener(t, down, true));
+      ends.forEach((t) => document.removeEventListener(t, up, true));
+      window.removeEventListener('blur', up);
     };
-  }, [aiming, viewport, searchService]);
+  }, [aimable, searchService]);
 
-  // Leaving aiming: Esc, another tab, or a quick tap on the map (a pan just moves the aim).
-  useEffect(() => {
-    if (!aiming) return;
-    if (tab !== 'pins') return setAiming(false);
-    const el = mapEl.current;
-    let tap: { x: number; y: number; at: number } | null = null;
-    const down = (e: PointerEvent) => {
-      tap = e.isPrimary && el?.contains(e.target as Node) ? { x: e.clientX, y: e.clientY, at: performance.now() } : null;
-    };
-    const up = (e: PointerEvent) => {
-      const t = tap;
-      tap = null;
-      if (!t || !e.isPrimary || !el?.contains(e.target as Node)) return;
-      if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > PRESS.slopPx || performance.now() - t.at >= PRESS.longMs) return;
-      setAiming(false);
-    };
-    const key = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setAiming(false);
-    };
-    document.addEventListener('pointerdown', down, true);
-    document.addEventListener('pointerup', up, true);
-    window.addEventListener('keydown', key);
-    return () => {
-      document.removeEventListener('pointerdown', down, true);
-      document.removeEventListener('pointerup', up, true);
-      window.removeEventListener('keydown', key);
-    };
-  }, [aiming, tab]);
-
-  // The calendar is a page on top of the map: the phone's back button goes
-  // back to the map. Opening it pushes a history entry; leaving it some other
-  // way takes that entry back off, so back on the map leaves the app as before.
+  // The calendar and people screens are pages on top of the map: the phone's
+  // back button goes back to the map. Opening one pushes a history entry
+  // (going page to page keeps it); leaving some other way takes that entry
+  // back off, so back on the map leaves the app as before.
   const calendarEntry = useRef(false);
   useEffect(() => {
-    if (tab === 'calendar' && !calendarEntry.current) {
+    if (tab !== 'pins' && !calendarEntry.current) {
       calendarEntry.current = true;
-      history.pushState({ rootIn: 'calendar' }, '');
-    } else if (tab !== 'calendar' && calendarEntry.current) {
+      history.pushState({ rootIn: tab }, '');
+    } else if (tab === 'pins' && calendarEntry.current) {
       calendarEntry.current = false;
       history.back();
     }
@@ -1017,7 +1061,7 @@ export default function App() {
   };
 
   return (
-    <div className={`app ${searchOpen ? 'app--searching' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''} ${aiming ? 'app--aiming' : ''} ${pageMoving ? 'app--page-moving' : ''}`}>
+    <div className={`app ${searchOpen ? 'app--searching' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''} ${pageMoving ? 'app--page-moving' : ''}`}>
       <div ref={mapEl} className="map" aria-label="지도" />
 
       <SearchBar
@@ -1039,7 +1083,9 @@ export default function App() {
         <ProfileAvatar photo={profile.photo} size={52} />
       </button>
 
-      {mapUi && !searchOpen && (
+      {/* Kept mounted while searching: it slides off with the profile button
+          (same move, same speed) instead of vanishing and replaying its entrance. */}
+      {mapUi && (
         <PinRail
           mode={railMode}
           onAction={railAction}
@@ -1277,8 +1323,9 @@ export default function App() {
         >
           {calendarZoom && <DayPattern pattern={dayPattern} />}
           {/* The calendar has no head bar: its own TODAY / DAY n heading takes the
-              stage and the 꾸미기 rail runs up to the top corner. */}
-          {calendarZoom ? (
+              stage and the 꾸미기 rail runs up to the top corner. We Now shows no
+              title either (named for screen readers only). */}
+          {calendarZoom || tab === 'people' ? (
             <h1 className="sr-only">{PAGE_TITLES[tab]}</h1>
           ) : (
             <header className="page__head">
@@ -1311,9 +1358,8 @@ export default function App() {
         </section>
       ) : null}
 
-      {aiming && (
-        <div className="aim" aria-hidden={false}>
-          <p className="route-build__hint" role="status">핑을 찍을 위치를 조준해 주세요</p>
+      {aimable && (
+        <div className={`aim ${panAim ? 'is-on' : ''}`} aria-hidden>
           <div className="aim__mark">
             {aimName && (
               <span className="aim__name">
@@ -1346,7 +1392,7 @@ export default function App() {
             shareDay.current?.();
           } : undefined}
           onPin={startPinning}
-          onAim={startAiming}
+          onPeople={() => changeTab('people')}
         />
       </div>
 

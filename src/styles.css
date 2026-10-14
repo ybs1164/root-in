@@ -190,7 +190,6 @@
 
 :root {
   /* Theme swatches in the 꾸미기 → 테마 tray: each theme's background and accent. */
-  /* The aiming crosshair: a hairline shadow so it reads on the map. */
   /* The "drop in from above" motion pins, route stops and day pings land
      with (a small bounce at the end). */
   --drop-time: 0.45s;
@@ -542,22 +541,18 @@ button:disabled {
   background: var(--surface-2);
 }
 
-/* Aiming: everything but the map and the pin button steps away. */
-.app--aiming .search,
-.app--aiming .corner-btn,
-.app--aiming .pin-rail,
-.app--aiming .bar-cal,
-.app--aiming .bar-aim,
-.app--aiming .place-card {
-  visibility: hidden;
-  pointer-events: none;
-}
-
+/* Dragging the map: a crosshair at its middle and the place under it, up
+   only while the finger is down (App's panAim) — gone at once on release. */
 .aim {
   position: absolute;
   inset: 0;
   z-index: 11;
   pointer-events: none;
+  visibility: hidden;
+}
+
+.aim.is-on {
+  visibility: visible;
 }
 
 /* The crosshair at the map's middle (the map fills the app), the place's name above it. */
@@ -568,6 +563,9 @@ button:disabled {
   width: 48px;
   height: 48px;
   translate: -50% -50%;
+}
+
+.aim.is-on .aim__mark {
   animation: aim-in 0.2s ease-out both;
 }
 
@@ -2676,6 +2674,13 @@ button:disabled {
   transform: translateX(calc(100% + 24px));
 }
 
+/* Searching: the round buttons under the profile slide off right with it,
+   at the same speed, and come back the same way. */
+.app--searching .pin-rail {
+  transform: translateX(calc(100% + 24px));
+  pointer-events: none;
+}
+
 /* Pin screen: round buttons stacked under ⚙ (핀 · 경로, then 핀's category list). */
 .pin-rail {
   position: absolute;
@@ -2687,6 +2692,7 @@ button:disabled {
   align-items: center;
   /* Long category lists scroll above the bottom buttons. */
   max-height: calc(100dvh - var(--safe-top) - 76px - var(--bar-h) - var(--safe-bottom) - 24px);
+  transition: transform 0.25s ease;
 }
 
 .pin-rail__btn {
@@ -4703,9 +4709,9 @@ button:disabled {
 
 /* The row's three buttons, always there so a switch animates them: a big
    accent round in the dead centre, small white rounds at its lower left and
-   right (a touch above its bottom; the big one hangs 8px below the row). Map:
-   the pin big, the calendar left, the crosshair right. Calendar: the calendar
-   big, the pin right (the way back), the crosshair gone. */
+   right (a touch above its bottom; the big one hangs 8px below the row).
+   Each button's place comes from the screen (BottomBar, `barSlot`): map
+   달력 핑 사람, calendar 사람 달력 핑, people 핑 사람 달력. */
 .bar-btn {
   position: absolute;
   left: calc(50% - 92px);
@@ -4720,15 +4726,11 @@ button:disabled {
   background: var(--surface);
   color: var(--text);
   box-shadow: var(--round-btn-shadow);
-  /* On a switch the colours flip at once (no transition), the move and
-     resize start together with it. */
-  transition:
-    left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-    bottom 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-    width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-    height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-    opacity 0.2s ease,
-    scale 0.12s ease;
+  transform-origin: 50% 100%;
+  /* On a switch the colours flip at once and the boxes jump to their new
+     places; BottomBar plays the move from where each one was (a transform,
+     so a press mid-turn carries on smoothly). */
+  transition: scale 0.12s ease;
 }
 
 .bar-btn:active {
@@ -4738,13 +4740,17 @@ button:disabled {
 .bar-btn svg {
   width: 22px;
   height: 22px;
-  transition:
-    width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
-    height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.bottom-bar:not(.bottom-bar--cal) .bar-pin,
-.bottom-bar--cal .bar-cal {
+.bar-slot-l {
+  left: calc(50% - 92px);
+}
+
+.bar-slot-r {
+  left: calc(50% + 48px);
+}
+
+.bar-slot-c {
   left: calc(50% - 40px);
   bottom: -8px;
   width: 80px;
@@ -4753,10 +4759,21 @@ button:disabled {
   color: var(--on-accent);
 }
 
-.bottom-bar:not(.bottom-bar--cal) .bar-pin svg,
-.bottom-bar--cal .bar-cal svg {
+.bar-slot-c svg {
   width: 38px;
   height: 38px;
+}
+
+/* On the pages all the row's bottoms line up: the small buttons drop level
+   with the big one, and so does 공유 at the bottom-right corner. */
+.bottom-bar--page .bar-slot-l,
+.bottom-bar--page .bar-slot-r {
+  bottom: -8px;
+}
+
+/* The wrapping button's copy sliding off the row's far end (BottomBar). */
+.bar-ghost {
+  pointer-events: none;
 }
 
 /* A ping picked on the day screen: the calendar button is its ✕ (tap, or
@@ -4764,44 +4781,12 @@ button:disabled {
 .bottom-bar--cal .bar-cal.is-delete {
   background: var(--text);
   color: var(--surface);
-  transition-property: left, bottom, width, height, scale;
 }
 
 .bottom-bar--cal .bar-cal.is-hot {
   background: var(--danger);
   color: var(--on-accent);
   scale: 1.12;
-}
-
-.bar-aim {
-  left: calc(50% + 48px);
-  transform-origin: 50% 100%;
-}
-
-/* Back from the calendar it grows up from its own bottom as it slides in
-   from the right, fading in (played once, BottomBar's is-back). */
-.bar-aim.is-back {
-  animation: aim-back 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-@keyframes aim-back {
-  from {
-    left: calc(50% + 100px);
-    opacity: 0;
-    scale: 0;
-  }
-}
-
-/* Everything moves right on the way to the calendar (and back left): the
-   pin shrinks into the crosshair's place, the crosshair slides on and fades. */
-.bottom-bar--cal .bar-pin {
-  left: calc(50% + 48px);
-}
-
-/* On the calendar all the row's bottoms line up: the small pin drops level
-   with the big calendar button, and so does 공유 at the bottom-right corner. */
-.bottom-bar--cal .bar-pin {
-  bottom: -8px;
 }
 
 .bar-share {
@@ -4823,20 +4808,6 @@ button:disabled {
 
 .bar-share:active {
   scale: 0.92;
-}
-
-.bottom-bar--cal .bar-aim {
-  /* Off to the calendar: all at once it moves right, shrinks into its own
-     bottom-right corner and fades — the fade done before the shrink is. */
-  left: calc(50% + 100px);
-  opacity: 0;
-  scale: 0;
-  transform-origin: 100% 100%;
-  pointer-events: none;
-  transition:
-    left 0.3s cubic-bezier(0.4, 0, 0.6, 1),
-    scale 0.24s cubic-bezier(0.4, 0, 0.6, 1),
-    opacity 0.16s ease-out;
 }
 
 /* Over the calendar page, the app's row sits above it (the page's own row

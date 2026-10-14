@@ -1,7 +1,14 @@
-import { CalendarDays, Crosshair, MapPin, Share, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import type { AppTab } from '../domain/appTabs';
+import { CalendarDays, MapPin, Share, Users, X } from 'lucide-react';
+import { useLayoutEffect, useRef } from 'react';
+import { barSlot, barTurn, type AppTab, type BarButton } from '../domain/appTabs';
 import { CalendarToday } from './icons';
+
+const BUTTONS: BarButton[] = ['calendar', 'pins', 'people'];
+/** One turn of the row. */
+const TURN_MS = 300;
+/** The small buttons' size, and how far past the row's ends (from the middle) a wrapping one goes. */
+const SMALL_PX = 44;
+const OFF_PX = 122;
 
 interface BottomBarProps {
   tab: AppTab;
@@ -9,12 +16,12 @@ interface BottomBarProps {
   calendarMode: 'day' | 'month';
   /** The calendar button: to the calendar, or (already there, big) on to the month / back to TODAY. */
   onCalendar: () => void;
-  /** The pin, small on the calendar: back to the map. */
+  /** The pin, small on the other screens: back to the map. */
   onMap: () => void;
   /** The blue pin in the middle of the map's row: a new pin where the map is looking. */
   onPin: () => void;
-  /** The small crosshair at the pin's lower right: aim first, then pin. */
-  onAim: () => void;
+  /** The two-people button: to the people screen. */
+  onPeople: () => void;
   /** A day on the calendar: 공유 at the row's right end. */
   onShare?: () => void;
   /** A ping is picked on the day screen: the calendar button is ✕ and deletes it. */
@@ -24,29 +31,102 @@ interface BottomBarProps {
 }
 
 /**
- * The row along the bottom of both screens. On the map the blue pin sits big
- * in the dead centre, the calendar and the crosshair small at its lower left
- * and right. Switching to the calendar, everything moves right: the calendar
- * button grows into the centre while the pin shrinks into the crosshair's
- * place, where it is the way back; the crosshair slides on and fades. The buttons stay mounted so the swap is animated.
+ * The row along the bottom of every screen: three round buttons, the current
+ * screen's big in the dead centre, the other two small at its lower left and
+ * right — map 달력 핑 사람, calendar 사람 달력 핑, people 핑 사람 달력
+ * (`barSlot`). Pressing a side button turns the row like a wheel toward it:
+ * it grows into the centre, the centre one shrinks to the other side, and
+ * the far one slides off, fading, and comes back in on the near side.
+ * The buttons stay mounted so the swap is animated.
  */
-export default function BottomBar({ tab, calendarMode, onCalendar, onMap, onPin, onAim, onShare, onDeletePing, deleteHot = false }: BottomBarProps) {
+export default function BottomBar({ tab, calendarMode, onCalendar, onMap, onPin, onPeople, onShare, onDeletePing, deleteHot = false }: BottomBarProps) {
   const cal = tab === 'calendar';
-  // The crosshair slides off to the right on the way to the calendar, and on
-  // the way back grows up out of its bottom (an entrance played once).
-  const lastTab = useRef(tab);
-  const [aimBack, setAimBack] = useState(false);
-  useEffect(() => {
-    if (lastTab.current === 'calendar' && tab === 'pins') setAimBack(true);
-    lastTab.current = tab;
+  const map = tab === 'pins';
+  // Every move is played from where each button is on screen right now
+  // (FLIP): its box is read before the new places land, so a press in the
+  // middle of a turn carries on from there instead of jumping. The button
+  // that wraps round grows in on the near side while a copy of it (the ghost)
+  // slides off the far side at the same time, so the three read as one loop.
+  const nav = useRef<HTMLElement>(null);
+  const els = useRef<Partial<Record<BarButton, HTMLButtonElement | null>>>({});
+  const shown = useRef(tab);
+  const before = useRef<{ from: AppTab; rects: Partial<Record<BarButton, DOMRect>> } | null>(null);
+  if (tab !== shown.current && !before.current) {
+    const rects: Partial<Record<BarButton, DOMRect>> = {};
+    for (const b of BUTTONS) {
+      const el = els.current[b];
+      if (el) rects[b] = el.getBoundingClientRect();
+    }
+    before.current = { from: shown.current, rects };
+  }
+  useLayoutEffect(() => {
+    const snap = before.current;
+    before.current = null;
+    shown.current = tab;
+    const box = nav.current;
+    if (!snap || !box) return;
+    const turn = barTurn(snap.from, tab);
+    if (!turn) return;
+    const navBox = box.getBoundingClientRect();
+    const mid = navBox.left + navBox.width / 2;
+    const ease = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
+    const wrapping = BUTTONS.find((b) => barSlot(b, snap.from) === (turn === 1 ? 'r' : 'l'));
+    for (const b of BUTTONS) {
+      const el = els.current[b];
+      const old = snap.rects[b];
+      if (!el || !old) continue;
+      el.getAnimations().forEach((a) => a.cancel());
+      const now = el.getBoundingClientRect();
+      const nowX = now.left + now.width / 2;
+      if (b === wrapping) {
+        // In from just past the near edge, growing up out of its bottom.
+        const dx = mid - turn * OFF_PX - nowX;
+        el.animate(
+          [{ transform: `translateX(${dx}px) scale(0)`, opacity: 0 }, { transform: 'none', opacity: 1 }],
+          { duration: TURN_MS, easing: ease },
+        );
+        // …while its ghost leaves from wherever it was, off the far edge.
+        const ghost = el.cloneNode(true) as HTMLElement;
+        ghost.className = 'bar-btn bar-ghost';
+        ghost.removeAttribute('aria-label');
+        ghost.setAttribute('aria-hidden', 'true');
+        ghost.tabIndex = -1;
+        const oldX = old.left + old.width / 2;
+        Object.assign(ghost.style, {
+          left: `${oldX - navBox.left - SMALL_PX / 2}px`,
+          top: `${old.bottom - navBox.top - SMALL_PX}px`,
+          bottom: 'auto',
+        });
+        box.appendChild(ghost);
+        const from = old.width / SMALL_PX;
+        ghost
+          .animate(
+            [
+              { transform: `scale(${from})`, opacity: 1 },
+              { transform: `translateX(${mid + turn * OFF_PX - oldX}px) scale(0)`, opacity: 0 },
+            ],
+            { duration: TURN_MS, easing: ease, fill: 'forwards' },
+          )
+          .finished.then(() => ghost.remove(), () => ghost.remove());
+      } else {
+        const dx = old.left + old.width / 2 - nowX;
+        const dy = old.bottom - now.bottom;
+        el.animate(
+          [{ transform: `translate(${dx}px, ${dy}px) scale(${old.width / now.width})` }, { transform: 'none' }],
+          { duration: TURN_MS, easing: ease },
+        );
+      }
+    }
   }, [tab]);
+  const cls = (button: BarButton) => `bar-btn bar-slot-${barSlot(button, tab)}`;
   return (
-    <nav className={`bottom-bar ${cal ? 'bottom-bar--cal' : ''}`} aria-label="메뉴">
-      <button className="bar-btn bar-pin" aria-label={cal ? '지도' : '지도에 핀 꽂기'} onClick={cal ? onMap : onPin}>
+    <nav ref={nav} className={`bottom-bar ${map ? '' : 'bottom-bar--page'} ${cal ? 'bottom-bar--cal' : ''}`} aria-label="메뉴">
+      <button ref={(el) => void (els.current.pins = el)} className={`${cls('pins')} bar-pin`} aria-label={map ? '지도에 핀 꽂기' : '지도'} onClick={map ? onPin : onMap}>
         <MapPin strokeWidth={2.2} aria-hidden />
       </button>
       <button
-        className={`bar-btn bar-cal ${onDeletePing ? 'is-delete' : ''} ${onDeletePing && deleteHot ? 'is-hot' : ''}`}
+        ref={(el) => void (els.current.calendar = el)}
+        className={`${cls('calendar')} bar-cal ${onDeletePing ? 'is-delete' : ''} ${onDeletePing && deleteHot ? 'is-hot' : ''}`}
         aria-label={onDeletePing ? '핑 삭제' : cal ? (calendarMode === 'day' ? '월 달력' : '오늘') : '달력'}
         onClick={onDeletePing ?? onCalendar}
       >
@@ -61,14 +141,13 @@ export default function BottomBar({ tab, calendarMode, onCalendar, onMap, onPin,
         )}
       </button>
       <button
-        className={`bar-btn bar-aim ${aimBack && !cal ? 'is-back' : ''}`}
-        aria-label="조준해서 핀 꽂기"
-        onClick={onAim}
-        onAnimationEnd={() => setAimBack(false)}
-        tabIndex={cal ? -1 : undefined}
-        aria-hidden={cal || undefined}
+        ref={(el) => void (els.current.people = el)}
+        className={`${cls('people')} bar-people`}
+        aria-label="We Now"
+        aria-current={tab === 'people' ? 'page' : undefined}
+        onClick={tab === 'people' ? undefined : onPeople}
       >
-        <Crosshair strokeWidth={2.2} aria-hidden />
+        <Users strokeWidth={2.2} aria-hidden />
       </button>
       {onShare && (
         <button className="bar-share" aria-label="공유" onClick={onShare}>
