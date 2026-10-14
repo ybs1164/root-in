@@ -2,7 +2,7 @@
 // each store says when it wrote (`localWrote`), cloud sync listens; when a
 // pull rewrote stores, the screens holding them reload (`onPulled`).
 
-export type SyncCollection = 'categories' | 'pins' | 'folders' | 'routes' | 'days';
+export type SyncCollection = 'categories' | 'pins' | 'folders' | 'routes' | 'days' | 'pings';
 
 type WroteListener = (collection: SyncCollection) => void;
 type PulledListener = (collections: ReadonlySet<SyncCollection>) => void;

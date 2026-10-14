@@ -56,6 +56,17 @@ describe('share cards', () => {
     expect(s.removed).toBe(1);
   });
 
+  it("give pings set to 투명 their place's own pin icon on the card", () => {
+    const pings: DayPing[] = [
+      { name: '카페', time: '10:30', center: [127.0582, 37.5447], pinId: 'p1' },
+      { name: '공원', time: '13:00', center: [127.0374, 37.5444] },
+    ];
+    const s = daySubject('2026-10-03', pings, (p) => (p.pinId ? 'transparent' : 'pin'), () => 'transparent', [], undefined, (p) => (p.pinId ? 'cafe' : 'pin'));
+    expect(s.marks).toEqual(['transparent', 'pin']);
+    expect(s.icons).toEqual(['cafe', 'pin']);
+    expect(s.edges).toEqual(['transparent']);
+  });
+
   it('carry a day’s own 꾸미기 along for the photo: its pieces, theme and pattern', () => {
     const pings: DayPing[] = [{ name: '서울숲', time: '17:40', center: [127.0374, 37.5444] }];
     const decor = {

@@ -5,6 +5,7 @@ import {
   attachLongPress,
   createAreaLabelElement,
   createMarkerElement,
+  createMyLocationElement,
   createPinElement,
   syncAreaLabels,
   type CourseMap,
@@ -26,6 +27,7 @@ export class KakaoCourseMap implements CourseMap {
   private stops: PlaceRef[] = [];
   private stopOverlays: Overlay[] = [];
   private preview: Overlay | null = null;
+  private me: (Overlay & { setPosition(position: ReturnType<KakaoCourseMap['latLng']>): void }) | null = null;
   private pinOverlays: Overlay[] = [];
   private guide: Overlay | null = null;
   private areas: AreaShapes | null = null;
@@ -193,6 +195,17 @@ export class KakaoCourseMap implements CourseMap {
     );
   }
 
+  setMyLocation(center: [number, number] | null): void {
+    if (!center) {
+      this.me?.setMap(null);
+      this.me = null;
+      return;
+    }
+    // Moved, not rebuilt: the position updates every few seconds.
+    if (this.me) return this.me.setPosition(this.latLng(center));
+    this.me = new this.maps.CustomOverlay({ position: this.latLng(center), content: createMyLocationElement(), yAnchor: 0.5, zIndex: 0, map: this.map });
+  }
+
   setPreview(place: PlaceRef | null): void {
     this.preview?.setMap(null);
     this.preview = place
@@ -243,5 +256,6 @@ export class KakaoCourseMap implements CourseMap {
     this.guide?.setMap(null);
     this.stopOverlays.forEach((o) => o.setMap(null));
     this.preview?.setMap(null);
+    this.me?.setMap(null);
   }
 }

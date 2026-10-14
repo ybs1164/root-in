@@ -13,7 +13,7 @@
 
 ## 핀·루트·하루 동기화 (2단계)
 화면은 지금처럼 이 기기 저장소(localStorage)만 읽는다. 로그인해 있으면 그 저장소를 계정 행과 맞춘다 (`services/cloudSync.ts`).
-- 대상: 핀 카테고리 · 핀 · 루트 폴더 · 루트(코스 + 폴더 배정·순서) · 하루(날짜 화면 꾸미기, 핑 모양·선). 공유 횟수는 서버 몫이라 올리지 않음(3단계).
+- 대상: 핀 카테고리 · 핀 · 루트 폴더 · 루트(코스 + 폴더 배정·순서) · 하루(날짜 화면 꾸미기, 핑 모양·선) · 투데이 핑(`pings`, 2026-10-08 — 제외 주소 근처의 `local` 핑은 빼고, 받아 쓸 때도 그대로 둠). 공유 횟수는 서버 몫이라 올리지 않음(3단계).
 - **언제**: 로그인할 때(프로필 다음), 앱이 다시 앞으로 올 때(`visibilitychange`) 서버에서 받아 합침.
 - **바뀐 것만 받기** (2026-10-08, `20261010000000_sync_cursor.sql`): 행마다 서버가 찍는 `server_updated_at`(트리거 — 폰 시계 아님)과 지움 표시 `deleted_at`. 지우기는 행을 지우지 않고 표시만 함. 컬렉션마다 마지막으로 받은 `server_updated_at`을 커서로 기억(`goodroot:sync:v1`의 `cursor`)해 다음엔 그 2분 전(`CURSOR_OVERLAP_MS`, 늦게 커밋된 쓰기 대비) 이후 행만 받음 — 지움 표시 포함, 받은 행만 3방향 병합하고 나머지는 이 기기 변경만 보냄(`mergeDelta`). 처음 동기화·다른 계정·커서가 21일보다 오래됨(`CURSOR_MAX_AGE_MS`)이면 전체를 읽음(지움 표시 없는 행만). 보내기에 실패하면 커서도 그대로라 다음에 같은 행을 다시 받음. 계정이 비어 있던 첫 동기화 뒤에는 찍힌 시각이 없어 한 번 더 전체를 읽음. 이 기기에서 바꾸면 1.5초 뒤 바뀐 행만 보냄(`PUSH_DELAY_MS`, 펜 획처럼 잦은 쓰기를 모음).
 - **합치는 법**: 행마다 마지막으로 서버와 맞춘 내용의 해시(`goodroot:sync:v1`의 base)를 두고 3방향 비교 (`services/syncMerge.ts`).
@@ -44,6 +44,7 @@
    `20261009000000_shares.sql` — 공유·프로필 select를 본인만으로, `open_share(slug, count_open)`이 보낸 사람 정보까지,
    `20261010000000_sync_cursor.sql` — 동기화 테이블에 `server_updated_at`(트리거)·`deleted_at`, `pins.geom`을 서버가 `place.center`에서 채움(트리거), 행 크기 상한(NOT VALID — 새 쓰기만 검사), `purge_sync_tombstones()`.
    `20261011000000_shares_revoke.sql` — 공유에 `kind`·`revoked_at`·`add_count`·`last_opened_at`, 루트를 지우면 링크를 끊는 트리거, `open_share`가 끊긴 링크엔 null, `count_share_add`.
+   `20261012000000_pings.sql` — 투데이 핑 테이블(`pings`, 동기화 열·RLS), 안 쓰던 `days.pings` 열 삭제, `purge_sync_tombstones`에 핑 추가.
    **이 마이그레이션들을 먼저 적용하고 나서 클라이언트를 배포**할 것 — 새 클라이언트는 이 열을 읽어서, 적용 전 DB에서는 동기화가 실패(프로필 창 안내)한다.
    지움 표시는 30일 뒤 지운다: Integrations → Cron(pg_cron)에 매일 `select public.purge_sync_tombstones();` 등록. 그 전까지 지운 핀·루트의 내용이 서버에 남아 있음.
 3. Project Settings → API의 Project URL과 **anon(public)** 키를 `.env.local`에:

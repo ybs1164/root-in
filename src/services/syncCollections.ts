@@ -1,5 +1,6 @@
 import { DEFAULT_CATEGORIES } from '../domain/pin';
 import { DEFAULT_FOLDER_ICON, isFolderIcon, ROUTE_FOLDER_LIMITS, type RouteFolders } from '../domain/routeFolders';
+import type { StoredPing } from '../domain/dayPings';
 import { cleanRouteLook } from '../domain/routeStyle';
 import { getCurrentUserId } from '../lib/currentUser';
 import { THEME_LABELS, TRAVEL_MODE_LABELS, type Course, type CourseStop, type CourseTheme, type TravelMode } from '../types/course';
@@ -7,6 +8,7 @@ import type { Pin, PinCategory } from '../types/pin';
 import { localCourses } from './courseRepository';
 import { compactDecor, isBlankDecor, loadDays, parseDays, saveDays } from './dayRepository';
 import { isCategory, isPin, readStoredCategories, readStoredPins, writeStoredCategories, writeStoredPins } from './pinRepository';
+import { loadPings, parsePing, savePings } from './pingRepository';
 import { loadRouteFolders, saveRouteFolders } from './routeFolderRepository';
 import type { SyncCollection } from './syncBus';
 import type { Rows, SyncRow } from './syncMerge';
@@ -271,5 +273,37 @@ export const daysCollection: SyncCollectionDef = {
   toServer: (row) => ({ ...row, decor: row.decor ?? {} }),
 };
 
+// ── 투데이 핑 ────────────────────────────────────────────────────────────
+// Pings made at a 제외 주소 (`local`) are never rows: they stay on this phone.
+const pingRow = (p: StoredPing): SyncRow => ({
+  id: p.id,
+  pin_id: p.pinId ?? null,
+  day: p.day,
+  at: p.at,
+  place: { name: p.name, center: p.center, ...(p.address ? { address: p.address } : {}) },
+});
+
+const pingFrom = (raw: Record<string, unknown>): StoredPing | null => {
+  const place = (raw.place ?? {}) as Record<string, unknown>;
+  return parsePing({ id: raw.id, pinId: raw.pin_id, day: raw.day, at: raw.at, name: place.name, center: place.center, address: place.address });
+};
+
+export const pingsCollection: SyncCollectionDef = {
+  name: 'pings',
+  table: 'pings',
+  idColumn: 'id',
+  columns: ['id', 'pin_id', 'day', 'at', 'place'],
+  readLocal: () => byId(loadPings().filter((p) => !p.local).map(pingRow)),
+  writeLocal: (rows) => {
+    const kept = loadPings().filter((p) => p.local);
+    const synced = [...rows.values()].map(pingFrom).filter((p): p is StoredPing => !!p);
+    savePings([...synced, ...kept].sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0)));
+  },
+  fromRemote: (raw) => {
+    const ping = pingFrom(raw);
+    return ping && pingRow(ping);
+  },
+};
+
 /** In write order: folders before the routes that point at them. */
-export const SYNC_COLLECTIONS: readonly SyncCollectionDef[] = [categoriesCollection, pinsCollection, foldersCollection, routesCollection, daysCollection];
+export const SYNC_COLLECTIONS: readonly SyncCollectionDef[] = [categoriesCollection, pinsCollection, foldersCollection, routesCollection, daysCollection, pingsCollection];

@@ -3,7 +3,7 @@ import type { PinIcon } from '../types/pin';
 import type { Course } from '../types/course';
 import type { DayDecor } from './decor';
 import { addressArea, addressRoute } from './addressRoute';
-import type { DayPing, EdgeStyle, PingShape } from './dayPings';
+import type { DayPing, LineLook, PingLook } from './dayPings';
 import { withoutExcluded, type ExcludedPlace } from './privacy';
 
 /** How a stop is drawn on the card: a ping shape, or a route's plain numbered marker. */
@@ -71,14 +71,17 @@ function keptEdges(kept: number[], edgeAt: (index: number) => RouteEdgeStyle): R
 export function daySubject(
   date: string,
   pings: DayPing[],
-  shapeOf: (ping: DayPing) => PingShape,
-  edgeStyleOf: (from: DayPing, to: DayPing) => EdgeStyle,
+  shapeOf: (ping: DayPing) => PingLook,
+  edgeStyleOf: (from: DayPing, to: DayPing) => LineLook,
   excluded: ExcludedPlace[],
   decor?: DayDecor,
+  /** The places' own pin icons, for pings set to 투명. */
+  iconOf?: (ping: DayPing) => PinIcon,
 ): ShareSubject {
   const cut = withoutExcluded(pings.map((ping, index) => ({ ping, index })), (k) => k.ping, excluded);
   const kept = cut.kept.map((k) => k.index);
   return {
+    ...(iconOf ? { icons: cut.kept.map((k) => iconOf(k.ping)) } : {}),
     title: dayCardTitle(date),
     fileName: `root-in-${date}`,
     pings: cut.kept.map((k) => k.ping),

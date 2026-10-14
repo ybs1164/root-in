@@ -1,7 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { addDays } from './calendar';
-import { dateKey } from './diary';
-import { classifyPress, daySwipeTarget, dayTitle, EDGE_STYLES, edgeKey, latestPingIndex, layoutPings, pingKey, pinchOutcome, pinchProgress, pingsForDate, SAMPLE_TODAY_PINGS, pingsLandedMs } from './dayPings';
+import { classifyPress, daySwipeTarget, dayTitle, EDGE_STYLES, edgeKey, latestPingIndex, layoutPings, pingCounts, pingKey, pinchOutcome, pinchProgress, pingsForDate, pingsLandedMs, todayCandidates, type DayPing, type StoredPing } from './dayPings';
+
+const SAMPLE_TODAY_PINGS: DayPing[] = [
+  { name: '성수연방', time: '10:30', center: [127.056, 37.5475] },
+  { name: '서울숲', time: '13:00', center: [127.0374, 37.5444] },
+  { name: '뚝섬한강공원', time: '17:40', center: [127.067, 37.529] },
+];
+
+// Local times: `at` is read back in the device's own time zone.
+const stored = (id: string, day: string, hhmm: string, name: string): StoredPing => ({
+  id,
+  day,
+  at: new Date(`${day}T${hhmm}:00`).toISOString(),
+  name,
+  center: [127, 37.5],
+});
 
 describe('calendar day screen', () => {
   it('titles today as TODAY and other days as DAY <n>', () => {
@@ -10,15 +24,21 @@ describe('calendar day screen', () => {
     expect(dayTitle('2026-10-05', '2026-09-30')).toBe('DAY 5');
   });
 
-  it('pings belong to their date: the (temporary test) places stay put as days pass', () => {
-    expect(pingsForDate('2026-09-30')).toBe(SAMPLE_TODAY_PINGS);
-    expect(SAMPLE_TODAY_PINGS).toHaveLength(3);
-    expect(pingsForDate('2026-09-29')).toHaveLength(4);
-    expect(pingsForDate('2026-09-28')).toEqual([]);
+  it('pings belong to their date, in the order they were made', () => {
+    const all = [stored('b', '2026-09-30', '13:00', '서울숲'), stored('a', '2026-09-30', '10:30', '성수연방'), stored('c', '2026-09-29', '19:10', '을지로')];
+    expect(pingsForDate('2026-09-30', all).map((p) => [p.time, p.name])).toEqual([['10:30', '성수연방'], ['13:00', '서울숲']]);
     // The next day starts empty; 9/30 keeps its places.
-    expect(pingsForDate('2026-10-01')).toEqual([]);
-    // Temporary: whatever day the app opens on has its own sample walk.
-    expect(pingsForDate(dateKey())).toHaveLength(3);
+    expect(pingsForDate('2026-10-01', all)).toEqual([]);
+    expect(pingCounts(all)).toEqual(new Map([['2026-09-30', 2], ['2026-09-29', 1]]));
+  });
+
+  it("offers TODAY your pins within 50m that today doesn't have yet, nearest first", () => {
+    const pin = (id: string, lon: number) => ({ id, place: { center: [lon, 37.5] as [number, number] } });
+    const here: [number, number] = [127, 37.5];
+    const pins = [pin('far', 127.001), pin('near', 127.0003), pin('nearest', 127.0001), pin('taken', 127)];
+    const today = [{ ...stored('t', '2026-10-08', '09:00', '집 앞'), pinId: 'taken' }];
+    expect(todayCandidates(pins, here, today).map((p) => p.id)).toEqual(['nearest', 'near']); // ~9m, ~27m; far is ~88m
+    expect(todayCandidates(pins, null, [])).toEqual([]);
   });
 
   it('pages days by swiping: left-to-right goes back, right-to-left goes forward except on TODAY', () => {

@@ -50,8 +50,8 @@ describe('calendar days', () => {
         },
         '2026-09-30': { stickers: [], strokes: [] }, // blank: not stored
       },
-      shapes: { '2026-09-29|10:30|성수연방': 'heart' },
-      edges: { '2026-09-29|10:30|성수연방>13:00|서울숲': 'dotted' },
+      shapes: { '2026-09-29|10:30|성수연방': 'heart', '2026-09-29|13:00|서울숲': 'transparent' },
+      edges: { '2026-09-29|10:30|성수연방>13:00|서울숲': 'dotted', '2026-09-29|13:00|서울숲>17:40|뚝섬': 'transparent' },
     });
     const days = loadDays();
     expect(Object.keys(days.decor)).toEqual(['2026-09-29']);
@@ -61,6 +61,9 @@ describe('calendar days', () => {
     expect(days.decor['2026-09-29'].strokes[0].points[0]).toEqual([0.1235, 0.5]);
     expect(days.shapes['2026-09-29|10:30|성수연방']).toBe('heart');
     expect(days.edges['2026-09-29|10:30|성수연방>13:00|서울숲']).toBe('dotted');
+    // 투명 (the picker's empty slot) is kept too.
+    expect(days.shapes['2026-09-29|13:00|서울숲']).toBe('transparent');
+    expect(days.edges['2026-09-29|13:00|서울숲>17:40|뚝섬']).toBe('transparent');
   });
 
   it('drops what doesn’t look right instead of failing', () => {

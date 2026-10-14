@@ -6,6 +6,7 @@ import {
   attachLongPress,
   createAreaLabelElement,
   createMarkerElement,
+  createMyLocationElement,
   createPinElement,
   syncAreaLabels,
   type CourseMap,
@@ -40,6 +41,7 @@ export class MapLibreCourseMap implements CourseMap {
   private stops: PlaceRef[] = [];
   private stopMarkers: Marker[] = [];
   private previewMarker: Marker | null = null;
+  private meMarker: Marker | null = null;
   private pinMarkers: Marker[] = [];
   private guide: [number, number][] = [];
   private areas: AreaShapes | null = null;
@@ -218,6 +220,17 @@ export class MapLibreCourseMap implements CourseMap {
         .setLngLat(stop.center)
         .addTo(this.map),
     );
+  }
+
+  setMyLocation(center: [number, number] | null): void {
+    if (!center) {
+      this.meMarker?.remove();
+      this.meMarker = null;
+      return;
+    }
+    // Moved, not rebuilt: the position updates every few seconds.
+    if (this.meMarker) this.meMarker.setLngLat(center);
+    else this.meMarker = new maplibregl.Marker({ element: createMyLocationElement() }).setLngLat(center).addTo(this.map);
   }
 
   setPreview(place: PlaceRef | null): void {

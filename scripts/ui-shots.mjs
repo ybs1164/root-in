@@ -52,6 +52,12 @@ async function seed(page) {
     })));
     const d = new Date();
     const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    // TODAY's pings (the calendar's day screen), as if pinned on the spot.
+    const { savePings } = await import('/src/services/pingRepository.ts');
+    savePings(course.stops.map((s, i) => ({
+      id: `shot-ping-${i}`, day: today, at: new Date(`${today}T${['10:30', '13:00', '17:40'][i]}:00`).toISOString(),
+      name: s.place.name, center: s.place.center,
+    })));
     await diaryRepository.save(uid, {
       date: today, title: '', travelMode: 'walk',
       stops: course.stops.map((s, i) => ({ ...s, time: ['10:30', '13:00', '17:40'][i] })),

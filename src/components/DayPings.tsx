@@ -8,10 +8,15 @@ import {
   PRESS,
   type DayPing,
   type EdgeStyle,
+  type LineLook,
+  type PingLook,
   type PingShape,
 } from '../domain/dayPings';
+import { pinColorCss } from '../domain/pin';
 import { HEART_PATH, PIN_PATH, STAR_PATH } from '../lib/pingPaths';
 import { labelSide } from '../domain/stopLabels';
+import type { PinIcon, PinTint } from '../types/pin';
+import PinGlyph from './PinGlyph';
 
 export function PingIcon({ shape, className }: { shape: PingShape; className?: string }) {
   if (shape === 'pin') {
@@ -33,13 +38,21 @@ export function PingIcon({ shape, className }: { shape: PingShape; className?: s
 
 interface DayPingsProps {
   pings: DayPing[];
-  shapeOf: (ping: DayPing) => PingShape;
-  onShape: (ping: DayPing, shape: PingShape) => void;
+  shapeOf: (ping: DayPing) => PingLook;
+  onShape: (ping: DayPing, shape: PingLook) => void;
   /** Style of the line from `pings[i]` to `pings[i + 1]`. */
-  edgeStyleOf: (from: DayPing, to: DayPing) => EdgeStyle;
-  onEdgeStyle: (from: DayPing, to: DayPing, style: EdgeStyle) => void;
-  /** Short tap on a ping. Recognised only for now; what it does comes later. */
-  onTap: (ping: DayPing) => void;
+  edgeStyleOf: (from: DayPing, to: DayPing) => LineLook;
+  onEdgeStyle: (from: DayPing, to: DayPing, style: LineLook) => void;
+  /** The place's own pin icon and colour, shown when its ping is set to 투명. */
+  pinLookOf?: (ping: DayPing) => { icon: PinIcon; color: PinTint };
+  /** The ✕ on a ping whose picker is open (or a ping dropped on `dropZone`): takes the place out of the day. */
+  onDelete?: (ping: DayPing) => void;
+  /** Which ping is picked (its picker open), or null: the app turns its calendar button into ✕. */
+  onPickedChange?: (ping: DayPing | null) => void;
+  /** Where a dragged ping is dropped to delete it (the calendar button turned ✕). */
+  dropZone?: () => Element | null;
+  /** A dragged ping is over `dropZone` (it lights up). */
+  onDropHover?: (over: boolean) => void;
   /** False while a pinch or a day swipe is running, so its fingers don't count as presses. */
   pressable: () => boolean;
   /** Drawn inside the same box, above the pins (stickers and pen strokes). */
@@ -47,6 +60,13 @@ interface DayPingsProps {
   /** The day's 텍스트 / 시간 switches: the place names and visit times under the pings. */
   showNames?: boolean;
   showTimes?: boolean;
+  /**
+   * TODAY's 후보군 waiting to be added: one see-through ping at this place,
+   * hanging where a ping drops from, not joined to the others. Laid out with
+   * the day's pings, so it lands on the same spot once added.
+   */
+  ghost?: [number, number] | null;
+  onGhost?: () => void;
 }
 
 /** What a press is on: a ping, or the line leaving ping `index` for the next one. */
@@ -59,6 +79,8 @@ interface Press {
   start: number;
   timer: number;
 }
+
+const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
 
 const same = (a: Target | null, b: Target) => a !== null && a.kind === b.kind && a.index === b.index;
 
@@ -78,13 +100,34 @@ function EdgeSample({ style }: { style: EdgeStyle }) {
  * again. Long-press a ping to change its shape, or a line to change its
  * style; a short tap on a ping is reported through `onTap`.
  */
-export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, onTap, pressable, children, showNames = true, showTimes = true }: DayPingsProps) {
+export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, pinLookOf, onDelete, onPickedChange, dropZone, onDropHover, pressable, children, showNames = true, showTimes = true, ghost = null, onGhost }: DayPingsProps) {
   const latest = latestPingIndex(pings);
-  const points = layoutPings(pings.map((p) => p.center));
+  const laid = layoutPings([...pings.map((p) => p.center), ...(ghost ? [ghost] : [])]);
+  const points = laid.slice(0, pings.length);
+  const ghostAt = ghost ? laid[pings.length] : null;
+  // Pings there when this drawing mounted play the visit's intro together;
+  // ones added after (a 후보군 picked) drop on their own and draw their line.
+  const atMount = useRef(pings.length);
+  const settled = Math.min(atMount.current, pings.length);
   const maskId = `pings-reveal-${useId().replace(/:/g, '')}`;
   const press = useRef<Press | null>(null);
   const [pressed, setPressed] = useState<Target | null>(null);
   const [picking, setPicking] = useState<Target | null>(null);
+  // A ping being dragged (pressed and moved): it follows the finger; dropped on
+  // the ✕ (the calendar button) it's deleted, anywhere else it goes back.
+  const [drag, setDrag] = useState<{ index: number; dx: number; dy: number; over: boolean } | null>(null);
+  const dragging = useRef(false);
+
+  // The picked ping, for the app's ✕. A ping gone from the list (deleted) unpicks.
+  const pickedPing = picking?.kind === 'ping' ? pings[picking.index] : undefined;
+  const idsKey = pings.map((p) => p.id ?? `${p.time}|${p.name}`).join(',');
+  useEffect(() => setPicking(null), [idsKey]);
+  // Keyed by identity, not the object: the list is rebuilt on every render.
+  const pickedKey = pickedPing ? (pickedPing.id ?? `${pickedPing.time}|${pickedPing.name}`) : null;
+  useEffect(() => {
+    onPickedChange?.(pickedPing ?? null);
+  }, [pickedKey]);
+  useEffect(() => () => onPickedChange?.(null), []);
 
   const endPress = () => {
     if (press.current) window.clearTimeout(press.current.timer);
@@ -101,9 +144,28 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
     return () => window.removeEventListener('keydown', onKey);
   }, [picking]);
 
+  const overDrop = (x: number, y: number) => {
+    const r = dropZone?.()?.getBoundingClientRect();
+    return !!r && x >= r.left - 8 && x <= r.right + 8 && y >= r.top - 8 && y <= r.bottom + 8;
+  };
+
+  const stopDrag = () => {
+    dragging.current = false;
+    setDrag(null);
+    onDropHover?.(false);
+  };
+
   const onPointerDown = (target: Target) => (e: PointerEvent) => {
     if (!e.isPrimary || !pressable()) return;
     endPress();
+    // Keep getting the moves when the finger leaves the ping (a drag to the ✕).
+    if (target.kind === 'ping') {
+      try {
+        (e.currentTarget as Element).setPointerCapture(e.pointerId);
+      } catch {
+        // Not a live pointer (synthetic): moves still come while over the ping.
+      }
+    }
     const timer = window.setTimeout(() => {
       if (!press.current || !pressable()) return endPress();
       endPress();
@@ -116,39 +178,81 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
 
   const onPointerMove = (e: PointerEvent) => {
     const p = press.current;
-    if (p && classifyPress(0, Math.hypot(e.clientX - p.x, e.clientY - p.y)) === 'none') endPress();
+    if (!p) return;
+    const [dx, dy] = [e.clientX - p.x, e.clientY - p.y];
+    if (dragging.current) {
+      const over = overDrop(e.clientX, e.clientY);
+      setDrag({ index: p.target.index, dx, dy, over });
+      onDropHover?.(over);
+      return;
+    }
+    if (classifyPress(0, Math.hypot(dx, dy)) !== 'none') return;
+    // A ping pressed and moved is picked up (and picked: the calendar button turns ✕).
+    if (p.target.kind === 'ping' && onDelete && pressable()) {
+      window.clearTimeout(p.timer);
+      dragging.current = true;
+      setPressed(null);
+      setPicking(p.target);
+      setDrag({ index: p.target.index, dx, dy, over: false });
+      return;
+    }
+    endPress();
   };
 
   const onPointerUp = (e: PointerEvent) => {
     const p = press.current;
     if (!p) return;
+    if (dragging.current) {
+      const ping = pings[p.target.index];
+      const dropped = overDrop(e.clientX, e.clientY);
+      press.current = null;
+      stopDrag();
+      if (dropped && ping) onDelete?.(ping);
+      return;
+    }
     const kind = classifyPress(performance.now() - p.start, Math.hypot(e.clientX - p.x, e.clientY - p.y));
     endPress();
-    // Taps only mean something on pings (for now); a tapped line does nothing.
-    if (kind === 'tap' && p.target.kind === 'ping' && pressable()) onTap(pings[p.target.index]);
+    // A tap opens the same picker a long press does (shape / line style, and a ping's ✕).
+    if (kind === 'tap' && pressable()) setPicking(p.target);
   };
 
   const pressHandlers = (target: Target) => ({
     onPointerDown: onPointerDown(target),
     onPointerMove,
     onPointerUp,
-    onPointerCancel: endPress,
-    onPointerLeave: endPress,
+    onPointerCancel: () => {
+      stopDrag();
+      endPress();
+    },
+    // Captured while dragging, so leaving the ping doesn't end it.
+    onPointerLeave: () => dragging.current || endPress(),
+    // A press on a ping is the ping's: no day swipe or page swipe starts from it.
+    ...(target.kind === 'ping' ? { onTouchStart: stop, onTouchMove: stop, onTouchEnd: stop } : {}),
     onContextMenu: (e: { preventDefault: () => void }) => e.preventDefault(),
-    // Keyboard stand-ins: Enter = tap, Shift+Enter or the menu key = long press.
+    // Keyboard stand-ins for the tap: Enter, Space or the menu key.
     onKeyDown: (e: KeyboardEvent) => {
-      if (e.key === 'ContextMenu' || (e.key === 'Enter' && e.shiftKey)) {
+      if (e.key === 'ContextMenu' || e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         setPicking(target);
-      } else if ((e.key === 'Enter' || e.key === ' ') && target.kind === 'ping') {
-        e.preventDefault();
-        onTap(pings[target.index]);
       }
     },
   });
 
   const segments = points.slice(1).map((to, i) => ({ from: points[i], to, i }));
-  const pointsAttr = points.map((p) => `${p.x * 100},${p.y * 100}`).join(' ');
+  const pointsAttr = points
+    .slice(0, settled)
+    .map((p) => `${p.x * 100},${p.y * 100}`)
+    .join(' ');
+  const lineOf = (i: number) => (
+    <line
+      key={i}
+      className={`pings__seg pings__seg--${edgeStyleOf(pings[i], pings[i + 1])} ${same(pressed, { kind: 'edge', index: i }) ? 'is-pressed' : ''}`}
+      x1={points[i].x * 100}
+      y1={points[i].y * 100}
+      x2={points[i + 1].x * 100}
+      y2={points[i + 1].y * 100}
+    />
+  );
 
   // Where the open picker sits: above its ping, or above the middle of its line.
   let pickerAt: { x: number; y: number } | null = null;
@@ -159,7 +263,7 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
   }
 
   return (
-    <div className="pings" role="list" aria-label={pings.length ? `${pings.length}곳` : '기록 없음'}>
+    <div className={`pings ${picking || drag ? 'is-picking' : ''}`} role="list" aria-label={pings.length ? `${pings.length}곳` : '기록 없음'}>
       {points.length > 1 && (
         <svg className="pings__line" viewBox="0 0 100 100" preserveAspectRatio="none">
           <defs>
@@ -168,18 +272,18 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
               <polyline className="pings__reveal" pathLength={1} points={pointsAttr} />
             </mask>
           </defs>
-          <g mask={`url(#${maskId})`}>
-            {segments.map(({ from, to, i }) => (
-              <line
-                key={i}
-                className={`pings__seg pings__seg--${edgeStyleOf(pings[i], pings[i + 1])} ${same(pressed, { kind: 'edge', index: i }) ? 'is-pressed' : ''}`}
-                x1={from.x * 100}
-                y1={from.y * 100}
-                x2={to.x * 100}
-                y2={to.y * 100}
-              />
+          <g mask={`url(#${maskId})`}>{segments.filter(({ i }) => i + 1 < settled).map(({ i }) => lineOf(i))}</g>
+          {/* A line to a ping added later draws itself once that ping has landed. */}
+          {segments
+            .filter(({ i }) => i + 1 >= settled)
+            .map(({ from, to, i }) => (
+              <g key={`late-${i}`}>
+                <mask id={`${maskId}-${i}`} maskUnits="userSpaceOnUse" x="-10" y="-10" width="120" height="120">
+                  <polyline className="pings__reveal pings__reveal--late" pathLength={1} points={`${from.x * 100},${from.y * 100} ${to.x * 100},${to.y * 100}`} />
+                </mask>
+                <g mask={`url(#${maskId}-${i})`}>{lineOf(i)}</g>
+              </g>
             ))}
-          </g>
           {/* Wide invisible strokes to press; the pins sit above them. */}
           {segments.map(({ from, to, i }) => (
             <line
@@ -200,6 +304,7 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
       )}
       {pings.map((ping, i) => {
         const shape = shapeOf(ping);
+        const own = shape === 'transparent' ? (pinLookOf?.(ping) ?? { icon: 'pin' as PinIcon, color: 0 as PinTint }) : null;
         // Its name goes below it unless one of its lines leaves that way (as a route's stops do).
         const side = labelSide(points[i], [points[i - 1], points[i + 1]].filter((p): p is { x: number; y: number } => !!p));
         return (
@@ -210,10 +315,17 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
               `ping--${shape}`,
               `ping--label-${side}`,
               i === latest ? 'ping--latest' : '',
+              i >= settled ? 'ping--late' : '',
               same(pressed, { kind: 'ping', index: i }) ? 'is-pressed' : '',
+              same(picking, { kind: 'ping', index: i }) ? 'is-picked' : '',
+              drag?.index === i ? `is-dragging ${drag.over ? 'is-over' : ''}` : '',
             ].join(' ')}
             role="listitem"
-            style={{ left: `${points[i].x * 100}%`, top: `${points[i].y * 100}%`, animationDelay: `${120 + i * 110}ms` }}
+            style={{
+              left: drag?.index === i ? `calc(${points[i].x * 100}% + ${drag.dx}px)` : `${points[i].x * 100}%`,
+              top: drag?.index === i ? `calc(${points[i].y * 100}% + ${drag.dy}px)` : `${points[i].y * 100}%`,
+              ...(i < settled ? { animationDelay: `${120 + i * 110}ms` } : {}),
+            }}
           >
             <button
               className="ping__hit"
@@ -221,7 +333,13 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
               aria-haspopup="dialog"
               {...pressHandlers({ kind: 'ping', index: i })}
             >
-              <PingIcon shape={shape} className="ping__icon" />
+              {own ? (
+                <span className="ping__icon ping__own" style={{ '--pin': pinColorCss(own.color) } as CSSProperties}>
+                  <PinGlyph icon={own.icon} />
+                </span>
+              ) : (
+                <PingIcon shape={shape as PingShape} className="ping__icon" />
+              )}
             </button>
             {(showNames || showTimes) && (
               <span className="ping__label" aria-hidden>
@@ -233,11 +351,36 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
         );
       })}
 
+      {ghostAt && (
+        // Drawn as the newest it'll become (bigger), see-through and held up.
+        <div className="ping ping--pin ping--latest ping--ghost" style={{ left: `${ghostAt.x * 100}%`, top: `${ghostAt.y * 100}%` }}>
+          <button className="ping__hit" aria-label="여기 있는 장소를 오늘에 추가" onClick={() => pressable() && onGhost?.()}>
+            <PingIcon shape="pin" className="ping__icon" />
+          </button>
+        </div>
+      )}
+
       {children}
 
-      {picking && pickerAt && (
+      {picking && pickerAt && !drag && (
         <>
           <div className="ping-picker__backdrop" onPointerDown={() => setPicking(null)} aria-hidden />
+          {picking.kind === 'ping' && onDelete && (
+            // On the icon's top-right corner, overlapping it a little (above the backdrop).
+            <button
+              className={`ping__delete ${shapeOf(pings[picking.index]) === 'pin' ? '' : 'ping__delete--round'} ${picking.index === latest ? 'ping__delete--latest' : ''}`}
+              style={{ left: `${pickerAt.x * 100}%`, top: `${pickerAt.y * 100}%` }}
+              aria-label={`${pings[picking.index].name} 삭제`}
+              onClick={() => {
+                onDelete(pings[picking.index]);
+                setPicking(null);
+              }}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden>
+                <path d="M7 7l10 10M17 7L7 17" />
+              </svg>
+            </button>
+          )}
           <div
             className={`ping-picker ${picking.kind === 'edge' ? 'ping-picker--edge' : ''}`}
             role="dialog"
@@ -246,9 +389,38 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
                 ? `${pings[picking.index].name} 핑 모양`
                 : `${pings[picking.index].name}–${pings[picking.index + 1].name} 선 스타일`
             }
-            // --x feeds a clamp() in CSS that keeps the picker inside the box.
-            style={{ '--x': `${pickerAt.x * 100}%`, top: `${pickerAt.y * 100}%` } as CSSProperties}
+            // Centred right over its ping (or its line's middle). --rise: how far the
+            // icon stands above its point (a pin stands on it, the round shapes centre on it).
+            style={
+              {
+                left: `${pickerAt.x * 100}%`,
+                top: `${pickerAt.y * 100}%`,
+                '--rise':
+                  picking.kind === 'ping'
+                    ? `${(shapeOf(pings[picking.index]) === 'pin' ? 44 : 15) * (picking.index === latest ? 1.4 : 1)}px`
+                    : '0px',
+              } as CSSProperties
+            }
           >
+            {/* 투명: the empty first slot, as on a route — the place's own icon, or no line. */}
+            {(() => {
+              const on =
+                picking.kind === 'ping'
+                  ? shapeOf(pings[picking.index]) === 'transparent'
+                  : edgeStyleOf(pings[picking.index], pings[picking.index + 1]) === 'transparent';
+              return (
+                <button
+                  className={`ping-picker__opt ${on ? 'is-on' : ''}`}
+                  aria-label={picking.kind === 'ping' ? '투명 · 장소 아이콘' : '투명 선'}
+                  aria-pressed={on}
+                  onClick={() => {
+                    if (picking.kind === 'ping') onShape(pings[picking.index], 'transparent');
+                    else onEdgeStyle(pings[picking.index], pings[picking.index + 1], 'transparent');
+                    setPicking(null);
+                  }}
+                />
+              );
+            })()}
             {picking.kind === 'ping'
               ? PING_SHAPES.map(({ shape, label }) => {
                   const ping = pings[picking.index];

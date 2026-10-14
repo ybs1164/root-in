@@ -819,6 +819,19 @@ button:disabled {
   height: 32px;
 }
 
+/* 내 위치: an accent dot in a soft halo — a pin made inside the halo goes into
+   TODAY. One element, so its shadow costs nothing while the map moves. Taps
+   go through to the map. */
+.map-me {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--surface);
+  box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 18%, transparent);
+  pointer-events: none;
+}
+
 /* Area names (useAreaMap labels): quiet text inside each drawn area, under
    every marker and never in the way of a tap. */
 .map-area-label {
@@ -3138,7 +3151,8 @@ button:disabled {
    while the drop moves only the vertical part. */
 @keyframes stop-drop {
   from {
-    opacity: 0;
+    /* --drop-from: a TODAY ghost lands from its see-through look, not from nothing. */
+    opacity: var(--drop-from, 0);
     translate: var(--anim-x, 0px) -36px;
   }
   to {
@@ -3939,6 +3953,89 @@ button:disabled {
   font-weight: 700;
 }
 
+/* 위치 선택 (TODAY, more than one pin within 50m): the list on a ticket. */
+.place-pick {
+  width: min(320px, calc(100vw - 48px));
+}
+
+.place-pick .ticket-dialog__main {
+  padding: 26px 18px 18px;
+}
+
+.place-pick__title {
+  margin: 0;
+  font-size: 19px;
+  text-align: center;
+}
+
+.place-pick__lead {
+  margin: 8px 0 16px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.place-pick__list {
+  max-height: min(320px, 45dvh);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.place-pick__item {
+  border-radius: 14px;
+}
+
+.place-pick__item.is-picked {
+  background: var(--accent-soft);
+}
+
+.place-pick__opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.place-pick__opt:focus {
+  outline: none;
+}
+
+.place-pick__opt:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 14px;
+}
+
+.place-pick__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The picked place opens a little: its 한 줄 메모, lined up with the name. */
+.place-pick__memo {
+  margin: 0;
+  padding: 0 12px 12px 58px;
+  color: var(--muted);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  animation: unfold 0.2s ease both;
+}
+
 /* A shared route link's popup: the sharer's photo centred, who shared it and how often. */
 .shared-route-dialog {
   width: min(300px, calc(100vw - 48px));
@@ -4660,6 +4757,20 @@ button:disabled {
 .bottom-bar--cal .bar-cal svg {
   width: 38px;
   height: 38px;
+}
+
+/* A ping picked on the day screen: the calendar button is its ✕ (tap, or
+   drop the ping on it). Turns red with a little swell while a ping is over it. */
+.bottom-bar--cal .bar-cal.is-delete {
+  background: var(--text);
+  color: var(--surface);
+  transition-property: left, bottom, width, height, scale;
+}
+
+.bottom-bar--cal .bar-cal.is-hot {
+  background: var(--danger);
+  color: var(--on-accent);
+  scale: 1.12;
 }
 
 .bar-aim {
@@ -6373,6 +6484,13 @@ button:disabled {
   translate: 0 -8px;
 }
 
+/* The translate makes the drawing one layer, under the day screen's 꾸미기
+   rail (z 15): while a ping's popup is open (or a ping is dragged) the
+   drawing comes above it. */
+.pings.is-picking {
+  z-index: 16;
+}
+
 .pings__line {
   position: absolute;
   inset: 0;
@@ -6402,6 +6520,11 @@ button:disabled {
 
 .pings__seg--bold {
   stroke-width: 1.9;
+}
+
+/* 투명 line: not drawn, still there to tap and change back. */
+.pings__seg--transparent {
+  stroke: none;
 }
 
 .pings__seg.is-pressed {
@@ -6477,15 +6600,125 @@ button:disabled {
 
 .ping--dot,
 .ping--star,
-.ping--heart {
+.ping--heart,
+.ping--transparent {
   --w: 30px;
   --h: 30px;
   --anchor: 0.5;
 }
 
+/* 투명: the place's own pin icon in its category colour, as on the map. */
+.ping__own {
+  display: grid;
+  color: var(--pin);
+  fill: currentColor;
+}
+
+.ping__own .pin-glyph {
+  width: 100%;
+  height: 100%;
+}
+
+/* ✕ on a ping whose picker is open (tap): its icon's top-right corner,
+   overlapping it a little; above the picker's backdrop. --k as on .ping. */
+.ping__delete {
+  --k: 1;
+  --cx: 17px; /* half the pin's width… */
+  --cy: 44px; /* …and its height above the point */
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--text);
+  color: var(--surface);
+  translate: calc(-50% + var(--cx) * var(--k) - 4px) calc(-50% - var(--cy) * var(--k) + 6px);
+  animation: pop-in 0.2s var(--pop-ease) both;
+}
+
+/* 44px to press, though it looks small. */
+.ping__delete::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+}
+
+.ping__delete--round {
+  --cx: 15px;
+  --cy: 15px;
+}
+
+.ping__delete--latest {
+  --k: 1.4;
+}
+
+.ping__delete svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
 .ping--latest {
   --k: 1.4;
   z-index: 1;
+}
+
+/* The picked ping stays above its picker's backdrop, so it can be picked up and dragged. */
+.ping.is-picked {
+  z-index: 3;
+}
+
+/* Picked up: it follows the finger (DayPings sets left/top), a touch bigger,
+   its name hidden; over the ✕ it fades a little — let go and it's gone. */
+.ping.is-dragging {
+  z-index: 4;
+  cursor: grabbing;
+}
+
+.ping.is-dragging .ping__icon {
+  scale: 1.15;
+}
+
+.ping.is-dragging .ping__label {
+  visibility: hidden;
+}
+
+.ping.is-dragging.is-over {
+  opacity: 0.6;
+}
+
+/* TODAY's 후보군: one see-through ping held where a ping drops from, not
+   joined to the others, waiting for a tap. No intro: it's just there. */
+.ping--ghost {
+  animation: none;
+  opacity: 0.45;
+  translate: 0 -36px;
+}
+
+/* A ping added after the day opened (the ghost picked): it drops from the
+   ghost's spot and look at once, then its line draws (.pings__reveal--late). */
+.ping--late {
+  --drop-from: 0.45;
+}
+
+.pings__reveal--late {
+  animation-duration: 0.45s;
+  animation-delay: var(--drop-time);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ping--late,
+  .pings__reveal--late {
+    animation-duration: 0.01s;
+    animation-delay: 0s;
+  }
 }
 
 /* Long-press target: the icon plus a margin, at least 44px. */
@@ -6595,9 +6828,9 @@ button:disabled {
   border-radius: 16px;
   background: var(--surface);
   box-shadow: var(--shadow);
-  /* Centred over the ping, kept inside the drawing box. */
-  left: clamp(100px, var(--x, 50%), calc(100% - 100px));
-  transform: translate(-50%, calc(-100% - 70px));
+  /* Centred right over the ping, just above its icon and its ✕ (DayPings sets
+     left / top on the ping's point and --rise to the icon's height above it). */
+  transform: translate(-50%, calc(-100% - var(--rise, 44px) - 16px));
   animation: rise-in 0.18s ease both;
 }
 
