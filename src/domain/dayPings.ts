@@ -1,8 +1,13 @@
 import { addDays } from './calendar';
-import { dateKey } from './diary';
+import { dateKey, timeKey } from './diary';
+import { haversineMeters } from './geo';
 
 /** One place visited on a day, as drawn on the calendar's day screen. */
 export interface DayPing {
+  /** The stored ping (absent on a route's stops, drawn the same way on a card). */
+  id?: string;
+  /** The pin it was added from: its icon is what the 투명 look shows. */
+  pinId?: string;
   name: string;
   /** 'HH:MM' */
   time: string;
@@ -10,47 +15,72 @@ export interface DayPing {
 }
 
 /**
- * Temporary test data: pings aren't recorded yet (they will come from the
- * current location), so two fixed dates carry sample places to exercise the
- * screen. Fixed, not "today" and "yesterday": a day's places belong to that
- * date and stay there as days pass, and TODAY moves on to a fresh day.
- * Remove once real pings are stored.
+ * A ping as stored: one of your pins you were at, added to that day's TODAY
+ * (a snapshot — deleting or renaming the pin leaves the day as it was).
+ * `local` pings were at a 제외 주소 and never leave the phone.
  */
-export const SAMPLE_TODAY_PINGS: DayPing[] = [
-  { name: '성수연방', time: '10:30', center: [127.056, 37.5475] },
-  { name: '서울숲', time: '13:00', center: [127.0374, 37.5444] },
-  { name: '뚝섬한강공원', time: '17:40', center: [127.067, 37.529] },
-];
+export interface StoredPing {
+  id: string;
+  /** The pin it was recorded from: that pin isn't offered again the same day. */
+  pinId?: string;
+  /** The day screen it belongs to (local date, `dateKey`). */
+  day: string;
+  /** When it was pinned (ISO). */
+  at: string;
+  name: string;
+  center: [number, number];
+  address?: string;
+  local?: boolean;
+}
 
-/** Temporary test data for the day before, so paging back a day has something to show. */
-export const SAMPLE_YESTERDAY_PINGS: DayPing[] = [
-  { name: '익선동 한옥거리', time: '11:00', center: [126.9895, 37.574] },
-  { name: '창덕궁', time: '13:20', center: [126.991, 37.5794] },
-  { name: '인사동', time: '16:00', center: [126.9853, 37.5718] },
-  { name: '을지로 노가리골목', time: '19:10', center: [126.9912, 37.566] },
-];
+/** Pins this close to where you are can be added to TODAY (the 후보군). */
+export const TODAY_PING_RADIUS_M = 50;
 
-/** Where the sample pings live (see above). */
+export interface MyLocation {
+  center: [number, number];
+  /** When the position was fixed (ms). */
+  at: number;
+}
+
 /**
- * Temporary test data for whatever day it is when the app opens, so TODAY
- * itself has something to draw and decorate (an 을지로·명동·남산 walk).
- * Remove with the rest once real pings are stored.
+ * TODAY's 후보군: your pins within 50m of where you are that aren't in today
+ * yet (one already recorded today isn't offered again), nearest first.
  */
-export const SAMPLE_NOW_PINGS: DayPing[] = [
-  { name: '을지로 노가리 골목', time: '12:10', center: [126.9911, 37.5662] },
-  { name: '명동성당', time: '14:30', center: [126.9873, 37.5633] },
-  { name: '남산서울타워', time: '18:20', center: [126.9882, 37.5512] },
-];
+export function todayCandidates<P extends { id: string; place: { center: [number, number] } }>(
+  pins: readonly P[],
+  here: [number, number] | null,
+  today: readonly StoredPing[],
+): P[] {
+  if (!here) return [];
+  const taken = new Set(today.map((p) => p.pinId).filter(Boolean));
+  return pins
+    .map((pin) => ({ pin, m: haversineMeters(pin.place.center, here) }))
+    .filter(({ pin, m }) => m <= TODAY_PING_RADIUS_M && !taken.has(pin.id))
+    .sort((a, b) => a.m - b.m)
+    .map(({ pin }) => pin);
+}
 
-export const SAMPLE_PING_DATES: Record<string, DayPing[]> = {
-  [dateKey()]: SAMPLE_NOW_PINGS,
-  '2026-09-30': SAMPLE_TODAY_PINGS,
-  '2026-09-29': SAMPLE_YESTERDAY_PINGS,
-};
+export const toDayPing = (ping: StoredPing): DayPing => ({
+  id: ping.id,
+  ...(ping.pinId ? { pinId: ping.pinId } : {}),
+  name: ping.name,
+  time: timeKey(new Date(ping.at)),
+  center: ping.center,
+});
 
-/** A date's pings: its own, whatever today is. */
-export function pingsForDate(key: string): DayPing[] {
-  return SAMPLE_PING_DATES[key] ?? [];
+/** A date's pings, in the order they were made. */
+export function pingsForDate(key: string, stored: readonly StoredPing[]): DayPing[] {
+  return stored
+    .filter((p) => p.day === key)
+    .sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0))
+    .map(toDayPing);
+}
+
+/** How many pings each date has (the month calendar's dots). */
+export function pingCounts(stored: readonly StoredPing[]): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const p of stored) counts.set(p.day, (counts.get(p.day) ?? 0) + 1);
+  return counts;
 }
 
 /**
@@ -107,6 +137,14 @@ export const PING_SHAPES: { shape: PingShape; label: string }[] = [
 
 /** Line styles for the segment between two consecutive pings (long-press a line). */
 export type EdgeStyle = 'solid' | 'dashed' | 'dotted' | 'bold';
+
+/**
+ * What a day's ping or line can be set to: a shape / line style, or 투명
+ * (the picker's empty first slot, as on a route) — no shape, the place's own
+ * pin icon instead; no line at all (still tappable to change it back).
+ */
+export type PingLook = PingShape | 'transparent';
+export type LineLook = EdgeStyle | 'transparent';
 
 export const EDGE_STYLES: { style: EdgeStyle; label: string }[] = [
   { style: 'solid', label: '실선' },

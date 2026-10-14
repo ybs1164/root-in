@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { saveRouteFolders, loadRouteFolders } from './routeFolderRepository';
 import { localCourses } from './courseRepository';
 import { loadDays, saveDays } from './dayRepository';
+import { loadPings, savePings } from './pingRepository';
 import { readStoredCategories, readStoredPins, writeStoredCategories, writeStoredPins } from './pinRepository';
 import { SYNC_COLLECTIONS, type SyncCollectionDef } from './syncCollections';
 import { rowHash, type SyncRow } from './syncMerge';
@@ -46,6 +47,10 @@ function seed() {
     shapes: { '2026-10-03|10:00|카페': 'star' },
     edges: {},
   } as never);
+  savePings([
+    { id: 'g1', pinId: 'pin1', day: '2026-10-03', at: '2026-10-03T01:00:00.000Z', name: '카페', center: [127.0, 37.5], address: '서울 성동구' },
+    { id: 'home', day: '2026-10-03', at: '2026-10-03T12:00:00.000Z', name: '우리 집', center: [127.01, 37.5], local: true },
+  ]);
 }
 
 describe('syncCollections', () => {
@@ -85,6 +90,15 @@ describe('syncCollections', () => {
     expect(route).toMatchObject({ theme: 'etc', stops: [{ place: { id: 'p' } }] });
     expect(days.fromRemote({ day: '2026-10-03', decor: {}, looks: { shapes: { '2026-10-04|x': 'star' } } })).toBeNull();
     expect(days.fromRemote({ day: 'drop table', decor: {} })).toBeNull();
+  });
+
+  it('keeps pings at a 제외 주소 on this phone: never a row, never dropped by a pull', () => {
+    const pings = SYNC_COLLECTIONS.find((d) => d.name === 'pings')!;
+    expect([...pings.readLocal().keys()]).toEqual(['g1']);
+    pings.writeLocal(new Map([['g2', { id: 'g2', day: '2026-10-04', at: '2026-10-04T01:00:00.000Z', place: { name: '공원', center: [127.02, 37.5] } }]]));
+    expect(loadPings().map((p) => p.id)).toEqual(['home', 'g2']);
+    expect(pings.fromRemote({ id: 'x', day: '2026-10-04', at: 'nope', place: { name: 'a', center: [127, 37.5] } })).toBeNull();
+    expect(pings.fromRemote({ id: 'x', day: '2026-10-04', at: '2026-10-04T01:00:00Z', place: { name: 'a', center: [0, 0] } })).toBeNull(); // outside Korea
   });
 
   it('writes pins under this device id, whatever the server row says', () => {

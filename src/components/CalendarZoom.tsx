@@ -1,7 +1,13 @@
 import { ChevronLeft, ChevronRight, Share } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MutableRefObject, type TouchEvent } from 'react';
 import { swipeCommits, SWIPE } from '../domain/appTabs';
-import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingKey, pingsForDate, pingsLandedMs, SAMPLE_PING_DATES } from '../domain/dayPings';
+import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingCounts, pingKey, pingsForDate, pingsLandedMs, todayCandidates, type DayPing } from '../domain/dayPings';
+import { useStoredPings } from '../hooks/useStoredPings';
+import { recordPing, removePing } from '../services/pingRepository';
+import { categoryStyle, UNCATEGORIZED } from '../domain/pin';
+import type { Pin, PinCategory } from '../types/pin';
+import ConfirmDialog from './ConfirmDialog';
+import PlacePickDialog from './PlacePickDialog';
 import { addDays } from '../domain/calendar';
 import {
   canUndo,
@@ -99,12 +105,24 @@ interface CalendarZoomProps {
   onMode: (mode: Mode) => void;
   /** Tells the app a decorating tool is out, so it can put the tab buttons away. */
   onDecorating: (on: boolean) => void;
+  /**
+   * A ping is picked (tapped, or picked up to drag): `remove` deletes it, and
+   * the app shows its calendar button as ✕. null when nothing is picked.
+   */
+  onPingPicked?: (remove: (() => void) | null) => void;
+  /** The calendar button (✕ while a ping is picked): drop a dragged ping on it to delete it. */
+  pingDropZone?: () => Element | null;
+  onPingDropHover?: (over: boolean) => void;
   /** The theme of the day on screen (each day keeps its own); the app wears it. */
   onDayTheme: (theme: ThemeId) => void;
   /** Likewise the day's background pattern, which the app lays across the page. */
   onDayPattern: (pattern: PatternId) => void;
-  /** 제외 주소: pings there are left out of the shared card. */
+  /** 제외 주소: pings there are left out of the shared card (and added ones stay on this phone). */
   excluded: ExcludedPlace[];
+  /** Where you are (null: unknown); TODAY offers your pins within 50m of it. */
+  here: [number, number] | null;
+  pins: Pin[];
+  categories: PinCategory[];
   /** 공유 pressed before 집 is set (it's required): the app asks for it. */
   onNeedHome: () => void;
   /** 공유: the day as a card (its 꾸미기 carried along), for the app's 꾸미기 screen. */
@@ -118,7 +136,7 @@ interface CalendarZoomProps {
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
 
-export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme, onDayPattern, excluded, onNeedHome, onShare, holdIntro = false, shareRef }: CalendarZoomProps) {
+export default function CalendarZoom({ command, onMode, onDecorating, onPingPicked, pingDropZone, onPingDropHover, onDayTheme, onDayPattern, excluded, here, pins, categories, onNeedHome, onShare, holdIntro = false, shareRef }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
   const [date, setDate] = useState(today);
@@ -192,7 +210,18 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
   const shownDate = preview ?? date;
   // While a pinch-out is only previewing the day, its pins stay out: they
   // drop in once the zoom lands, like every other way of opening a day.
-  const pings = preview || holdIntro ? [] : pingsForDate(shownDate);
+  const stored = useStoredPings();
+  const pings = preview || holdIntro ? [] : pingsForDate(shownDate, stored);
+  // TODAY's 후보군: your pins within 50m not in today yet. One see-through ping
+  // stands for them (at the pin when there's one, else where you are).
+  const candidates = todayCandidates(pins, here, stored.filter((p) => p.day === today));
+  const [choosing, setChoosing] = useState(false);
+  const addToToday = (pin: Pin) => recordPing(pin, excluded);
+  // Taking a ping out of the day (its ✕, the calendar button's ✕, or a drop on
+  // it) asks first, like deleting a pin on the map.
+  const [deleting, setDeleting] = useState<DayPing | null>(null);
+  // A ping set to 투명 shows its place's own pin icon (plain 미분류 pin if the pin is gone).
+  const pinLookOf = (ping: DayPing) => categoryStyle(categories, pins.find((p) => p.id === ping.pinId)?.categoryId ?? UNCATEGORIZED.id);
   // Landed: remount the drawing so the pins drop, the lines draw and the
   // 꾸미기 settles now, not unseen under the sliding page.
   const held = useRef(holdIntro);
@@ -200,9 +229,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
     if (held.current && !holdIntro) setVisit((v) => v + 1);
     held.current = holdIntro;
   }, [holdIntro]);
-  const counts = new Map(
-    Object.entries(SAMPLE_PING_DATES).map(([key, pings]) => [key, pings.length] as [string, number]),
-  );
+  const counts = pingCounts(stored);
 
   // The layers are moved by writing their style directly, not through
   // React state: a pinch fires dozens of moves a second, and re-rendering
@@ -295,11 +322,12 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
     onShare(
       daySubject(
         date,
-        pingsForDate(date),
+        pingsForDate(date, stored),
         (ping) => days.shapes[pingKey(date, ping)] ?? 'pin',
         (from, to) => days.edges[edgeKey(date, from, to)] ?? 'solid',
         excluded,
         days.decor[date] ?? EMPTY_DECOR,
+        (ping) => pinLookOf(ping).icon,
       ),
     );
   };
@@ -752,12 +780,22 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
               onEdgeStyle={(from, to, style) =>
                 setDays((d) => ({ ...d, edges: { ...d.edges, [edgeKey(shownDate, from, to)]: style } }))
               }
-              onTap={() => {
-                // Recognised on purpose; what a tap opens is decided later.
-              }}
+              pinLookOf={pinLookOf}
+              onDelete={(ping) => ping.id && setDeleting(ping)}
+              onPickedChange={(ping) => onPingPicked?.(ping?.id ? () => setDeleting(ping) : null)}
+              dropZone={pingDropZone}
+              onDropHover={onPingDropHover}
               pressable={() => gesture.current === null && daySwipe.current?.axis !== 'x' && !toolRef.current}
               showNames={!dayDecor.hideNames}
               showTimes={!dayDecor.hideTimes}
+              ghost={
+                shownDate === today && mode === 'day' && !preview && !holdIntro && !tool && candidates.length
+                  ? candidates.length === 1
+                    ? candidates[0].place.center
+                    : here
+                  : null
+              }
+              onGhost={() => (candidates.length === 1 ? addToToday(candidates[0]) : setChoosing(true))}
             >
               {!holdIntro && (
                 <DecorLayer
@@ -788,6 +826,20 @@ export default function CalendarZoom({ command, onMode, onDecorating, onDayTheme
           </div>
         )}
       </section>
+
+      {deleting?.id && (
+        <ConfirmDialog
+          label="장소 삭제"
+          message={`'${deleting.name}' 장소를 삭제합니다.`}
+          detail="삭제한 장소는 복구할 수 없어요."
+          onConfirm={() => deleting.id && removePing(deleting.id)}
+          onClose={() => setDeleting(null)}
+        />
+      )}
+
+      {choosing && candidates.length > 0 && (
+        <PlacePickDialog places={candidates} categories={categories} onPick={addToToday} onClose={() => setChoosing(false)} />
+      )}
 
       {trayTool && (
         <DecorTray

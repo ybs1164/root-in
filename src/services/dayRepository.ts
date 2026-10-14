@@ -23,7 +23,7 @@ import {
   type PlacedText,
   type Stroke,
 } from '../domain/decor';
-import type { EdgeStyle, PingShape } from '../domain/dayPings';
+import type { LineLook, PingLook } from '../domain/dayPings';
 import { localWrote } from './syncBus';
 
 /**
@@ -37,15 +37,15 @@ const DAYS_KEY = 'goodroot:days:v1';
 export interface DayStore {
   decor: Record<string, DayDecor>;
   /** By `pingKey` (date|time|name). */
-  shapes: Record<string, PingShape>;
+  shapes: Record<string, PingLook>;
   /** By `edgeKey`. */
-  edges: Record<string, EdgeStyle>;
+  edges: Record<string, LineLook>;
 }
 
 export const EMPTY_DAY_STORE: DayStore = { decor: {}, shapes: {}, edges: {} };
 
-const SHAPES: PingShape[] = ['pin', 'dot', 'star', 'heart'];
-const EDGES: EdgeStyle[] = ['solid', 'dashed', 'dotted', 'bold'];
+const SHAPES: PingLook[] = ['transparent', 'pin', 'dot', 'star', 'heart'];
+const EDGES: LineLook[] = ['transparent', 'solid', 'dashed', 'dotted', 'bold'];
 const MAX_STROKES = 400;
 const MAX_POINTS = 1500;
 const MAX_STICKERS = 80;
@@ -163,8 +163,8 @@ export function parseDays(value: unknown): DayStore {
     }
     return {
       decor,
-      shapes: pick(raw.shapes, (v): v is PingShape => SHAPES.includes(v as PingShape)),
-      edges: pick(raw.edges, (v): v is EdgeStyle => EDGES.includes(v as EdgeStyle)),
+      shapes: pick(raw.shapes, (v): v is PingLook => SHAPES.includes(v as PingLook)),
+      edges: pick(raw.edges, (v): v is LineLook => EDGES.includes(v as LineLook)),
     };
   } catch {
     return EMPTY_DAY_STORE;

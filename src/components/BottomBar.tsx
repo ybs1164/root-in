@@ -1,4 +1,4 @@
-import { CalendarDays, Crosshair, MapPin, Share } from 'lucide-react';
+import { CalendarDays, Crosshair, MapPin, Share, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { AppTab } from '../domain/appTabs';
 import { CalendarToday } from './icons';
@@ -17,6 +17,10 @@ interface BottomBarProps {
   onAim: () => void;
   /** A day on the calendar: 공유 at the row's right end. */
   onShare?: () => void;
+  /** A ping is picked on the day screen: the calendar button is ✕ and deletes it. */
+  onDeletePing?: () => void;
+  /** A ping is being dragged over the ✕. */
+  deleteHot?: boolean;
 }
 
 /**
@@ -26,7 +30,7 @@ interface BottomBarProps {
  * button grows into the centre while the pin shrinks into the crosshair's
  * place, where it is the way back; the crosshair slides on and fades. The buttons stay mounted so the swap is animated.
  */
-export default function BottomBar({ tab, calendarMode, onCalendar, onMap, onPin, onAim, onShare }: BottomBarProps) {
+export default function BottomBar({ tab, calendarMode, onCalendar, onMap, onPin, onAim, onShare, onDeletePing, deleteHot = false }: BottomBarProps) {
   const cal = tab === 'calendar';
   // The crosshair slides off to the right on the way to the calendar, and on
   // the way back grows up out of its bottom (an entrance played once).
@@ -42,12 +46,19 @@ export default function BottomBar({ tab, calendarMode, onCalendar, onMap, onPin,
         <MapPin strokeWidth={2.2} aria-hidden />
       </button>
       <button
-        className="bar-btn bar-cal"
-        aria-label={cal ? (calendarMode === 'day' ? '월 달력' : '오늘') : '달력'}
-        onClick={onCalendar}
+        className={`bar-btn bar-cal ${onDeletePing ? 'is-delete' : ''} ${onDeletePing && deleteHot ? 'is-hot' : ''}`}
+        aria-label={onDeletePing ? '핑 삭제' : cal ? (calendarMode === 'day' ? '월 달력' : '오늘') : '달력'}
+        onClick={onDeletePing ?? onCalendar}
       >
-        {/* Shows where you are: today's date on the day screens, the month grid on the month. */}
-        {cal && calendarMode === 'month' ? <CalendarDays strokeWidth={2.2} aria-hidden /> : <CalendarToday />}
+        {/* Shows where you are: today's date on the day screens, the month grid on
+            the month; ✕ while a ping is picked (tap it or drop the ping on it). */}
+        {onDeletePing ? (
+          <X strokeWidth={2.4} aria-hidden />
+        ) : cal && calendarMode === 'month' ? (
+          <CalendarDays strokeWidth={2.2} aria-hidden />
+        ) : (
+          <CalendarToday />
+        )}
       </button>
       <button
         className={`bar-btn bar-aim ${aimBack && !cal ? 'is-back' : ''}`}

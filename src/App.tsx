@@ -37,6 +37,8 @@ import { folderOf, moveRoute, neighborRoute, type RouteTab } from './domain/rout
 import { useCourses } from './hooks/useCourses';
 import { useAreaMap } from './hooks/useAreaMap';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
+import { useMyLocation } from './hooks/useMyLocation';
+import { removePingsOfPin } from './services/pingRepository';
 import { useAccount } from './hooks/useAccount';
 import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
@@ -171,6 +173,10 @@ export default function App() {
   const [calendarMode, setCalendarMode] = useState<'day' | 'month'>('day');
   // A 꾸미기 tool is out on the calendar: the tab buttons step aside for its tray.
   const [decorating, setDecorating] = useState(false);
+  // TODAY / DAY n: a picked ping turns the calendar button into ✕ (tap it, or
+  // drop the ping on it, to delete the ping); hot while a ping is dragged over it.
+  const [pingRemove, setPingRemove] = useState<(() => void) | null>(null);
+  const [pingDropHot, setPingDropHot] = useState(false);
   // Commands for the calendar page (there's no calendar button to send them now).
   const [calendarCommand, setCalendarCommand] = useState<CalendarCommand | null>(null);
   // The calendar hands up how to share the day on screen (its 공유 sits in the bottom row).
@@ -412,6 +418,21 @@ export default function App() {
   useEffect(() => {
     mapRef.current?.setAreaMap(areaMap);
   }, [areaMap, mapProvider]);
+  // 내 위치: a dot on the map, and the first fix after opening centers the
+  // map there. TODAY offers the pins within 50m of it (CalendarZoom).
+  const me = useMyLocation();
+  const centeredOnMe = useRef(false);
+  useEffect(() => {
+    const map = mapRef.current;
+    map?.setMyLocation(me?.center ?? null);
+    if (!map || !me || centeredOnMe.current) return;
+    centeredOnMe.current = true;
+    // Not over something already on screen (a received route, a search result).
+    // No padding: the pin button pins at the map's true center, so pressing it
+    // right away lands on the dot.
+    if (!shownRoute && !preview && !aiming) map.focus(me.center);
+  }, [me, mapProvider]);
+
   const stopsKey = shownStops.map((p) => p.id).join('|');
   useEffect(() => {
     mapRef.current?.setCourse(shownStops);
@@ -754,10 +775,16 @@ export default function App() {
   // Deleting a pin also removes every route that contains its place.
   const [pinDeleting, setPinDeleting] = useState<Pin | null>(null);
   const routesWithPin = (pin: Pin) => course.courses.filter((c) => c.stops.some((s) => s.place.id === pin.place.id));
+  // A pin deleted on the map leaves the days too (its TODAY pings); a ping
+  // taken out of a day leaves the pin alone (CalendarZoom).
+  const deletePin = (pin: Pin) => {
+    pinStore.removePin(pin.id);
+    removePingsOfPin(pin.id);
+    if (activePinId === pin.id) setActivePinId(null);
+  };
   const deletePinWithRoutes = async (pin: Pin) => {
     await deleteRoutes(routesWithPin(pin));
-    pinStore.removePin(pin.id);
-    if (activePinId === pin.id) setActivePinId(null);
+    deletePin(pin);
   };
 
   // ✓ on the edit sheet: keep the stops with their look, the description and the folder.
@@ -1263,6 +1290,9 @@ export default function App() {
               command={calendarCommand}
               shareRef={shareDay}
               excluded={privacy.excluded}
+              here={me?.center ?? null}
+              pins={pinStore.pins}
+              categories={pinStore.categories}
               onNeedHome={() => needHome('day')}
               onShare={(subject) => {
                 openStudio('day');
@@ -1270,6 +1300,9 @@ export default function App() {
                 setStudio(subject);
               }}
               onDecorating={setDecorating}
+              onPingPicked={(remove) => setPingRemove(() => remove)}
+              pingDropZone={() => barEl.current?.querySelector('.bar-cal') ?? null}
+              onPingDropHover={setPingDropHot}
               onDayTheme={setDayTheme}
               onDayPattern={setDayPattern}
               onMode={setCalendarMode}
@@ -1305,6 +1338,8 @@ export default function App() {
           tab={pageMoving ? 'pins' : tab}
           calendarMode={calendarMode}
           onCalendar={() => tagTab('calendar')}
+          onDeletePing={onPage && calendarZoom && calendarMode === 'day' && pingRemove ? pingRemove : undefined}
+          deleteHot={pingDropHot}
           onMap={() => changeTab('pins')}
           onShare={onPage && calendarZoom && calendarMode === 'day' ? () => {
             analytics.track('share_started', { kind: 'day' });
@@ -1351,10 +1386,7 @@ export default function App() {
             label="장소 삭제"
             message={`'${pinDeleting.place.name}' 장소를 삭제합니다.`}
             detail="삭제한 장소는 복구할 수 없어요."
-            onConfirm={() => {
-              pinStore.removePin(pinDeleting.id);
-              if (activePinId === pinDeleting.id) setActivePinId(null);
-            }}
+            onConfirm={() => deletePin(pinDeleting)}
             onClose={() => setPinDeleting(null)}
           />
         ))}

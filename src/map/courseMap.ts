@@ -22,6 +22,8 @@ export interface CourseMap {
   setCourse(stops: PlaceRef[]): void;
   /** A distinct marker for a search result the user is looking at. */
   setPreview(place: PlaceRef | null): void;
+  /** The phone's own position (a dot, not tappable); null hides it. */
+  setMyLocation(center: [number, number] | null): void;
   /** Saved pins, colored/iconed by category. Drawn under the course markers. */
   setPins(pins: PinMarker[]): void;
   /** A faint dashed line (e.g. "이 카테고리 잇기"); not a saved course. */
@@ -98,6 +100,15 @@ export function createMarkerElement(label: string, variant: 'stop' | 'preview', 
   } else {
     el.tabIndex = -1;
   }
+  return el;
+}
+
+/** Where you are: a dot with a soft ring. Taps go through to the map. */
+export function createMyLocationElement(): HTMLElement {
+  const el = document.createElement('div');
+  el.className = 'map-me';
+  el.setAttribute('aria-label', '내 위치');
+  el.setAttribute('role', 'img');
   return el;
 }
 

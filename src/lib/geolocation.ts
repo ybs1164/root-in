@@ -18,3 +18,22 @@ export function getCurrentPlace(name: string): Promise<PlaceRef | null> {
     );
   });
 }
+
+/**
+ * Follows the phone's position: `onFix` on every update (rounded like
+ * getCurrentPlace). Returns the stop. Does nothing without the API or once
+ * permission is denied.
+ */
+export function watchPosition(onFix: (center: [number, number], at: number) => void): () => void {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) return () => undefined;
+  const id = navigator.geolocation.watchPosition(
+    ({ coords, timestamp }) => {
+      const lon = Math.round(coords.longitude * 1e6) / 1e6;
+      const lat = Math.round(coords.latitude * 1e6) / 1e6;
+      onFix([lon, lat], timestamp || Date.now());
+    },
+    () => undefined,
+    { enableHighAccuracy: true, timeout: 20000, maximumAge: 30000 },
+  );
+  return () => navigator.geolocation.clearWatch(id);
+}
