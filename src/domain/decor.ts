@@ -204,7 +204,7 @@ export interface StickerAsset {
   src: string;
 }
 
-export const STICKERS: StickerAsset[] = [
+const STICKER_ASSETS: StickerAsset[] = [
   { id: 'paper-heart', label: '콜라주 하트', src: `${import.meta.env.BASE_URL}stickers/paper-heart.png` },
   { id: 'paper-star', label: '콜라주 별', src: `${import.meta.env.BASE_URL}stickers/paper-star.png` },
   { id: 'paper-umbrella', label: '콜라주 우산', src: `${import.meta.env.BASE_URL}stickers/paper-umbrella.png` },
@@ -272,7 +272,31 @@ export const STICKERS: StickerAsset[] = [
   { id: 'pop-bubble', label: '팝 말풍선', src: `${import.meta.env.BASE_URL}stickers/pop-bubble.png` },
 ];
 
-export const getSticker = (id: string) => STICKERS.find((sticker) => sticker.id === id);
+// Keep retired assets readable for decorations that were already saved.
+const RETIRED_STICKER_IDS = new Set([
+  'paper-umbrella',
+  'paper-cake',
+  'paper-map',
+  'pop-letter-pink',
+  'pop-phone',
+  'pixel-sparkle',
+  'pixel-moon',
+  'pixel-planet',
+  'star',
+  'flower',
+  'cherries',
+  'planet',
+  'painted-drink-fruit',
+  'crayon-envelope',
+  'crayon-tulip',
+  'jelly-peach',
+  'jelly-lemon',
+  'jelly-candy',
+]);
+
+export const STICKERS: StickerAsset[] = STICKER_ASSETS.filter((sticker) => !RETIRED_STICKER_IDS.has(sticker.id));
+
+export const getSticker = (id: string) => STICKER_ASSETS.find((sticker) => sticker.id === id);
 
 export const PEN_TOOLS: { tool: PenTool; label: string }[] = [
   { tool: 'pen', label: '일반펜' },
