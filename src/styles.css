@@ -7139,23 +7139,12 @@ button:disabled {
   width: 100%;
   height: min(50dvh, 420px);
   min-height: 280px;
-  /* Open, so a ping's picker can rise over the card's top edge (the cover is
-     clipped to the corners itself). */
+  /* No cover and no card (2026-10-19): the pings sit straight on the page.
+     Open, so a ping's picker can rise over the top edge. */
   overflow: visible;
-  border-radius: 18px;
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  background: transparent;
   color: var(--text);
   cursor: pointer;
-}
-
-.today-tile__map {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--map-bg);
 }
 
 /* The day's real drawing (DayPings) in the space under TODAY. */

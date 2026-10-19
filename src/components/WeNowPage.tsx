@@ -123,9 +123,6 @@ function TodayTile({ pings, pinLookOf, onOpen }: { pings: DayPing[]; pinLookOf: 
         }
       }}
     >
-      <svg className="today-tile__map" viewBox={`0 0 ${TILE} ${TILE}`} preserveAspectRatio="xMidYMid slice" aria-hidden>
-        <GroupCover cover={0} />
-      </svg>
       <span className="today-tile__title" aria-hidden>
         TODAY
       </span>
