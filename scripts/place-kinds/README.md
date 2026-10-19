@@ -63,6 +63,20 @@
 
 도시공원·공중화장실·주차장·도서관·박물관미술관 표준데이터. 받을 때 파일마다 이용허락범위·좌표 열·행 수를 이 문서에 더한다.
 
+## 앱용 파일 만들기 (I5)
+
+```bash
+python scripts/place-kinds/build_places.py --src <상가정보 zip 또는 CSV 폴더>   # → public/korea/places/ (약 2분)
+python -m unittest discover -s scripts/place-kinds                              # 표준 라이브러리만 씀
+```
+
+- 결과: `public/korea/places/<시군구코드>.json` 256개 + `index.json`(시군구별 행 수, 원본 파일 이름). `public/korea`라 Git에 없고, 배포에 따로 넣는다(지도 데이터와 같은 길, `docs/plan-data-hosting.md`).
+- 파일 모양: `{"v":1,"k":["cafe",…],"r":[[이름, 경도×1e5, 위도×1e5, k 번호],…]}`. `k`에는 그 파일에 나오는 kind만 있어 앱의 PlaceKind 순서와 상관없다. 원래 상호명·주소·전화는 넣지 않는다.
+- 이름은 `normalize_name`으로 줄인다: NFKC·소문자, 괄호 속·`주식회사`·`㈜` 제거, 띄어 쓴 마지막 낱말이 `…점/지점/호점`이면 제거, `지점명` 열이 이름 끝에 붙어 있으면 제거, 영문·숫자·한글만 남겨 20자. 앱(I6)도 같은 규칙이어야 하므로 예시는 `name-cases.json`에 두고 두 쪽 테스트가 같이 읽는다.
+- 업종 코드보다 상호명이 먼저인 경우: 음식 업종 안에서만 치킨·피자·버거·베이커리·도넛·마라탕·커피 체인/낱말이 이름에 있으면 그 kind. 술집 업종(`bar`·`pub`)은 제외 — 유흥 주점 이름의 "카페"는 카페가 아니다.
+- 20260630 결과: 277만 행 → **192만 곳**(kind 없음 83만, 같은 이름·좌표·kind 중복 1.9만, 이름 없음 52), kind 66종. 압축 전 80MB, **gzip 24.5MB**, 파일 하나 gzip 중간 86KB·상위 10% 183KB·최대 422KB. 이름 낱말로 업종을 바꾼 곳 약 1만 곳(대부분 백반→카페, 빵→도넛, 술집→치킨은 이제 없음).
+- 안드로이드: `npm run android:sync`는 `public/korea`를 통째로 넣으므로 이 폴더(압축 전 80MB)도 APK에 들어간다. 데이터 원격 호스팅이 정해질 때 같이 뺀다.
+
 ## 업종 → kind 매핑 (I1)
 
 - `mapping-semas.csv` (`code, name, count, kind, note`): 이 파일이 기준이다. kind가 빈칸이면 일반 핀.

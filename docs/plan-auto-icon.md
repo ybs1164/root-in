@@ -118,7 +118,13 @@ TourAPI 분류 코드      ┘
 - 새 핀 카드: `kind` 아이콘과 같은 아이콘을 가진 내 카테고리가 딱 하나면 그룹 기본값으로(여럿·없음이면 미분류).
 - `npm run shots`로 지도·카드 확인.
 
-### I5. 상가정보 빌드 스크립트 (하루)
+### I5. 상가정보 빌드 스크립트 ✅ 2026-10-19
+- `scripts/place-kinds/build_places.py --src <zip>` → `public/korea/places/<시군구>.json` 256개 + `index.json`. 사용법·파일 모양·이름 정규화는 [scripts/place-kinds/README.md](../scripts/place-kinds/README.md).
+- 20260630: 192만 곳, gzip 24.5MB(파일 중간 86KB). 계획 때 추정(42MB)보다 작다 — kind 없는 업종과 중복을 뺐다.
+- 이름 정규화 예시는 `name-cases.json` — I6의 TS 정규화 테스트도 이 파일을 읽어 두 쪽이 같게 한다.
+- 계획과 다른 점: 술집 업종은 상호명 낱말로 바꾸지 않는다(유흥 주점 이름의 "카페").
+
+원래 할 일:
 - `scripts/place-kinds/build_places.py`: CSV → 소분류 코드를 kind로(I1~I2의 생성된 표 공유) → `kind`가 `null`인 행 버림 → 시군구 코드별 `korea/places/<sigungu>.json`
   - 행 모양: `[정규화한 이름, 경도×1e5 정수, 위도×1e5 정수, kind 번호]` — 숫자 배열로 작게.
   - 매장 원본 이름·주소·전화 같은 건 넣지 않는다(맞추기에 필요한 것만).
