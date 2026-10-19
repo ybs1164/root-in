@@ -7186,13 +7186,6 @@ button:disabled {
   text-align: center;
 }
 
-.today-tile__count {
-  position: absolute;
-  right: 14px;
-  bottom: 12px;
-  font-size: 14px;
-}
-
 /* TODAY opened from We Now: full screen, a ‹ back to the groups. */
 .today-back {
   position: absolute;
@@ -7315,24 +7308,19 @@ button:disabled {
   font-size: 10px;
 }
 
-.group-tile__count {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--muted);
-}
-
-.group-tile__count.is-live {
-  color: var(--accent-strong);
-}
-
-.group-tile__count.is-live::before {
-  content: "";
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+/* 새 핑: a small accent badge at the tile's lower right, until the group is opened. */
+.group-tile__new {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
   background: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  color: var(--on-accent);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .group-tile--new {

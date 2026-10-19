@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, type Group } from './groups';
+import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, groupPingKeys, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -76,3 +76,26 @@ describe('groups', () => {
   });
 });
 
+
+describe('newPingCount', () => {
+  const group = (pings: Record<string, string[]>): Group => ({
+    id: 'g',
+    name: 'g',
+    cover: 0,
+    inviteSlug: 's',
+    mine: false,
+    members: Object.entries(pings).map(([userId, ats], slot) => ({ userId, slot, nickname: userId, alias: null, photo: null, pings: ats.map((at) => ({ at, center: [127, 37.5] as [number, number] })) })),
+  });
+
+  it('counts other members\' pings that were not there when I opened the group', () => {
+    const before = group({ me: ['a'], ann: ['b'], bo: [] });
+    const seen = groupPingKeys(before);
+    expect(newPingCount(before, 'me', seen)).toBe(0);
+    const after = group({ me: ['a', 'c'], ann: ['b', 'd'], bo: ['e'] });
+    expect(newPingCount(after, 'me', seen)).toBe(2); // mine (c) never counts
+  });
+
+  it('a group never opened counts all of their pings', () => {
+    expect(newPingCount(group({ me: ['a'], ann: ['b', 'c'] }), 'me', undefined)).toBe(2);
+  });
+});

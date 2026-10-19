@@ -99,3 +99,18 @@ export function stepMember(group: Group, picked: string | null, dir: -1 | 1): st
   const i = Math.max(0, order.indexOf(picked));
   return order[(i + dir + order.length) % order.length];
 }
+
+/** One member's ping, told apart from the rest of the day's (the server sends no id). */
+export const groupPingKey = (member: GroupMember, ping: GroupPing): string => `${member.userId}|${ping.at}`;
+
+/** Every ping on the group's map right now: what opening it has seen. */
+export const groupPingKeys = (group: Group): string[] => group.members.flatMap((m) => m.pings.map((p) => groupPingKey(m, p)));
+
+/**
+ * The tile's 새 핑 badge: other members' pings that weren't on the map when I
+ * last opened this group (`seen`; never opened = all of theirs). Mine never count.
+ */
+export function newPingCount(group: Group, me: string | null, seen: readonly string[] | undefined): number {
+  const known = new Set(seen ?? []);
+  return group.members.filter((m) => m.userId !== me).reduce((n, m) => n + m.pings.filter((p) => !known.has(groupPingKey(m, p))).length, 0);
+}

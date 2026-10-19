@@ -45,13 +45,13 @@ export function GroupCover({ cover }: { cover: number }) {
   }
 }
 
-function GroupTile({ group, onOpen }: { group: Group; onOpen: () => void }) {
+function GroupTile({ group, fresh, onOpen }: { group: Group; fresh: number; onOpen: () => void }) {
   const paths = tilePaths(group, TILE);
   const pings = groupPingCount(group);
   const shown = group.members.slice(0, 3);
   const more = group.members.length - shown.length;
   return (
-    <button className="group-tile" onClick={onOpen} aria-label={`${group.name}, ${group.members.length}명, 오늘 핑 ${pings}`}>
+    <button className="group-tile" onClick={onOpen} aria-label={`${group.name}, ${group.members.length}명, 오늘 핑 ${pings}${fresh ? `, 새 핑 ${fresh}` : ''}`}>
       <svg className="group-tile__map" viewBox={`0 0 ${TILE} ${TILE}`} aria-hidden>
         <GroupCover cover={group.cover} />
         {paths.length === 0 && (
@@ -77,7 +77,12 @@ function GroupTile({ group, onOpen }: { group: Group; onOpen: () => void }) {
             ))}
             {more > 0 && <span className="group-tile__more">+{more}</span>}
           </span>
-          <span className={`group-tile__count ${pings ? 'is-live' : ''}`}>{pings}</span>
+          {/* Others' pings since I last opened the group; gone once I look. */}
+          {fresh > 0 && (
+            <span className="group-tile__new" aria-hidden>
+              {fresh > 99 ? '99+' : fresh}
+            </span>
+          )}
         </span>
       </span>
     </button>
@@ -143,7 +148,6 @@ function TodayTile({ pings, pinLookOf, onOpen }: { pings: DayPing[]; pinLookOf: 
           />
         </div>
       )}
-      <span className={`group-tile__count today-tile__count ${pings.length ? 'is-live' : ''}`}>{pings.length}</span>
     </div>
   );
 }
@@ -156,6 +160,8 @@ interface WeNowPageProps {
   pinLookOf(ping: DayPing): { icon: PinIcon; color: PinTint };
   onToday(): void;
   groups: Group[];
+  /** The 새 핑 badge: members' pings since I last opened that group. */
+  newPings(group: Group): number;
   /** My profile photo, for the profile button top right (as on the map). */
   photo: string | null;
   onProfile(): void;
@@ -172,7 +178,7 @@ interface WeNowPageProps {
  * tile for a new one. Signed out it asks for a Kakao login — reached only
  * when VITE_GROUPS_NEED_LOGIN is on; otherwise App signs in as a guest first.
  */
-export default function WeNowPage({ status, todayPings, pinLookOf, onToday, groups, photo, onProfile, onOpen, onCreate, onSignIn, onRetry }: WeNowPageProps) {
+export default function WeNowPage({ status, todayPings, pinLookOf, onToday, groups, newPings, photo, onProfile, onOpen, onCreate, onSignIn, onRetry }: WeNowPageProps) {
   const empty = (title: string, body: string, action?: { label: string; run: () => void }) => (
     <div className="we-now__empty">
       <span className="we-now__badge" aria-hidden>
@@ -200,7 +206,7 @@ export default function WeNowPage({ status, todayPings, pinLookOf, onToday, grou
     content = (
       <div className="we-now__grid">
         {groups.map((g) => (
-          <GroupTile key={g.id} group={g} onOpen={() => onOpen(g.id)} />
+          <GroupTile key={g.id} group={g} fresh={newPings(g)} onOpen={() => onOpen(g.id)} />
         ))}
         <button className="group-tile group-tile--new" onClick={onCreate}>
           <span className="group-tile__plus" aria-hidden>

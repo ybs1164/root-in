@@ -44,8 +44,9 @@ import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
 import { useGroups } from './hooks/useGroups';
 import { groupsNeedLogin, inviteUrl } from './services/groupService';
-import { focusPoints, memberColor, type GroupMember } from './domain/groups';
+import { focusPoints, groupPingKeys, memberColor, newPingCount, type GroupMember } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
+import { loadGroupSeen, saveGroupSeen, type GroupSeen } from './services/groupSeenRepository';
 import { useStoredPings } from './hooks/useStoredPings';
 import { dateKey } from './domain/diary';
 import GroupMapView from './components/GroupMapView';
@@ -317,6 +318,18 @@ export default function App() {
     }
   }, [tab]);
   useEffect(() => setGroupPicked(null), [openGroupId]);
+  // A group's 새 핑 badge: pings that weren't on its map when I last had it
+  // open. Whatever is on the open group's map counts as seen, new arrivals too.
+  const [groupSeen, setGroupSeen] = useState<GroupSeen>(loadGroupSeen);
+  const openGroupKeys = openGroup ? groupPingKeys(openGroup).join(',') : null;
+  useEffect(() => {
+    if (!openGroup) return;
+    setGroupSeen((seen) => {
+      const next = { ...seen, [openGroup.id]: groupPingKeys(openGroup) };
+      saveGroupSeen(next);
+      return next;
+    });
+  }, [openGroup?.id, openGroupKeys]);
   useEffect(() => {
     if (!needLogin && tab === 'people' && account.available && !account.user && guest === 'idle') startGuest();
   }, [needLogin, tab, account.available, account.user, guest, startGuest]);
@@ -1543,6 +1556,7 @@ export default function App() {
               onToday={() => setTodayOpen(true)}
               status={groups.status === 'signed-out' && !needLogin ? (guest === 'idle' || guest === 'trying' ? 'loading' : 'error') : groups.status}
               groups={groupList}
+              newPings={(g) => newPingCount(g, myId, groupSeen[g.id])}
               photo={profile.photo}
               onProfile={() => setProfileOpen(true)}
               onOpen={setOpenGroupId}
