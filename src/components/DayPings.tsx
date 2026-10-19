@@ -13,7 +13,7 @@ import {
 } from '../domain/dayPings';
 import { pinColorCss } from '../domain/pin';
 import { HEART_PATH, PIN_PATH, STAR_PATH } from '../lib/pingPaths';
-import { pingInfoSize, placePingLabels } from '../domain/stopLabels';
+import { fitPingLabels } from '../domain/stopLabels';
 import { miniMapView, viewPoints, type MapDistance, type MiniMapId } from '../domain/miniMap';
 import { useTerrain } from '../hooks/useTerrain';
 import type { PinIcon, PinTint } from '../types/pin';
@@ -252,10 +252,10 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
     },
   });
 
-  // Each ping's name / time goes to a side where it covers nothing (the day screen's drawing is about this many px across).
-  const sides = placePingLabels(
+  // Each ping's name / time goes to a side where it covers nothing, crowded ones written shorter (the day screen's drawing is about this many px across).
+  const labels = fitPingLabels(
     points.map((p) => ({ x: p.x * 330, y: p.y * 330 })),
-    pings.map((p, i) => pingInfoSize(showNames ? p.name : '', showTimes ? p.time : undefined, i === latest)),
+    pings.map((p, i) => ({ name: showNames ? p.name : '', time: showTimes ? p.time : undefined, latest: i === latest })),
   );
   const segments = points.slice(1).map((to, i) => ({ from: points[i], to, i }));
   const pointsAttr = points
@@ -326,8 +326,7 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
       {pings.map((ping, i) => {
         const shape = shapeOf(ping);
         const own = shape === 'transparent' ? (pinLookOf?.(ping) ?? { icon: 'pin' as PinIcon, color: 0 as PinTint }) : null;
-        // Its name goes below it unless one of its lines leaves that way (as a route's stops do).
-        const side = sides[i];
+        const { side, name, time } = labels[i];
         return (
           <div
             key={`${ping.time}-${ping.name}`}
@@ -364,8 +363,8 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
             </button>
             {(showNames || showTimes) && (
               <span className="ping__label" aria-hidden>
-                {showNames && ping.name}
-                {showTimes && <small>{ping.time}</small>}
+                {name}
+                {time && <small>{time}</small>}
               </span>
             )}
           </div>

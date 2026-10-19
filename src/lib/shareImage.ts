@@ -7,7 +7,7 @@ import { CLOTHESLINE, clotheslineY, DEFAULT_LAYOUT, DRAWING_BOX, LAYOUT_CARDS, P
 import type { CardStamp, StopMark } from '../domain/shareSubject';
 import { paintPattern } from './dayPatterns';
 import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
-import { pingInfoSize, placePingLabels } from '../domain/stopLabels';
+import { fitPingLabels } from '../domain/stopLabels';
 import { MAP_ROLES, miniMapLayers, miniMapView, terrainParts, viewPoints, type MapFill, type MapRole, type MapPart, type MiniMapView, type TerrainShapes } from '../domain/miniMap';
 import { terrainService } from '../services/terrainService';
 
@@ -653,9 +653,9 @@ function drawStops(
   const timed = pings.some((p) => p.time);
   const latest = timed ? latestPingIndex(pings) : -1;
   // Each ping's info goes to a side where it covers nothing (judged at the day screen's size: the box is about 330px there).
-  const sides = placePingLabels(
+  const labels = fitPingLabels(
     points.map((p) => ({ x: ((p.x - BOX.x) / BOX.size) * 330, y: ((p.y - BOX.y) / BOX.size) * 330 })),
-    pings.map((p, i) => pingInfoSize(show.names ? p.name : '', show.times ? p.time : undefined, i === latest)),
+    pings.map((p, i) => ({ name: show.names ? p.name : '', time: show.times ? p.time : undefined, latest: i === latest })),
   );
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
@@ -710,14 +710,11 @@ function drawStops(
       bottom = mark === 'pin' ? y : y + h / 2;
     }
 
-    // The name (and time) below the mark, unless one of its lines leaves that
-    // way: then above, right or left of it, as on the day screen.
-    const side = sides[i];
+    // The name (and time) where the day screen puts it (fitPingLabels), crowded ones written shorter.
+    const { side, name, time } = labels[i];
     const top = mark === 'number' ? y - 34 : bottom - (mark === 'pin' ? (118 * k) : (84 * k));
     const half = mark === 'number' ? 34 : (mark === 'pin' ? (shapeBox('pin').w * (118 * k)) / shapeBox('pin').h : 84 * k) / 2;
     const mid = (top + bottom) / 2;
-    const name = show.names ? ping.name : '';
-    const time = show.times ? ping.time : undefined;
     if (!name && !time) return;
     const lines = name && time ? 2 : 1;
     let tx = x;
@@ -727,7 +724,15 @@ function drawStops(
       tx = side === 'right' ? x + half + 18 : x - half - 18;
       nameY = mid + (lines === 2 ? -6 : 12);
     }
-    ctx.textAlign = side === 'right' ? 'left' : side === 'left' ? 'right' : 'center';
+    // The corners (as .ping--label-below-right …): below ones start at the point, above ones sit off the pin's head.
+    if (side === 'below-right' || side === 'below-left') tx = side === 'below-right' ? x - 16 : x + 16;
+    if (side === 'above-right' || side === 'above-left') {
+      tx = side === 'above-right' ? x + half - 10 : x - half + 10;
+      nameY = top + (lines === 2 ? -32 : 8);
+    }
+    const toRight = side === 'right' || side === 'below-right' || side === 'above-right';
+    const toLeft = side === 'left' || side === 'below-left' || side === 'above-left';
+    ctx.textAlign = toRight ? 'left' : toLeft ? 'right' : 'center';
     // On a 미니맵 the words sit on land: a page-coloured glow first (as .pings--mapped .ping__label).
     const write = (text: string, y: number) => {
       if (mapped) {

@@ -96,23 +96,43 @@ function clearOf(at: Pt, near: Pt[], dir: Pt): boolean {
 
 // --- A day's pings: the pin stands up from its point and its name / time sits beside it. ---
 
-/** A pin's footprint above its point, and the gaps to its info (screen px at the day screen's size). */
-const PIN_W = 30;
-const PIN_H = 46;
+/** A pin's footprint above its point (`.ping`'s --w / --h), and the gaps to its info (screen px at the day screen's size). */
+const PIN_W = 34;
+const PIN_H = 44;
 const PIN_GAP = 5;
 
-/** Roughly how big a ping's info (name, and time under it) is, from its text. */
+/**
+ * Roughly how big a ping's info (name, and time under it) is, from its text,
+ * as the day screen draws it (measured: a 13px line is 19px tall, the time
+ * line under it 18px; the tall narrow font gives a letter about 0.8em). A
+ * little too big is safe, too small lets names touch.
+ */
 export function pingInfoSize(name: string, time: string | undefined, latest = false): { w: number; h: number } {
   const em = latest ? 15 : 13;
-  return { w: Math.max(name.length * em * 1.02, time ? 38 : 0, 24), h: (name ? em + 3 : 0) + (time ? 15 : 0) };
+  return { w: Math.max([...name].length * em * 0.8, time ? 38 : 0, 24), h: (name ? em + 6 : 0) + (time ? 18 : 0) };
 }
 
 const pinRect = (at: Pt): Rect => ({ l: at.x - PIN_W / 2, t: at.y - PIN_H, r: at.x + PIN_W / 2, b: at.y });
 
+/**
+ * Where a ping's name / time goes around its pin. The four of a route's
+ * stops (below first, as everywhere in the app), then the corners, which let
+ * crowded names slip past one another: below-right starts at the point and
+ * runs right, above-right sits off the pin's head (Imhof's favourite place).
+ */
+export type PingLabelSide = LabelSide | 'below-right' | 'below-left' | 'above-right' | 'above-left';
+
+export const PING_LABEL_SIDES: PingLabelSide[] = ['below', 'above', 'right', 'left', 'below-right', 'below-left', 'above-right', 'above-left'];
+
+/** How far a corner name tucks in under the pin's head or past its point (px). */
+const CORNER_TUCK = 4;
+const POINT_TUCK = 6;
+
 /** Where a ping's info of `size` sits for each side of its pin. */
-function infoRect(at: Pt, size: { w: number; h: number }, side: LabelSide): Rect {
+function infoRect(at: Pt, size: { w: number; h: number }, side: PingLabelSide): Rect {
   const { w, h } = size;
   const mid = at.y - PIN_H / 2;
+  const head = at.y - PIN_H + CORNER_TUCK;
   switch (side) {
     case 'below':
       return { l: at.x - w / 2, t: at.y + PIN_GAP, r: at.x + w / 2, b: at.y + PIN_GAP + h };
@@ -122,34 +142,126 @@ function infoRect(at: Pt, size: { w: number; h: number }, side: LabelSide): Rect
       return { l: at.x + PIN_W / 2 + PIN_GAP, t: mid - h / 2, r: at.x + PIN_W / 2 + PIN_GAP + w, b: mid + h / 2 };
     case 'left':
       return { l: at.x - PIN_W / 2 - PIN_GAP - w, t: mid - h / 2, r: at.x - PIN_W / 2 - PIN_GAP, b: mid + h / 2 };
+    case 'below-right':
+      return { l: at.x - POINT_TUCK, t: at.y + PIN_GAP, r: at.x - POINT_TUCK + w, b: at.y + PIN_GAP + h };
+    case 'below-left':
+      return { l: at.x + POINT_TUCK - w, t: at.y + PIN_GAP, r: at.x + POINT_TUCK, b: at.y + PIN_GAP + h };
+    case 'above-right':
+      return { l: at.x + PIN_W / 2 - CORNER_TUCK, t: head - h, r: at.x + PIN_W / 2 - CORNER_TUCK + w, b: head };
+    case 'above-left':
+      return { l: at.x - PIN_W / 2 + CORNER_TUCK - w, t: head - h, r: at.x - PIN_W / 2 + CORNER_TUCK, b: head };
   }
 }
 
 const overlapArea = (a: Rect, b: Rect) => Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l)) * Math.max(0, Math.min(a.b, b.b) - Math.max(a.t, b.t));
 
+/** How long a stretch of the segment a–b runs inside the rect (Liang–Barsky). */
+function lengthInside(a: Pt, b: Pt, r: Rect): number {
+  const [dx, dy] = [b.x - a.x, b.y - a.y];
+  let [t0, t1] = [0, 1];
+  const edges: [number, number][] = [[-dx, a.x - r.l], [dx, r.r - a.x], [-dy, a.y - r.t], [dy, r.b - a.y]];
+  for (const [p, q] of edges) {
+    if (p === 0) {
+      if (q < 0) return 0;
+      continue;
+    }
+    const t = q / p;
+    if (p < 0) t0 = Math.max(t0, t);
+    else t1 = Math.min(t1, t);
+    if (t0 > t1) return 0;
+  }
+  return (t1 - t0) * Math.hypot(dx, dy);
+}
+
+/** What a px of line running under a name costs, against a px² of overlap: a crossed name is hard to read. */
+const LINE_COST = 6;
+/** What each step down the list of sides costs: only enough to settle a tie. */
+const RANK_COST = 2;
+const ROUNDS = 8;
+
 /**
  * The side of each ping's pin for its info, chosen so that nothing covers
- * anything else: an info keeps off the other infos already placed and off
- * every other pin, and (as `labelSide`) off the lines out of its own pin. It
- * takes the first such side (below, above, right, left); where none is clear,
- * the side that overlaps least.
+ * anything else (a map's names after Imhof): the cost of a side is how much
+ * its info overlaps the other infos and pins, how much route line runs under
+ * it, and a little for being further down the list. Each ping first takes
+ * its cheapest side in visiting order; then every ping in turn moves to the
+ * cheapest side given all the others, until none moves.
  */
-export function placePingLabels(points: Pt[], sizes: { w: number; h: number }[]): LabelSide[] {
-  const placed: Rect[] = [];
+export function placePingLabels(points: Pt[], sizes: { w: number; h: number }[]): PingLabelSide[] {
   const pins = points.map(pinRect);
-  return points.map((at, i) => {
-    const near = [points[i - 1], points[i + 1]].filter((p): p is Pt => !!p);
-    const cost = (side: LabelSide) => {
-      const rect = infoRect(at, sizes[i], side);
-      return placed.reduce((sum, p) => sum + overlapArea(rect, p), 0) + pins.reduce((sum, pin, j) => (j === i ? sum : sum + overlapArea(rect, pin)), 0);
-    };
-    const order = SIDES.map((x) => x.side);
-    const clearOfLines = SIDES.filter((x) => clearOf(at, near, x.dir)).map((x) => x.side);
-    const candidates = [...clearOfLines, ...order.filter((x) => !clearOfLines.includes(x))];
-    const best = candidates.reduce((pick, side) => (cost(side) < cost(pick) ? side : pick), candidates[0]);
-    placed.push(infoRect(at, sizes[i], best));
-    return best;
-  });
+  const segments = points.slice(1).map((b, i) => [points[i], b] as const);
+  const options = points.map((at, i) => PING_LABEL_SIDES.map((side) => infoRect(at, sizes[i], side)));
+  // What does not depend on the other infos: the pins, the lines, the preference.
+  const fixed = options.map((list, i) =>
+    list.map(
+      (rect, k) =>
+        pins.reduce((sum, pin, j) => (j === i ? sum : sum + overlapArea(rect, pin)), 0) +
+        LINE_COST * segments.reduce((sum, [a, b]) => sum + lengthInside(a, b, rect), 0) +
+        RANK_COST * k,
+    ),
+  );
+  const pick: (number | undefined)[] = points.map(() => undefined);
+  const cost = (i: number, k: number) =>
+    fixed[i][k] + pick.reduce<number>((sum, other, j) => (j === i || other === undefined ? sum : sum + overlapArea(options[i][k], options[j][other])), 0);
+  const cheapest = (i: number) => options[i].reduce((best, _, k) => (cost(i, k) < cost(i, best) ? k : best), 0);
+  points.forEach((_, i) => (pick[i] = cheapest(i)));
+  for (let round = 0; round < ROUNDS; round++) {
+    let moved = false;
+    points.forEach((_, i) => {
+      const best = cheapest(i);
+      if (cost(i, best) < cost(i, pick[i]!)) {
+        pick[i] = best;
+        moved = true;
+      }
+    });
+    if (!moved) break;
+  }
+  return pick.map((k) => PING_LABEL_SIDES[k!]);
+}
+
+/** How much each ping's info covers the other infos and pins (px²) with these sides. */
+function infoOverlaps(points: Pt[], sizes: { w: number; h: number }[], sides: PingLabelSide[]): number[] {
+  const infos = points.map((at, i) => infoRect(at, sizes[i], sides[i]));
+  const pins = points.map(pinRect);
+  return infos.map((info, i) => infos.reduce((sum, other, j) => (j === i ? sum : sum + overlapArea(info, other) + overlapArea(info, pins[j])), 0));
+}
+
+/** A ping's info as it would be written: its name, its time (if any), and whether it is the latest (drawn bigger). */
+export interface PingInfo {
+  name: string;
+  time?: string;
+  latest?: boolean;
+}
+
+/** A name cut to fit ends in this, and keeps at least this many letters. */
+const ELLIPSIS = '…';
+const MIN_LETTERS = 3;
+
+/**
+ * Where each ping's info goes, and what of it is written. Placed as
+ * `placePingLabels`; an info that still covers something gives up its time
+ * first (the latest ping keeps it: it is the one being told about), and if
+ * that is not enough its name is cut short.
+ */
+export function fitPingLabels(points: Pt[], infos: PingInfo[]): { side: PingLabelSide; name: string; time?: string }[] {
+  let shown = infos.map((info) => ({ ...info }));
+  const size = (info: PingInfo) => pingInfoSize(info.name, info.time, info.latest);
+  let sides = placePingLabels(points, shown.map(size));
+  const steps: ((info: PingInfo) => PingInfo)[] = [
+    (info) => (info.time && !info.latest ? { ...info, time: undefined } : info),
+    (info) => {
+      const letters = [...info.name];
+      if (letters.length <= MIN_LETTERS + 1) return info;
+      return { ...info, name: letters.slice(0, Math.max(MIN_LETTERS, Math.ceil(letters.length * 0.6))).join('') + ELLIPSIS };
+    },
+  ];
+  for (const step of steps) {
+    const crowded = infoOverlaps(points, shown.map(size), sides);
+    if (crowded.every((c) => c === 0)) break;
+    shown = shown.map((info, i) => (crowded[i] > 0 ? step(info) : info));
+    sides = placePingLabels(points, shown.map(size));
+  }
+  return shown.map((info, i) => ({ side: sides[i], name: info.name, time: info.time }));
 }
 
 /** How much the pins and their infos cover one another (px²) once placed: 0 is a clean picture. */

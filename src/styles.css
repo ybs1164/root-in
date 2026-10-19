@@ -6834,9 +6834,45 @@ button:disabled {
    icon keeps its place on the point; only the name moves. */
 .ping--label-above .ping__label,
 .ping--label-right .ping__label,
-.ping--label-left .ping__label {
+.ping--label-left .ping__label,
+.ping--label-below-right .ping__label,
+.ping--label-below-left .ping__label,
+.ping--label-above-right .ping__label,
+.ping--label-above-left .ping__label {
   position: absolute;
   margin: 0;
+}
+
+/* The corners (stopLabels infoRect): below ones start at the point and run off
+   to one side; above ones sit off the pin's head. */
+.ping--label-below-right .ping__label,
+.ping--label-below-left .ping__label {
+  top: calc(var(--h) * var(--k) + 5px);
+}
+
+.ping--label-below-right .ping__label {
+  left: calc(50% - 6px);
+  align-items: flex-start;
+}
+
+.ping--label-below-left .ping__label {
+  right: calc(50% - 6px);
+  align-items: flex-end;
+}
+
+.ping--label-above-right .ping__label,
+.ping--label-above-left .ping__label {
+  bottom: calc(100% - 4px);
+}
+
+.ping--label-above-right .ping__label {
+  left: calc(50% + var(--w) * var(--k) / 2 - 4px);
+  align-items: flex-start;
+}
+
+.ping--label-above-left .ping__label {
+  right: calc(50% + var(--w) * var(--k) / 2 - 4px);
+  align-items: flex-end;
 }
 
 .ping--label-above .ping__label {
