@@ -28,6 +28,7 @@ import { calendarAgain, homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncomi
 import { COURSE_LIMITS } from './domain/course';
 import type { MapViewport } from './domain/districtMap';
 import { filterPinsByCategories, isUncategorized, pinStyle, UNCATEGORIZED } from './domain/pin';
+import { placeKindService } from './services/placeKindService';
 import { pinRailNext, tapAll, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
 import { PRESS } from './domain/dayPings';
 import { buildRouteLook, EMPTY_BUILD_LOOK, nextRouteName, ROUTE_NOTE_MAX, toggleBuildStop, withBuildEdge, withBuildShape, type BuildLook } from './domain/routeBuild';
@@ -539,6 +540,19 @@ export default function App() {
     // Only if the user is still looking at that spot.
     if (named) setPreview((p) => (p?.id === place.id ? { ...named, id: place.id } : p));
   };
+
+  // A new pin's place with no kind yet (a picked spot, an untagged search
+  // result): look it up in 상가정보 so the card and pin get an icon. A spot
+  // named a moment later is looked up again, by that name.
+  useEffect(() => {
+    if (!preview || preview.kind) return;
+    const controller = new AbortController();
+    const { id, name } = preview;
+    void placeKindService.lookup(preview, controller.signal).then((kind) => {
+      if (kind && !controller.signal.aborted) setPreview((p) => (p?.id === id && p.name === name && !p.kind ? { ...p, kind } : p));
+    });
+    return () => controller.abort();
+  }, [preview]);
 
   // ----- Navigation -----
 

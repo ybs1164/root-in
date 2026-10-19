@@ -92,6 +92,14 @@ export class StaticAdminAreaService implements AdminAreaService {
       : entry;
   }
 
+  /** The 시군구 under a point (the nearest one over water), for lookups keyed by 시군구 code. */
+  async sggCodeAt(point: LonLat): Promise<string | null> {
+    const sido = await this.load('sido.json');
+    const inSido = sido && areaAt(sido, point);
+    const sgg = inSido ? await this.load(`sgg/${inSido.code}.json`) : null;
+    return (sgg && areaAt(sgg, point))?.code ?? null;
+  }
+
   async fetchAreaMap(viewport: MapViewport, focusRange?: Bbox, signal?: AbortSignal): Promise<AreaMap | null> {
     const b = viewport.bounds;
     if (![b.west, b.south, b.east, b.north, viewport.widthPx].every(Number.isFinite) ||

@@ -29,7 +29,10 @@ export const MAX_NEARBY_RESULTS = 3;
 const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
 
 /** An unnamed spot: the id encodes the point, so pinning it twice is one pin. */
-export function pointPlace(center: [number, number], name = '지정한 위치', address?: string): PlaceRef {
+/** What a picked spot is called until reverse geocoding names it. */
+export const UNNAMED_SPOT = '지정한 위치';
+
+export function pointPlace(center: [number, number], name = UNNAMED_SPOT, address?: string): PlaceRef {
   const [lon, lat] = [round6(center[0]), round6(center[1])];
   const place: PlaceRef = { id: `pin:${lon},${lat}`, name, center: [lon, lat] };
   if (address) place.address = address;

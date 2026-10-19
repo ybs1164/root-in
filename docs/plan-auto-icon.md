@@ -130,7 +130,14 @@ TourAPI 분류 코드      ┘
   - 매장 원본 이름·주소·전화 같은 건 넣지 않는다(맞추기에 필요한 것만).
 - 파이썬 테스트: 코드 매핑 누락 시 실패, 좌표 국내 범위.
 
-### I6. 앱에서 공공데이터로 보충 (하루)
+### I6. 앱에서 공공데이터로 보충 ✅ 2026-10-19
+- `domain/placeMatch.ts`: `normalizePlaceName`(build_places.py와 같은 규칙 — `name-cases.json`을 두 쪽 테스트가 같이 읽음), `namesMatch`(같음 · 2자 이상 포함 · 글자쌍 유사도 0.6), `matchKind`(40m 안 이름 맞는 가장 가까운 곳 → 아니면 고른 지점일 때만 15m 안이 한 종류).
+- `services/placeKindService.ts`: 점 → 시군구 코드(`StaticAdminAreaService.sggCodeAt` — korea/admin의 시군구 코드가 상가정보와 256개 모두 같음) → `korea/places/<코드>.json` 하나(메모리 캐시) → `matchKind`. 실패는 모두 `null`. 고른 지점(`pin:` id)의 이름이 주소이거나 아직 '지정한 위치'면 이름 비교를 안 한다(주소엔 가게 이름이 너무 많이 들어 있음).
+- App: 새 핀 카드의 장소에 `kind`가 없으면 찾아서 채움, 이름이 늦게 붙으면 그 이름으로 다시. 카드는 I4대로 아이콘·그룹 제안을 따라감.
+- 확인(375px, Photon 흉내, 실제 성동구 파일): OSM 분류가 없는 검색 결과 '에이플러스에이'(15m 안 다른 업종 5곳) → 이름으로 피자; 이름 없는 조준 지점(40m 안 빵집 하나) → 빵.
+- 한계: 시군구 경계 40m 안의 가게는 옆 시군구 파일에 있으면 못 찾음. 카카오 검색 결과는 대개 이미 kind가 있어 조회하지 않음.
+
+원래 할 일:
 - `services/placeKindService.ts`: `PlaceKindService.lookup(center, name?) → Promise<PlaceKind | null>`. 좌표 → 시군구(이미 있는 행정구역 데이터로) → 그 파일 하나 fetch(메모리 캐시) → 위 맞추기 규칙. 실패하면 `null`, reject 안 함.
 - 언제 부르나: `kind`가 없는 장소로 새 핀 카드를 열 때(길게 누르기·조준·Photon 결과). 카드가 떠 있는 동안 답이 오면 아이콘이 바뀜.
 - 테스트: `vi.stubGlobal('fetch')`로 파일 흉내, 이름 일치·거리만·여러 종류 섞임 → `null`.
