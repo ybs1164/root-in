@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { pingOverlap, placePingLabels, pingInfoSize } from './stopLabels';
 import type { AdminArea } from './adminAreas';
 import { readDecor } from '../services/dayRepository';
-import { DEFAULT_DISTANCE, legLayout, MAP_DISTANCES, miniMapView, nextMapDistance, stopProjection, terrainRange, type MapDistance, clusterPoints, isMiniMapId, bestBearing, convexHull, inPolygon, lumpAreas, stopsCircle, terrainParts, tiltPoint, uniformProjection, untiltPoint, viewPoints, miniMapChunks, miniMapLayers, nextMiniMap, streetGrid, wholeOutline } from './miniMap';
+import { DEFAULT_DISTANCE, legLayout, MAP_DISTANCES, miniMapView, nextMapDistance, stopProjection, terrainRange, type MapDistance, clusterPoints, isMiniMapId, bestBearing, convexHull, inPolygon, lumpAreas, stopsCircle, terrainParts, tiltPoint, uniformProjection, untiltPoint, viewPoints, miniMapChunks, miniMapLayers, nextMiniMap, streetGrid, traceCoasts, wholeOutline } from './miniMap';
 
 describe('미니맵', () => {
   it('stops close together share a chunk, far ones get their own', () => {
@@ -62,6 +62,37 @@ describe('미니맵', () => {
       expect(shadow[0].dy).toBeGreaterThan(0);
       const land = parts.find((p) => p.polys.length && p.fill.alpha === undefined)!;
       expect(pts.every((q) => land.polys.some((poly) => inPolygon(q, poly)))).toBe(true);
+    }
+  });
+
+  it('traces a coast round the land of a field, with no lakes', () => {
+    // A disc of radius 0.2 at the middle, with a hole: only the outer coast comes back.
+    const field = (p: { x: number; y: number }) => {
+      const r = Math.hypot(p.x - 0.5, p.y - 0.5);
+      return r < 0.2 && r > 0.05 ? 1 : 0;
+    };
+    const coasts = traceCoasts(field, 0.5, { x0: 0.2, y0: 0.2, x1: 0.8, y1: 0.8 });
+    expect(coasts).toHaveLength(1);
+    expect(coasts[0].every((p) => Math.abs(Math.hypot(p.x - 0.5, p.y - 0.5) - 0.2) < 0.02)).toBe(true);
+  });
+
+  it('덩어리: near stops flow into one round island, far ones are islands apart, the same each time', () => {
+    // Two stops 300 m apart, and one 5 km off.
+    const near = [{ x: 0.3, y: 0.6 }, { x: 0.42, y: 0.62 }];
+    const far = [...near, { x: 0.9, y: 0.4 }];
+    const ground: [number, number][] = [[127.05, 37.54], [127.0534, 37.54], [127.106, 37.54]];
+    const land = (pts: { x: number; y: number }[]) => miniMapLayers(pts, 'blob', ground.slice(0, pts.length)).find((p) => p.polys.length && p.fill.alpha === undefined)!;
+    expect(land(near).polys).toHaveLength(1);
+    expect(land(far).polys).toHaveLength(2);
+    expect(miniMapLayers(far, 'blob', ground)).toEqual(miniMapLayers(far, 'blob', ground));
+    // Round: no corners, every turn along the coast is gentle (the old discs and bars met at sharp angles).
+    for (const ring of land(far).polys) {
+      const turns = ring.map((p, i) => {
+        const [a, b] = [ring[(i + ring.length - 1) % ring.length], ring[(i + 1) % ring.length]];
+        const [u, w] = [Math.atan2(p.y - a.y, p.x - a.x), Math.atan2(b.y - p.y, b.x - p.x)];
+        return Math.abs(Math.atan2(Math.sin(w - u), Math.cos(w - u)));
+      });
+      expect(Math.max(...turns)).toBeLessThan(Math.PI / 3);
     }
   });
 

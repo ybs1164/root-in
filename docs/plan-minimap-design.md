@@ -107,7 +107,7 @@
 |---|---|---|
 | **D0** | 지금 미커밋 작업(형태 × 거리 두 축)을 먼저 커밋 — 디자인 변경과 섞지 않기 | (git) — ✅ 2026-10-19 `69be87a` |
 | **D1** | 색 역할·토큰, 선 테두리, 이름 번짐. 대비 검사 테스트 — ✅ 2026-10-19: `MapFill`은 역할(`MapRole`)만, 색은 `--mini-<역할>` 토큰(기존 지도의 `--map-*`와 겹쳐 이름을 `--mini-`로; 땅 = 강조색 16%). 미니맵이 있을 때만 선 테두리(`pings__case`, 공유 이미지 `CASING`)와 이름 번짐(`pings--mapped`). 테스트: 모든 테마에서 선이 땅 위에서 대비의 75% 이상(또는 4.5:1 이상) 유지 + 땅이 바탕과 구별(≥1.08) — 옛 40%는 실패함 | `domain/miniMap.ts`, `MiniMap.tsx`, `lib/shareImage.ts`, `styles.css`, `test/styles.test.ts` |
-| **D2** | 덩어리 = 장의 등고선 섬(marching squares, 시드 고정) | `domain/miniMap.ts` (+ 테스트: 모든 핑이 섬 안, 묶음 수 = 섬 수) |
+| **D2** | 덩어리 = 장의 등고선 섬(marching squares, 시드 고정) | `domain/miniMap.ts` (+ 테스트: 모든 핑이 섬 안, 묶음 수 = 섬 수) — ✅ 2026-10-19: 핑마다 핑→핀 머리 선분, 묶음 안 연결은 0.82배 무게로 장(`landField`, 가우스 + 시드 고정 물결 ±16%)을 만들고 `traceCoasts`로 해안선(호수는 뺌). 묶음마다 따로 그려 섬끼리 안 붙음. 거리 단계의 격자는 섬 안에만(D3에서 바꿈). 테스트: 해안 추적, 가까운 둘 = 섬 하나·5km 떨어진 하나 = 섬 둘, 해안 꺾임 < 60° |
 | **D3** | 거리 → 길: 격자 삭제, 구간 띠 | `domain/miniMap.ts`, `MINI_MAPS` 라벨 |
 | **D4** | 상세 = BaseMap(물·공원·큰길) + 행정 실루엣, 매끄럽게·상한 | `services/terrainService.ts`(BaseMap 함께 가져오기), `domain/miniMap.ts` `terrainParts` |
 | **D5** | 기울임 값, 옆면, 공기 원근, 80% 맞춤 | `domain/miniMap.ts` `tiltPoint`·`fitAround`·`uniformProjection`, 두 렌더러 |

@@ -397,15 +397,141 @@ function terrain(flat: MapPoint[][], at: (q: MapPoint) => MapPoint): MapPart[] {
 /** How far above its stop a pin's head reaches, in the flat (untilted) square. */
 const PIN_HEAD = 0.22;
 
-/** A disc as a smooth polygon (36 sides): the abstract lumps are round. */
-const circle = (c: MapPoint, r: number): MapPoint[] => Array.from({ length: 36 }, (_, k) => ({ x: c.x + r * Math.cos((k / 36) * Math.PI * 2), y: c.y + r * Math.sin((k / 36) * Math.PI * 2) }));
+/** A segment of the field: land gathers around it, `weight` of a stop's. */
+interface FieldSource {
+  a: MapPoint;
+  b: MapPoint;
+  weight: number;
+}
 
-/** A fat line from `a` to `b` as a rectangle (its round ends are the discs at the stops). */
-const bar = (a: MapPoint, b: MapPoint, w: number): MapPoint[] => {
-  const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
-  const [nx, ny] = [(-(b.y - a.y) / len) * (w / 2), ((b.x - a.x) / len) * (w / 2)];
-  return [{ x: a.x + nx, y: a.y + ny }, { x: b.x + nx, y: b.y + ny }, { x: b.x - nx, y: b.y - ny }, { x: a.x - nx, y: a.y - ny }];
-};
+/** How soft a source's edge is against `CHUNK_RADIUS`: the field falls off over this many radii. */
+const FIELD_SOFTNESS = 0.8;
+/** The field's level where the coast is: a lone stop's land then reaches `CHUNK_RADIUS`. */
+const COAST = Math.exp(-1 / (FIELD_SOFTNESS * FIELD_SOFTNESS));
+/** A link between two stops is a little weaker than a stop: the land narrows between them, like an isthmus. */
+const LINK_WEIGHT = 0.82;
+/** How much the seeded swell moves the coast in and out (a fraction of the field). */
+const SWELL = 0.16;
+/** The grid the coast is traced on (flat unit square). */
+const FIELD_STEP = 0.01;
+
+/**
+ * Land as a field (metaballs): every source adds a soft bump that falls off
+ * with distance from it, so sources near one another flow into one rounded
+ * shape with no seams, and a gentle seeded swell keeps the coast from looking
+ * drawn with a compass. The same sources always give the same land.
+ */
+function landField(sources: FieldSource[], seed: number): (p: MapPoint) => number {
+  const sigma = CHUNK_RADIUS * FIELD_SOFTNESS;
+  const rnd = seeded(seed);
+  const waves = Array.from({ length: 3 }, () => {
+    const turn = rnd() * Math.PI * 2;
+    const k = (2 * Math.PI) / (0.35 + rnd() * 0.3);
+    return { kx: Math.cos(turn) * k, ky: Math.sin(turn) * k, phase: rnd() * Math.PI * 2 };
+  });
+  return (p) => {
+    let sum = 0;
+    for (const { a, b, weight } of sources) sum += weight * Math.exp(-((distToSegment(p, a, b) / sigma) ** 2));
+    const swell = waves.reduce((s, w) => s + Math.sin(w.kx * p.x + w.ky * p.y + w.phase), 0) / waves.length;
+    return sum * (1 + SWELL * swell);
+  };
+}
+
+/**
+ * The closed coasts where `field` crosses `level`, traced on a grid over
+ * `box` (marching squares, the crossing found between grid points). Saddles
+ * are settled by the cell's middle. Coasts inside another (lakes) are left
+ * out: the land is filled whole.
+ */
+export function traceCoasts(field: (p: MapPoint) => number, level: number, box: { x0: number; y0: number; x1: number; y1: number }, step = FIELD_STEP): MapPoint[][] {
+  // One empty cell all round, so every coast closes.
+  const nx = Math.ceil((box.x1 - box.x0) / step) + 3;
+  const ny = Math.ceil((box.y1 - box.y0) / step) + 3;
+  const at = (i: number, j: number): MapPoint => ({ x: box.x0 + (i - 1) * step, y: box.y0 + (j - 1) * step });
+  const v = new Float64Array(nx * ny);
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) v[j * nx + i] = i === 0 || j === 0 || i === nx - 1 || j === ny - 1 ? 0 : field(at(i, j));
+  const val = (i: number, j: number) => v[j * nx + i];
+  // Grid edges: horizontal `h` from (i, j) to (i+1, j), vertical `v` from (i, j) to (i, j+1).
+  const cross = (key: string): MapPoint => {
+    const [kind, si, sj] = key.split(':');
+    const [i, j] = [Number(si), Number(sj)];
+    const [i2, j2] = kind === 'h' ? [i + 1, j] : [i, j + 1];
+    const [p, q] = [at(i, j), at(i2, j2)];
+    const [a, b] = [val(i, j), val(i2, j2)];
+    const t = a === b ? 0.5 : (level - a) / (b - a);
+    return { x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t };
+  };
+  const links = new Map<string, string[]>();
+  const join = (e: string, f: string) => {
+    links.set(e, [...(links.get(e) ?? []), f]);
+    links.set(f, [...(links.get(f) ?? []), e]);
+  };
+  for (let j = 0; j < ny - 1; j++) {
+    for (let i = 0; i < nx - 1; i++) {
+      const [a, b, c, d] = [val(i, j), val(i + 1, j), val(i + 1, j + 1), val(i, j + 1)].map((x) => x > level);
+      const code = (a ? 8 : 0) | (b ? 4 : 0) | (c ? 2 : 0) | (d ? 1 : 0);
+      if (code === 0 || code === 15) continue;
+      const [top, right, bottom, left] = [`h:${i}:${j}`, `v:${i + 1}:${j}`, `h:${i}:${j + 1}`, `v:${i}:${j}`];
+      const middle = (val(i, j) + val(i + 1, j) + val(i + 1, j + 1) + val(i, j + 1)) / 4 > level;
+      const pairs: Record<number, [string, string][]> = {
+        1: [[left, bottom]],
+        2: [[bottom, right]],
+        3: [[left, right]],
+        4: [[top, right]],
+        5: middle ? [[left, top], [bottom, right]] : [[left, bottom], [top, right]],
+        6: [[top, bottom]],
+        7: [[left, top]],
+        8: [[left, top]],
+        9: [[top, bottom]],
+        10: middle ? [[left, bottom], [top, right]] : [[left, top], [bottom, right]],
+        11: [[top, right]],
+        12: [[left, right]],
+        13: [[bottom, right]],
+        14: [[left, bottom]],
+      };
+      for (const [e, f] of pairs[code]) join(e, f);
+    }
+  }
+  const rings: MapPoint[][] = [];
+  const used = new Set<string>();
+  for (const start of links.keys()) {
+    if (used.has(start)) continue;
+    const ring: MapPoint[] = [];
+    let [prev, cur] = ['', start];
+    while (cur && !used.has(cur)) {
+      used.add(cur);
+      ring.push(cross(cur));
+      const next = (links.get(cur) ?? []).find((e) => e !== prev && !used.has(e));
+      [prev, cur] = [cur, next ?? ''];
+    }
+    if (ring.length >= 4) rings.push(ring);
+  }
+  return rings.filter((ring, k) => !rings.some((other, m) => m !== k && inPolygon(ring[0], other)));
+}
+
+/**
+ * 덩어리: every chunk of stops as one organic island. Each stop raises the
+ * land from where it lies up to its pin's head, and the links of its chunk a
+ * little less, so the stops of a chunk flow into one rounded island that
+ * narrows between them; chunks are traced apart, so they stay islands.
+ */
+function chunkIslands(chunks: MiniMapChunk[], head: (q: MapPoint) => MapPoint): MapPoint[][] {
+  return chunks.flatMap((c) => {
+    const sources: FieldSource[] = [
+      ...c.discs.map((d) => ({ a: d, b: head(d), weight: 1 })),
+      ...c.links.map(([a, b]) => ({ a, b, weight: LINK_WEIGHT })),
+    ];
+    const ends = sources.flatMap((s) => [s.a, s.b]);
+    const reach = CHUNK_RADIUS * 2.4;
+    const box = {
+      x0: Math.min(...ends.map((p) => p.x)) - reach,
+      y0: Math.min(...ends.map((p) => p.y)) - reach,
+      x1: Math.max(...ends.map((p) => p.x)) + reach,
+      y1: Math.max(...ends.map((p) => p.y)) + reach,
+    };
+    return traceCoasts(landField(sources, hash(c.discs)), COAST, box);
+  });
+}
 
 /** A cross of four taps around `p`, all inside: keeps what is drawn off the land's very edge. */
 const within = (base: (p: MapPoint) => boolean, margin: number) => (p: MapPoint) =>
@@ -434,17 +560,12 @@ export function miniMapLayers(points: MapPoint[], style: MiniMapId, centers?: Lo
   if (style === 'detail') return [];
   // Which stops share a chunk is judged on the ground when it is known, so the chunks stay the same whatever the distances are drawn as.
   const chunks = centers?.length === points.length ? miniMapChunks(flat, CHUNK_GAP_M, metres(centers)) : miniMapChunks(flat, CHUNK_GAP);
-  const lumps = chunks.flatMap((c) => [
-    ...c.discs.flatMap((d) => [circle(d, CHUNK_RADIUS), circle(head(d), CHUNK_RADIUS), bar(d, head(d), CHUNK_RADIUS * 2)]),
-    ...c.links.map(([a, b]) => bar(a, b, CHUNK_RADIUS * 2)),
-  ]);
-  const at = fitAround(lumps, points);
-  const parts = terrain(lumps, at);
+  const islands = chunkIslands(chunks, head);
+  const at = fitAround(islands, points);
+  const parts = terrain(islands, at);
   if (style === 'streets') {
-    // Streets on the land: a skewed grid kept to it (within a disc's or link's reach), tilted and fitted with it.
-    // A disc at the stop, one at the pin's head and the bar between: the capsule from one to the other.
-    const near = (p: MapPoint) =>
-      chunks.some((c) => c.discs.some((d) => distToSegment(p, d, head(d)) <= CHUNK_RADIUS) || c.links.some(([a, b]) => distToSegment(p, a, b) <= CHUNK_RADIUS));
+    // Streets on the land: a skewed grid kept to the islands, tilted and fitted with them.
+    const near = (p: MapPoint) => islands.some((ring) => inPolygon(p, ring));
     const grid = streetGrid(0, 0, 1, 74 / 864).map(([a, b]) => ({ a, b, w: 0.011 }));
     const lines = clipSegments(grid, within(near, 0.02)).map(({ a, b, w }) => ({ a: at(a), b: at(b), w: w * 0.8 }));
     parts.push(part({ lines }, ROAD));
