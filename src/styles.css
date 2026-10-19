@@ -105,6 +105,15 @@
   --map-park: #c4efd5;
   --map-road: #d8e0e7;
   --map-road-major: #8ca6c3;
+  /* TODAY's 미니맵 (MiniMap, share image), made from the theme's own colours
+     so every 꾸미기 theme fits: wide areas stay quiet (a little accent over
+     the page) and the full accent is left to the pins and the line on top. */
+  --mini-land: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  --mini-side: color-mix(in srgb, var(--mini-land) 88%, var(--ink-black));
+  --mini-water: color-mix(in srgb, var(--accent) 30%, var(--surface));
+  --mini-park: color-mix(in srgb, var(--map-park) 75%, var(--mini-land));
+  --mini-road: var(--surface);
+  --mini-shadow: color-mix(in srgb, var(--accent) 70%, var(--ink-black));
 }
 
 /* Dark: the phone's setting, unless 디스플레이 및 언어 → 디스플레이 picked one (<html data-scheme>). */
@@ -6549,8 +6558,32 @@ button:disabled {
   stroke: none;
 }
 
-.pings__seg.is-pressed {
+.is-pressed > .pings__seg {
   opacity: 0.55;
+}
+
+/* Under a line on a 미니맵: the page colour, a little wider on each side (Brewer's casing). */
+.pings__case {
+  fill: none;
+  stroke: var(--surface);
+  stroke-width: 2.1;
+  stroke-linecap: round;
+}
+
+.pings__case--dotted {
+  stroke-width: 2.4;
+}
+
+.pings__case--bold {
+  stroke-width: 3.1;
+}
+
+/* On a 미니맵 the names sit on land: a page-coloured glow keeps them readable (as a route's stop names). */
+.pings--mapped .ping__label {
+  text-shadow:
+    0 0 4px var(--surface),
+    0 0 2px var(--surface),
+    0 0 1px var(--surface);
 }
 
 /* Draws every line in visiting order, whatever their dash patterns. */

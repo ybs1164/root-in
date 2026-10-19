@@ -209,13 +209,18 @@ export interface MapSegment {
 }
 
 /**
- * A solid colour of the map, built from the page: `mix` of the accent over
- * the ground (the page colour), then `dark` of the way to black. `alpha` below
- * 1 is only for the shadow (the part is drawn as one flat shape, then faded).
+ * What a colour of the map stands for. Each is a theme token (`--mini-<role>`,
+ * styles.css) made from the theme's own colours, so every theme gets a map
+ * that fits it: wide areas stay quiet (a little accent over the page) and the
+ * full accent is left to the pins and the line on top (Imhof's rule).
  */
+export type MapRole = 'land' | 'side' | 'water' | 'park' | 'road' | 'shadow';
+
+export const MAP_ROLES: MapRole[] = ['land', 'side', 'water', 'park', 'road', 'shadow'];
+
+/** A solid colour of the map; `alpha` below 1 is only for the shadow (the part is drawn as one flat shape, then faded). */
 export interface MapFill {
-  mix: number;
-  dark: number;
+  role: MapRole;
   alpha?: number;
 }
 
@@ -237,10 +242,10 @@ export interface MapPart {
   gaps?: number;
 }
 
-const TOP: MapFill = { mix: 0.42, dark: 0 };
-const ROAD: MapFill = { mix: 0.1, dark: 0 };
-/** The terrain's shadow below it: the accent darkened, faded as a whole, and blurred. */
-const SHADOW: MapFill = { mix: 0.6, dark: 0.15, alpha: 0.28 };
+const TOP: MapFill = { role: 'land' };
+const ROAD: MapFill = { role: 'road' };
+/** The terrain's shadow below it: faded as a whole, and blurred. */
+const SHADOW: MapFill = { role: 'shadow', alpha: 0.28 };
 const SHADOW_DY = 0.045;
 const SHADOW_BLUR = 0.04;
 
@@ -686,7 +691,7 @@ export function terrainViewport(centers: LonLat[]) {
 }
 
 /** The lump's one tone, and how wide the see-through gap between two areas is. */
-const LAND: MapFill = { mix: 0.4, dark: 0 };
+const LAND: MapFill = { role: 'land' };
 const GAP_W = 0.005;
 
 /** Douglas-Peucker: drops points closer than `tol` to the line the ones around them make. */

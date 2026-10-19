@@ -8,7 +8,7 @@ import type { CardStamp, StopMark } from '../domain/shareSubject';
 import { paintPattern } from './dayPatterns';
 import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
 import { pingInfoSize, placePingLabels } from '../domain/stopLabels';
-import { miniMapLayers, miniMapView, terrainParts, viewPoints, type MapFill, type MapPart, type MiniMapView, type TerrainShapes } from '../domain/miniMap';
+import { MAP_ROLES, miniMapLayers, miniMapView, terrainParts, viewPoints, type MapFill, type MapRole, type MapPart, type MiniMapView, type TerrainShapes } from '../domain/miniMap';
 import { terrainService } from '../services/terrainService';
 
 export interface ShareImageInput {
@@ -66,8 +66,25 @@ function tokens() {
     peg: get('--clothespin'),
     pegShade: get('--clothespin-shade'),
     font: getComputedStyle(document.body).fontFamily,
+    mini: Object.fromEntries(MAP_ROLES.map((role) => [role, resolvedColour(`--mini-${role}`)])) as Record<MapRole, string>,
   };
 }
+
+/**
+ * A colour token as the browser resolves it: the 미니맵 tokens are mixes of
+ * other tokens (color-mix over var()), which a canvas cannot read as written.
+ */
+function resolvedColour(name: string): string {
+  const probe = document.createElement('span');
+  probe.style.color = `var(${name})`;
+  document.body.appendChild(probe);
+  const colour = getComputedStyle(probe).color;
+  probe.remove();
+  return colour;
+}
+
+/** How much wider a line's casing is than the line on a 미니맵 (card px: about 2px a side on the day screen). */
+const CASING = 10;
 
 const DASHES: Record<EdgeStyle, { width: number; dash: number[]; cap: CanvasLineCap }> = {
   solid: { width: 9, dash: [], cap: 'round' },
@@ -486,28 +503,15 @@ function drawPaper(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>) 
   ctx.restore();
 }
 
-/** A CSS colour as [r, g, b] (read back off a pixel, so any CSS colour syntax works). */
-function rgbOf(css: string): [number, number, number] {
-  const px = document.createElement('canvas');
-  px.width = px.height = 1;
-  const g = px.getContext('2d')!;
-  g.fillStyle = css;
-  g.fillRect(0, 0, 1, 1);
-  const [r, gr, b] = g.getImageData(0, 0, 1, 1).data;
-  return [r, gr, b];
-}
-
 /**
  * 미니맵: its parts (domain/miniMap) painted in order behind the stops, in
- * solid colours: the accent over the ground; the shadow is blurred and faded.
+ * solid colours (the theme's 미니맵 tokens); the shadow is blurred and faded.
  * Drawn in the unit square the stops are laid out in. A part with an alpha
  * (the shadow) is drawn flat on a canvas of its own and faded as a whole.
  */
-function drawMiniMap(ctx: CanvasRenderingContext2D, c: Tokens, points: { x: number; y: number }[], view: MiniMapView, ground: string, centers: [number, number][], terrain: TerrainShapes | null) {
+function drawMiniMap(ctx: CanvasRenderingContext2D, c: Tokens, points: { x: number; y: number }[], view: MiniMapView, centers: [number, number][], terrain: TerrainShapes | null) {
   const unit = points.map((p) => ({ x: (p.x - BOX.x) / BOX.size, y: (p.y - BOX.y) / BOX.size }));
-  const [accent, floor] = [rgbOf(c.accent), rgbOf(ground)];
-  const colour = ({ mix, dark }: MapFill) =>
-    `rgb(${[0, 1, 2].map((i) => Math.round((floor[i] * (1 - mix) + accent[i] * mix) * (1 - dark))).join(',')})`;
+  const colour = ({ role }: MapFill) => c.mini[role];
 
   const paintPart = (g: CanvasRenderingContext2D, part: MapPart, fill: string) => {
     g.save();
@@ -604,20 +608,26 @@ function drawStops(
     y: BOX.y + p.y * BOX.size,
   }));
 
-  if (show.map && show.map.shape !== 'none') drawMiniMap(ctx, c, points, show.map, bg, pings.map((p) => p.center), show.terrain ?? null);
+  if (show.map && show.map.shape !== 'none') drawMiniMap(ctx, c, points, show.map, pings.map((p) => p.center), show.terrain ?? null);
 
-  ctx.strokeStyle = c.route;
+  // On a 미니맵 every line gets a casing in the page colour first, as on the day screen (pings__case).
+  const mapped = !!show.map && show.map.shape !== 'none';
   for (let i = 0; i + 1 < points.length; i++) {
     const edge = edges[i] ?? 'solid';
     if (edge === 'transparent') continue;
     const style = DASHES[edge];
-    ctx.lineWidth = style.width;
-    ctx.lineCap = style.cap;
-    ctx.setLineDash(style.dash);
-    ctx.beginPath();
-    ctx.moveTo(points[i].x, points[i].y);
-    ctx.lineTo(points[i + 1].x, points[i + 1].y);
-    ctx.stroke();
+    const stroke = (colour: string, width: number, dash: number[], cap: CanvasLineCap) => {
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = width;
+      ctx.lineCap = cap;
+      ctx.setLineDash(dash);
+      ctx.beginPath();
+      ctx.moveTo(points[i].x, points[i].y);
+      ctx.lineTo(points[i + 1].x, points[i + 1].y);
+      ctx.stroke();
+    };
+    if (mapped) stroke(c.page, style.width + CASING, [], 'round');
+    stroke(c.route, style.width, style.dash, style.cap);
   }
   ctx.setLineDash([]);
 
@@ -700,15 +710,29 @@ function drawStops(
       nameY = mid + (lines === 2 ? -6 : 12);
     }
     ctx.textAlign = side === 'right' ? 'left' : side === 'left' ? 'right' : 'center';
+    // On a 미니맵 the words sit on land: a page-coloured glow first (as .pings--mapped .ping__label).
+    const write = (text: string, y: number) => {
+      if (mapped) {
+        ctx.save();
+        ctx.strokeStyle = c.page;
+        ctx.lineWidth = 10;
+        ctx.lineJoin = 'round';
+        ctx.shadowColor = c.page;
+        ctx.shadowBlur = 12;
+        ctx.strokeText(text, tx, y);
+        ctx.restore();
+      }
+      ctx.fillText(text, tx, y);
+    };
     if (name) {
       ctx.fillStyle = c.text;
       ctx.font = `700 ${Math.round(36 * (k > 1 ? 1.15 : 1))}px ${c.font}`;
-      ctx.fillText(name, tx, nameY);
+      write(name, nameY);
     }
     if (time) {
       ctx.fillStyle = c.muted;
       ctx.font = `600 32px ${c.font}`;
-      ctx.fillText(time, tx, name ? nameY + 42 : nameY);
+      write(time, name ? nameY + 42 : nameY);
     }
     ctx.textAlign = 'center';
   });

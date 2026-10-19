@@ -262,16 +262,17 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
     .slice(0, settled)
     .map((p) => `${p.x * 100},${p.y * 100}`)
     .join(' ');
-  const lineOf = (i: number) => (
-    <line
-      key={i}
-      className={`pings__seg pings__seg--${edgeStyleOf(pings[i], pings[i + 1])} ${same(pressed, { kind: 'edge', index: i }) ? 'is-pressed' : ''}`}
-      x1={points[i].x * 100}
-      y1={points[i].y * 100}
-      x2={points[i + 1].x * 100}
-      y2={points[i + 1].y * 100}
-    />
-  );
+  const lineOf = (i: number) => {
+    const style = edgeStyleOf(pings[i], pings[i + 1]);
+    const ends = { x1: points[i].x * 100, y1: points[i].y * 100, x2: points[i + 1].x * 100, y2: points[i + 1].y * 100 };
+    return (
+      <g key={i} className={same(pressed, { kind: 'edge', index: i }) ? 'is-pressed' : undefined}>
+        {/* On a 미니맵 the line gets a casing in the page colour, so it stands off the land under it. */}
+        {mapStyle !== 'none' && style !== 'transparent' && <line className={`pings__case pings__case--${style}`} {...ends} />}
+        <line className={`pings__seg pings__seg--${style}`} {...ends} />
+      </g>
+    );
+  };
 
   // Where the open picker sits: above its ping, or above the middle of its line.
   let pickerAt: { x: number; y: number } | null = null;
@@ -282,7 +283,7 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
   }
 
   return (
-    <div className={`pings ${picking || drag ? 'is-picking' : ''} ${miniMap === 'detail' && !ready ? 'pings--wait' : ''}`} role="list" aria-label={pings.length ? `${pings.length}곳` : '기록 없음'}>
+    <div className={`pings ${picking || drag ? 'is-picking' : ''} ${miniMap === 'detail' && !ready ? 'pings--wait' : ''} ${mapStyle !== 'none' ? 'pings--mapped' : ''}`} role="list" aria-label={pings.length ? `${pings.length}곳` : '기록 없음'}>
       {mapStyle !== 'none' && <MiniMap points={points} centers={centers} style={mapStyle} distance={view.distance} terrain={terrain} />}
       {points.length > 1 && (
         <svg className="pings__line" viewBox="0 0 100 100" preserveAspectRatio="none">

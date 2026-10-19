@@ -2,11 +2,8 @@ import { useId, useMemo } from 'react';
 import { miniMapLayers, terrainParts, type MapDistance, type MapFill, type MapPoint, type MapPart, type MiniMapId, type TerrainShapes } from '../domain/miniMap';
 import type { LonLat } from '../domain/districtMap';
 
-/** A fill as CSS: the accent over the page colour, then toward black (`--mask-hide`). */
-export const fillCss = ({ mix, dark }: MapFill): string => {
-  const base = `color-mix(in srgb, var(--accent) ${Math.round(mix * 100)}%, var(--surface))`;
-  return dark ? `color-mix(in srgb, ${base} ${Math.round((1 - dark) * 100)}%, var(--mask-hide))` : base;
-};
+/** A fill as CSS: its role's theme token. */
+export const fillCss = ({ role }: MapFill): string => `var(--mini-${role})`;
 
 /** The signed area of a ring (its winding: which way round it goes). */
 const winding = (ring: MapPoint[]) => ring.reduce((sum, p, i) => sum + (ring[(i + 1) % ring.length].x - p.x) * (ring[(i + 1) % ring.length].y + p.y), 0);
@@ -25,7 +22,7 @@ const pathOf = (polys: MapPoint[][], sameWay = false) =>
 /**
  * 미니맵 behind a day's pings: the same parts the share image draws, in the
  * unit square the pings are laid out in, painted in order in solid colours
- * (the accent over the page). A fill with an alpha (the shadow) is one group
+ * (the theme's map tokens). A fill with an alpha (the shadow) is one group
  * faded as a whole, so overlaps stay even, and may be blurred and moved down.
  * 상세 is the real map: `terrain` is what was fetched for the stops (the
  * window alone until it arrives).
