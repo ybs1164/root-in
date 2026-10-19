@@ -114,6 +114,22 @@ describe('미니맵', () => {
     }
   });
 
+  it('the land is a slab seen at an angle: its side below its top, its far side paler', () => {
+    const pts = [{ x: 0.2, y: 0.4 }, { x: 0.8, y: 0.6 }];
+    for (const style of ['blob', 'streets', 'whole'] as const) {
+      const parts = miniMapLayers(pts, style);
+      const [top, side, haze] = ['land', 'side', 'haze'].map((role) => parts.find((p) => p.fill.role === role)!);
+      const at = (role: string) => parts.findIndex((p) => p.fill.role === role);
+      // The side lies just below the top and is drawn first; the haze goes over everything else (the roads too).
+      expect(side.polys).toEqual(top.polys);
+      expect(side.dy).toBeGreaterThan(0);
+      expect(at('side')).toBeLessThan(at('land'));
+      expect(at('haze')).toBe(parts.length - 1);
+      expect(haze.haze).toBeGreaterThan(0);
+      expect(haze.haze).toBeLessThan(1);
+    }
+  });
+
   it('the tilt squashes depth and can be undone', () => {
     const p = { x: 0.3, y: 0.9 };
     const back = untiltPoint(tiltPoint(p));
@@ -135,9 +151,8 @@ describe('미니맵', () => {
     expect(lumpAreas(shapes, centers).map((a) => a.code)).toEqual(['a', 'b']);
     const parts = terrainParts(shapes, centers);
     // With no base map: one tone of land, the borders between the areas sealed over (nobody sees them on the ground).
-    const fills = parts.filter((p) => p.evenodd && p.fill.alpha === undefined);
-    expect(fills).toHaveLength(1);
-    expect(fills[0].fill.role).toBe('land');
+    expect(parts.map((p) => p.fill.role)).toEqual(['shadow', 'side', 'land', 'haze']);
+    const fills = parts.filter((p) => p.fill.role === 'land');
     const filled = fills[0].polys;
     expect(filled).toHaveLength(2);
     expect(fills[0].seal).toBeGreaterThan(0);
@@ -174,8 +189,8 @@ describe('미니맵', () => {
       },
     };
     const parts = terrainParts(shapes, centers);
-    expect(parts.map((p) => p.fill.role)).toEqual(['shadow', 'water', 'land', 'park', 'road']);
-    const [, water, land, park, roads] = parts;
+    expect(parts.map((p) => p.fill.role)).toEqual(['shadow', 'side', 'water', 'land', 'park', 'road', 'haze']);
+    const [, , water, land, park, roads] = parts;
     // The lump is water under the land, so the river shows where there is no land; the rest is kept to the lump.
     expect(water.polys).toHaveLength(2);
     expect(water.clip).toBeUndefined();

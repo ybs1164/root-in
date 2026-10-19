@@ -197,9 +197,9 @@ export interface MapSegment {
  * that fits it: wide areas stay quiet (a little accent over the page) and the
  * full accent is left to the pins and the line on top (Imhof's rule).
  */
-export type MapRole = 'land' | 'side' | 'water' | 'park' | 'road' | 'shadow';
+export type MapRole = 'land' | 'side' | 'water' | 'park' | 'road' | 'shadow' | 'haze';
 
-export const MAP_ROLES: MapRole[] = ['land', 'side', 'water', 'park', 'road', 'shadow'];
+export const MAP_ROLES: MapRole[] = ['land', 'side', 'water', 'park', 'road', 'shadow', 'haze'];
 
 /** A solid colour of the map; `alpha` below 1 is only for the shadow (the part is drawn as one flat shape, then faded). */
 export interface MapFill {
@@ -227,6 +227,12 @@ export interface MapPart {
   clip?: MapPoint[][];
   /** Also stroke the polygons in their own colour, this wide: hides the hairline seams where pieces meet. */
   seal?: number;
+  /**
+   * Air between the eye and the land (Imhof's aerial perspective): the part
+   * is this opaque at its far (top) edge and fades out toward its near
+   * (bottom) edge, so the far side of the tilted land is paler.
+   */
+  haze?: number;
 }
 
 const TOP: MapFill = { role: 'land' };
@@ -237,15 +243,28 @@ const ROAD_W = 0.034;
 const SHADOW: MapFill = { role: 'shadow', alpha: 0.28 };
 const SHADOW_DY = 0.045;
 const SHADOW_BLUR = 0.04;
+/** The land is a slab: its side shows this far below its top (unit square). */
+const SIDE: MapFill = { role: 'side' };
+const SIDE_DY = 0.014;
+/** The far edge of the land is this much paler (the haze fades out toward the near edge). */
+const HAZE: MapFill = { role: 'haze' };
+const HAZE_FAR = 0.5;
+
+/** The slab under the land's top (its side, then the shadow further down), and the haze over it: the parts that make it a tilted object. */
+const slab = (polys: MapPoint[][], evenodd = false) => ({
+  under: [part({ polys }, SHADOW, { dy: SHADOW_DY, blur: SHADOW_BLUR, evenodd }), part({ polys }, SIDE, { dy: SIDE_DY, evenodd })],
+  over: part({ polys }, HAZE, { haze: HAZE_FAR, evenodd }),
+});
 
 /**
  * The terrain is seen from above at an angle. It is tilted as a whole: its
  * depth is squashed to `TILT` and its far (upper) edge is narrower than its
- * near one. The stops stay where they are laid out, so the land is built flat
+ * near one (0.55 made the land a thin band with room wasted above and below
+ * it; 0.68 still reads as seen at an angle). The stops stay where they are laid out, so the land is built flat
  * around where they would lie before the tilt (`untiltPoint`) and then tilted
  * (`tiltPoint`): they end up on it.
  */
-export const TILT = 0.55;
+export const TILT = 0.68;
 const spread = (y: number) => 0.68 + 0.64 * y;
 export const tiltPoint = (p: MapPoint): MapPoint => {
   const y = 0.5 + (p.y - 0.5) * TILT;
@@ -377,10 +396,11 @@ function fitAround(flat: MapPoint[][], pins: MapPoint[]): (p: MapPoint) => MapPo
   };
 }
 
-/** The land (flat polygons), tilted and fitted around the pins, with its shadow below it. */
+/** The land (flat polygons), tilted and fitted around the pins, as a slab with its shadow below it and haze over it (last). */
 function terrain(flat: MapPoint[][], at: (q: MapPoint) => MapPoint): MapPart[] {
   const polys = flat.map((poly) => poly.map(at));
-  return [part({ polys }, SHADOW, { dy: SHADOW_DY, blur: SHADOW_BLUR }), part({ polys }, TOP)];
+  const { under, over } = slab(polys);
+  return [...under, part({ polys }, TOP), over];
 }
 
 /** How far above its stop a pin's head reaches, in the flat (untilted) square. */
@@ -562,7 +582,8 @@ export function miniMapLayers(points: MapPoint[], style: MiniMapId, centers?: Lo
       const along = (t: number) => at({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
       return Array.from({ length: n }, (_, k) => ({ a: along(k / n), b: along((k + 1) / n), w }));
     });
-    parts.push(part({ lines }, ROAD));
+    // On the land, under the haze.
+    parts.splice(parts.length - 1, 0, part({ lines }, ROAD));
   }
   return parts;
 }
@@ -875,9 +896,9 @@ export function terrainParts(shapes: TerrainShapes | null, centers: LonLat[], di
   const project = terrainProject(centers, lump, distance);
   const shape = (rings: LonLat[][], tol = 0.0007) => rings.map((ring) => simplify(ring.map(project), tol)).filter((ring) => ring.length >= 4);
   const rings = lump.flatMap((a) => a.polygons.flatMap((polygon) => shape(polygon)));
-  const shadow = part({ polys: rings }, SHADOW, { dy: SHADOW_DY, blur: SHADOW_BLUR, evenodd: true });
+  const { under, over } = slab(rings, true);
   const base = shapes?.base;
-  if (!base) return [shadow, part({ polys: rings }, LAND, { evenodd: true, seal: SEAL })];
+  if (!base) return [...under, part({ polys: rings }, LAND, { evenodd: true, seal: SEAL }), over];
 
   const box = lumpBox(lump);
   const near = (path: LonLat[]) => overlaps(pathBox(path), box);
@@ -896,11 +917,12 @@ export function terrainParts(shapes: TerrainShapes | null, centers: LonLat[], di
     .map((road) => ({ path: simplify(road.path.map(project), 0.001), w: BIG_ROAD_WIDTH[road.tier]! }));
   const clip = rings;
   return [
-    shadow,
+    ...under,
     // The lump is water first; the land lies over it, so the rivers are what land leaves open.
     part({ polys: rings }, WATER, { evenodd: true, seal: SEAL }),
     part({ polys: land }, LAND, { evenodd: true, seal: SEAL, clip }),
     part({ polys: parks }, PARK, { evenodd: true, clip }),
     part({}, ROAD, { ways, clip }),
+    over,
   ];
 }

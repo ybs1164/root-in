@@ -36,6 +36,7 @@ export default function MiniMap({ points, centers, style, distance, terrain }: {
     [key, style, distance, terrain],
   );
   if (!parts.length) return null;
+  const colourOf = (part: MapPart) => fillCss(part.fill);
   return (
     <svg className="pings__map" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden>
       <defs>
@@ -47,6 +48,16 @@ export default function MiniMap({ points, centers, style, distance, terrain }: {
               </clipPath>
             ),
         )}
+        {parts.map((part, i) => {
+          if (!part.haze) return null;
+          const ys = part.polys.flat().map((p) => p.y);
+          return (
+            <linearGradient key={`h${i}`} id={`${id}-h${i}`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={Math.min(...ys)} y2={Math.max(...ys)}>
+              <stop offset="0" stopOpacity={part.haze} style={{ stopColor: colourOf(part) }} />
+              <stop offset="1" stopOpacity="0" style={{ stopColor: colourOf(part) }} />
+            </linearGradient>
+          );
+        })}
         {parts.map(
           (part, i) =>
             part.blur && (
@@ -57,7 +68,8 @@ export default function MiniMap({ points, centers, style, distance, terrain }: {
         )}
       </defs>
       {parts.map((part, i) => {
-        const colour = fillCss(part.fill);
+        // Haze is its colour fading out top to bottom.
+        const colour = part.haze ? `url(#${id}-h${i})` : fillCss(part.fill);
         // Polylines of one width go in one path: a real map has hundreds of roads.
         const widths = [...new Set((part.ways ?? []).map((way) => way.w))];
         return (
@@ -69,7 +81,7 @@ export default function MiniMap({ points, centers, style, distance, terrain }: {
                   fillRule={part.evenodd ? 'evenodd' : 'nonzero'}
                   strokeWidth={part.seal}
                   strokeLinejoin="round"
-                  style={{ fill: colour, stroke: part.seal ? colour : 'none' }}
+                  style={{ fill: colour, stroke: part.seal && !part.haze ? colour : 'none' }}
                 />
               )}
               {part.lines.map(({ a, b, w }, j) => (

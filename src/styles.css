@@ -114,6 +114,8 @@
   --mini-park: color-mix(in srgb, var(--map-park) 75%, var(--mini-land));
   --mini-road: var(--surface);
   --mini-shadow: color-mix(in srgb, var(--accent) 70%, var(--ink-black));
+  /* The air over the land's far side (aerial perspective): the page itself, faded out toward the near side. */
+  --mini-haze: var(--surface);
 }
 
 /* Dark: the phone's setting, unless 디스플레이 및 언어 → 디스플레이 picked one (<html data-scheme>). */

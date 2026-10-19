@@ -571,7 +571,7 @@ function drawMiniMap(ctx: CanvasRenderingContext2D, c: Tokens, points: { x: numb
   ctx.translate(BOX.x, BOX.y);
   ctx.scale(BOX.size, BOX.size);
   for (const part of view.shape === 'detail' ? terrainParts(terrain, centers, view.distance) : miniMapLayers(unit, view.shape, centers)) {
-    const faded = part.fill.alpha !== undefined && part.fill.alpha < 1;
+    const faded = (part.fill.alpha !== undefined && part.fill.alpha < 1) || !!part.haze;
     if (!faded) {
       paintPart(ctx, part, colour(part.fill));
       continue;
@@ -584,6 +584,16 @@ function drawMiniMap(ctx: CanvasRenderingContext2D, c: Tokens, points: { x: numb
     g.translate(BOX.x, BOX.y);
     g.scale(BOX.size, BOX.size);
     paintPart(g, part, colour(part.fill));
+    if (part.haze) {
+      // Haze: kept only as much as a gradient from its far (top) edge to its near one says.
+      const ys = part.polys.flat().map((p) => p.y);
+      const fade = g.createLinearGradient(0, Math.min(...ys), 0, Math.max(...ys));
+      fade.addColorStop(0, `rgba(0, 0, 0, ${part.haze})`);
+      fade.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      g.globalCompositeOperation = 'destination-in';
+      g.fillStyle = fade;
+      g.fillRect(-1, -1, 3, 3);
+    }
     // Back to the card's own pixels (the layer is drawn in them), so it turns and scales with the card.
     ctx.save();
     ctx.scale(1 / BOX.size, 1 / BOX.size);
