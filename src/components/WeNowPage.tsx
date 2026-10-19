@@ -1,6 +1,7 @@
 import { Plus, UserRound, Users } from 'lucide-react';
 import type { CSSProperties } from 'react';
-import { groupPingCount, memberColor, tilePaths, type Group, type GroupMember } from '../domain/groups';
+import { groupPingCount, memberColor, tilePaths, tilePoints, type Group, type GroupMember } from '../domain/groups';
+import type { DayPing } from '../domain/dayPings';
 import { ProfileAvatar } from './ProfileSheet';
 import type { GroupsStatus } from '../hooks/useGroups';
 
@@ -79,8 +80,41 @@ function GroupTile({ group, onOpen }: { group: Group; onOpen: () => void }) {
   );
 }
 
+/**
+ * The TODAY tile over the groups (test build, 2026-10-19): a full-width card,
+ * about half the screen, with my own pings today joined in order. Not a group
+ * — opening it shows TODAY itself, full screen.
+ */
+function TodayTile({ pings, onOpen }: { pings: DayPing[]; onOpen: () => void }) {
+  const points = tilePoints(
+    pings.map((p) => p.center),
+    TILE,
+    TILE * 0.22,
+  );
+  return (
+    <button className="group-tile today-tile" onClick={onOpen} aria-label={`TODAY, 오늘 핑 ${pings.length}`}>
+      {/* slice: the square drawing fills the wide card, its dots staying round. */}
+      <svg className="today-tile__map" viewBox={`0 0 ${TILE} ${TILE}`} preserveAspectRatio="xMidYMid slice" aria-hidden>
+        <GroupCover cover={0} />
+        {points.length > 1 && <polyline className="today-tile__line" points={points.map((q) => q.join(',')).join(' ')} />}
+        {points.map(([x, y], k) => (
+          <circle key={k} className="today-tile__dot" cx={x} cy={y} r={k === points.length - 1 ? 3.6 : 2.4} />
+        ))}
+      </svg>
+      <span className="today-tile__title" aria-hidden>
+        TODAY
+      </span>
+      {points.length === 0 && <span className="today-tile__empty">아직 오늘 핑 없음</span>}
+      <span className={`group-tile__count today-tile__count ${pings.length ? 'is-live' : ''}`}>{pings.length}</span>
+    </button>
+  );
+}
+
 interface WeNowPageProps {
   status: GroupsStatus;
+  /** My pings today, for the TODAY tile. */
+  todayPings: DayPing[];
+  onToday(): void;
   groups: Group[];
   /** My profile photo, for the profile button top right (as on the map). */
   photo: string | null;
@@ -98,7 +132,7 @@ interface WeNowPageProps {
  * tile for a new one. Signed out it asks for a Kakao login — reached only
  * when VITE_GROUPS_NEED_LOGIN is on; otherwise App signs in as a guest first.
  */
-export default function WeNowPage({ status, groups, photo, onProfile, onOpen, onCreate, onSignIn, onRetry }: WeNowPageProps) {
+export default function WeNowPage({ status, todayPings, onToday, groups, photo, onProfile, onOpen, onCreate, onSignIn, onRetry }: WeNowPageProps) {
   const empty = (title: string, body: string, action?: { label: string; run: () => void }) => (
     <div className="we-now__empty">
       <span className="we-now__badge" aria-hidden>
@@ -143,9 +177,9 @@ export default function WeNowPage({ status, groups, photo, onProfile, onOpen, on
         <ProfileAvatar photo={photo} size={52} />
       </button>
       <div className="we-now">
-        <h2 className="we-now__title" aria-hidden>
-          WE NOW
-        </h2>
+        <div className="we-now__today">
+          <TodayTile pings={todayPings} onOpen={onToday} />
+        </div>
         {content}
       </div>
     </>

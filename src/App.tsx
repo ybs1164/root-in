@@ -1,4 +1,4 @@
-import { MapPin, Pencil, Share } from 'lucide-react';
+import { ChevronLeft, MapPin, Pencil, Share } from 'lucide-react';
 import type { PatternId, ThemeId } from './domain/decor';
 import DayPattern from './components/DayPattern';
 import ShareStudio from './components/ShareStudio';
@@ -29,7 +29,7 @@ import { COURSE_LIMITS } from './domain/course';
 import type { MapViewport } from './domain/districtMap';
 import { categoryStyle, filterPinsByCategories, isUncategorized, UNCATEGORIZED } from './domain/pin';
 import { pinRailNext, tapAll, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
-import { PRESS } from './domain/dayPings';
+import { pingsForDate, PRESS } from './domain/dayPings';
 import { buildRouteLook, EMPTY_BUILD_LOOK, nextRouteName, ROUTE_NOTE_MAX, toggleBuildStop, withBuildEdge, withBuildShape, type BuildLook } from './domain/routeBuild';
 import { addEditStop, moveStop, toggleEditStop, withEditStops, type RouteEdit } from './domain/routeEdit';
 import { cleanRouteLook, withEdgeStyle, withStopShape } from './domain/routeStyle';
@@ -46,6 +46,8 @@ import { useGroups } from './hooks/useGroups';
 import { groupsNeedLogin, inviteUrl } from './services/groupService';
 import { focusPoints, memberColor, type GroupMember } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
+import { useStoredPings } from './hooks/useStoredPings';
+import { dateKey } from './domain/diary';
 import GroupMapView from './components/GroupMapView';
 import GroupFormDialog from './components/GroupFormDialog';
 import GroupSettingsDialog from './components/GroupSettingsDialog';
@@ -261,6 +263,10 @@ export default function App() {
   const activePin = pins.find((p) => p.id === activePinId) ?? null;
   // We Now: the groups (signed in), and the one opened from its grid — the map shows for it.
   const [openGroupId, setOpenGroupId] = useState<string | null>(null);
+  // Test build: We Now's TODAY tile opens TODAY itself, full screen, without the bottom row.
+  const [todayOpen, setTodayOpen] = useState(false);
+  const storedPings = useStoredPings();
+  const todayPings = useMemo(() => pingsForDate(dateKey(), storedPings), [storedPings]);
   const [groupPicked, setGroupPicked] = useState<string | null>(null);
   const [groupFormOpen, setGroupFormOpen] = useState(false);
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
@@ -305,7 +311,10 @@ export default function App() {
     if (openGroupId && groups.status === 'ready' && !groups.groups.some((g) => g.id === openGroupId)) setOpenGroupId(null);
   }, [openGroupId, groups.status, groups.groups]);
   useEffect(() => {
-    if (tab !== 'people') setOpenGroupId(null);
+    if (tab !== 'people') {
+      setOpenGroupId(null);
+      setTodayOpen(false);
+    }
   }, [tab]);
   useEffect(() => setGroupPicked(null), [openGroupId]);
   useEffect(() => {
@@ -314,7 +323,7 @@ export default function App() {
   const onPage = showsPage(tab, Boolean(searchOpen || preview || openGroup));
   // Swiping a page sideways slides it off toward another screen: 달력 ← 핀,
   // → We Now; We Now ← 달력, → 핀 (pageSwipes).
-  const swipeTo = onPage && !decorating && !studio ? pageSwipes(tab) : { left: null, right: null };
+  const swipeTo = onPage && !decorating && !studio && !todayOpen ? pageSwipes(tab) : { left: null, right: null };
   const swipe = usePageSwipe(
     swipeTo.left ? () => changeTab(swipeTo.left!) : null,
     swipeTo.right ? () => changeTab(swipeTo.right!) : null,
@@ -1046,6 +1055,7 @@ export default function App() {
     if (closeTopDialog()) return true;
     if (studio) return setStudio(null), true;
     if (openGroupId) return setOpenGroupId(null), true;
+    if (todayOpen) return setTodayOpen(false), true;
     if (searchOpen) return setSearchOpen(false), setQuery(''), searchInput.current?.blur(), true;
     if (preview) return setPreview(null), true;
     if (activePinId) return setActivePinId(null), true;
@@ -1204,7 +1214,7 @@ export default function App() {
     return counts;
   }, [pins, categories]);
 
-  const calendarZoom = tab === 'calendar';
+  const calendarZoom = tab === 'calendar' || (tab === 'people' && todayOpen);
 
   // The bottom row's buttons switch the screens at once. The big calendar
   // button in the middle of the calendar screen, pressed again, goes to the
@@ -1220,7 +1230,7 @@ export default function App() {
   const barAway = (decorating && calendarZoom && onPage) || routeMode;
   // Under the 꾸미기 screen the row is simply gone, so coming back it is just
   // there again rather than sliding up.
-  const barGone = !!studio || !!openGroup;
+  const barGone = !!studio || !!openGroup || (calendarZoom && tab === 'people');
   // 공유 before 집 is set (it's required) opens the profile on 개인 정보 instead.
   const needHome = (kind: ShareKind) => {
     analytics.track('share_blocked_need_home', { kind });
@@ -1523,8 +1533,15 @@ export default function App() {
               onMode={setCalendarMode}
             />
           ) : null}
-          {tab === 'people' && (
+          {calendarZoom && tab === 'people' && (
+            <button className="today-back" aria-label="그룹 목록으로" onClick={() => setTodayOpen(false)}>
+              <ChevronLeft size={24} strokeWidth={2.2} />
+            </button>
+          )}
+          {tab === 'people' && !todayOpen && (
             <WeNowPage
+              todayPings={todayPings}
+              onToday={() => setTodayOpen(true)}
               status={groups.status === 'signed-out' && !needLogin ? (guest === 'idle' || guest === 'trying' ? 'loading' : 'error') : groups.status}
               groups={groupList}
               photo={profile.photo}

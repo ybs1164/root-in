@@ -63,8 +63,20 @@ export function focusPoints(group: Group, memberId: string | null): [number, num
  * latitude here), the whole group fitted in with a margin and centred.
  */
 export function tilePaths(group: Group, size: number, margin = size * 0.16): { color: string; points: [number, number][] }[] {
-  const all = group.members.flatMap((m) => m.pings.map((p) => p.center));
-  if (all.length === 0) return [];
+  const at = tileProjection(group.members.flatMap((m) => m.pings.map((p) => p.center)), size, margin);
+  if (!at) return [];
+  return group.members.filter((m) => m.pings.length).map((m) => ({ color: memberColor(m.slot), points: m.pings.map((p) => at(p.center)) }));
+}
+
+/** My own pings in order, fitted into a size × size tile the same way (the TODAY tile). */
+export function tilePoints(centers: readonly [number, number][], size: number, margin = size * 0.16): [number, number][] {
+  const at = tileProjection(centers, size, margin);
+  return at ? centers.map(at) : [];
+}
+
+/** Lng/lat → tile coordinates fitting every point in, north up; null without points. */
+function tileProjection(all: readonly [number, number][], size: number, margin: number): ((c: [number, number]) => [number, number]) | null {
+  if (all.length === 0) return null;
   const lat0 = all.reduce((s, c) => s + c[1], 0) / all.length;
   const kx = Math.cos((lat0 * Math.PI) / 180);
   const xs = all.map((c) => c[0] * kx);
@@ -74,12 +86,11 @@ export function tilePaths(group: Group, size: number, margin = size * 0.16): { c
   const scale = span > 0 ? (size - margin * 2) / span : 0;
   const cx = (minX + maxX) / 2;
   const cy = (minY + maxY) / 2;
-  const at = (c: [number, number]): [number, number] => [
+  return (c) => [
     Math.round((size / 2 + (c[0] * kx - cx) * scale) * 10) / 10,
     // North is up: latitude grows the other way from SVG's y.
     Math.round((size / 2 - (c[1] - cy) * scale) * 10) / 10,
   ];
-  return group.members.filter((m) => m.pings.length).map((m) => ({ color: memberColor(m.slot), points: m.pings.map((p) => at(p.center)) }));
 }
 
 /** How many members the rail shows folded (after ALL); ↓ opens the rest. */
