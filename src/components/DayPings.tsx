@@ -3,7 +3,6 @@ import {
   classifyPress,
   EDGE_STYLES,
   latestPingIndex,
-  layoutPings,
   PING_SHAPES,
   PRESS,
   type DayPing,
@@ -14,8 +13,11 @@ import {
 } from '../domain/dayPings';
 import { pinColorCss } from '../domain/pin';
 import { HEART_PATH, PIN_PATH, STAR_PATH } from '../lib/pingPaths';
-import { labelSide } from '../domain/stopLabels';
+import { pingInfoSize, placePingLabels } from '../domain/stopLabels';
+import { miniMapView, viewPoints, type MapDistance, type MiniMapId } from '../domain/miniMap';
+import { useTerrain } from '../hooks/useTerrain';
 import type { PinIcon, PinTint } from '../types/pin';
+import MiniMap from './MiniMap';
 import PinGlyph from './PinGlyph';
 
 export function PingIcon({ shape, className }: { shape: PingShape; className?: string }) {
@@ -67,6 +69,10 @@ interface DayPingsProps {
    */
   ghost?: [number, number] | null;
   onGhost?: () => void;
+  /** The day's 미니맵 behind the pings (none when absent). */
+  miniMap?: MiniMapId;
+  /** How true the distances between the pings are drawn (absent: as the map's shape used to imply). */
+  mapDistance?: MapDistance;
 }
 
 /** What a press is on: a ping, or the line leaving ping `index` for the next one. */
@@ -100,9 +106,17 @@ function EdgeSample({ style }: { style: EdgeStyle }) {
  * again. Long-press a ping to change its shape, or a line to change its
  * style; a short tap on a ping is reported through `onTap`.
  */
-export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, pinLookOf, onDelete, onPickedChange, dropZone, onDropHover, pressable, children, showNames = true, showTimes = true, ghost = null, onGhost }: DayPingsProps) {
+export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, pinLookOf, onDelete, onPickedChange, dropZone, onDropHover, pressable, children, showNames = true, showTimes = true, ghost = null, onGhost, miniMap = 'none', mapDistance }: DayPingsProps) {
   const latest = latestPingIndex(pings);
-  const laid = layoutPings([...pings.map((p) => p.center), ...(ghost ? [ghost] : [])]);
+  // The distance setting lays the stops out; 상세 also fits them with the real map's areas.
+  const centers = pings.map((p) => p.center);
+  const { shapes: terrain, ready } = useTerrain(centers, miniMap === 'detail');
+  // While the real map is being fetched nothing of it (and no pin) shows: the stops are laid out on it once it is here.
+  // No data for these stops: the abstract 지도 stands in.
+  const mapStyle: MiniMapId = miniMap !== 'detail' ? miniMap : !ready ? 'none' : terrain ? 'detail' : 'whole';
+  const view = miniMapView(mapStyle, mapDistance);
+  // The 후보군 ghost is laid out with the day's pings, so it lands on the same spot once added.
+  const laid = viewPoints(ghost ? [...centers, ghost] : centers, view, terrain);
   const points = laid.slice(0, pings.length);
   const ghostAt = ghost ? laid[pings.length] : null;
   // Pings there when this drawing mounted play the visit's intro together;
@@ -238,6 +252,11 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
     },
   });
 
+  // Each ping's name / time goes to a side where it covers nothing (the day screen's drawing is about this many px across).
+  const sides = placePingLabels(
+    points.map((p) => ({ x: p.x * 330, y: p.y * 330 })),
+    pings.map((p, i) => pingInfoSize(showNames ? p.name : '', showTimes ? p.time : undefined, i === latest)),
+  );
   const segments = points.slice(1).map((to, i) => ({ from: points[i], to, i }));
   const pointsAttr = points
     .slice(0, settled)
@@ -263,7 +282,8 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
   }
 
   return (
-    <div className={`pings ${picking || drag ? 'is-picking' : ''}`} role="list" aria-label={pings.length ? `${pings.length}곳` : '기록 없음'}>
+    <div className={`pings ${picking || drag ? 'is-picking' : ''} ${miniMap === 'detail' && !ready ? 'pings--wait' : ''}`} role="list" aria-label={pings.length ? `${pings.length}곳` : '기록 없음'}>
+      {mapStyle !== 'none' && <MiniMap points={points} centers={centers} style={mapStyle} distance={view.distance} terrain={terrain} />}
       {points.length > 1 && (
         <svg className="pings__line" viewBox="0 0 100 100" preserveAspectRatio="none">
           <defs>
@@ -306,7 +326,7 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
         const shape = shapeOf(ping);
         const own = shape === 'transparent' ? (pinLookOf?.(ping) ?? { icon: 'pin' as PinIcon, color: 0 as PinTint }) : null;
         // Its name goes below it unless one of its lines leaves that way (as a route's stops do).
-        const side = labelSide(points[i], [points[i - 1], points[i + 1]].filter((p): p is { x: number; y: number } => !!p));
+        const side = sides[i];
         return (
           <div
             key={`${ping.time}-${ping.name}`}

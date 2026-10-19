@@ -93,3 +93,76 @@ function clearOf(at: Pt, near: Pt[], dir: Pt): boolean {
     return (Math.acos(Math.max(-1, Math.min(1, cos))) * 180) / Math.PI >= CLEAR_DEG;
   });
 }
+
+// --- A day's pings: the pin stands up from its point and its name / time sits beside it. ---
+
+/** A pin's footprint above its point, and the gaps to its info (screen px at the day screen's size). */
+const PIN_W = 30;
+const PIN_H = 46;
+const PIN_GAP = 5;
+
+/** Roughly how big a ping's info (name, and time under it) is, from its text. */
+export function pingInfoSize(name: string, time: string | undefined, latest = false): { w: number; h: number } {
+  const em = latest ? 15 : 13;
+  return { w: Math.max(name.length * em * 1.02, time ? 38 : 0, 24), h: (name ? em + 3 : 0) + (time ? 15 : 0) };
+}
+
+const pinRect = (at: Pt): Rect => ({ l: at.x - PIN_W / 2, t: at.y - PIN_H, r: at.x + PIN_W / 2, b: at.y });
+
+/** Where a ping's info of `size` sits for each side of its pin. */
+function infoRect(at: Pt, size: { w: number; h: number }, side: LabelSide): Rect {
+  const { w, h } = size;
+  const mid = at.y - PIN_H / 2;
+  switch (side) {
+    case 'below':
+      return { l: at.x - w / 2, t: at.y + PIN_GAP, r: at.x + w / 2, b: at.y + PIN_GAP + h };
+    case 'above':
+      return { l: at.x - w / 2, t: at.y - PIN_H - PIN_GAP - h, r: at.x + w / 2, b: at.y - PIN_H - PIN_GAP };
+    case 'right':
+      return { l: at.x + PIN_W / 2 + PIN_GAP, t: mid - h / 2, r: at.x + PIN_W / 2 + PIN_GAP + w, b: mid + h / 2 };
+    case 'left':
+      return { l: at.x - PIN_W / 2 - PIN_GAP - w, t: mid - h / 2, r: at.x - PIN_W / 2 - PIN_GAP, b: mid + h / 2 };
+  }
+}
+
+const overlapArea = (a: Rect, b: Rect) => Math.max(0, Math.min(a.r, b.r) - Math.max(a.l, b.l)) * Math.max(0, Math.min(a.b, b.b) - Math.max(a.t, b.t));
+
+/**
+ * The side of each ping's pin for its info, chosen so that nothing covers
+ * anything else: an info keeps off the other infos already placed and off
+ * every other pin, and (as `labelSide`) off the lines out of its own pin. It
+ * takes the first such side (below, above, right, left); where none is clear,
+ * the side that overlaps least.
+ */
+export function placePingLabels(points: Pt[], sizes: { w: number; h: number }[]): LabelSide[] {
+  const placed: Rect[] = [];
+  const pins = points.map(pinRect);
+  return points.map((at, i) => {
+    const near = [points[i - 1], points[i + 1]].filter((p): p is Pt => !!p);
+    const cost = (side: LabelSide) => {
+      const rect = infoRect(at, sizes[i], side);
+      return placed.reduce((sum, p) => sum + overlapArea(rect, p), 0) + pins.reduce((sum, pin, j) => (j === i ? sum : sum + overlapArea(rect, pin)), 0);
+    };
+    const order = SIDES.map((x) => x.side);
+    const clearOfLines = SIDES.filter((x) => clearOf(at, near, x.dir)).map((x) => x.side);
+    const candidates = [...clearOfLines, ...order.filter((x) => !clearOfLines.includes(x))];
+    const best = candidates.reduce((pick, side) => (cost(side) < cost(pick) ? side : pick), candidates[0]);
+    placed.push(infoRect(at, sizes[i], best));
+    return best;
+  });
+}
+
+/** How much the pins and their infos cover one another (px²) once placed: 0 is a clean picture. */
+export function pingOverlap(points: Pt[], sizes: { w: number; h: number }[]): number {
+  const sides = placePingLabels(points, sizes);
+  const infos = points.map((at, i) => infoRect(at, sizes[i], sides[i]));
+  const pins = points.map(pinRect);
+  let total = 0;
+  for (let i = 0; i < points.length; i++) {
+    for (let j = 0; j < points.length; j++) {
+      if (j > i) total += overlapArea(pins[i], pins[j]) + overlapArea(infos[i], infos[j]);
+      if (j !== i) total += overlapArea(infos[i], pins[j]);
+    }
+  }
+  return total;
+}

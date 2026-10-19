@@ -29,6 +29,7 @@ import {
 import { loadDays, saveDays, type DayStore } from '../services/dayRepository';
 import { onPulled } from '../services/syncBus';
 import { dateKey } from '../domain/diary';
+import { DEFAULT_DISTANCE, nextMapDistance, nextMiniMap } from '../domain/miniMap';
 import DayPings from './DayPings';
 import DecorLayer, { type TextFocus } from './DecorLayer';
 import { DecorRail, DecorTray } from './DecorTools';
@@ -668,6 +669,15 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
               const { hideTimes, ...rest } = dayDecor;
               changeDecor(hideTimes ? rest : { ...rest, hideTimes: true });
             },
+            map: dayDecor.miniMap ?? 'none',
+            onMap: () => {
+              const { miniMap, ...rest } = dayDecor;
+              const next = nextMiniMap(miniMap ?? 'none');
+              changeDecor(next === 'none' ? rest : { ...rest, miniMap: next });
+            },
+            distance: dayDecor.mapDistance ?? DEFAULT_DISTANCE,
+            onDistance: () =>
+              changeDecor({ ...dayDecor, mapDistance: nextMapDistance(dayDecor.mapDistance ?? DEFAULT_DISTANCE) }),
           }}
         />
         <div ref={curEl} className="cal-day">
@@ -700,6 +710,8 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
                   : null
               }
               onGhost={() => (candidates.length === 1 ? addToToday(candidates[0]) : setChoosing(true))}
+              miniMap={dayDecor.miniMap}
+              mapDistance={dayDecor.mapDistance}
             >
               {!holdIntro && (
                 <DecorLayer

@@ -7,7 +7,9 @@ import { CLOTHESLINE, clotheslineY, DEFAULT_LAYOUT, DRAWING_BOX, LAYOUT_CARDS, P
 import type { CardStamp, StopMark } from '../domain/shareSubject';
 import { paintPattern } from './dayPatterns';
 import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
-import { labelSide } from '../domain/stopLabels';
+import { pingInfoSize, placePingLabels } from '../domain/stopLabels';
+import { miniMapLayers, miniMapView, terrainParts, viewPoints, type MapFill, type MapPart, type MiniMapView, type TerrainShapes } from '../domain/miniMap';
+import { terrainService } from '../services/terrainService';
 
 export interface ShareImageInput {
   pings: DayPing[];
@@ -96,6 +98,16 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
     document.fonts?.load(`40px ${textFamily('pen')}`, '2026. 성수').catch(() => undefined),
   ]);
   const layout: PolaroidLayout = decor?.layout ?? DEFAULT_LAYOUT;
+  // 상세 is the real map: its areas are fetched first (none: only the window is drawn).
+  // The card's own map when it has one, else the day photo's; the card's distance setting wins too.
+  const source = decor?.miniMap ? decor : photo;
+  const wanted = source?.miniMap;
+  const terrain = wanted === 'detail' ? await terrainService.fetch(pings.map((p) => p.center)) : null;
+  // No data for these stops: the abstract 지도 stands in.
+  // Only the shape stands in: the distances stay as set, so the stops do not move.
+  // A route's card with no map setting keeps the usual layout (no view at all).
+  const distance = decor?.mapDistance ?? source?.mapDistance;
+  const mapView = photo || wanted || distance ? miniMapView(wanted === 'detail' && !terrain ? 'whole' : wanted, distance) : undefined;
   const cards = LAYOUT_CARDS[layout];
   const c = tokens();
   const pinImages = await Promise.all(marks.map(async (mark, i) => {
@@ -168,7 +180,7 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
         paintPattern(ctx, photo.pattern, { w: PHOTO.w, h: PHOTO.h }, BOX.size / 360, p.accent);
         ctx.restore();
       }
-      drawStops(ctx, p, bg, pings, marks, edges, pinImages, { names: !photo?.hideNames, times: !photo?.hideTimes });
+      drawStops(ctx, p, bg, pings, marks, edges, pinImages, { names: !photo?.hideNames, times: !photo?.hideTimes, map: mapView, terrain });
       if (photo) drawDecor(ctx, photo, BOX_FRAME, stickerImages);
     });
     ctx.restore();
@@ -474,6 +486,105 @@ function drawPaper(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>) 
   ctx.restore();
 }
 
+/** A CSS colour as [r, g, b] (read back off a pixel, so any CSS colour syntax works). */
+function rgbOf(css: string): [number, number, number] {
+  const px = document.createElement('canvas');
+  px.width = px.height = 1;
+  const g = px.getContext('2d')!;
+  g.fillStyle = css;
+  g.fillRect(0, 0, 1, 1);
+  const [r, gr, b] = g.getImageData(0, 0, 1, 1).data;
+  return [r, gr, b];
+}
+
+/**
+ * 미니맵: its parts (domain/miniMap) painted in order behind the stops, in
+ * solid colours: the accent over the ground; the shadow is blurred and faded.
+ * Drawn in the unit square the stops are laid out in. A part with an alpha
+ * (the shadow) is drawn flat on a canvas of its own and faded as a whole.
+ */
+function drawMiniMap(ctx: CanvasRenderingContext2D, c: Tokens, points: { x: number; y: number }[], view: MiniMapView, ground: string, centers: [number, number][], terrain: TerrainShapes | null) {
+  const unit = points.map((p) => ({ x: (p.x - BOX.x) / BOX.size, y: (p.y - BOX.y) / BOX.size }));
+  const [accent, floor] = [rgbOf(c.accent), rgbOf(ground)];
+  const colour = ({ mix, dark }: MapFill) =>
+    `rgb(${[0, 1, 2].map((i) => Math.round((floor[i] * (1 - mix) + accent[i] * mix) * (1 - dark))).join(',')})`;
+
+  const paintPart = (g: CanvasRenderingContext2D, part: MapPart, fill: string) => {
+    g.save();
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    g.fillStyle = fill;
+    g.strokeStyle = fill;
+    const dy = part.dy ?? 0;
+    // Areas with holes are one path (even-odd); the abstract land is one shape per polygon.
+    const trace = (rings: { x: number; y: number }[][]) => {
+      g.beginPath();
+      for (const poly of rings) {
+        poly.forEach((p, i) => (i ? g.lineTo(p.x, p.y + dy) : g.moveTo(p.x, p.y + dy)));
+        g.closePath();
+      }
+    };
+    if (part.evenodd) {
+      trace(part.polys);
+      g.fill('evenodd');
+    } else {
+      for (const poly of part.polys) {
+        trace([poly]);
+        g.fill();
+      }
+    }
+    for (const { a, b, w } of part.lines) {
+      g.lineWidth = w;
+      g.beginPath();
+      g.moveTo(a.x, a.y + dy);
+      g.lineTo(b.x, b.y + dy);
+      g.stroke();
+    }
+    g.restore();
+  };
+
+  ctx.save();
+  ctx.translate(BOX.x, BOX.y);
+  ctx.scale(BOX.size, BOX.size);
+  for (const part of view.shape === 'detail' ? terrainParts(terrain, centers, view.distance) : miniMapLayers(unit, view.shape, centers)) {
+    const faded = part.fill.alpha !== undefined && part.fill.alpha < 1;
+    if (!faded && !part.gaps) {
+      paintPart(ctx, part, colour(part.fill));
+      continue;
+    }
+    // On its own canvas (the unit square mapped to the box): the gaps are cut out of it, then it is blurred and faded as one.
+    const layer = document.createElement('canvas');
+    layer.width = POLAROID.w;
+    layer.height = POLAROID.h;
+    const g = layer.getContext('2d')!;
+    g.translate(BOX.x, BOX.y);
+    g.scale(BOX.size, BOX.size);
+    paintPart(g, part, colour(part.fill));
+    if (part.gaps) {
+      // Cut where the borders are (not moved down with a shadow), so the gaps are clear all the way through.
+      g.globalCompositeOperation = 'destination-out';
+      g.lineWidth = part.gaps;
+      g.lineJoin = 'round';
+      g.beginPath();
+      for (const poly of part.polys) {
+        poly.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)));
+        g.closePath();
+      }
+      g.stroke();
+    }
+    // Back to the card's own pixels (the layer is drawn in them), so it turns and scales with the card.
+    ctx.save();
+    ctx.scale(1 / BOX.size, 1 / BOX.size);
+    ctx.translate(-BOX.x, -BOX.y);
+    ctx.globalAlpha = part.fill.alpha ?? 1;
+    // Not every browser can blur a canvas draw: the shadow is then just crisp.
+    if (part.blur) ctx.filter = `blur(${Math.round(part.blur * BOX.size * 0.6)}px)`;
+    ctx.drawImage(layer, 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
 /** Lines first, then the stops over them, laid out in the drawing box. */
 function drawStops(
   ctx: CanvasRenderingContext2D,
@@ -484,12 +595,16 @@ function drawStops(
   edges: RouteEdgeStyle[],
   pinImages: (HTMLImageElement | null)[],
   // A day's 텍스트 / 시간 switches, as on its screen.
-  show: { names: boolean; times: boolean } = { names: true, times: true },
+  show: { names: boolean; times: boolean; map?: MiniMapView; terrain?: TerrainShapes | null } = { names: true, times: true },
 ) {
-  const points = layoutPings(pings.map((p) => p.center)).map((p) => ({
+  // A route's card has no map setting: its stops keep the usual layout.
+  const centers = pings.map((p) => p.center);
+  const points = (show.map ? viewPoints(centers, show.map, show.terrain ?? null) : layoutPings(centers)).map((p) => ({
     x: BOX.x + p.x * BOX.size,
     y: BOX.y + p.y * BOX.size,
   }));
+
+  if (show.map && show.map.shape !== 'none') drawMiniMap(ctx, c, points, show.map, bg, pings.map((p) => p.center), show.terrain ?? null);
 
   ctx.strokeStyle = c.route;
   for (let i = 0; i + 1 < points.length; i++) {
@@ -509,6 +624,11 @@ function drawStops(
   // Only a day's pings have times, and the latest of them is drawn bigger.
   const timed = pings.some((p) => p.time);
   const latest = timed ? latestPingIndex(pings) : -1;
+  // Each ping's info goes to a side where it covers nothing (judged at the day screen's size: the box is about 330px there).
+  const sides = placePingLabels(
+    points.map((p) => ({ x: ((p.x - BOX.x) / BOX.size) * 330, y: ((p.y - BOX.y) / BOX.size) * 330 })),
+    pings.map((p, i) => pingInfoSize(show.names ? p.name : '', show.times ? p.time : undefined, i === latest)),
+  );
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   pings.forEach((ping, i) => {
@@ -564,7 +684,7 @@ function drawStops(
 
     // The name (and time) below the mark, unless one of its lines leaves that
     // way: then above, right or left of it, as on the day screen.
-    const side = labelSide({ x, y }, [points[i - 1], points[i + 1]].filter((p): p is { x: number; y: number } => !!p));
+    const side = sides[i];
     const top = mark === 'number' ? y - 34 : bottom - (mark === 'pin' ? (118 * k) : (84 * k));
     const half = mark === 'number' ? 34 : (mark === 'pin' ? (shapeBox('pin').w * (118 * k)) / shapeBox('pin').h : 84 * k) / 2;
     const mid = (top + bottom) / 2;

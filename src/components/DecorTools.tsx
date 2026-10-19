@@ -12,6 +12,8 @@ import {
   GalleryVerticalEnd,
   Highlighter,
   Italic,
+  Map as MapIcon,
+  Ruler,
   Palette,
   PenLine,
   Pencil,
@@ -51,6 +53,7 @@ import {
   type ThemeId,
 } from '../domain/decor';
 import { POLAROID_LAYOUTS, type PolaroidLayout } from '../domain/polaroid';
+import { MAP_DISTANCES, MINI_MAPS, type MapDistance, type MiniMapId } from '../domain/miniMap';
 import { PIN_BOX, PIN_PATH } from '../lib/pingPaths';
 import DayPattern from './DayPattern';
 
@@ -80,6 +83,8 @@ const DAY_RAIL: typeof RAIL = ['text', 'sticker', 'pen', 'theme', 'pattern'].map
 /** The share screen's own: how the polaroid lies on the image. */
 const POLAROID_TOOL = { tool: 'polaroid' as const, label: '폴라로이드', Icon: GalleryVerticalEnd };
 
+const MAP_TOOL = { tool: 'minimap' as const, label: '미니맵', Icon: MapIcon };
+
 /** 스티커 · 펜 · 텍스트 · 테마 · 꾸미기 (on a day 텍스트 first, then ↓ unfolding the name and time switches, ↑ folding them), then 공유 a little apart where given. */
 export function DecorRail({
   tool,
@@ -95,7 +100,7 @@ export function DecorRail({
   /** Laid out in a row (the 꾸미기 screen's top edge) rather than a column. */
   row?: boolean;
   /** The day screen's switches under the tools: the pings' place names and visit times. */
-  labels?: { names: boolean; times: boolean; onNames: () => void; onTimes: () => void };
+  labels?: { names: boolean; times: boolean; onNames: () => void; onTimes: () => void; map: MiniMapId; onMap: () => void; distance: MapDistance; onDistance: () => void };
 }) {
   // A day's rail folds its name / time switches away behind ↓ until asked for.
   // They drop out one after another like the map's category buttons, and tuck
@@ -117,7 +122,7 @@ export function DecorRail({
       setMoved('up');
     }, SWITCH_OUT_MS);
   };
-  const tools = labels ? DAY_RAIL : row ? [...RAIL, POLAROID_TOOL] : RAIL;
+  const tools = labels ? DAY_RAIL : row ? [...RAIL, POLAROID_TOOL, MAP_TOOL] : RAIL;
   return (
     <div className={`decor-rail ${row ? 'decor-rail--row' : ''}`} role="toolbar" aria-label="꾸미기" aria-orientation={row ? 'horizontal' : 'vertical'}>
       {tools.map(({ tool: t, label, Icon }) => (
@@ -150,6 +155,26 @@ export function DecorRail({
             onClick={labels.onTimes}
           >
             <Clock size={20} aria-hidden />
+          </button>
+          <button
+            className={`decor-rail__btn decor-rail__switch ${labels.map !== 'none' ? '' : 'is-off'} ${leaving ? 'is-leaving' : ''}`}
+            style={{ '--i': 2 } as CSSProperties}
+            aria-label={`미니맵: ${MINI_MAPS.find((m) => m.id === labels.map)?.label}`}
+            aria-pressed={labels.map !== 'none'}
+            onClick={labels.onMap}
+          >
+            <MapIcon size={20} aria-hidden />
+          </button>
+          <button
+            className={`decor-rail__btn decor-rail__switch decor-rail__distance ${leaving ? 'is-leaving' : ''}`}
+            style={{ '--i': 3 } as CSSProperties}
+            aria-label={`미니맵 거리: ${MAP_DISTANCES.find((m) => m.id === labels.distance)?.label}`}
+            onClick={labels.onDistance}
+          >
+            <Ruler size={20} aria-hidden />
+            <span className="decor-rail__badge" aria-hidden>
+              {MAP_DISTANCES.find((m) => m.id === labels.distance)?.label}
+            </span>
           </button>
         </>
       )}
@@ -204,12 +229,18 @@ interface DecorTrayProps {
   layout?: PolaroidLayout;
   onLayout?: (layout: PolaroidLayout) => void;
   layoutPreviews?: Partial<Record<PolaroidLayout, string>>;
+  /** Share cards: the minimal map behind the stops, and this card drawn small with each. */
+  miniMap?: MiniMapId;
+  onMiniMap?: (map: MiniMapId) => void;
+  mapDistance?: MapDistance;
+  onMapDistance?: (distance: MapDistance) => void;
+  mapPreviews?: Partial<Record<MiniMapId, string>>;
   /** Dragged all the way down by its top edge: put the tool away. */
   onClose?: () => void;
 }
 
 /** The sheets of cards (stickers, themes, patterns, layouts) can be pulled up to nearly full screen, or down shut. */
-const PULLABLE: DecorTool[] = ['sticker', 'theme', 'pattern', 'polaroid'];
+const PULLABLE: DecorTool[] = ['sticker', 'theme', 'pattern', 'polaroid', 'minimap'];
 /** How far a pull has to go before it counts (px). */
 const PULL_STEP = 40;
 /** Less movement than this is a tap on the top edge, not a pull (px). */
@@ -557,6 +588,38 @@ export function DecorTray(p: DecorTrayProps) {
             >
               <span className="theme-card layout-card" aria-hidden>
                 {p.layoutPreviews?.[id] && <img src={p.layoutPreviews[id]} alt="" draggable={false} />}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {p.tool === 'minimap' && (
+        <div className="decor-tray__row decor-tray__distances" role="group" aria-label="거리">
+          {MAP_DISTANCES.map(({ id, label: name }) => (
+            <button
+              key={id}
+              className={`decor-tray__font ${p.mapDistance === id ? 'is-on' : ''}`}
+              aria-pressed={p.mapDistance === id}
+              onClick={() => p.onMapDistance?.(id)}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
+      {p.tool === 'minimap' && (
+        <div className="decor-tray__themes">
+          {MINI_MAPS.map(({ id, label: name }) => (
+            <button
+              key={id}
+              className={`decor-tray__theme ${(p.miniMap ?? 'none') === id ? 'is-on' : ''}`}
+              aria-pressed={(p.miniMap ?? 'none') === id}
+              aria-label={name}
+              onClick={() => p.onMiniMap?.(id)}
+            >
+              <span className="theme-card layout-card" aria-hidden>
+                {p.mapPreviews?.[id] && <img src={p.mapPreviews[id]} alt="" draggable={false} />}
               </span>
             </button>
           ))}
