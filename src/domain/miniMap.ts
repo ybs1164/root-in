@@ -6,8 +6,8 @@ import type { Bbox, LonLat } from './districtMap';
  * 미니맵: a minimal map drawn behind a share card's stops. There is no real
  * map data in the card (stops are laid out relatively), so the "map" is
  * made of chunks: stops that lie close together are merged into one soft
- * land mass (fat discs joined by fat lines), with a fainter coast around it.
- * 거리 adds a grid of streets cut out of the land; 지도 is one land mass
+ * island (덩어리). 길 adds the day's own way across the land, a lighter road
+ * under each leg (nothing made up: no streets that are not there); 지도 is one land mass
  * holding every stop, with a wobbly coast; 상세 is the real map: the
  * administrative areas (읍면동) around the stops with all their borders. The abstract ones are round and soft; all of
  * them are solid terrain tilted as if seen from above at an angle, with a
@@ -18,12 +18,12 @@ export type MiniMapId = 'none' | 'blob' | 'streets' | 'whole' | 'detail';
 export const MINI_MAPS: { id: MiniMapId; label: string }[] = [
   { id: 'none', label: '없음' },
   { id: 'blob', label: '덩어리' },
-  { id: 'streets', label: '거리' },
+  { id: 'streets', label: '길' },
   { id: 'whole', label: '지도' },
   { id: 'detail', label: '상세' },
 ];
 
-/** The day screen's one switch steps through the styles: 없음 → 덩어리 → 거리 → 지도 → 상세 → 없음. */
+/** The day screen's one switch steps through the styles: 없음 → 덩어리 → 길 → 지도 → 상세 → 없음. */
 export const nextMiniMap = (id: MiniMapId): MiniMapId => MINI_MAPS[(MINI_MAPS.findIndex((m) => m.id === id) + 1) % MINI_MAPS.length].id;
 
 export const isMiniMapId = (v: unknown): v is MiniMapId => MINI_MAPS.some((m) => m.id === v);
@@ -183,24 +183,6 @@ export function miniMapChunks(points: MapPoint[], gap: number, ground?: MapPoint
   });
 }
 
-/** Street lines (a skewed grid) across a square at (x, y) of `size`, as segments. */
-export function streetGrid(x: number, y: number, size: number, step: number, angleDeg = -18): [MapPoint, MapPoint][] {
-  const cx = x + size / 2;
-  const cy = y + size / 2;
-  const a = (angleDeg * Math.PI) / 180;
-  const rot = (px: number, py: number): MapPoint => ({
-    x: cx + (px - cx) * Math.cos(a) - (py - cy) * Math.sin(a),
-    y: cy + (px - cx) * Math.sin(a) + (py - cy) * Math.cos(a),
-  });
-  const reach = size * 0.9;
-  const out: [MapPoint, MapPoint][] = [];
-  for (let d = -reach; d <= reach; d += step) {
-    out.push([rot(cx + d, cy - reach), rot(cx + d, cy + reach)]);
-    out.push([rot(cx - reach, cy + d), rot(cx + reach, cy + d)]);
-  }
-  return out;
-}
-
 /** A line of the drawing: from `a` to `b`, `w` wide (unit square). */
 export interface MapSegment {
   a: MapPoint;
@@ -244,6 +226,8 @@ export interface MapPart {
 
 const TOP: MapFill = { role: 'land' };
 const ROAD: MapFill = { role: 'road' };
+/** How wide 길's road is (unit square): a few times the route line on it. */
+const ROAD_W = 0.034;
 /** The terrain's shadow below it: faded as a whole, and blurred. */
 const SHADOW: MapFill = { role: 'shadow', alpha: 0.28 };
 const SHADOW_DY = 0.045;
@@ -564,10 +548,15 @@ export function miniMapLayers(points: MapPoint[], style: MiniMapId, centers?: Lo
   const at = fitAround(islands, points);
   const parts = terrain(islands, at);
   if (style === 'streets') {
-    // Streets on the land: a skewed grid kept to the islands, tilted and fitted with them.
+    // 길: under each leg, in visiting order, a lighter road on the land (it stops at the coast where a leg crosses water).
     const near = (p: MapPoint) => islands.some((ring) => inPolygon(p, ring));
-    const grid = streetGrid(0, 0, 1, 74 / 864).map(([a, b]) => ({ a, b, w: 0.011 }));
-    const lines = clipSegments(grid, within(near, 0.02)).map(({ a, b, w }) => ({ a: at(a), b: at(b), w: w * 0.8 }));
+    const legs = flat.slice(1).map((b, i) => ({ a: flat[i], b, w: ROAD_W }));
+    // The tilt bends straight lines a little: each stretch goes through it in short pieces.
+    const lines = clipSegments(legs, within(near, ROAD_W / 2)).flatMap(({ a, b, w }) => {
+      const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 0.04));
+      const along = (t: number) => at({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+      return Array.from({ length: n }, (_, k) => ({ a: along(k / n), b: along((k + 1) / n), w }));
+    });
     parts.push(part({ lines }, ROAD));
   }
   return parts;

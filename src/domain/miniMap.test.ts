@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { pingOverlap, placePingLabels, pingInfoSize } from './stopLabels';
 import type { AdminArea } from './adminAreas';
 import { readDecor } from '../services/dayRepository';
-import { DEFAULT_DISTANCE, legLayout, MAP_DISTANCES, miniMapView, nextMapDistance, stopProjection, terrainRange, type MapDistance, clusterPoints, isMiniMapId, bestBearing, convexHull, inPolygon, lumpAreas, stopsCircle, terrainParts, tiltPoint, uniformProjection, untiltPoint, viewPoints, miniMapChunks, miniMapLayers, nextMiniMap, streetGrid, traceCoasts, wholeOutline } from './miniMap';
+import { DEFAULT_DISTANCE, legLayout, MAP_DISTANCES, miniMapView, nextMapDistance, stopProjection, terrainRange, type MapDistance, clusterPoints, isMiniMapId, bestBearing, convexHull, inPolygon, lumpAreas, stopsCircle, terrainParts, tiltPoint, uniformProjection, untiltPoint, viewPoints, miniMapChunks, miniMapLayers, nextMiniMap, traceCoasts, wholeOutline } from './miniMap';
 
 describe('미니맵', () => {
   it('stops close together share a chunk, far ones get their own', () => {
@@ -23,10 +23,28 @@ describe('미니맵', () => {
     expect(chunks.find((c) => c.discs.length === 2)!.links).toHaveLength(1);
   });
 
-  it('knows its ids and draws street lines', () => {
+  it('knows its ids', () => {
     expect(isMiniMapId('blob')).toBe(true);
+    expect(isMiniMapId('streets')).toBe(true);
     expect(isMiniMapId('x')).toBe(false);
-    expect(streetGrid(0, 0, 100, 50).length).toBeGreaterThan(2);
+  });
+
+  it("길: the only roads are the day's own legs, on the land", () => {
+    const pts = [{ x: 0.25, y: 0.55 }, { x: 0.45, y: 0.5 }, { x: 0.6, y: 0.62 }];
+    const roads = (stops: { x: number; y: number }[]) => miniMapLayers(stops, 'streets').flatMap((p) => p.lines);
+    expect(roads(pts.slice(0, 1))).toEqual([]);
+    const lines = roads(pts);
+    expect(lines.length).toBeGreaterThan(0);
+    const distTo = (p: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) => {
+      const [dx, dy] = [b.x - a.x, b.y - a.y];
+      const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy)));
+      return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
+    };
+    // Every piece of road lies along a leg between two stops (the tilt bends it only a little).
+    for (const { a, b } of lines) {
+      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      expect(Math.min(distTo(mid, pts[0], pts[1]), distTo(mid, pts[1], pts[2]))).toBeLessThan(0.02);
+    }
   });
 
   it('지도: one outline holds every stop, the same one each time', () => {
