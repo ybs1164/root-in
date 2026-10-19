@@ -8,7 +8,7 @@ import type { CardStamp, StopMark } from '../domain/shareSubject';
 import { paintPattern } from './dayPatterns';
 import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
 import { fitPingLabels } from '../domain/stopLabels';
-import { MAP_ROLES, miniMapLayers, miniMapView, terrainParts, viewPoints, type MapFill, type MapRole, type MapPart, type MiniMapView, type TerrainShapes } from '../domain/miniMap';
+import { MAP_ROLES, terrainParts, viewPoints, type MapFill, type MapRole, type MapPart, type TerrainShapes } from '../domain/miniMap';
 import { terrainService } from '../services/terrainService';
 
 export interface ShareImageInput {
@@ -115,16 +115,9 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
     document.fonts?.load(`40px ${textFamily('pen')}`, '2026. 성수').catch(() => undefined),
   ]);
   const layout: PolaroidLayout = decor?.layout ?? DEFAULT_LAYOUT;
-  // 상세 is the real map: its areas are fetched first (none: only the window is drawn).
-  // The card's own map when it has one, else the day photo's; the card's distance setting wins too.
-  const source = decor?.miniMap ? decor : photo;
-  const wanted = source?.miniMap;
-  const terrain = wanted === 'detail' ? await terrainService.fetch(pings.map((p) => p.center)) : null;
-  // No data for these stops: the abstract 지도 stands in.
-  // Only the shape stands in: the distances stay as set, so the stops do not move.
-  // A route's card with no map setting keeps the usual layout (no view at all).
-  const distance = decor?.mapDistance ?? source?.mapDistance;
-  const mapView = photo || wanted || distance ? miniMapView(wanted === 'detail' && !terrain ? 'whole' : wanted, distance) : undefined;
+  // A day's photo is its day screen: the real map behind the stops, fetched first (no data: the stops on the page alone).
+  // A route's card keeps the usual layout with no map.
+  const terrain = photo ? await terrainService.fetch(pings.map((p) => p.center)) : null;
   const cards = LAYOUT_CARDS[layout];
   const c = tokens();
   const pinImages = await Promise.all(marks.map(async (mark, i) => {
@@ -197,7 +190,7 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
         paintPattern(ctx, photo.pattern, { w: PHOTO.w, h: PHOTO.h }, BOX.size / 360, p.accent);
         ctx.restore();
       }
-      drawStops(ctx, p, bg, pings, marks, edges, pinImages, { names: !photo?.hideNames, times: !photo?.hideTimes, map: mapView, terrain });
+      drawStops(ctx, p, bg, pings, marks, edges, pinImages, { names: !photo?.hideNames, times: !photo?.hideTimes, day: !!photo, terrain });
       if (photo) drawDecor(ctx, photo, BOX_FRAME, stickerImages);
     });
     ctx.restore();
@@ -509,8 +502,7 @@ function drawPaper(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>) 
  * Drawn in the unit square the stops are laid out in. A part with an alpha
  * (the shadow) is drawn flat on a canvas of its own and faded as a whole.
  */
-function drawMiniMap(ctx: CanvasRenderingContext2D, c: Tokens, points: { x: number; y: number }[], view: MiniMapView, centers: [number, number][], terrain: TerrainShapes | null) {
-  const unit = points.map((p) => ({ x: (p.x - BOX.x) / BOX.size, y: (p.y - BOX.y) / BOX.size }));
+function drawMiniMap(ctx: CanvasRenderingContext2D, c: Tokens, parts: MapPart[]) {
   const colour = ({ role }: MapFill) => c.mini[role];
 
   const paintPart = (g: CanvasRenderingContext2D, part: MapPart, fill: string) => {
@@ -551,13 +543,6 @@ function drawMiniMap(ctx: CanvasRenderingContext2D, c: Tokens, points: { x: numb
         g.fill();
       }
     }
-    for (const { a, b, w } of part.lines) {
-      g.lineWidth = w;
-      g.beginPath();
-      g.moveTo(a.x, a.y + dy);
-      g.lineTo(b.x, b.y + dy);
-      g.stroke();
-    }
     for (const { path, w } of part.ways ?? []) {
       g.lineWidth = w;
       g.beginPath();
@@ -570,7 +555,7 @@ function drawMiniMap(ctx: CanvasRenderingContext2D, c: Tokens, points: { x: numb
   ctx.save();
   ctx.translate(BOX.x, BOX.y);
   ctx.scale(BOX.size, BOX.size);
-  for (const part of view.shape === 'detail' ? terrainParts(terrain, centers, view.distance) : miniMapLayers(unit, view.shape, centers)) {
+  for (const part of parts) {
     const faded = (part.fill.alpha !== undefined && part.fill.alpha < 1) || !!part.haze;
     if (!faded) {
       paintPart(ctx, part, colour(part.fill));
@@ -617,19 +602,21 @@ function drawStops(
   edges: RouteEdgeStyle[],
   pinImages: (HTMLImageElement | null)[],
   // A day's 텍스트 / 시간 switches, as on its screen.
-  show: { names: boolean; times: boolean; map?: MiniMapView; terrain?: TerrainShapes | null } = { names: true, times: true },
+  // A day's photo (`day`) is laid out as its day screen, over the real map when there is one.
+  show: { names: boolean; times: boolean; day?: boolean; terrain?: TerrainShapes | null } = { names: true, times: true },
 ) {
-  // A route's card has no map setting: its stops keep the usual layout.
+  // A route's card keeps the usual layout.
   const centers = pings.map((p) => p.center);
-  const points = (show.map ? viewPoints(centers, show.map, show.terrain ?? null) : layoutPings(centers)).map((p) => ({
+  const points = (show.day ? viewPoints(centers, show.terrain ?? null) : layoutPings(centers)).map((p) => ({
     x: BOX.x + p.x * BOX.size,
     y: BOX.y + p.y * BOX.size,
   }));
 
-  if (show.map && show.map.shape !== 'none') drawMiniMap(ctx, c, points, show.map, pings.map((p) => p.center), show.terrain ?? null);
+  const parts = show.day ? terrainParts(show.terrain ?? null, centers) : [];
+  if (parts.length) drawMiniMap(ctx, c, parts);
 
   // On a 미니맵 every line gets a casing in the page colour first, as on the day screen (pings__case).
-  const mapped = !!show.map && show.map.shape !== 'none';
+  const mapped = parts.length > 0;
   for (let i = 0; i + 1 < points.length; i++) {
     const edge = edges[i] ?? 'solid';
     if (edge === 'transparent') continue;

@@ -1,4 +1,3 @@
-import { isMiniMapId, readMapDistance } from '../domain/miniMap';
 import { isPolaroidLayout } from '../domain/polaroid';
 import {
   BASE_COLORS,
@@ -131,8 +130,6 @@ export function readDecor(v: unknown): DayDecor | null {
     ...(isPatternId(d.pattern) && d.pattern !== 'none' ? { pattern: d.pattern } : {}),
     ...(d.titled === true ? { titled: true as const } : {}),
     ...(isPolaroidLayout(d.layout) ? { layout: d.layout } : {}),
-    ...(isMiniMapId(d.miniMap) && d.miniMap !== 'none' ? { miniMap: d.miniMap } : {}),
-    ...(readMapDistance(d.mapDistance) ? { mapDistance: readMapDistance(d.mapDistance) } : {}),
     ...(d.hideNames === true ? { hideNames: true as const } : {}),
     ...(d.hideTimes === true ? { hideTimes: true as const } : {}),
   };
@@ -180,7 +177,7 @@ const round = (n: number) => Math.round(n * 1e4) / 1e4;
 
 /** Nothing on it worth a row. */
 export const isBlankDecor = (d: DayDecor): boolean =>
-  !d.strokes.length && !d.stickers.length && !d.texts?.length && !d.theme && !d.pattern && !d.titled && !d.layout && !d.miniMap && !d.mapDistance && !d.hideNames && !d.hideTimes;
+  !d.strokes.length && !d.stickers.length && !d.texts?.length && !d.theme && !d.pattern && !d.titled && !d.layout && !d.hideNames && !d.hideTimes;
 
 /** Strokes rounded for storage. */
 export const compactDecor = (d: DayDecor): DayDecor => ({

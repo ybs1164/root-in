@@ -1,4 +1,3 @@
-import type { MapDistance, MiniMapId } from './miniMap';
 /**
  * Decorations on a calendar day: stickers and pen strokes on the ping
  * drawing, plus the app-wide colour theme. Positions are fractions of the
@@ -8,7 +7,7 @@ import type { MapDistance, MiniMapId } from './miniMap';
 import type { PolaroidLayout } from './polaroid';
 
 /** 'polaroid' (the card's layout) is the share screen's only. */
-export type DecorTool = 'sticker' | 'pen' | 'text' | 'theme' | 'pattern' | 'polaroid' | 'minimap';
+export type DecorTool = 'sticker' | 'pen' | 'text' | 'theme' | 'pattern' | 'polaroid';
 
 export interface PlacedSticker {
   /** Shared stacking order across ink, stickers and text; higher is in front. */
@@ -148,10 +147,6 @@ export interface DayDecor {
   titled?: true;
   /** Share cards only: how the polaroid lies on the image (absent = DEFAULT_LAYOUT). */
   layout?: PolaroidLayout;
-  /** The minimal map behind the stops (absent = none): a day's own, or a share card's. */
-  miniMap?: MiniMapId;
-  /** How true the distances between the stops are (absent = `DEFAULT_DISTANCE`). */
-  mapDistance?: MapDistance;
   /** Days only: the pings' place names turned off (absent = shown). */
   hideNames?: true;
   /** Days only: the pings' visit times turned off (absent = shown). */

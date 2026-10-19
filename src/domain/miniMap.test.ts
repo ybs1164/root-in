@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { pingOverlap, placePingLabels, pingInfoSize } from './stopLabels';
 import type { AdminArea } from './adminAreas';
 import { readDecor } from '../services/dayRepository';
-import { DEFAULT_DISTANCE, legLayout, MAP_DISTANCES, miniMapView, nextMapDistance, stopProjection, terrainRange, type MapDistance, clusterPoints, isMiniMapId, bestBearing, convexHull, inPolygon, lumpAreas, stopsCircle, terrainParts, tiltPoint, uniformProjection, untiltPoint, viewPoints, miniMapChunks, miniMapLayers, nextMiniMap, traceCoasts, wholeOutline } from './miniMap';
+import { bestBearing, clusterPoints, convexHull, inPolygon, LEG_POWER, legLayout, lumpAreas, stopProjection, stopsCircle, terrainParts, terrainRange, tiltPoint, uniformProjection, untiltPoint, viewPoints } from './miniMap';
 
 describe('미니맵', () => {
-  it('stops close together share a chunk, far ones get their own', () => {
+  it('stops close together share a group, far ones get their own', () => {
     const pts = [
       { x: 0, y: 0 },
       { x: 10, y: 0 },
@@ -14,120 +14,6 @@ describe('미니맵', () => {
     ];
     const groups = clusterPoints(pts, 15);
     expect(groups.map((g) => g.length).sort()).toEqual([1, 3]);
-  });
-
-  it('links stay within the gap and a lone stop is a disc with no links', () => {
-    const chunks = miniMapChunks([{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 900, y: 900 }], 20);
-    expect(chunks).toHaveLength(2);
-    expect(chunks.find((c) => c.discs.length === 1)!.links).toEqual([]);
-    expect(chunks.find((c) => c.discs.length === 2)!.links).toHaveLength(1);
-  });
-
-  it('knows its ids', () => {
-    expect(isMiniMapId('blob')).toBe(true);
-    expect(isMiniMapId('streets')).toBe(true);
-    expect(isMiniMapId('x')).toBe(false);
-  });
-
-  it("길: the only roads are the day's own legs, on the land", () => {
-    const pts = [{ x: 0.25, y: 0.55 }, { x: 0.45, y: 0.5 }, { x: 0.6, y: 0.62 }];
-    const roads = (stops: { x: number; y: number }[]) => miniMapLayers(stops, 'streets').flatMap((p) => p.lines);
-    expect(roads(pts.slice(0, 1))).toEqual([]);
-    const lines = roads(pts);
-    expect(lines.length).toBeGreaterThan(0);
-    const distTo = (p: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) => {
-      const [dx, dy] = [b.x - a.x, b.y - a.y];
-      const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy)));
-      return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
-    };
-    // Every piece of road lies along a leg between two stops (the tilt bends it only a little).
-    for (const { a, b } of lines) {
-      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-      expect(Math.min(distTo(mid, pts[0], pts[1]), distTo(mid, pts[1], pts[2]))).toBeLessThan(0.02);
-    }
-  });
-
-  it('지도: one outline holds every stop, the same one each time', () => {
-    const pts = [{ x: 0.2, y: 0.2 }, { x: 0.8, y: 0.3 }, { x: 0.5, y: 0.85 }];
-    const { outline, centre } = wholeOutline(pts);
-    // Every stop lies inside the polygon (ray casting).
-    const inside = (p: { x: number; y: number }) => {
-      let c = false;
-      for (let i = 0, j = outline.length - 1; i < outline.length; j = i++) {
-        const [a, b] = [outline[i], outline[j]];
-        if (a.y > p.y !== b.y > p.y && p.x < ((b.x - a.x) * (p.y - a.y)) / (b.y - a.y) + a.x) c = !c;
-      }
-      return c;
-    };
-    expect(pts.every(inside)).toBe(true);
-    expect(inside(centre)).toBe(true);
-    expect(miniMapLayers(pts, 'whole')).toEqual(miniMapLayers(pts, 'whole'));
-    expect(miniMapLayers(pts, 'none')).toEqual([]);
-  });
-
-  it('the day switch steps through the styles and comes back to none', () => {
-    expect(nextMiniMap('none')).toBe('blob');
-    expect(nextMiniMap('whole')).toBe('detail');
-    expect(nextMiniMap('detail')).toBe('none');
-  });
-
-  it('the abstract styles are tilted flat land with a shadow below it, and every stop stands on it', () => {
-    const pts = [{ x: 0.2, y: 0.2 }, { x: 0.8, y: 0.3 }, { x: 0.5, y: 0.85 }];
-    for (const style of ['blob', 'streets', 'whole'] as const) {
-      const parts = miniMapLayers(pts, style);
-      const shadow = parts.filter((p) => p.fill.alpha !== undefined);
-      expect(shadow).toHaveLength(1);
-      expect(shadow[0].dy).toBeGreaterThan(0);
-      const land = parts.find((p) => p.polys.length && p.fill.alpha === undefined)!;
-      expect(pts.every((q) => land.polys.some((poly) => inPolygon(q, poly)))).toBe(true);
-    }
-  });
-
-  it('traces a coast round the land of a field, with no lakes', () => {
-    // A disc of radius 0.2 at the middle, with a hole: only the outer coast comes back.
-    const field = (p: { x: number; y: number }) => {
-      const r = Math.hypot(p.x - 0.5, p.y - 0.5);
-      return r < 0.2 && r > 0.05 ? 1 : 0;
-    };
-    const coasts = traceCoasts(field, 0.5, { x0: 0.2, y0: 0.2, x1: 0.8, y1: 0.8 });
-    expect(coasts).toHaveLength(1);
-    expect(coasts[0].every((p) => Math.abs(Math.hypot(p.x - 0.5, p.y - 0.5) - 0.2) < 0.02)).toBe(true);
-  });
-
-  it('덩어리: near stops flow into one round island, far ones are islands apart, the same each time', () => {
-    // Two stops 300 m apart, and one 5 km off.
-    const near = [{ x: 0.3, y: 0.6 }, { x: 0.42, y: 0.62 }];
-    const far = [...near, { x: 0.9, y: 0.4 }];
-    const ground: [number, number][] = [[127.05, 37.54], [127.0534, 37.54], [127.106, 37.54]];
-    const land = (pts: { x: number; y: number }[]) => miniMapLayers(pts, 'blob', ground.slice(0, pts.length)).find((p) => p.polys.length && p.fill.alpha === undefined)!;
-    expect(land(near).polys).toHaveLength(1);
-    expect(land(far).polys).toHaveLength(2);
-    expect(miniMapLayers(far, 'blob', ground)).toEqual(miniMapLayers(far, 'blob', ground));
-    // Round: no corners, every turn along the coast is gentle (the old discs and bars met at sharp angles).
-    for (const ring of land(far).polys) {
-      const turns = ring.map((p, i) => {
-        const [a, b] = [ring[(i + ring.length - 1) % ring.length], ring[(i + 1) % ring.length]];
-        const [u, w] = [Math.atan2(p.y - a.y, p.x - a.x), Math.atan2(b.y - p.y, b.x - p.x)];
-        return Math.abs(Math.atan2(Math.sin(w - u), Math.cos(w - u)));
-      });
-      expect(Math.max(...turns)).toBeLessThan(Math.PI / 3);
-    }
-  });
-
-  it('the land is a slab seen at an angle: its side below its top, its far side paler', () => {
-    const pts = [{ x: 0.2, y: 0.4 }, { x: 0.8, y: 0.6 }];
-    for (const style of ['blob', 'streets', 'whole'] as const) {
-      const parts = miniMapLayers(pts, style);
-      const [top, side, haze] = ['land', 'side', 'haze'].map((role) => parts.find((p) => p.fill.role === role)!);
-      const at = (role: string) => parts.findIndex((p) => p.fill.role === role);
-      // The side lies just below the top and is drawn first; the haze goes over everything else (the roads too).
-      expect(side.polys).toEqual(top.polys);
-      expect(side.dy).toBeGreaterThan(0);
-      expect(at('side')).toBeLessThan(at('land'));
-      expect(at('haze')).toBe(parts.length - 1);
-      expect(haze.haze).toBeGreaterThan(0);
-      expect(haze.haze).toBeLessThan(1);
-    }
   });
 
   it('the tilt squashes depth and can be undone', () => {
@@ -159,8 +45,8 @@ describe('미니맵', () => {
     const shadow = parts.filter((p) => p.fill.alpha !== undefined);
     expect(shadow).toHaveLength(1);
     expect(shadow[0].dy).toBeGreaterThan(0);
-    // Every stop is on one of the areas, at the real scale.
-    const spots = viewPoints(centers, { shape: 'detail', distance: 'true' }, shapes);
+    // Every stop is on one of the areas.
+    const spots = viewPoints(centers, shapes);
     expect(spots.every((p) => filled.some((ring) => inPolygon(p, ring)))).toBe(true);
     // The whole lump fits the unit square.
     const all = filled.flat();
@@ -190,7 +76,7 @@ describe('미니맵', () => {
     };
     const parts = terrainParts(shapes, centers);
     expect(parts.map((p) => p.fill.role)).toEqual(['shadow', 'side', 'water', 'land', 'park', 'road', 'haze']);
-    const [, , water, land, park, roads] = parts;
+    const [, side, water, land, park, roads, haze] = parts;
     // The lump is water under the land, so the river shows where there is no land; the rest is kept to the lump.
     expect(water.polys).toHaveLength(2);
     expect(water.clip).toBeUndefined();
@@ -198,6 +84,11 @@ describe('미니맵', () => {
     // A speck of a park is left out; of the roads only the motorway (the main roads made a busy mesh).
     expect(park.polys).toHaveLength(1);
     expect(roads.ways).toHaveLength(1);
+    // A slab seen at an angle: its side just below the lump, the far side paler under a haze over everything.
+    expect(side.polys).toEqual(water.polys);
+    expect(side.dy).toBeGreaterThan(0);
+    expect(haze.haze).toBeGreaterThan(0);
+    expect(haze.haze).toBeLessThan(1);
   });
 
   it('the lump takes the areas the circle around the stops reaches, and fills its dents', () => {
@@ -249,7 +140,15 @@ describe('미니맵', () => {
     expect(bestBearing(stops, [cell(126.998)])).toBe(angle);
   });
 
-  describe('거리 × 형태', () => {
+  it('old days with a map shape or distance stored still load, without them', () => {
+    const read = readDecor({ strokes: [], stickers: [], miniMap: 'whole', mapDistance: 'light', hideTimes: true });
+    expect(read).not.toBeNull();
+    expect(read).not.toHaveProperty('miniMap');
+    expect(read).not.toHaveProperty('mapDistance');
+    expect(read?.hideTimes).toBe(true);
+  });
+
+  describe('거리: legs evened out halfway', () => {
     // A tight cluster of three in 을지로 and one stop far off in 잠실: legs of ~200 m and ~10 km.
     const centers: [number, number][] = [[126.99, 37.566], [126.992, 37.567], [126.991, 37.565], [127.1, 37.513]];
     const cell = (code: string, west: number, south: number, size = 0.02): AdminArea => ({
@@ -262,19 +161,6 @@ describe('미니맵', () => {
     const len = (p: { x: number; y: number }, q: { x: number; y: number }) => Math.hypot(p.x - q.x, p.y - q.y);
     const legs = (pts: { x: number; y: number }[]) => pts.slice(1).map((p, i) => len(pts[i], p));
     const spreadOf = (pts: { x: number; y: number }[]) => Math.max(...legs(pts)) / Math.min(...legs(pts));
-    const DISTANCES = MAP_DISTANCES.map((m) => m.id);
-
-    it('steps through five distances, and reads the old names', () => {
-      expect(DISTANCES).toEqual(['even', 'strong', 'half', 'light', 'true']);
-      expect(nextMapDistance('even')).toBe('strong');
-      expect(nextMapDistance('true')).toBe('even');
-      expect(miniMapView('blob', undefined).distance).toBe(DEFAULT_DISTANCE);
-      const read = (d: object) => readDecor({ strokes: [], stickers: [], ...d });
-      expect(read({ miniMap: 'whole', mapDistance: 'squashed' })?.mapDistance).toBe('half');
-      expect(read({ mapDistance: 'relative' })?.mapDistance).toBeUndefined();
-      expect(read({ mapDistance: 'light' })?.mapDistance).toBe('light');
-      expect(read({ mapDistance: 'far' })?.mapDistance).toBeUndefined();
-    });
 
     it('evens the legs by a power, keeping their directions', () => {
       const pts = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 100 }];
@@ -286,41 +172,25 @@ describe('미니맵', () => {
       expect(legLayout(pts, 1)).toEqual(pts);
     });
 
-    it('each step shows the far leg longer than the one before, from even to the real ratio', () => {
-      const untilted = (d: MapDistance) => viewPoints(centers, miniMapView('none', d)).map(untiltPoint);
-      const spreads = DISTANCES.map((d) => spreadOf(untilted(d)));
-      expect(spreads[0]).toBeLessThan(1.6);
-      for (let i = 1; i < spreads.length; i++) expect(spreads[i]).toBeGreaterThan(spreads[i - 1] * 1.5);
+    it('shows the far leg longer than the short ones, but far less than the real ratio', () => {
+      expect(LEG_POWER).toBe(0.5);
       const kx = Math.cos((37.54 * Math.PI) / 180);
-      expect(spreads[4]).toBeCloseTo(spreadOf(centers.map(([x, y]) => ({ x: x * kx, y }))), 0);
+      const real = spreadOf(centers.map(([x, y]) => ({ x: x * kx, y })));
+      const drawn = spreadOf(viewPoints(centers).map(untiltPoint));
+      expect(drawn).toBeGreaterThan(2);
+      expect(drawn).toBeLessThan(real / 3);
     });
 
-    it('the stops stay put whatever the shape: a 상세 with no data falls back without a jump', () => {
-      for (const distance of DISTANCES) {
-        const none = viewPoints(centers, miniMapView('none', distance));
-        for (const shape of ['blob', 'streets', 'whole'] as const) expect(viewPoints(centers, miniMapView(shape, distance))).toEqual(none);
-        expect(viewPoints(centers, miniMapView('detail', distance), null)).toEqual(none);
-      }
+    it('the stops stay put while the real map is missing, and fit themselves', () => {
+      expect(viewPoints(centers, null)).toEqual(viewPoints(centers));
+      expect(stopProjection(centers)(centers[0])).toEqual(viewPoints(centers)[0]);
     });
 
-    it('every distance draws the real areas under their own stops', () => {
-      for (const distance of DISTANCES) {
-        const land = terrainParts(shapes, centers, distance).find((p) => p.fill.role === 'land')!;
-        const spots = viewPoints(centers, miniMapView('detail', distance), shapes);
-        // jung holds the first three, jamsil the last.
-        expect(spots.every((p, i) => inPolygon(p, land.polys[i < 3 ? 0 : 1]))).toBe(true);
-      }
-    });
-
-    it('the abstract land holds every pin, its head too, at every distance', () => {
-      for (const distance of DISTANCES) {
-        const pts = viewPoints(centers, miniMapView('none', distance));
-        for (const shape of ['blob', 'streets', 'whole'] as const) {
-          const land = miniMapLayers(pts, shape, centers).find((p) => p.polys.length && p.fill.alpha === undefined)!;
-          const on = (q: { x: number; y: number }) => land.polys.some((poly) => inPolygon(q, poly));
-          expect(pts.every((p) => on(p) && on({ x: p.x, y: p.y - 0.06 }))).toBe(true);
-        }
-      }
+    it('draws the real areas under their own stops', () => {
+      const land = terrainParts(shapes, centers).find((p) => p.fill.role === 'land')!;
+      const spots = viewPoints(centers, shapes);
+      // jung holds the first three, jamsil the last.
+      expect(spots.every((p, i) => inPolygon(p, land.polys[i < 3 ? 0 : 1]))).toBe(true);
     });
 
     it('on the real map no stop stands on the edge: the areas around each one are taken in', () => {
@@ -332,15 +202,6 @@ describe('미니맵', () => {
       const range = terrainRange(stops);
       expect(range.west).toBeLessThan(127.005);
       expect(range.east).toBeGreaterThan(127.035);
-    });
-
-    it('which stops share a chunk is judged on the ground, the same at every distance', () => {
-      const islands = (distance: MapDistance) => {
-        const pts = viewPoints(centers, miniMapView('blob', distance));
-        return miniMapLayers(pts, 'blob', centers).find((p) => p.polys.length && p.fill.alpha === undefined)!.polys.length;
-      };
-      expect(new Set(DISTANCES.map(islands)).size).toBe(1);
-      expect(stopProjection(centers, 'true')(centers[0])).toEqual(viewPoints(centers, miniMapView('blob', 'true'))[0]);
     });
   });
 });

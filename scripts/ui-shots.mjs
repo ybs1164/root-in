@@ -2,6 +2,7 @@
 // be reviewed without a device. Usage (dev server must be running):
 //   npm run shots                 -> all states, both widths
 //   npm run shots -- calendar pin  -> only states whose name contains a filter
+//   npm run shots -- minimap       -> TODAY's 미니맵 on six example days
 // Output: ui-shots/<width>-<state>.png (git-ignored).
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
@@ -78,6 +79,41 @@ async function shareHash(page, key) {
   }, [SEONGSU, key]);
 }
 
+// 미니맵 behind TODAY's pings (docs/plan-minimap-design.md D8): example days that
+// each stress the real map differently.
+const MINI_DAYS = {
+  // Three spots on one street, within 200 m.
+  street: [['어니언 성수', 127.0582, 37.5447], ['성수 갈비집', 127.0571, 37.5440], ['소품샵', 127.0590, 37.5436]],
+  // Four in 성수 and one across the Han river.
+  river: [['어니언 성수', 127.0582, 37.5447], ['성수 갈비집', 127.0557, 37.5431], ['대림창고', 127.0539, 37.5418], ['서울숲', 127.0374, 37.5444], ['압구정 로데오', 127.0396, 37.5272]],
+  one: [['어니언 성수', 127.0582, 37.5447]],
+  // Seoul to Busan in a day.
+  far: [['서울역', 126.9707, 37.5547], ['해운대', 129.1604, 35.1587]],
+  // Six along 종로, one after another.
+  row: [0, 1, 2, 3, 4, 5].map((k) => [['광화문', '종각', '종로3가', '종로5가', '동대문', '신설동'][k], 126.977 + k * 0.009, 37.5705 + k * 0.0004]),
+  // Two places in the same building.
+  same: [['1층 카페', 127.0582, 37.5447], ['3층 서점', 127.05822, 37.54471]],
+};
+/** Today's pings are the day's spots (and no pins nearby, so no 후보 ghost); then the day screen. */
+async function miniMapDay(page, spots, reload) {
+  await page.evaluate(async (spots) => {
+    const { savePings } = await import('/src/services/pingRepository.ts');
+    const { pinRepository } = await import('/src/services/pinRepository.ts');
+    const { getCurrentUserId } = await import('/src/lib/currentUser.ts');
+    await pinRepository.saveAll(getCurrentUserId(), []);
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    savePings(spots.map(([name, lng, lat], i) => ({
+      id: `mini-${i}`, day: today, at: new Date(`${today}T${String(9 + i * 2).padStart(2, '0')}:00:00`).toISOString(), name, center: [lng, lat],
+    })));
+  }, spots);
+  await reload('');
+  await click(page, '달력');
+  // The pins wait for the real map (none for these stops: they land on the page alone).
+  await page.locator('.pings__map').first().waitFor({ timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(2500);
+}
+
 const settle = (page, ms = 1500) => page.waitForTimeout(ms);
 const click = (page, name) => page.getByRole('button', { name }).first().click({ timeout: 3000 });
 
@@ -112,6 +148,7 @@ const STATES = {
     await click(page, '핀 카테고리 편집');
     await click(page, '카테고리 추가');
   },
+  ...Object.fromEntries(Object.entries(MINI_DAYS).map(([day, spots]) => [`minimap-${day}`, (page, vp, reload) => miniMapDay(page, spots, reload)])),
   'shared-course': async (page, vp, reload) => { await reload(await shareHash(page, 'share')); },
   'shared-diary': async (page, vp, reload) => { await reload(await shareHash(page, 'diary')); },
 };

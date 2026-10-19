@@ -4,70 +4,16 @@ import { pingOverlap } from './stopLabels';
 import type { Bbox, LonLat } from './districtMap';
 
 /**
- * 미니맵: a minimal map drawn behind a share card's stops. There is no real
- * map data in the card (stops are laid out relatively), so the "map" is
- * made of chunks: stops that lie close together are merged into one soft
- * island (덩어리). 길 adds the day's own way across the land, a lighter road
- * under each leg (nothing made up: no streets that are not there); 지도 is one land mass
- * holding every stop, with a wobbly coast; 상세 is the real map: the
- * administrative areas (읍면동) around the stops with all their borders. The abstract ones are round and soft; all of
- * them are solid terrain tilted as if seen from above at an angle, with a
- * shadow below.
+ * 미니맵: the real map drawn behind a day's pings (and its share card's
+ * photo): the 읍면동 around the stops cut into one lump, with water, parks
+ * and the big roads in it, tilted as if seen from above at an angle.
+ *
+ * The distances between the stops are evened out halfway: every leg (one
+ * stop to the next) keeps its direction and its length is raised to
+ * `LEG_POWER` against the legs' typical length, so a day of one far trip and
+ * a few short walks shows both. The land under the stops is bent along.
  */
-export type MiniMapId = 'none' | 'blob' | 'streets' | 'whole' | 'detail';
-
-export const MINI_MAPS: { id: MiniMapId; label: string }[] = [
-  { id: 'none', label: '없음' },
-  { id: 'blob', label: '덩어리' },
-  { id: 'streets', label: '길' },
-  { id: 'whole', label: '지도' },
-  { id: 'detail', label: '상세' },
-];
-
-/** The day screen's one switch steps through the styles: 없음 → 덩어리 → 길 → 지도 → 상세 → 없음. */
-export const nextMiniMap = (id: MiniMapId): MiniMapId => MINI_MAPS[(MINI_MAPS.findIndex((m) => m.id === id) + 1) % MINI_MAPS.length].id;
-
-export const isMiniMapId = (v: unknown): v is MiniMapId => MINI_MAPS.some((m) => m.id === v);
-
-/**
- * 거리: how true the distances between the stops are, apart from how the land
- * is drawn (the map's shape above). Five steps on one scale: every leg (one
- * stop to the next) keeps its direction, and its length is raised to `power`
- * (against the legs' typical length): 0 makes all legs the same length, 1 is
- * the real map. The land under the stops is bent along with them.
- */
-export type MapDistance = 'even' | 'strong' | 'half' | 'light' | 'true';
-
-export const MAP_DISTANCES: { id: MapDistance; label: string; power: number }[] = [
-  { id: 'even', label: '균등', power: 0 },
-  { id: 'strong', label: '강하게', power: 0.25 },
-  { id: 'half', label: '중간', power: 0.5 },
-  { id: 'light', label: '약하게', power: 0.75 },
-  { id: 'true', label: '실제', power: 1 },
-];
-
-export const DEFAULT_DISTANCE: MapDistance = 'half';
-
-export const isMapDistance = (v: unknown): v is MapDistance => MAP_DISTANCES.some((m) => m.id === v);
-
-/** A stored setting, including the names the three-step scale used ('relative' had no place on this one). */
-export const readMapDistance = (v: unknown): MapDistance | undefined => (isMapDistance(v) ? v : v === 'squashed' ? 'half' : undefined);
-
-export const nextMapDistance = (id: MapDistance): MapDistance =>
-  MAP_DISTANCES[(MAP_DISTANCES.findIndex((m) => m.id === id) + 1) % MAP_DISTANCES.length].id;
-
-const powerOf = (id: MapDistance): number => MAP_DISTANCES.find((m) => m.id === id)?.power ?? 1;
-
-/** A day's (or card's) map as both settings. */
-export interface MiniMapView {
-  shape: MiniMapId;
-  distance: MapDistance;
-}
-
-export const miniMapView = (shape: MiniMapId | undefined, distance: MapDistance | undefined): MiniMapView => ({
-  shape: shape ?? 'none',
-  distance: distance ?? DEFAULT_DISTANCE,
-});
+export const LEG_POWER = 0.5;
 
 export interface MapPoint {
   x: number;
@@ -118,13 +64,8 @@ export function bendField(from: MapPoint[], to: MapPoint[]): (p: MapPoint) => Ma
   };
 }
 
-/** Stops closer than this (a fraction of the drawing box) share one chunk. */
-export const CHUNK_GAP = 0.95;
 /** Stops this close on the ground (metres) share one chunk, whatever the distances are drawn as. */
 export const CHUNK_GAP_M = 1500;
-/** A chunk's disc radius around a stop, a fraction of the drawing box. */
-export const CHUNK_RADIUS = 0.14;
-
 /** Groups of point indices: single linkage, two points within `gap` of each other (or via others) are one chunk. */
 export function clusterPoints(points: MapPoint[], gap: number): number[][] {
   const parent = points.map((_, i) => i);
@@ -142,14 +83,6 @@ export function clusterPoints(points: MapPoint[], gap: number): number[][] {
   return [...groups.values()];
 }
 
-export interface MiniMapChunk {
-  /** Disc centres. */
-  discs: MapPoint[];
-  /** Fat lines joining discs within the gap. */
-  links: [MapPoint, MapPoint][];
-  centre: MapPoint;
-}
-
 /** Lon/lat as metres east and south (only differences matter). */
 const metres = (centers: LonLat[]): MapPoint[] => {
   const midLat = centers.reduce((s, c) => s + c[1], 0) / Math.max(1, centers.length);
@@ -157,39 +90,9 @@ const metres = (centers: LonLat[]): MapPoint[] => {
   return centers.map(([lng, lat]) => ({ x: lng * kx * M_PER_DEG, y: -lat * M_PER_DEG }));
 };
 
-/** The stops in groups that lie within `CHUNK_GAP_M` of one another on the ground (one chunk, one island of real map). */
+/** The stops in groups that lie within `CHUNK_GAP_M` of one another on the ground (one island of real map each). */
 export const stopGroups = (centers: LonLat[]): LonLat[][] =>
   clusterPoints(metres(centers), CHUNK_GAP_M).map((members) => members.map((i) => centers[i]));
-
-/**
- * The chunks for these points: `gap` is in the points' own units, or, when
- * `ground` (the same stops in metres) is given, in metres on the ground.
- */
-export function miniMapChunks(points: MapPoint[], gap: number, ground?: MapPoint[]): MiniMapChunk[] {
-  const judged = ground ?? points;
-  return clusterPoints(judged, gap).map((members) => {
-    const discs = members.map((i) => points[i]);
-    const links: [MapPoint, MapPoint][] = [];
-    for (let a = 0; a < members.length; a++) {
-      for (let b = a + 1; b < members.length; b++) {
-        const [p, q] = [judged[members[a]], judged[members[b]]];
-        if (Math.hypot(p.x - q.x, p.y - q.y) <= gap) links.push([points[members[a]], points[members[b]]]);
-      }
-    }
-    const centre = {
-      x: discs.reduce((s, p) => s + p.x, 0) / discs.length,
-      y: discs.reduce((s, p) => s + p.y, 0) / discs.length,
-    };
-    return { discs, links, centre };
-  });
-}
-
-/** A line of the drawing: from `a` to `b`, `w` wide (unit square). */
-export interface MapSegment {
-  a: MapPoint;
-  b: MapPoint;
-  w: number;
-}
 
 /**
  * What a colour of the map stands for. Each is a theme token (`--mini-<role>`,
@@ -209,14 +112,13 @@ export interface MapFill {
 
 /**
  * One piece of the map, in the unit square the stops are laid out in (so the
- * day screen's SVG and the share image's canvas draw the same thing): polygons
- * (the land, already tilted) and thin lines (streets) in one solid `fill`,
- * drawn `dy` lower and `blur` soft (the shadow). Parts are painted in order.
+ * day screen's SVG and the share image's canvas draw the same thing):
+ * polygons (already tilted) and polylines in one solid `fill`, drawn `dy`
+ * lower and `blur` soft (the shadow). Parts are painted in order.
  */
 export interface MapPart {
   fill: MapFill;
   polys: MapPoint[][];
-  lines: MapSegment[];
   dy?: number;
   blur?: number;
   /** Rings of one polygon with holes (areas on a real map): filled with the even-odd rule. */
@@ -235,10 +137,7 @@ export interface MapPart {
   haze?: number;
 }
 
-const TOP: MapFill = { role: 'land' };
 const ROAD: MapFill = { role: 'road' };
-/** How wide 길's road is (unit square): a few times the route line on it. */
-const ROAD_W = 0.034;
 /** The terrain's shadow below it: faded as a whole, and blurred. */
 const SHADOW: MapFill = { role: 'shadow', alpha: 0.28 };
 const SHADOW_DY = 0.045;
@@ -260,9 +159,8 @@ const slab = (polys: MapPoint[][], evenodd = false) => ({
  * The terrain is seen from above at an angle. It is tilted as a whole: its
  * depth is squashed to `TILT` and its far (upper) edge is narrower than its
  * near one (0.55 made the land a thin band with room wasted above and below
- * it; 0.68 still reads as seen at an angle). The stops stay where they are laid out, so the land is built flat
- * around where they would lie before the tilt (`untiltPoint`) and then tilted
- * (`tiltPoint`): they end up on it.
+ * it; 0.68 still reads as seen at an angle). The stops and the land go
+ * through the same tilt, so the stops stay on their places.
  */
 export const TILT = 0.68;
 const spread = (y: number) => 0.68 + 0.64 * y;
@@ -271,62 +169,6 @@ export const tiltPoint = (p: MapPoint): MapPoint => {
   return { x: 0.5 + (p.x - 0.5) * spread(y), y };
 };
 export const untiltPoint = (p: MapPoint): MapPoint => ({ x: 0.5 + (p.x - 0.5) / spread(p.y), y: 0.5 + (p.y - 0.5) / TILT });
-
-const hash = (points: MapPoint[]): number => {
-  let h = 2166136261;
-  for (const p of points) {
-    h = Math.imul(h ^ Math.round(p.x * 1000), 16777619);
-    h = Math.imul(h ^ Math.round(p.y * 1000), 16777619);
-  }
-  return h >>> 0;
-};
-
-/** A small seeded random source: the same stops always give the same map. */
-const seeded = (seed: number) => () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);
-
-const WHOLE_STEPS = 72;
-/** How far the whole land reaches past its outermost stops (unit square). */
-const WHOLE_PAD = 0.14;
-
-/**
- * 지도: one round, soft land mass around every stop. Its reach in each
- * direction is the farthest stop that way, smoothed well and given a margin
- * with a gentle seeded swell: a lump with no corners, always holding every stop.
- */
-export function wholeOutline(points: MapPoint[], extra = 0): { outline: MapPoint[]; centre: MapPoint; radii: number[] } {
-  const centre = {
-    x: points.reduce((s, p) => s + p.x, 0) / points.length,
-    y: points.reduce((s, p) => s + p.y, 0) / points.length,
-  };
-  const rnd = seeded(hash(points));
-  const [p1, p2] = [rnd() * Math.PI * 2, rnd() * Math.PI * 2];
-  const reach = Array.from({ length: WHOLE_STEPS }, (_, k) => {
-    const t = (k / WHOLE_STEPS) * Math.PI * 2;
-    return Math.max(0, ...points.map((p) => (p.x - centre.x) * Math.cos(t) + (p.y - centre.y) * Math.sin(t)));
-  });
-  const smooth = (r: number[], passes: number) => {
-    let out = r;
-    for (let pass = 0; pass < passes; pass++) {
-      const prev = out;
-      out = prev.map((v, k) => (prev[(k + WHOLE_STEPS - 2) % WHOLE_STEPS] + 2 * prev[(k + WHOLE_STEPS - 1) % WHOLE_STEPS] + 3 * v + 2 * prev[(k + 1) % WHOLE_STEPS] + prev[(k + 2) % WHOLE_STEPS]) / 9);
-    }
-    return out;
-  };
-  const base = smooth(reach, 10);
-  const radii = smooth(
-    base.map((v, k) => {
-      const t = (k / WHOLE_STEPS) * Math.PI * 2;
-      const swell = 1 + 0.12 * Math.sin(2 * t + p1) + 0.07 * Math.sin(3 * t + p2);
-      return Math.max(v + WHOLE_PAD * swell, reach[k] + WHOLE_PAD * 0.6, 0.15);
-    }),
-    6,
-  ).map((v, k) => Math.max(v, reach[k] + WHOLE_PAD * 0.5));
-  const outline = radii.map((r, k) => {
-    const t = (k / WHOLE_STEPS) * Math.PI * 2;
-    return { x: centre.x + (r + extra) * Math.cos(t), y: centre.y + (r + extra) * Math.sin(t) };
-  });
-  return { outline, centre, radii };
-}
 
 /** Whether `p` lies inside the polygon (ray casting). */
 export function inPolygon(p: MapPoint, poly: MapPoint[]): boolean {
@@ -345,248 +187,12 @@ const distToSegment = (p: MapPoint, a: MapPoint, b: MapPoint): number => {
   return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
 };
 
-/** Keeps the stretches of `segs` that lie inside the land (sampled every `step`). */
-export function clipSegments(segs: MapSegment[], inside: (p: MapPoint) => boolean, step = 0.012): MapSegment[] {
-  const out: MapSegment[] = [];
-  for (const s of segs) {
-    const n = Math.max(1, Math.ceil(Math.hypot(s.b.x - s.a.x, s.b.y - s.a.y) / step));
-    let from: MapPoint | null = null;
-    let last: MapPoint | null = null;
-    const close = () => {
-      if (from && last && from !== last) out.push({ a: from, b: last, w: s.w });
-      from = null;
-      last = null;
-    };
-    for (let i = 0; i <= n; i++) {
-      const p = { x: s.a.x + ((s.b.x - s.a.x) * i) / n, y: s.a.y + ((s.b.y - s.a.y) * i) / n };
-      if (inside(p)) {
-        from ??= p;
-        last = p;
-      } else close();
-    }
-    close();
-  }
-  return out;
-}
-
-const part = (shape: Partial<Pick<MapPart, 'polys' | 'lines'>>, fill: MapFill, extra: Partial<MapPart> = {}): MapPart => ({
+const part = (shape: Partial<Pick<MapPart, 'polys'>>, fill: MapFill, extra: Partial<MapPart> = {}): MapPart => ({
   polys: [],
-  lines: [],
   ...shape,
   fill,
   ...extra,
 });
-
-/**
- * Keeps the tilted land inside the square the card crops to without cutting
- * it flat and without leaving the pins behind: only what lies past the pins
- * (and a pin's width more) is drawn in, toward the edges.
- */
-function fitAround(flat: MapPoint[][], pins: MapPoint[]): (p: MapPoint) => MapPoint {
-  const xs = flat.flatMap((poly) => poly.map((q) => tiltPoint(q).x));
-  const [lo, hi] = [Math.min(...xs), Math.max(...xs)];
-  const PIN = 0.07;
-  const EDGE = 0.01;
-  const [a, b] = [Math.min(0.5, ...pins.map((p) => p.x - PIN)), Math.max(0.5, ...pins.map((p) => p.x + PIN))];
-  const left = lo < EDGE && a > EDGE ? (x: number) => a - ((a - x) * (a - EDGE)) / (a - lo) : (x: number) => x;
-  const right = hi > 1 - EDGE && b < 1 - EDGE ? (x: number) => b + ((x - b) * (1 - EDGE - b)) / (hi - b) : (x: number) => x;
-  return (q) => {
-    const p = tiltPoint(q);
-    return { x: p.x < a ? left(p.x) : p.x > b ? right(p.x) : p.x, y: p.y };
-  };
-}
-
-/** The land (flat polygons), tilted and fitted around the pins, as a slab with its shadow below it and haze over it (last). */
-function terrain(flat: MapPoint[][], at: (q: MapPoint) => MapPoint): MapPart[] {
-  const polys = flat.map((poly) => poly.map(at));
-  const { under, over } = slab(polys);
-  return [...under, part({ polys }, TOP), over];
-}
-
-/** How far above its stop a pin's head reaches, in the flat (untilted) square. */
-const PIN_HEAD = 0.22;
-
-/** A segment of the field: land gathers around it, `weight` of a stop's. */
-interface FieldSource {
-  a: MapPoint;
-  b: MapPoint;
-  weight: number;
-}
-
-/** How soft a source's edge is against `CHUNK_RADIUS`: the field falls off over this many radii. */
-const FIELD_SOFTNESS = 0.8;
-/** The field's level where the coast is: a lone stop's land then reaches `CHUNK_RADIUS`. */
-const COAST = Math.exp(-1 / (FIELD_SOFTNESS * FIELD_SOFTNESS));
-/** A link between two stops is a little weaker than a stop: the land narrows between them, like an isthmus. */
-const LINK_WEIGHT = 0.82;
-/** How much the seeded swell moves the coast in and out (a fraction of the field). */
-const SWELL = 0.16;
-/** The grid the coast is traced on (flat unit square). */
-const FIELD_STEP = 0.01;
-
-/**
- * Land as a field (metaballs): every source adds a soft bump that falls off
- * with distance from it, so sources near one another flow into one rounded
- * shape with no seams, and a gentle seeded swell keeps the coast from looking
- * drawn with a compass. The same sources always give the same land.
- */
-function landField(sources: FieldSource[], seed: number): (p: MapPoint) => number {
-  const sigma = CHUNK_RADIUS * FIELD_SOFTNESS;
-  const rnd = seeded(seed);
-  const waves = Array.from({ length: 3 }, () => {
-    const turn = rnd() * Math.PI * 2;
-    const k = (2 * Math.PI) / (0.35 + rnd() * 0.3);
-    return { kx: Math.cos(turn) * k, ky: Math.sin(turn) * k, phase: rnd() * Math.PI * 2 };
-  });
-  return (p) => {
-    let sum = 0;
-    for (const { a, b, weight } of sources) sum += weight * Math.exp(-((distToSegment(p, a, b) / sigma) ** 2));
-    const swell = waves.reduce((s, w) => s + Math.sin(w.kx * p.x + w.ky * p.y + w.phase), 0) / waves.length;
-    return sum * (1 + SWELL * swell);
-  };
-}
-
-/**
- * The closed coasts where `field` crosses `level`, traced on a grid over
- * `box` (marching squares, the crossing found between grid points). Saddles
- * are settled by the cell's middle. Coasts inside another (lakes) are left
- * out: the land is filled whole.
- */
-export function traceCoasts(field: (p: MapPoint) => number, level: number, box: { x0: number; y0: number; x1: number; y1: number }, step = FIELD_STEP): MapPoint[][] {
-  // One empty cell all round, so every coast closes.
-  const nx = Math.ceil((box.x1 - box.x0) / step) + 3;
-  const ny = Math.ceil((box.y1 - box.y0) / step) + 3;
-  const at = (i: number, j: number): MapPoint => ({ x: box.x0 + (i - 1) * step, y: box.y0 + (j - 1) * step });
-  const v = new Float64Array(nx * ny);
-  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) v[j * nx + i] = i === 0 || j === 0 || i === nx - 1 || j === ny - 1 ? 0 : field(at(i, j));
-  const val = (i: number, j: number) => v[j * nx + i];
-  // Grid edges: horizontal `h` from (i, j) to (i+1, j), vertical `v` from (i, j) to (i, j+1).
-  const cross = (key: string): MapPoint => {
-    const [kind, si, sj] = key.split(':');
-    const [i, j] = [Number(si), Number(sj)];
-    const [i2, j2] = kind === 'h' ? [i + 1, j] : [i, j + 1];
-    const [p, q] = [at(i, j), at(i2, j2)];
-    const [a, b] = [val(i, j), val(i2, j2)];
-    const t = a === b ? 0.5 : (level - a) / (b - a);
-    return { x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t };
-  };
-  const links = new Map<string, string[]>();
-  const join = (e: string, f: string) => {
-    links.set(e, [...(links.get(e) ?? []), f]);
-    links.set(f, [...(links.get(f) ?? []), e]);
-  };
-  for (let j = 0; j < ny - 1; j++) {
-    for (let i = 0; i < nx - 1; i++) {
-      const [a, b, c, d] = [val(i, j), val(i + 1, j), val(i + 1, j + 1), val(i, j + 1)].map((x) => x > level);
-      const code = (a ? 8 : 0) | (b ? 4 : 0) | (c ? 2 : 0) | (d ? 1 : 0);
-      if (code === 0 || code === 15) continue;
-      const [top, right, bottom, left] = [`h:${i}:${j}`, `v:${i + 1}:${j}`, `h:${i}:${j + 1}`, `v:${i}:${j}`];
-      const middle = (val(i, j) + val(i + 1, j) + val(i + 1, j + 1) + val(i, j + 1)) / 4 > level;
-      const pairs: Record<number, [string, string][]> = {
-        1: [[left, bottom]],
-        2: [[bottom, right]],
-        3: [[left, right]],
-        4: [[top, right]],
-        5: middle ? [[left, top], [bottom, right]] : [[left, bottom], [top, right]],
-        6: [[top, bottom]],
-        7: [[left, top]],
-        8: [[left, top]],
-        9: [[top, bottom]],
-        10: middle ? [[left, bottom], [top, right]] : [[left, top], [bottom, right]],
-        11: [[top, right]],
-        12: [[left, right]],
-        13: [[bottom, right]],
-        14: [[left, bottom]],
-      };
-      for (const [e, f] of pairs[code]) join(e, f);
-    }
-  }
-  const rings: MapPoint[][] = [];
-  const used = new Set<string>();
-  for (const start of links.keys()) {
-    if (used.has(start)) continue;
-    const ring: MapPoint[] = [];
-    let [prev, cur] = ['', start];
-    while (cur && !used.has(cur)) {
-      used.add(cur);
-      ring.push(cross(cur));
-      const next = (links.get(cur) ?? []).find((e) => e !== prev && !used.has(e));
-      [prev, cur] = [cur, next ?? ''];
-    }
-    if (ring.length >= 4) rings.push(ring);
-  }
-  return rings.filter((ring, k) => !rings.some((other, m) => m !== k && inPolygon(ring[0], other)));
-}
-
-/**
- * 덩어리: every chunk of stops as one organic island. Each stop raises the
- * land from where it lies up to its pin's head, and the links of its chunk a
- * little less, so the stops of a chunk flow into one rounded island that
- * narrows between them; chunks are traced apart, so they stay islands.
- */
-function chunkIslands(chunks: MiniMapChunk[], head: (q: MapPoint) => MapPoint): MapPoint[][] {
-  return chunks.flatMap((c) => {
-    const sources: FieldSource[] = [
-      ...c.discs.map((d) => ({ a: d, b: head(d), weight: 1 })),
-      ...c.links.map(([a, b]) => ({ a, b, weight: LINK_WEIGHT })),
-    ];
-    const ends = sources.flatMap((s) => [s.a, s.b]);
-    const reach = CHUNK_RADIUS * 2.4;
-    const box = {
-      x0: Math.min(...ends.map((p) => p.x)) - reach,
-      y0: Math.min(...ends.map((p) => p.y)) - reach,
-      x1: Math.max(...ends.map((p) => p.x)) + reach,
-      y1: Math.max(...ends.map((p) => p.y)) + reach,
-    };
-    return traceCoasts(landField(sources, hash(c.discs)), COAST, box);
-  });
-}
-
-/** A cross of four taps around `p`, all inside: keeps what is drawn off the land's very edge. */
-const within = (base: (p: MapPoint) => boolean, margin: number) => (p: MapPoint) =>
-  base(p) &&
-  base({ x: p.x + margin, y: p.y }) &&
-  base({ x: p.x - margin, y: p.y }) &&
-  base({ x: p.x, y: p.y + margin }) &&
-  base({ x: p.x, y: p.y - margin });
-
-/**
- * The parts of a map style over these stops (unit square), back to front;
- * none for 없음. The land is built flat around where the stops lie before
- * the tilt, then tilted (see `tiltPoint`).
- */
-export function miniMapLayers(points: MapPoint[], style: MiniMapId, centers?: LonLat[]): MapPart[] {
-  if (style === 'none' || points.length === 0) return [];
-  const flat = points.map(untiltPoint);
-  // A pin stands up from its stop: the land also reaches past each pin's head.
-  const head = (q: MapPoint) => ({ x: q.x, y: q.y - PIN_HEAD });
-  const headroom = flat.flatMap((q) => [q, head(q)]);
-  if (style === 'whole') {
-    const outline = [wholeOutline(headroom).outline];
-    return terrain(outline, fitAround(outline, points));
-  }
-  // 상세 is the real map (terrainParts), drawn from its own data.
-  if (style === 'detail') return [];
-  // Which stops share a chunk is judged on the ground when it is known, so the chunks stay the same whatever the distances are drawn as.
-  const chunks = centers?.length === points.length ? miniMapChunks(flat, CHUNK_GAP_M, metres(centers)) : miniMapChunks(flat, CHUNK_GAP);
-  const islands = chunkIslands(chunks, head);
-  const at = fitAround(islands, points);
-  const parts = terrain(islands, at);
-  if (style === 'streets') {
-    // 길: under each leg, in visiting order, a lighter road on the land (it stops at the coast where a leg crosses water).
-    const near = (p: MapPoint) => islands.some((ring) => inPolygon(p, ring));
-    const legs = flat.slice(1).map((b, i) => ({ a: flat[i], b, w: ROAD_W }));
-    // The tilt bends straight lines a little: each stretch goes through it in short pieces.
-    const lines = clipSegments(legs, within(near, ROAD_W / 2)).flatMap(({ a, b, w }) => {
-      const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 0.04));
-      const along = (t: number) => at({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
-      return Array.from({ length: n }, (_, k) => ({ a: along(k / n), b: along((k + 1) / n), w }));
-    });
-    // On the land, under the haze.
-    parts.splice(parts.length - 1, 0, part({ lines }, ROAD));
-  }
-  return parts;
-}
 
 /**
  * What the real map is made of: the areas around the stops (lon/lat), split
@@ -792,35 +398,33 @@ const STOPS_MARGIN = 0.18;
 const LUMP_MARGIN = 0.1;
 
 /**
- * Lon/lat to the view, by the distance setting: the legs evened out by its
- * power (everything else bent along), one scale, turned to part the pins,
- * fitted with `reach`, then tilted. It is one continuous mapping, so a real
- * map's areas go through it too and stay under their stops at every setting.
+ * Lon/lat to the view: the legs evened out (`LEG_POWER`, everything else
+ * bent along), one scale, turned to part the pins, fitted with `reach`, then
+ * tilted. It is one continuous mapping, so the real map's areas go through it
+ * too and stay under their stops.
  */
-export function stopProjection(centers: LonLat[], distance: MapDistance, reach: LonLat[] = []): (c: LonLat) => MapPoint {
+export function stopProjection(centers: LonLat[], reach: LonLat[] = []): (c: LonLat) => MapPoint {
   const margin = reach.length ? LUMP_MARGIN : STOPS_MARGIN;
-  const power = powerOf(distance);
-  // One way up for the day, whatever the distance step or shape, so stepping through them only moves the stops along their legs.
-  const bearing = bearingFor(centers, [], powerOf(DEFAULT_DISTANCE), '');
-  const { project } = uniformProjection(centers, margin, reach, bearing, power);
+  // One way up for the day, with or without the map, so the stops do not turn when it arrives.
+  const bearing = bearingFor(centers, [], LEG_POWER, '');
+  const { project } = uniformProjection(centers, margin, reach, bearing, LEG_POWER);
   return (c) => tiltPoint(project(c));
 }
 
 /** The projection for a real map's lump: fitted to the whole lump. */
-function terrainProject(centers: LonLat[], lump: AdminArea[], distance: MapDistance): (c: LonLat) => MapPoint {
-  return stopProjection(centers, distance, lumpReach(lump));
+function terrainProject(centers: LonLat[], lump: AdminArea[]): (c: LonLat) => MapPoint {
+  return stopProjection(centers, lumpReach(lump));
 }
 
 /**
- * Where the stops stand: laid out by the distance setting, fitted with the
- * real map's lump when that is the shape (and its areas are known). With no
- * areas the fit is the stops' own, as for the abstract shapes, so a 상세 that
- * falls back to 지도 keeps its stops where they were.
+ * Where the stops stand: fitted with the real map's lump when its areas are
+ * known; with none (no data here, or while it is fetched) the fit is the
+ * stops' own, and the pings are drawn on the page with no map.
  */
-export function viewPoints(centers: LonLat[], view: MiniMapView = miniMapView('none', undefined), shapes: TerrainShapes | null = null): MapPoint[] {
+export function viewPoints(centers: LonLat[], shapes: TerrainShapes | null = null): MapPoint[] {
   if (centers.length === 0) return [];
-  const lump = view.shape === 'detail' ? lumpAreas(shapes, centers, powerOf(view.distance)) : [];
-  const project = lump.length ? terrainProject(centers, lump, view.distance) : stopProjection(centers, view.distance);
+  const lump = lumpAreas(shapes, centers, LEG_POWER);
+  const project = lump.length ? terrainProject(centers, lump) : stopProjection(centers);
   return centers.map(project);
 }
 
@@ -890,10 +494,10 @@ const pathBox = (path: LonLat[]): Bbox => ({
  * is projected on the same layout as the stops and tilted with it, over a soft
  * shadow. With no base map the lump is plain land. Empty when there is no data.
  */
-export function terrainParts(shapes: TerrainShapes | null, centers: LonLat[], distance: MapDistance = 'true'): MapPart[] {
-  const lump = lumpAreas(shapes, centers, powerOf(distance));
+export function terrainParts(shapes: TerrainShapes | null, centers: LonLat[]): MapPart[] {
+  const lump = lumpAreas(shapes, centers, LEG_POWER);
   if (!lump.length) return [];
-  const project = terrainProject(centers, lump, distance);
+  const project = terrainProject(centers, lump);
   const shape = (rings: LonLat[][], tol = 0.0007) => rings.map((ring) => simplify(ring.map(project), tol)).filter((ring) => ring.length >= 4);
   const rings = lump.flatMap((a) => a.polygons.flatMap((polygon) => shape(polygon)));
   const { under, over } = slab(rings, true);

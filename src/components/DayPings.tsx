@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import {
   classifyPress,
   EDGE_STYLES,
@@ -14,7 +14,7 @@ import {
 import { pinColorCss } from '../domain/pin';
 import { HEART_PATH, PIN_PATH, STAR_PATH } from '../lib/pingPaths';
 import { fitPingLabels } from '../domain/stopLabels';
-import { miniMapView, viewPoints, type MapDistance, type MiniMapId } from '../domain/miniMap';
+import { terrainParts, viewPoints } from '../domain/miniMap';
 import { useTerrain } from '../hooks/useTerrain';
 import type { PinIcon, PinTint } from '../types/pin';
 import MiniMap from './MiniMap';
@@ -69,10 +69,6 @@ interface DayPingsProps {
    */
   ghost?: [number, number] | null;
   onGhost?: () => void;
-  /** The day's 미니맵 behind the pings (none when absent). */
-  miniMap?: MiniMapId;
-  /** How true the distances between the pings are drawn (absent: as the map's shape used to imply). */
-  mapDistance?: MapDistance;
 }
 
 /** What a press is on: a ping, or the line leaving ping `index` for the next one. */
@@ -106,17 +102,19 @@ function EdgeSample({ style }: { style: EdgeStyle }) {
  * again. Long-press a ping to change its shape, or a line to change its
  * style; a short tap on a ping is reported through `onTap`.
  */
-export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, pinLookOf, onDelete, onPickedChange, dropZone, onDropHover, pressable, children, showNames = true, showTimes = true, ghost = null, onGhost, miniMap = 'none', mapDistance }: DayPingsProps) {
+export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, pinLookOf, onDelete, onPickedChange, dropZone, onDropHover, pressable, children, showNames = true, showTimes = true, ghost = null, onGhost }: DayPingsProps) {
   const latest = latestPingIndex(pings);
-  // The distance setting lays the stops out; 상세 also fits them with the real map's areas.
+  // The real map behind the pings; the stops are fitted with its areas.
   const centers = pings.map((p) => p.center);
-  const { shapes: terrain, ready } = useTerrain(centers, miniMap === 'detail');
-  // While the real map is being fetched nothing of it (and no pin) shows: the stops are laid out on it once it is here.
-  // No data for these stops: the abstract 지도 stands in.
-  const mapStyle: MiniMapId = miniMap !== 'detail' ? miniMap : !ready ? 'none' : terrain ? 'detail' : 'whole';
-  const view = miniMapView(mapStyle, mapDistance);
+  const { shapes: terrain, ready } = useTerrain(centers, true);
+  // While it is being fetched nothing of it (and no pin) shows: the stops are laid out on it once it is here.
+  // No data for these stops: the pings stand on the page with no map.
+  const centersKey = centers.map((c) => c.join(',')).join(' ');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const mapParts = useMemo(() => terrainParts(terrain, centers), [centersKey, terrain]);
+  const mapped = mapParts.length > 0;
   // The 후보군 ghost is laid out with the day's pings, so it lands on the same spot once added.
-  const laid = viewPoints(ghost ? [...centers, ghost] : centers, view, terrain);
+  const laid = viewPoints(ghost ? [...centers, ghost] : centers, terrain);
   const points = laid.slice(0, pings.length);
   const ghostAt = ghost ? laid[pings.length] : null;
   // Pings there when this drawing mounted play the visit's intro together;
@@ -268,7 +266,7 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
     return (
       <g key={i} className={same(pressed, { kind: 'edge', index: i }) ? 'is-pressed' : undefined}>
         {/* On a 미니맵 the line gets a casing in the page colour, so it stands off the land under it. */}
-        {mapStyle !== 'none' && style !== 'transparent' && <line className={`pings__case pings__case--${style}`} {...ends} />}
+        {mapped && style !== 'transparent' && <line className={`pings__case pings__case--${style}`} {...ends} />}
         <line className={`pings__seg pings__seg--${style}`} {...ends} />
       </g>
     );
@@ -283,8 +281,8 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
   }
 
   return (
-    <div className={`pings ${picking || drag ? 'is-picking' : ''} ${miniMap === 'detail' && !ready ? 'pings--wait' : ''} ${mapStyle !== 'none' ? 'pings--mapped' : ''}`} role="list" aria-label={pings.length ? `${pings.length}곳` : '기록 없음'}>
-      {mapStyle !== 'none' && <MiniMap points={points} centers={centers} style={mapStyle} distance={view.distance} terrain={terrain} />}
+    <div className={`pings ${picking || drag ? 'is-picking' : ''} ${!ready ? 'pings--wait' : ''} ${mapped ? 'pings--mapped' : ''}`} role="list" aria-label={pings.length ? `${pings.length}곳` : '기록 없음'}>
+      {mapped && <MiniMap parts={mapParts} />}
       {points.length > 1 && (
         <svg className="pings__line" viewBox="0 0 100 100" preserveAspectRatio="none">
           <defs>

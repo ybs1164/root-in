@@ -17,7 +17,6 @@ import {
   type TextStyle,
   type ThemeId,
 } from '../domain/decor';
-import { DEFAULT_DISTANCE, MINI_MAPS, type MiniMapId } from '../domain/miniMap';
 import { DEFAULT_LAYOUT, POLAROID_LAYOUTS, SCENE, type PolaroidLayout } from '../domain/polaroid';
 import type { ShareSubject } from '../domain/shareSubject';
 import type { ShareMethod } from '../services/analytics';
@@ -95,13 +94,13 @@ export default function ShareStudio({ subject, onTheme, onCopyLink, onShared, on
   const [base, setBase] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
-    renderShareImage({ ...subject, decor: { ...EMPTY_DECOR, layout: decor.layout, miniMap: decor.miniMap, mapDistance: decor.mapDistance }, withoutPieces: true, withoutGround: true }).then(
+    renderShareImage({ ...subject, decor: { ...EMPTY_DECOR, layout: decor.layout }, withoutPieces: true, withoutGround: true }).then(
       (url) => alive && setBase(url),
     );
     return () => {
       alive = false;
     };
-  }, [theme, decor.layout, decor.miniMap, decor.mapDistance]);
+  }, [theme, decor.layout]);
 
   // The 폴라로이드 sheet's cards: this card drawn small in every layout (with
   // its theme and pattern, without pieces), once the sheet is opened.
@@ -113,7 +112,7 @@ export default function ShareStudio({ subject, onTheme, onCopyLink, onShared, on
     setLayoutPreviews({});
     (async () => {
       for (const { id } of POLAROID_LAYOUTS) {
-        const url = await renderShareImage({ ...subject, decor: { ...EMPTY_DECOR, pattern: decor.pattern, layout: id, miniMap: decor.miniMap, mapDistance: decor.mapDistance }, withoutPieces: true, scale: 0.12 });
+        const url = await renderShareImage({ ...subject, decor: { ...EMPTY_DECOR, pattern: decor.pattern, layout: id }, withoutPieces: true, scale: 0.12 });
         if (!alive) return;
         setLayoutPreviews((prev) => ({ ...prev, [id]: url }));
       }
@@ -121,26 +120,7 @@ export default function ShareStudio({ subject, onTheme, onCopyLink, onShared, on
     return () => {
       alive = false;
     };
-  }, [wantsPreviews, theme, decor.pattern, decor.miniMap, decor.mapDistance]);
-
-  // The 미니맵 sheet's cards: this card drawn small with each map.
-  const [mapPreviews, setMapPreviews] = useState<Partial<Record<MiniMapId, string>>>({});
-  const wantsMaps = tool === 'minimap';
-  useEffect(() => {
-    if (!wantsMaps) return;
-    let alive = true;
-    setMapPreviews({});
-    (async () => {
-      for (const { id } of MINI_MAPS) {
-        const url = await renderShareImage({ ...subject, decor: { ...EMPTY_DECOR, pattern: decor.pattern, layout: decor.layout, miniMap: id, mapDistance: decor.mapDistance }, withoutPieces: true, scale: 0.12 });
-        if (!alive) return;
-        setMapPreviews((prev) => ({ ...prev, [id]: url }));
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [wantsMaps, theme, decor.pattern, decor.layout, decor.mapDistance]);
+  }, [wantsPreviews, theme, decor.pattern]);
 
   // The text tool's toolbar is for a written box that's been picked: it
   // stays down while nothing is picked, and while typing (the keyboard is up).
@@ -377,11 +357,6 @@ export default function ShareStudio({ subject, onTheme, onCopyLink, onShared, on
           layout={decor.layout ?? DEFAULT_LAYOUT}
           onLayout={(next) => next !== (decor.layout ?? DEFAULT_LAYOUT) && changeDecor({ ...decor, layout: next })}
           layoutPreviews={layoutPreviews}
-          miniMap={decor.miniMap ?? 'none'}
-          onMiniMap={(next) => next !== (decor.miniMap ?? 'none') && changeDecor({ ...decor, miniMap: next === 'none' ? undefined : next })}
-          mapPreviews={mapPreviews}
-          mapDistance={decor.mapDistance ?? DEFAULT_DISTANCE}
-          onMapDistance={(next) => next !== (decor.mapDistance ?? DEFAULT_DISTANCE) && changeDecor({ ...decor, mapDistance: next })}
         />
       )}
     </div>

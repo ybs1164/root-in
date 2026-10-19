@@ -1475,36 +1475,14 @@ button:disabled {
 
 @keyframes rail-more-down {
   from {
-    translate: 0 -232px;
+    translate: 0 -116px;
   }
 }
 
 @keyframes rail-more-up {
   from {
-    translate: 0 232px;
+    translate: 0 116px;
   }
-}
-
-/* The 미니맵 distance switch says which setting it is on, beside it (the rail is at the right edge). */
-.decor-rail__badge {
-  position: absolute;
-  right: calc(100% + 6px);
-  top: 50%;
-  translate: 0 -50%;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--tray-bg);
-  color: var(--tray-fg);
-  font-size: 12px;
-  white-space: nowrap;
-  pointer-events: none;
-}
-
-/* The 미니맵 sheet: the distance setting above the shape cards. */
-.decor-tray__distances {
-  flex: none;
-  gap: 6px;
-  margin-bottom: 8px;
 }
 
 /* The day's name / time switches: off greys the icon and strikes it through. */
@@ -2138,8 +2116,7 @@ button:disabled {
 }
 
 .decor-tray--theme,
-.decor-tray--polaroid,
-.decor-tray--minimap {
+.decor-tray--polaroid {
   /* Themes get a taller sheet than the other tools: the cards are the point. */
   max-height: 30dvh;
   /* The grip's own margin is room the cards can use. */
