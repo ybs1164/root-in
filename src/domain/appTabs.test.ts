@@ -3,19 +3,15 @@ import { barSlot, barTurn, calendarAgain, pageSwipes, showsPage, swipeCommits, t
 
 describe('bottom-bar tabs', () => {
   it('incoming #share= / #diary= / #pins= links open the matching tab', () => {
-    expect(tabForIncoming('day')).toBe('calendar');
+    expect(tabForIncoming('day')).toBe('people');
     expect(tabForIncoming('pins')).toBe('pins');
     expect(tabForIncoming('course')).toBe('pins');
   });
 
-  it('달력 is a full screen; the map shows through only when it is needed', () => {
-    expect(showsPage('calendar', false)).toBe(true);
+  it('We Now is a full screen; the map shows through only when it is needed', () => {
+    expect(showsPage('people', false)).toBe(true);
     expect(showsPage('pins', false)).toBe(false);
-    expect(showsPage('calendar', true)).toBe(false);
-  });
-
-  it('달력 slides off to the left to uncover the map', () => {
-    expect(pageSwipes('calendar')).toEqual({ left: 'pins', right: 'people' });
+    expect(showsPage('people', true)).toBe(false);
     expect(pageSwipes('pins')).toEqual({ left: null, right: null });
   });
 
@@ -33,25 +29,20 @@ describe('bottom-bar tabs', () => {
     expect(calendarAgain('month')).toBe('today');
   });
 
-  it('사람 is a full screen too, sliding off to the right', () => {
-    expect(showsPage('people', false)).toBe(true);
-    expect(pageSwipes('people')).toEqual({ left: 'calendar', right: 'pins' });
+  it('We Now slides off to the right to uncover the map', () => {
+    expect(pageSwipes('people')).toEqual({ left: null, right: 'pins' });
   });
 
-  it('the row turns like a wheel: 달력 핑 사람 / 사람 달력 핑 / 핑 사람 달력', () => {
+  it('the row has no calendar button: 핑(big) 사람 on the map, 핑 사람(big) on We Now', () => {
     const row = (tab: AppTab) =>
-      (['calendar', 'pins', 'people'] as BarButton[]).sort((a, b) => 'lcr'.indexOf(barSlot(a, tab)) - 'lcr'.indexOf(barSlot(b, tab)));
-    expect(row('pins')).toEqual(['calendar', 'pins', 'people']);
-    expect(row('calendar')).toEqual(['people', 'calendar', 'pins']);
-    expect(row('people')).toEqual(['pins', 'people', 'calendar']);
+      (['pins', 'people'] as BarButton[]).map((b) => barSlot(b, tab));
+    expect(row('pins')).toEqual(['c', 'r']);
+    expect(row('people')).toEqual(['l', 'c']);
   });
 
   it('pressing the left button turns the row right, the right button left', () => {
-    expect(barTurn('pins', 'calendar')).toBe(1);
-    expect(barTurn('calendar', 'people')).toBe(1);
     expect(barTurn('people', 'pins')).toBe(1);
     expect(barTurn('pins', 'people')).toBe(-1);
-    expect(barTurn('calendar', 'pins')).toBe(-1);
     expect(barTurn('pins', 'pins')).toBe(0);
   });
 });

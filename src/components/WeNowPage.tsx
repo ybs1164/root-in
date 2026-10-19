@@ -1,7 +1,11 @@
 import { Plus, UserRound, Users } from 'lucide-react';
-import type { CSSProperties } from 'react';
-import { groupPingCount, memberColor, tilePaths, tilePoints, type Group, type GroupMember } from '../domain/groups';
-import type { DayPing } from '../domain/dayPings';
+import { useRef, useState, type CSSProperties } from 'react';
+import type { PinIcon, PinTint } from '../types/pin';
+import { groupPingCount, memberColor, tilePaths, type Group, type GroupMember } from '../domain/groups';
+import { edgeKey, pingKey, type DayPing } from '../domain/dayPings';
+import { dateKey } from '../domain/diary';
+import { loadDays, saveDays, type DayStore } from '../services/dayRepository';
+import DayPings from './DayPings';
 import { ProfileAvatar } from './ProfileSheet';
 import type { GroupsStatus } from '../hooks/useGroups';
 
@@ -82,31 +86,68 @@ function GroupTile({ group, onOpen }: { group: Group; onOpen: () => void }) {
 
 /**
  * The TODAY tile over the groups (test build, 2026-10-19): a full-width card,
- * about half the screen, with my own pings today joined in order. Not a group
- * — opening it shows TODAY itself, full screen.
+ * about half the screen, with today's real pings on it — the same drawing as
+ * TODAY, and tapping a ping or a line changes its shape or style there and
+ * then (saved to the day, as on TODAY). Not a group: a tap anywhere else on
+ * the card opens TODAY itself, full screen.
  */
-function TodayTile({ pings, onOpen }: { pings: DayPing[]; onOpen: () => void }) {
-  const points = tilePoints(
-    pings.map((p) => p.center),
-    TILE,
-    TILE * 0.22,
-  );
+function TodayTile({ pings, pinLookOf, onOpen }: { pings: DayPing[]; pinLookOf: (ping: DayPing) => { icon: PinIcon; color: PinTint }; onOpen: () => void }) {
+  const today = dateKey();
+  const [days, setDays] = useState<DayStore>(loadDays);
+  const change = (next: (d: DayStore) => DayStore) =>
+    setDays((d) => {
+      const after = next(d);
+      saveDays(after);
+      return after;
+    });
+  const decor = days.decor[today];
+  // A press on a ping, a line or an open picker (its backdrop too) is the drawing's, not the card's.
+  const own = useRef(false);
   return (
-    <button className="group-tile today-tile" onClick={onOpen} aria-label={`TODAY, 오늘 핑 ${pings.length}`}>
-      {/* slice: the square drawing fills the wide card, its dots staying round. */}
+    <div
+      className="today-tile"
+      role="button"
+      tabIndex={0}
+      aria-label={`TODAY 열기, 오늘 핑 ${pings.length}`}
+      onPointerDownCapture={(e) => {
+        own.current = !!(e.target as Element).closest('.ping, .pings__hitline, .ping-picker, .ping-picker__backdrop, .ping__delete');
+      }}
+      onClick={() => {
+        if (own.current) return void (own.current = false);
+        onOpen();
+      }}
+      onKeyDown={(e) => {
+        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+    >
       <svg className="today-tile__map" viewBox={`0 0 ${TILE} ${TILE}`} preserveAspectRatio="xMidYMid slice" aria-hidden>
         <GroupCover cover={0} />
-        {points.length > 1 && <polyline className="today-tile__line" points={points.map((q) => q.join(',')).join(' ')} />}
-        {points.map(([x, y], k) => (
-          <circle key={k} className="today-tile__dot" cx={x} cy={y} r={k === points.length - 1 ? 3.6 : 2.4} />
-        ))}
       </svg>
       <span className="today-tile__title" aria-hidden>
         TODAY
       </span>
-      {points.length === 0 && <span className="today-tile__empty">아직 오늘 핑 없음</span>}
+      {pings.length === 0 ? (
+        <span className="today-tile__empty">아직 오늘 핑 없음</span>
+      ) : (
+        <div className="today-tile__pings">
+          <DayPings
+            pings={pings}
+            shapeOf={(ping) => days.shapes[pingKey(today, ping)] ?? 'pin'}
+            onShape={(ping, shape) => change((d) => ({ ...d, shapes: { ...d.shapes, [pingKey(today, ping)]: shape } }))}
+            edgeStyleOf={(from, to) => days.edges[edgeKey(today, from, to)] ?? 'solid'}
+            onEdgeStyle={(from, to, style) => change((d) => ({ ...d, edges: { ...d.edges, [edgeKey(today, from, to)]: style } }))}
+            pinLookOf={pinLookOf}
+            pressable={() => true}
+            showNames={!decor?.hideNames}
+            showTimes={!decor?.hideTimes}
+          />
+        </div>
+      )}
       <span className={`group-tile__count today-tile__count ${pings.length ? 'is-live' : ''}`}>{pings.length}</span>
-    </button>
+    </div>
   );
 }
 
@@ -114,6 +155,8 @@ interface WeNowPageProps {
   status: GroupsStatus;
   /** My pings today, for the TODAY tile. */
   todayPings: DayPing[];
+  /** A ping's own pin icon and colour (its 투명 look). */
+  pinLookOf(ping: DayPing): { icon: PinIcon; color: PinTint };
   onToday(): void;
   groups: Group[];
   /** My profile photo, for the profile button top right (as on the map). */
@@ -132,7 +175,7 @@ interface WeNowPageProps {
  * tile for a new one. Signed out it asks for a Kakao login — reached only
  * when VITE_GROUPS_NEED_LOGIN is on; otherwise App signs in as a guest first.
  */
-export default function WeNowPage({ status, todayPings, onToday, groups, photo, onProfile, onOpen, onCreate, onSignIn, onRetry }: WeNowPageProps) {
+export default function WeNowPage({ status, todayPings, pinLookOf, onToday, groups, photo, onProfile, onOpen, onCreate, onSignIn, onRetry }: WeNowPageProps) {
   const empty = (title: string, body: string, action?: { label: string; run: () => void }) => (
     <div className="we-now__empty">
       <span className="we-now__badge" aria-hidden>
@@ -178,7 +221,7 @@ export default function WeNowPage({ status, todayPings, onToday, groups, photo, 
       </button>
       <div className="we-now">
         <div className="we-now__today">
-          <TodayTile pings={todayPings} onOpen={onToday} />
+          <TodayTile pings={todayPings} pinLookOf={pinLookOf} onOpen={onToday} />
         </div>
         {content}
       </div>

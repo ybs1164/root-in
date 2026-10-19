@@ -68,12 +68,6 @@ export function tilePaths(group: Group, size: number, margin = size * 0.16): { c
   return group.members.filter((m) => m.pings.length).map((m) => ({ color: memberColor(m.slot), points: m.pings.map((p) => at(p.center)) }));
 }
 
-/** My own pings in order, fitted into a size × size tile the same way (the TODAY tile). */
-export function tilePoints(centers: readonly [number, number][], size: number, margin = size * 0.16): [number, number][] {
-  const at = tileProjection(centers, size, margin);
-  return at ? centers.map(at) : [];
-}
-
 /** Lng/lat → tile coordinates fitting every point in, north up; null without points. */
 function tileProjection(all: readonly [number, number][], size: number, margin: number): ((c: [number, number]) => [number, number]) | null {
   if (all.length === 0) return null;

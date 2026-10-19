@@ -94,8 +94,9 @@ const STATES = {
     await page.getByRole('button', { name: /^카페 / }).first().click({ timeout: 3000 });
   },
   'new-pin': async (page) => { await click(page, '지도에 핀 꽂기'); },
-  'calendar': async (page) => { await click(page, '달력'); },
-  'calendar-month': async (page) => { await click(page, '달력'); await page.getByRole('button', { name: /달력 보기$/ }).click(); },
+  // TODAY opens from We Now's TODAY tile (the calendar tab is gone, test build 2026-10-19).
+  'calendar': async (page) => { await click(page, 'We Now'); await click(page, /^TODAY/); },
+  'calendar-month': async (page) => { await click(page, 'We Now'); await click(page, /^TODAY/); await click(page, '월 달력'); },
   'profile': async (page) => { await click(page, '프로필'); },
   'profile-account': async (page) => { await click(page, '프로필'); await click(page, '계정·약관·정책'); },
   'profile-edit': async (page) => {

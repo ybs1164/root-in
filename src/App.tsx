@@ -1169,7 +1169,7 @@ export default function App() {
     };
   }, [aimable, searchService]);
 
-  // The calendar and people screens are pages on top of the map: the phone's
+  // We Now is a page on top of the map: the phone's
   // back button goes back to the map. Opening one pushes a history entry
   // (going page to page keeps it); leaving some other way takes that entry
   // back off, so back on the map leaves the app as before.
@@ -1186,8 +1186,9 @@ export default function App() {
   useEffect(() => {
     const pop = () => {
       if (!calendarEntry.current) return;
-      if (openGroup) {
+      if (openGroup || todayOpen) {
         setOpenGroupId(null);
+        setTodayOpen(false);
         history.pushState({ rootIn: tab }, '');
         return;
       }
@@ -1214,23 +1215,20 @@ export default function App() {
     return counts;
   }, [pins, categories]);
 
-  const calendarZoom = tab === 'calendar' || (tab === 'people' && todayOpen);
+  // TODAY (and its month) now only opens from We Now's TODAY tile.
+  const calendarZoom = tab === 'people' && todayOpen;
 
-  // The bottom row's buttons switch the screens at once. The big calendar
-  // button in the middle of the calendar screen, pressed again, goes to the
-  // month (or from the month back to TODAY).
-  const tagTab = (next: AppTab) => {
-    if (next === 'calendar' && tab === 'calendar' && onPage) {
-      const type = calendarAgain(calendarMode);
-      setCalendarCommand((c) => ({ type, seq: (c?.seq ?? 0) + 1 }));
-    } else changeTab(next);
+  // The big calendar button on TODAY goes to the month, and from the month back to TODAY.
+  const calendarButton = () => {
+    const type = calendarAgain(calendarMode);
+    setCalendarCommand((c) => ({ type, seq: (c?.seq ?? 0) + 1 }));
   };
 
   // The tab buttons step aside for a 꾸미기 tool's tray, for the 경로 폴더, and under the 꾸미기 screen.
   const barAway = (decorating && calendarZoom && onPage) || routeMode;
   // Under the 꾸미기 screen the row is simply gone, so coming back it is just
   // there again rather than sliding up.
-  const barGone = !!studio || !!openGroup || (calendarZoom && tab === 'people');
+  const barGone = !!studio || !!openGroup;
   // 공유 before 집 is set (it's required) opens the profile on 개인 정보 instead.
   const needHome = (kind: ShareKind) => {
     analytics.track('share_blocked_need_home', { kind });
@@ -1541,6 +1539,7 @@ export default function App() {
           {tab === 'people' && !todayOpen && (
             <WeNowPage
               todayPings={todayPings}
+              pinLookOf={(ping) => categoryStyle(categories, pins.find((p) => p.id === ping.pinId)?.categoryId ?? UNCATEGORIZED.id)}
               onToday={() => setTodayOpen(true)}
               status={groups.status === 'signed-out' && !needLogin ? (guest === 'idle' || guest === 'trying' ? 'loading' : 'error') : groups.status}
               groups={groupList}
@@ -1670,7 +1669,8 @@ export default function App() {
         <BottomBar
           tab={pageMoving && swipeTarget ? swipeTarget : tab}
           calendarMode={calendarMode}
-          onCalendar={() => tagTab('calendar')}
+          today={calendarZoom}
+          onCalendar={calendarButton}
           onDeletePing={onPage && calendarZoom && calendarMode === 'day' && pingRemove ? pingRemove : undefined}
           deleteHot={pingDropHot}
           onMap={() => changeTab('pins')}

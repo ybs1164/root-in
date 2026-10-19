@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, tilePoints, type Group } from './groups';
+import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -76,11 +76,3 @@ describe('groups', () => {
   });
 });
 
-describe('tilePoints', () => {
-  it('fits my pings into the tile in order, north up, and nothing without pings', () => {
-    expect(tilePoints([], 100)).toEqual([]);
-    const [a, b] = tilePoints([[127.0, 37.5], [127.0, 37.51]], 100, 20);
-    expect(a).toEqual([50, 80]);
-    expect(b).toEqual([50, 20]);
-  });
-});
