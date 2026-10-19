@@ -1,7 +1,7 @@
 import { Check } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { addressRoute } from '../domain/addressRoute';
-import { categoriesWithUncategorized, categoryStyle, findCategory, PIN_LIMITS, UNCATEGORIZED, pinColorCss } from '../domain/pin';
+import { categoriesWithUncategorized, categoryStyle, findCategory, PIN_LIMITS, pinColorCss, pinStyle, suggestCategory } from '../domain/pin';
 import type { PlaceRef } from '../types/course';
 import type { PinCategory } from '../types/pin';
 import PinGlyph from './PinGlyph';
@@ -24,17 +24,18 @@ interface NewPinCardProps {
 /**
  * A place picked from search or by a long press on the map, before it is a
  * pin: the pin card's boarding pass, open for editing from the start (no
- * pen). The name is the place's, the memo starts empty, the group is 미분류;
+ * pen). The name is the place's, the memo starts empty, the group is the one
+ * category drawn with the place's kind icon (else 미분류);
  * the bin's corner holds ✓, which pins it. Touching anywhere else closes the
  * card and drops whatever was typed.
  */
 export default function NewPinCard({ place, categories, onSave, onClose }: NewPinCardProps) {
   const [name, setName] = useState(place.name);
   const [memo, setMemo] = useState('');
-  const [categoryId, setCategoryId] = useState(UNCATEGORIZED.id);
+  const [categoryId, setCategoryId] = useState(() => suggestCategory(categories, place.kind));
   const [picking, setPicking] = useState(false);
   const cardEl = useRef<HTMLDivElement | null>(null);
-  const style = categoryStyle(categories, categoryId);
+  const style = pinStyle(categories, categoryId, place);
   const route = addressRoute(place.address);
 
   // A long press names the spot a moment later (reverse geocoding): take the
@@ -43,6 +44,13 @@ export default function NewPinCard({ place, categories, onSave, onClose }: NewPi
   useEffect(() => {
     if (!typed.current) setName(place.name);
   }, [place.name]);
+
+  // Same for the kind, which can also arrive late: re-suggest the group until
+  // one has been picked by hand.
+  const picked = useRef(false);
+  useEffect(() => {
+    if (!picked.current) setCategoryId(suggestCategory(categories, place.kind));
+  }, [categories, place.kind]);
 
   useEffect(() => {
     const away = (e: PointerEvent) => {
@@ -73,6 +81,7 @@ export default function NewPinCard({ place, categories, onSave, onClose }: NewPi
                 aria-label={category.name}
                 aria-pressed={on}
                 onClick={() => {
+                  picked.current = true;
                   setCategoryId(category.id);
                   setPicking(false);
                 }}

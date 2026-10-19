@@ -1,4 +1,5 @@
 import { haversineMeters } from '../../domain/geo';
+import { kindFromOsm } from '../../domain/placeKindRules';
 import type { PlaceRef } from '../../types/course';
 import {
   MAX_NEARBY_RESULTS,
@@ -37,6 +38,8 @@ export const photonToPlaceRef = (feature: PhotonFeature): PlaceRef | null => {
   if (!p.name || !p.osm_type || p.osm_id === undefined || !Array.isArray(coords)) return null;
   const place: PlaceRef = { id: `osm:${p.osm_type}${p.osm_id}`, name: p.name, center: [coords[0], coords[1]] };
   if (p.osm_value) place.category = p.osm_value;
+  const kind = kindFromOsm(p.osm_key, p.osm_value);
+  if (kind) place.kind = kind;
   const address = [p.city, p.district, p.street, p.housenumber].filter(Boolean).join(' ');
   if (address) place.address = address;
   return place;

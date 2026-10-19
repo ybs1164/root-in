@@ -1,3 +1,4 @@
+import { cleanPlaceKind, isPlaceKind } from '../domain/placeKinds';
 import { DEFAULT_CATEGORIES } from '../domain/pin';
 import { DEFAULT_FOLDER_ICON, isFolderIcon, ROUTE_FOLDER_LIMITS, type RouteFolders } from '../domain/routeFolders';
 import type { StoredPing } from '../domain/dayPings';
@@ -90,7 +91,7 @@ const pinFrom = (raw: Record<string, unknown>, userId: string): Pin | null => {
     createdAt: iso(raw.created_at),
     ...(raw.updated_at ? { updatedAt: iso(raw.updated_at) } : {}),
   };
-  return isPin(pin) ? pin : null;
+  return isPin(pin) ? { ...pin, place: cleanPlaceKind(pin.place) } : null;
 };
 
 export const pinsCollection: SyncCollectionDef = {
@@ -146,9 +147,17 @@ const stopFrom = (raw: unknown): CourseStop | null => {
   if (!id || !name || !Array.isArray(center) || center.length !== 2 || !center.every(finite)) return null;
   const category = str(p?.category, 40);
   const address = str(p?.address, 120);
+  const kind = isPlaceKind(p?.kind) ? p.kind : undefined;
   const memo = str(s?.memo, 120);
   return {
-    place: { id, name, center: [center[0], center[1]], ...(category ? { category } : {}), ...(address ? { address } : {}) },
+    place: {
+      id,
+      name,
+      center: [center[0], center[1]],
+      ...(category ? { category } : {}),
+      ...(kind ? { kind } : {}),
+      ...(address ? { address } : {}),
+    },
     ...(memo ? { memo } : {}),
   };
 };

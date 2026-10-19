@@ -27,7 +27,8 @@ import { visibleRange } from './domain/adminAreas';
 import { calendarAgain, pageSwipes, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { COURSE_LIMITS } from './domain/course';
 import type { MapViewport } from './domain/districtMap';
-import { categoryStyle, filterPinsByCategories, isUncategorized, UNCATEGORIZED } from './domain/pin';
+import { filterPinsByCategories, isUncategorized, pinStyle, UNCATEGORIZED } from './domain/pin';
+import { placeKindService } from './services/placeKindService';
 import { pinRailNext, tapAll, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
 import { PRESS } from './domain/dayPings';
 import { buildRouteLook, EMPTY_BUILD_LOOK, nextRouteName, ROUTE_NOTE_MAX, toggleBuildStop, withBuildEdge, withBuildShape, type BuildLook } from './domain/routeBuild';
@@ -393,7 +394,7 @@ export default function App() {
     // Editing it, they come back to be picked.
     if (shownRoute && !isEditing && pinsGone) return [];
     return shownPins.map((pin) => {
-      const style = categoryStyle(categories, pin.categoryId);
+      const style = pinStyle(categories, pin.categoryId, pin.place);
       return {
         id: pin.id,
         center: pin.place.center,
@@ -733,6 +734,19 @@ export default function App() {
     // Only if the user is still looking at that spot.
     if (named) setPreview((p) => (p?.id === place.id ? { ...named, id: place.id } : p));
   };
+
+  // A new pin's place with no kind yet (a picked spot, an untagged search
+  // result): look it up in 상가정보 so the card and pin get an icon. A spot
+  // named a moment later is looked up again, by that name.
+  useEffect(() => {
+    if (!preview || preview.kind) return;
+    const controller = new AbortController();
+    const { id, name } = preview;
+    void placeKindService.lookup(preview, controller.signal).then((kind) => {
+      if (kind && !controller.signal.aborted) setPreview((p) => (p?.id === id && p.name === name && !p.kind ? { ...p, kind } : p));
+    });
+    return () => controller.abort();
+  }, [preview]);
 
   // ----- Navigation -----
 
@@ -1306,7 +1320,7 @@ export default function App() {
           count={shownStops.length}
           pinStyles={shownStops.map((place) => {
             const pin = pins.find((p) => p.place.id === place.id);
-            return categoryStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id);
+            return pinStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id, place);
           })}
           edgeStyles={buildPins ? buildRouteLook(buildPins.map((p) => p.id), buildLook).edgeStyles : editRoute ? editRoute.look.edgeStyles : shownRoute?.edgeStyles}
           stopShapes={buildPins ? buildRouteLook(buildPins.map((p) => p.id), buildLook).stopShapes : editRoute ? editRoute.look.stopShapes : shownRoute?.stopShapes}
@@ -1369,7 +1383,7 @@ export default function App() {
             setStudioCourse(shownRoute);
             setStudio(routeSubject(shownRoute, privacy.excluded, shownRoute.stops.map((s) => {
               const pin = pins.find((p) => p.place.id === s.place.id);
-              return categoryStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id).icon;
+              return pinStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id, s.place).icon;
             })));
           }}
         >

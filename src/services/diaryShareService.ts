@@ -1,3 +1,4 @@
+import { isPlaceKind } from '../domain/placeKinds';
 import { diaryHeading, DIARY_LIMITS, DIARY_MOODS, formatDiaryDate, isDateKey, isTimeKey } from '../domain/diary';
 import { TRAVEL_MODES } from '../domain/course';
 import { fromBase64Url, toBase64Url } from '../lib/base64url';
@@ -21,6 +22,7 @@ interface WireStop {
   n: string;
   c: [number, number];
   k?: string; // category
+  y?: string; // PlaceKind (added later; older links have none)
   m?: string; // memo
   t?: string; // time 'HH:MM'
 }
@@ -54,6 +56,7 @@ const toWireStop = (stop: DiaryStop, withMemo: boolean): WireStop => {
     c: [round6(stop.place.center[0]), round6(stop.place.center[1])],
   };
   if (stop.place.category) wire.k = stop.place.category;
+  if (stop.place.kind) wire.y = stop.place.kind;
   const memo = withMemo ? clampText(stop.memo, DIARY_LIMITS.memo) : undefined;
   if (memo) wire.m = memo;
   if (isTimeKey(stop.time)) wire.t = stop.time;
@@ -63,7 +66,7 @@ const toWireStop = (stop: DiaryStop, withMemo: boolean): WireStop => {
 // Links come from anyone: validate every field, clamp every string.
 const parseStop = (raw: unknown): DiaryStop | null => {
   if (!raw || typeof raw !== 'object') return null;
-  const { i, n, c, k, m, t } = raw as Partial<WireStop>;
+  const { i, n, c, k, y, m, t } = raw as Partial<WireStop>;
   const id = clampText(i, 64);
   const name = clampText(n, 80);
   if (!id || !name || !Array.isArray(c) || c.length !== 2) return null;
@@ -72,6 +75,7 @@ const parseStop = (raw: unknown): DiaryStop | null => {
   const place: PlaceRef = { id, name, center: [lon, lat] };
   const category = clampText(k, 40);
   if (category) place.category = category;
+  if (isPlaceKind(y)) place.kind = y;
   const stop: DiaryStop = { place };
   const memo = clampText(m, DIARY_LIMITS.memo);
   if (memo) stop.memo = memo;

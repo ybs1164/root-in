@@ -6,6 +6,8 @@ import {
   buildPinSet,
   categoriesWithUncategorized,
   categoryStyle,
+  pinStyle,
+  suggestCategory,
   DEFAULT_CATEGORIES,
   filterPins,
   filterPinsByCategories,
@@ -150,5 +152,32 @@ describe('pins', () => {
     expect(result.pins).toHaveLength(2);
     expect(result.pins.find((p) => p.place.id === onionSeongsu.id)?.categoryId).toBe(UNCATEGORIZED.id);
     expect(result.pins.find((p) => p.place.id === seoulForest.id)?.categoryId).toBe('food');
+  });
+});
+
+describe('kind icons for 미분류 pins', () => {
+  const cats: PinCategory[] = [
+    { id: 'c1', name: '카페', icon: 'cafe', color: 2, order: 0 },
+    { id: 'c2', name: '한식', icon: 'food', color: 3, order: 1 },
+    { id: 'c3', name: '양식', icon: 'food', color: 4, order: 2 },
+  ];
+
+  it('draws a 미분류 pin with its kind icon, in 미분류 colour', () => {
+    expect(pinStyle(cats, 'none', { kind: 'park' })).toEqual({ icon: 'tree', color: 0 });
+    expect(pinStyle(cats, 'gone', { kind: 'park' })).toEqual({ icon: 'tree', color: 0 });
+    expect(pinStyle(cats, 'none', {})).toEqual({ icon: 'pin', color: 0 });
+    expect(pinStyle(cats, 'none', { kind: 'evil' as never })).toEqual({ icon: 'pin', color: 0 });
+  });
+
+  it("never overrides the user's own category", () => {
+    expect(pinStyle(cats, 'c1', { kind: 'park' })).toEqual({ icon: 'cafe', color: 2 });
+  });
+
+  it('suggests the one category with the same icon, else 미분류', () => {
+    expect(suggestCategory(cats, 'cafe')).toBe('c1');
+    expect(suggestCategory(cats, 'bakery')).toBe('c1'); // 빵집 draws as 카페·디저트
+    expect(suggestCategory(cats, 'chicken')).toBe('none'); // two 식당 categories
+    expect(suggestCategory(cats, 'park')).toBe('none');
+    expect(suggestCategory(cats, undefined)).toBe('none');
   });
 });

@@ -1,3 +1,4 @@
+import { isPlaceKind } from '../domain/placeKinds';
 import { COURSE_LIMITS, COURSE_THEMES, TRAVEL_MODES } from '../domain/course';
 import type { CourseStop, CourseTheme, PlaceRef, SharedCourse, TravelMode } from '../types/course';
 import { decodeSharedRoute, readShareToken, SHARE_LIMITS } from './routeShareService';
@@ -20,6 +21,7 @@ interface WireStop {
   n: string;
   c: [number, number];
   k?: string; // category
+  y?: string; // PlaceKind (added later; older links have none)
   m?: string; // memo
 }
 interface WirePayloadV2 {
@@ -67,6 +69,7 @@ const toWireStop = (stop: CourseStop, withMemo: boolean): WireStop => {
     c: [round6(stop.place.center[0]), round6(stop.place.center[1])],
   };
   if (stop.place.category) wire.k = stop.place.category;
+  if (stop.place.kind) wire.y = stop.place.kind;
   const memo = withMemo ? clampText(stop.memo, COURSE_LIMITS.memo) : undefined;
   if (memo) wire.m = memo;
   return wire;
@@ -75,7 +78,7 @@ const toWireStop = (stop: CourseStop, withMemo: boolean): WireStop => {
 // Share links come from anyone: every field is validated, strings clamped.
 const parseStop = (raw: unknown): CourseStop | null => {
   if (!raw || typeof raw !== 'object') return null;
-  const { i, n, c, k, m } = raw as Partial<WireStop>;
+  const { i, n, c, k, y, m } = raw as Partial<WireStop>;
   const id = clampText(i, 64);
   const name = clampText(n, 80);
   if (!id || !name || !Array.isArray(c) || c.length !== 2) return null;
@@ -84,6 +87,7 @@ const parseStop = (raw: unknown): CourseStop | null => {
   const place: PlaceRef = { id, name, center: [lon, lat] };
   const category = clampText(k, 40);
   if (category) place.category = category;
+  if (isPlaceKind(y)) place.kind = y;
   const memo = clampText(m, COURSE_LIMITS.memo);
   return memo ? { place, memo } : { place };
 };
