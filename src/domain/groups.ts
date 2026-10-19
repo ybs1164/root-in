@@ -1,3 +1,4 @@
+import type { StoredPing } from './dayPings';
 /** We Now: a group whose members see each other's TODAY pings on one map. */
 export interface GroupPing {
   at: string;
@@ -113,4 +114,17 @@ export const groupPingKeys = (group: Group): string[] => group.members.flatMap((
 export function newPingCount(group: Group, me: string | null, seen: readonly string[] | undefined): number {
   const known = new Set(seen ?? []);
   return group.members.filter((m) => m.userId !== me).reduce((n, m) => n + m.pings.filter((p) => !known.has(groupPingKey(m, p))).length, 0);
+}
+
+/**
+ * My own pings on a group's map, from this phone's storage rather than the
+ * server's copy, so adding or taking one out of TODAY shows at once (the
+ * server only catches up after the next push and the next read). 제외 주소
+ * pings (`local`) stay off it, as they never reach the server either.
+ */
+export function myGroupPings(stored: readonly StoredPing[], day: string): GroupPing[] {
+  return stored
+    .filter((p) => p.day === day && !p.local)
+    .sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0))
+    .map((p) => ({ at: p.at, center: p.center, name: p.name }));
 }

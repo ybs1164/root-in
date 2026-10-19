@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, groupPingKeys, type Group } from './groups';
+import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, groupPingKeys, myGroupPings, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -97,5 +97,21 @@ describe('newPingCount', () => {
 
   it('a group never opened counts all of their pings', () => {
     expect(newPingCount(group({ me: ['a'], ann: ['b', 'c'] }), 'me', undefined)).toBe(2);
+  });
+});
+
+describe('myGroupPings', () => {
+  it("is that day's pings from this phone, oldest first, without 제외 주소 ones", () => {
+    const at = (h: number) => `2026-10-19T0${h}:00:00.000Z`;
+    const stored = [
+      { id: 'b', day: '2026-10-19', at: at(3), name: 'B', center: [127, 37.5] as [number, number] },
+      { id: 'a', day: '2026-10-19', at: at(1), name: 'A', center: [127, 37.6] as [number, number] },
+      { id: 'h', day: '2026-10-19', at: at(2), name: '집 근처', center: [127, 37.7] as [number, number], local: true },
+      { id: 'y', day: '2026-10-18', at: at(4), name: 'Y', center: [127, 37.8] as [number, number] },
+    ];
+    expect(myGroupPings(stored, '2026-10-19')).toEqual([
+      { at: at(1), center: [127, 37.6], name: 'A' },
+      { at: at(3), center: [127, 37.5], name: 'B' },
+    ]);
   });
 });

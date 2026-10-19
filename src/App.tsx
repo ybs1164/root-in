@@ -44,7 +44,7 @@ import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
 import { useGroups } from './hooks/useGroups';
 import { groupsNeedLogin, inviteUrl } from './services/groupService';
-import { focusPoints, groupPingKeys, memberColor, newPingCount, type GroupMember } from './domain/groups';
+import { focusPoints, groupPingKeys, memberColor, myGroupPings, newPingCount, type GroupMember } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
 import { loadGroupSeen, saveGroupSeen, type GroupSeen } from './services/groupSeenRepository';
 import { useStoredPings } from './hooks/useStoredPings';
@@ -295,16 +295,28 @@ export default function App() {
     },
     onJoinFailed: () => notify('그룹 초대 링크를 열 수 없어요.'),
   });
-  // My own place in each group wears this phone's photo and nickname (the server's copy may lag behind).
+  // My own place in each group wears this phone's photo, nickname and today's
+  // pings (the server's copy lags behind: a ping taken out of TODAY would
+  // linger there until the next push and the next read).
   const myId = account.user?.id ?? null;
+  const myPings = useMemo(() => myGroupPings(storedPings, dateKey()), [storedPings]);
   const groupList = useMemo(
     () =>
       groups.groups.map((g) => ({
         ...g,
-        members: g.members.map((m) => (m.userId === myId ? { ...m, photo: profile.photo ?? m.photo, nickname: m.alias ?? (getDisplayName().trim() || m.nickname) } : m)),
+        members: g.members.map((m) =>
+          m.userId === myId ? { ...m, photo: profile.photo ?? m.photo, nickname: m.alias ?? (getDisplayName().trim() || m.nickname), pings: myPings } : m,
+        ),
       })),
-    [groups.groups, myId, profile.photo],
+    [groups.groups, myId, profile.photo, myPings],
   );
+  // Back from TODAY to the group list: read the groups again rather than wait
+  // for the minute's refresh (the others' pings may have moved on meanwhile).
+  const wasTodayOpen = useRef(todayOpen);
+  useEffect(() => {
+    if (wasTodayOpen.current && !todayOpen && tab === 'people') groups.refresh();
+    wasTodayOpen.current = todayOpen;
+  }, [todayOpen]);
   const [kicking, setKicking] = useState<GroupMember | null>(null);
   const openGroup = tab === 'people' && openGroupId ? (groupList.find((g) => g.id === openGroupId) ?? null) : null;
   // A group I've left (or that's gone) closes; a member who left can't stay picked.

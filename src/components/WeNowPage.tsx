@@ -5,7 +5,12 @@ import { groupPingCount, memberColor, tilePaths, type Group, type GroupMember } 
 import { edgeKey, pingKey, type DayPing } from '../domain/dayPings';
 import { dateKey } from '../domain/diary';
 import { loadDays, saveDays, type DayStore } from '../services/dayRepository';
+import ConfirmDialog from './ConfirmDialog';
+import DayPattern from './DayPattern';
 import DayPings from './DayPings';
+import DecorLayer from './DecorLayer';
+import { DEFAULT_PEN, EMPTY_DECOR } from '../domain/decor';
+import { removePing } from '../services/pingRepository';
 import { ProfileAvatar } from './ProfileSheet';
 import type { GroupsStatus } from '../hooks/useGroups';
 
@@ -93,7 +98,7 @@ function GroupTile({ group, fresh, onOpen }: { group: Group; fresh: number; onOp
  * The TODAY tile over the groups (test build, 2026-10-19): a full-width card,
  * about half the screen, with today's real pings on it — the same drawing as
  * TODAY, and tapping a ping or a line changes its shape or style there and
- * then (saved to the day, as on TODAY). Not a group: a tap anywhere else on
+ * then (saved to the day, as on TODAY); a tapped ping's ✕ takes it out of the day. Not a group: a tap anywhere else on
  * the card opens TODAY itself, full screen.
  */
 function TodayTile({ pings, pinLookOf, onOpen }: { pings: DayPing[]; pinLookOf: (ping: DayPing) => { icon: PinIcon; color: PinTint }; onOpen: () => void }) {
@@ -105,35 +110,43 @@ function TodayTile({ pings, pinLookOf, onOpen }: { pings: DayPing[]; pinLookOf: 
       saveDays(after);
       return after;
     });
-  const decor = days.decor[today];
+  const decor = days.decor[today] ?? EMPTY_DECOR;
+  const theme = decor.theme ?? 'default';
   // A press on a ping, a line or an open picker (its backdrop too) is the drawing's, not the card's.
   const own = useRef(false);
+  // A ping's ✕ (or one dragged off and let go) asks first, as on TODAY.
+  const [deleting, setDeleting] = useState<DayPing | null>(null);
   return (
-    <div
-      className="today-tile"
-      role="button"
-      tabIndex={0}
-      aria-label={`TODAY 열기, 오늘 핑 ${pings.length}`}
-      onPointerDownCapture={(e) => {
-        own.current = !!(e.target as Element).closest('.ping, .pings__hitline, .ping-picker, .ping-picker__backdrop, .ping__delete');
-      }}
-      onClick={() => {
-        if (own.current) return void (own.current = false);
-        onOpen();
-      }}
-      onKeyDown={(e) => {
-        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
-          e.preventDefault();
+    <>
+      {/* Dressed as TODAY is: the day's theme on just this card (.theme-scope), its
+          background pattern, and its stickers, ink and text over the drawing. */}
+      <div
+        className="today-tile theme-scope"
+        data-theme={theme === 'default' ? undefined : theme}
+        role="button"
+        tabIndex={0}
+        aria-label={`TODAY 열기, 오늘 핑 ${pings.length}`}
+        onPointerDownCapture={(e) => {
+          own.current = !!(e.target as Element).closest('.ping, .pings__hitline, .ping-picker, .ping-picker__backdrop, .ping__delete');
+        }}
+        onClick={() => {
+          if (own.current) return void (own.current = false);
           onOpen();
-        }
-      }}
-    >
-      <span className="today-tile__title" aria-hidden>
-        TODAY
-      </span>
-      {pings.length === 0 ? (
-        <span className="today-tile__empty">아직 오늘 핑 없음</span>
-      ) : (
+        }}
+        onKeyDown={(e) => {
+          if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            onOpen();
+          }
+        }}
+      >
+        <div className="today-tile__ground" aria-hidden>
+          <DayPattern pattern={decor.pattern ?? 'none'} />
+        </div>
+        <span className="today-tile__title" aria-hidden>
+          TODAY
+        </span>
+        {pings.length === 0 && <span className="today-tile__empty">아직 오늘 핑 없음</span>}
         <div className="today-tile__pings">
           <DayPings
             pings={pings}
@@ -142,13 +155,27 @@ function TodayTile({ pings, pinLookOf, onOpen }: { pings: DayPing[]; pinLookOf: 
             edgeStyleOf={(from, to) => days.edges[edgeKey(today, from, to)] ?? 'solid'}
             onEdgeStyle={(from, to, style) => change((d) => ({ ...d, edges: { ...d.edges, [edgeKey(today, from, to)]: style } }))}
             pinLookOf={pinLookOf}
+            onDelete={(ping) => ping.id && setDeleting(ping)}
             pressable={() => true}
-            showNames={!decor?.hideNames}
-            showTimes={!decor?.hideTimes}
-          />
+            showNames={!decor.hideNames}
+            showTimes={!decor.hideTimes}
+          >
+            {/* Read-only here (no tool out): changed on TODAY itself. */}
+            <DecorLayer decor={decor} tool={null} armed={null} pen={DEFAULT_PEN} onChange={() => {}} />
+          </DayPings>
         </div>
+      </div>
+      {/* Beside the card, not in it: the dialog's clicks mustn't reach the card and open TODAY. */}
+      {deleting?.id && (
+        <ConfirmDialog
+          label="장소 삭제"
+          message={`'${deleting.name}' 장소를 삭제합니다.`}
+          detail="삭제한 장소는 복구할 수 없어요."
+          onConfirm={() => deleting.id && removePing(deleting.id)}
+          onClose={() => setDeleting(null)}
+        />
       )}
-    </div>
+    </>
   );
 }
 
