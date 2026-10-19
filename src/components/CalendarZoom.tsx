@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingCounts, pingKey, pingsForDate, pingsLandedMs, todayCandidates, type DayPing } from '../domain/dayPings';
 import { useStoredPings } from '../hooks/useStoredPings';
 import { recordPing, removePing } from '../services/pingRepository';
-import { categoryStyle, UNCATEGORIZED } from '../domain/pin';
+import { pinStyle, UNCATEGORIZED } from '../domain/pin';
 import type { Pin, PinCategory } from '../types/pin';
 import ConfirmDialog from './ConfirmDialog';
 import PlacePickDialog from './PlacePickDialog';
@@ -204,8 +204,12 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
   // Taking a ping out of the day (its ✕, the calendar button's ✕, or a drop on
   // it) asks first, like deleting a pin on the map.
   const [deleting, setDeleting] = useState<DayPing | null>(null);
-  // A ping set to 투명 shows its place's own pin icon (plain 미분류 pin if the pin is gone).
-  const pinLookOf = (ping: DayPing) => categoryStyle(categories, pins.find((p) => p.id === ping.pinId)?.categoryId ?? UNCATEGORIZED.id);
+  // A ping set to 투명 shows its pin's own look, as on the map (a 미분류 pin by
+  // its kind of place; the plain 미분류 pin if the pin is gone).
+  const pinLookOf = (ping: DayPing) => {
+    const pin = pins.find((p) => p.id === ping.pinId);
+    return pinStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id, pin?.place);
+  };
   // Landed: remount the drawing so the pins drop, the lines draw and the
   // 꾸미기 settles now, not unseen under the sliding page.
   const held = useRef(holdIntro);

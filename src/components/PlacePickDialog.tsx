@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { categoryStyle, pinColorCss } from '../domain/pin';
+import { pinColorCss, pinStyle } from '../domain/pin';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import type { Pin, PinCategory } from '../types/pin';
 import PinGlyph from './PinGlyph';
@@ -58,7 +58,7 @@ export default function PlacePickDialog({ places, categories, onPick, onClose }:
         </p>
         <ul className="place-pick__list" role="radiogroup" aria-labelledby="place-pick-title">
           {places.map((pin) => {
-            const { icon, color } = categoryStyle(categories, pin.categoryId);
+            const { icon, color } = pinStyle(categories, pin.categoryId, pin.place);
             const on = pin.id === picked;
             return (
               <li key={pin.id} className={`place-pick__item ${on ? 'is-picked' : ''}`}>
