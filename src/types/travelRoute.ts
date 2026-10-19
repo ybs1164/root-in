@@ -1,3 +1,5 @@
+import type { PlaceKind } from '../domain/placeKinds';
+
 // A lightweight snapshot of a Place at the moment a route referencing it was
 // created. Storing name/center (not just an id) means a saved route still
 // renders correctly even if the underlying place catalog changes later, and
@@ -9,6 +11,8 @@ export interface PlaceRef {
   center: [number, number];
   /** Human-readable category, e.g. '카페', '한식'. */
   category?: string;
+  /** Provider-independent kind, picks the 미분류 pin's icon (domain/placeKinds.ts). */
+  kind?: PlaceKind;
   address?: string;
 }
 

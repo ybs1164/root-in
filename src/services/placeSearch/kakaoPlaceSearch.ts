@@ -1,4 +1,5 @@
 import { haversineMeters } from '../../domain/geo';
+import { kindFromKakao } from '../../domain/placeKindRules';
 import type { KakaoMapsNamespace, KakaoPlaceResult } from '../../lib/kakaoSdk';
 import type { PlaceRef } from '../../types/course';
 import {
@@ -25,6 +26,9 @@ export const toPlaceRef = (result: KakaoPlaceResult): PlaceRef | null => {
   const category = shortCategory(result);
   const address = result.road_address_name || result.address_name;
   if (category) place.category = category;
+  // The full path, not the shortened label: deeper segments are more specific.
+  const kind = kindFromKakao(result.category_name, result.category_group_code);
+  if (kind) place.kind = kind;
   if (address) place.address = address;
   return place;
 };

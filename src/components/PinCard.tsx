@@ -1,7 +1,7 @@
 import { Check, Pencil, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { addressRoute } from '../domain/addressRoute';
-import { categoriesWithUncategorized, categoryStyle, findCategory, PIN_LIMITS, pinColorCss } from '../domain/pin';
+import { categoriesWithUncategorized, categoryStyle, findCategory, PIN_LIMITS, pinColorCss, pinStyle } from '../domain/pin';
 import type { Pin, PinCategory } from '../types/pin';
 import PinGlyph from './PinGlyph';
 
@@ -26,7 +26,7 @@ interface PinCardProps {
 export default function PinCard({ pin, categories, onRecategorize, onRename, onMemo, onDelete, onClose }: PinCardProps) {
   const [editing, setEditing] = useState(false);
   const [picking, setPicking] = useState(false);
-  const style = categoryStyle(categories, pin.categoryId);
+  const style = pinStyle(categories, pin.categoryId, pin.place);
   const route = addressRoute(pin.place.address);
   const cardEl = useRef<HTMLDivElement | null>(null);
   const nameEl = useRef<HTMLInputElement | null>(null);

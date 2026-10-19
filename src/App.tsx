@@ -27,7 +27,7 @@ import { visibleRange } from './domain/adminAreas';
 import { calendarAgain, homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { COURSE_LIMITS } from './domain/course';
 import type { MapViewport } from './domain/districtMap';
-import { categoryStyle, filterPinsByCategories, isUncategorized, UNCATEGORIZED } from './domain/pin';
+import { filterPinsByCategories, isUncategorized, pinStyle, UNCATEGORIZED } from './domain/pin';
 import { pinRailNext, tapAll, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
 import { PRESS } from './domain/dayPings';
 import { buildRouteLook, EMPTY_BUILD_LOOK, nextRouteName, ROUTE_NOTE_MAX, toggleBuildStop, withBuildEdge, withBuildShape, type BuildLook } from './domain/routeBuild';
@@ -314,7 +314,7 @@ export default function App() {
     // Editing it, they come back to be picked.
     if (shownRoute && !isEditing && pinsGone) return [];
     return shownPins.map((pin) => {
-      const style = categoryStyle(categories, pin.categoryId);
+      const style = pinStyle(categories, pin.categoryId, pin.place);
       return {
         id: pin.id,
         center: pin.place.center,
@@ -1065,7 +1065,7 @@ export default function App() {
           count={shownStops.length}
           pinStyles={shownStops.map((place) => {
             const pin = pins.find((p) => p.place.id === place.id);
-            return categoryStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id);
+            return pinStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id, place);
           })}
           edgeStyles={buildPins ? buildRouteLook(buildPins.map((p) => p.id), buildLook).edgeStyles : editRoute ? editRoute.look.edgeStyles : shownRoute?.edgeStyles}
           stopShapes={buildPins ? buildRouteLook(buildPins.map((p) => p.id), buildLook).stopShapes : editRoute ? editRoute.look.stopShapes : shownRoute?.stopShapes}
@@ -1128,7 +1128,7 @@ export default function App() {
             setStudioCourse(shownRoute);
             setStudio(routeSubject(shownRoute, privacy.excluded, shownRoute.stops.map((s) => {
               const pin = pins.find((p) => p.place.id === s.place.id);
-              return categoryStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id).icon;
+              return pinStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id, s.place).icon;
             })));
           }}
         >
