@@ -2,7 +2,7 @@ import { Plus, UserRound, Users } from 'lucide-react';
 import { useRef, useState, type CSSProperties } from 'react';
 import type { PinIcon, PinTint } from '../types/pin';
 import { groupPingCount, memberColor, tilePaths, type Group, type GroupMember } from '../domain/groups';
-import { edgeKey, pingKey, type DayPing } from '../domain/dayPings';
+import { edgeKey, pingKey, pingsLandedMs, type DayPing } from '../domain/dayPings';
 import { dateKey } from '../domain/diary';
 import { loadDays, saveDays, type DayStore } from '../services/dayRepository';
 import ConfirmDialog from './ConfirmDialog';
@@ -160,8 +160,8 @@ function TodayTile({ pings, pinLookOf, onOpen }: { pings: DayPing[]; pinLookOf: 
             showNames={!decor.hideNames}
             showTimes={!decor.hideTimes}
           >
-            {/* Read-only here (no tool out): changed on TODAY itself. */}
-            <DecorLayer decor={decor} tool={null} armed={null} pen={DEFAULT_PEN} onChange={() => {}} />
+            {/* Read-only here (no tool out): changed on TODAY itself. Settles in once the pins have landed, as on TODAY. */}
+            <DecorLayer decor={decor} tool={null} armed={null} pen={DEFAULT_PEN} onChange={() => {}} enterDelayMs={pingsLandedMs(pings.length)} />
           </DayPings>
         </div>
       </div>
