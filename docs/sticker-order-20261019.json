@@ -1,0 +1,980 @@
+{
+  "version": 2,
+  "catalogueHash": "0f8f94172de2d2efa02b452eabadf4b613c371be7a9df91557acfc3dcf3f5cd7",
+  "ids": [
+    "minimal-20261017-121",
+    "doodle-20261017-001",
+    "doodle-20261017-008",
+    "minimal-20261017-123",
+    "doodle-20261017-003",
+    "doodle-20261017-004",
+    "doodle-20261017-006",
+    "doodle-20261017-010",
+    "doodle-20261017-005",
+    "doodle-20261017-007",
+    "doodle-20261017-009",
+    "doodle-20261017-016",
+    "doodle-20261017-011",
+    "doodle-20261017-012",
+    "doodle-20261017-014",
+    "doodle-20261017-013",
+    "doodle-20261017-015",
+    "doodle-20261017-017",
+    "doodle-20261017-018",
+    "doodle-20261017-019",
+    "minimal-20261017-124",
+    "minimal-20261017-122",
+    "doodle-20261017-020",
+    "minimal-20261017-130",
+    "minimal-20261017-136",
+    "doodle-20261017-073",
+    "doodle-20261017-069",
+    "doodle-20261017-070",
+    "doodle-20261017-075",
+    "doodle-20261017-079",
+    "doodle-20261017-098",
+    "doodle-20261017-100",
+    "minimal-20261017-192",
+    "minimal-20261017-198",
+    "minimal-20261017-189",
+    "minimal-20261017-188",
+    "minimal-20261017-185",
+    "minimal-20261017-187",
+    "pastel-stationery-20261018-026",
+    "stationery-20261017-132",
+    "stationery-20261017-118",
+    "stationery-20261017-173",
+    "stationery-20261017-180",
+    "stationery-20261017-178",
+    "stationery-20261017-175",
+    "stationery-20261017-195",
+    "stationery-20261017-194",
+    "stationery-20261017-187",
+    "stationery-20261017-168",
+    "stationery-20261017-142",
+    "stationery-20261017-150",
+    "stationery-20261017-145",
+    "stationery-20261017-147",
+    "stationery-20261017-101",
+    "stationery-20261017-121",
+    "stationery-20261017-122",
+    "stationery-20261017-124",
+    "stationery-20261017-138",
+    "stationery-20261017-148",
+    "minimal-20261017-200",
+    "stationery-20261017-154",
+    "pastel-stationery-20261018-004",
+    "pastel-stationery-20261018-031",
+    "pastel-stationery-20261018-011",
+    "pastel-stationery-20261018-012",
+    "pastel-stationery-20261018-014",
+    "pastel-stationery-20261018-015",
+    "pastel-stationery-20261018-049",
+    "pastel-stationery-20261018-051",
+    "pastel-stationery-20261018-081",
+    "pastel-stationery-20261018-062",
+    "pastel-stationery-20261018-064",
+    "pastel-stationery-20261018-065",
+    "pastel-stationery-20261018-098",
+    "pastel-stationery-20261018-103",
+    "pastel-stationery-20261018-131",
+    "pastel-stationery-20261018-111",
+    "pastel-stationery-20261018-112",
+    "pastel-stationery-20261018-115",
+    "pastel-stationery-20261018-154",
+    "pastel-stationery-20261018-181",
+    "pastel-stationery-20261018-162",
+    "pastel-stationery-20261018-164",
+    "pastel-stationery-20261018-165",
+    "pastel-stationery-20261018-200",
+    "minimal-20261017-001",
+    "minimal-20261017-003",
+    "minimal-20261017-008",
+    "minimal-20261017-013",
+    "minimal-20261017-014",
+    "minimal-20261017-019",
+    "minimal-20261017-175",
+    "minimal-20261017-180",
+    "pop-heart",
+    "pop-star",
+    "pop-icecream",
+    "pop-balloon",
+    "pop-letter",
+    "pop-eyes",
+    "pixel-star",
+    "minimal-20261017-061",
+    "minimal-20261017-062",
+    "pixel-heart",
+    "minimal-20261017-064",
+    "pixel-cloud",
+    "pixel-cherries",
+    "minimal-20261017-066",
+    "pixel-bubble",
+    "pixel-eyes",
+    "pixel-game",
+    "minimal-20261017-077",
+    "minimal-20261017-075",
+    "minimal-20261017-076",
+    "minimal-20261017-078",
+    "minimal-20261017-079",
+    "minimal-20261017-080",
+    "rainbow",
+    "painted-cat",
+    "painted-dog",
+    "painted-bunny",
+    "painted-leaf",
+    "painted-pretzel",
+    "crayon-pudding",
+    "crayon-coffee",
+    "crayon-croissant",
+    "minimal-20261017-084",
+    "minimal-20261017-086",
+    "minimal-20261017-091",
+    "minimal-20261017-092",
+    "minimal-20261017-097",
+    "jelly-heart",
+    "jelly-star",
+    "jelly-bean",
+    "jelly-bear",
+    "chrome-heart",
+    "chrome-star",
+    "chrome-bolt",
+    "pop-bubble"
+  ],
+  "removedIds": [
+    "minimal-20261017-121",
+    "doodle-20261017-003",
+    "doodle-20261017-004",
+    "doodle-20261017-016",
+    "doodle-20261017-013",
+    "minimal-20261017-136",
+    "minimal-20261017-188",
+    "minimal-20261017-185",
+    "minimal-20261017-187",
+    "stationery-20261017-118",
+    "stationery-20261017-150",
+    "stationery-20261017-138",
+    "minimal-20261017-175",
+    "pop-heart",
+    "pop-star",
+    "pop-icecream",
+    "pop-balloon",
+    "pop-letter",
+    "pixel-star",
+    "pixel-bubble",
+    "pixel-game",
+    "rainbow",
+    "painted-dog",
+    "jelly-star",
+    "pop-bubble"
+  ],
+  "completed": true,
+  "savedAt": "2026-10-19T14:31:18.200463+00:00",
+  "items": [
+    {
+      "position": 1,
+      "id": "doodle-20261017-001",
+      "label": "두들 잔잔한 미소",
+      "src": "/stickers/doodle-20261017-001.png"
+    },
+    {
+      "position": 2,
+      "id": "doodle-20261017-008",
+      "label": "두들 신난 얼굴",
+      "src": "/stickers/doodle-20261017-008.png"
+    },
+    {
+      "position": 3,
+      "id": "minimal-20261017-123",
+      "label": "심플 두들 윙크 얼굴",
+      "src": "/stickers/minimal-20261017-123.png"
+    },
+    {
+      "position": 4,
+      "id": "doodle-20261017-006",
+      "label": "두들 수줍음",
+      "src": "/stickers/doodle-20261017-006.png"
+    },
+    {
+      "position": 5,
+      "id": "doodle-20261017-010",
+      "label": "두들 평온한 얼굴",
+      "src": "/stickers/doodle-20261017-010.png"
+    },
+    {
+      "position": 6,
+      "id": "doodle-20261017-005",
+      "label": "두들 하품",
+      "src": "/stickers/doodle-20261017-005.png"
+    },
+    {
+      "position": 7,
+      "id": "doodle-20261017-007",
+      "label": "두들 깜짝",
+      "src": "/stickers/doodle-20261017-007.png"
+    },
+    {
+      "position": 8,
+      "id": "doodle-20261017-009",
+      "label": "두들 생각 중",
+      "src": "/stickers/doodle-20261017-009.png"
+    },
+    {
+      "position": 9,
+      "id": "doodle-20261017-011",
+      "label": "두들 시무룩",
+      "src": "/stickers/doodle-20261017-011.png"
+    },
+    {
+      "position": 10,
+      "id": "doodle-20261017-012",
+      "label": "두들 눈물 한 방울",
+      "src": "/stickers/doodle-20261017-012.png"
+    },
+    {
+      "position": 11,
+      "id": "doodle-20261017-014",
+      "label": "두들 뾰로통",
+      "src": "/stickers/doodle-20261017-014.png"
+    },
+    {
+      "position": 12,
+      "id": "doodle-20261017-015",
+      "label": "두들 장난꾸러기",
+      "src": "/stickers/doodle-20261017-015.png"
+    },
+    {
+      "position": 13,
+      "id": "doodle-20261017-017",
+      "label": "두들 빙글빙글",
+      "src": "/stickers/doodle-20261017-017.png"
+    },
+    {
+      "position": 14,
+      "id": "doodle-20261017-018",
+      "label": "두들 궁금",
+      "src": "/stickers/doodle-20261017-018.png"
+    },
+    {
+      "position": 15,
+      "id": "doodle-20261017-019",
+      "label": "두들 결심",
+      "src": "/stickers/doodle-20261017-019.png"
+    },
+    {
+      "position": 16,
+      "id": "minimal-20261017-124",
+      "label": "심플 두들 수줍은 얼굴",
+      "src": "/stickers/minimal-20261017-124.png"
+    },
+    {
+      "position": 17,
+      "id": "minimal-20261017-122",
+      "label": "심플 두들 졸린 얼굴",
+      "src": "/stickers/minimal-20261017-122.png"
+    },
+    {
+      "position": 18,
+      "id": "doodle-20261017-020",
+      "label": "두들 하트 얼굴",
+      "src": "/stickers/doodle-20261017-020.png"
+    },
+    {
+      "position": 19,
+      "id": "minimal-20261017-130",
+      "label": "심플 두들 눈 달린 하트",
+      "src": "/stickers/minimal-20261017-130.png"
+    },
+    {
+      "position": 20,
+      "id": "doodle-20261017-073",
+      "label": "두들 주먹밥",
+      "src": "/stickers/doodle-20261017-073.png"
+    },
+    {
+      "position": 21,
+      "id": "doodle-20261017-069",
+      "label": "두들 팬케이크",
+      "src": "/stickers/doodle-20261017-069.png"
+    },
+    {
+      "position": 22,
+      "id": "doodle-20261017-070",
+      "label": "두들 도넛",
+      "src": "/stickers/doodle-20261017-070.png"
+    },
+    {
+      "position": 23,
+      "id": "doodle-20261017-075",
+      "label": "두들 쿠키",
+      "src": "/stickers/doodle-20261017-075.png"
+    },
+    {
+      "position": 24,
+      "id": "doodle-20261017-079",
+      "label": "두들 우유팩",
+      "src": "/stickers/doodle-20261017-079.png"
+    },
+    {
+      "position": 25,
+      "id": "doodle-20261017-098",
+      "label": "두들 연필",
+      "src": "/stickers/doodle-20261017-098.png"
+    },
+    {
+      "position": 26,
+      "id": "doodle-20261017-100",
+      "label": "두들 말풍선",
+      "src": "/stickers/doodle-20261017-100.png"
+    },
+    {
+      "position": 27,
+      "id": "minimal-20261017-192",
+      "label": "리본 문구 연필",
+      "src": "/stickers/minimal-20261017-192.png"
+    },
+    {
+      "position": 28,
+      "id": "minimal-20261017-198",
+      "label": "리본 문구 가위",
+      "src": "/stickers/minimal-20261017-198.png"
+    },
+    {
+      "position": 29,
+      "id": "minimal-20261017-189",
+      "label": "리본 문구 메모지",
+      "src": "/stickers/minimal-20261017-189.png"
+    },
+    {
+      "position": 30,
+      "id": "pastel-stationery-20261018-026",
+      "label": "리본 문구 연한 하늘색 모서리 종이",
+      "src": "/stickers/pastel-stationery-20261018-026.png"
+    },
+    {
+      "position": 31,
+      "id": "stationery-20261017-132",
+      "label": "리본 문구 네모 포스트잇",
+      "src": "/stickers/stationery-20261017-132.png"
+    },
+    {
+      "position": 32,
+      "id": "stationery-20261017-173",
+      "label": "리본 문구 연필",
+      "src": "/stickers/stationery-20261017-173.png"
+    },
+    {
+      "position": 33,
+      "id": "stationery-20261017-180",
+      "label": "리본 문구 붓",
+      "src": "/stickers/stationery-20261017-180.png"
+    },
+    {
+      "position": 34,
+      "id": "stationery-20261017-178",
+      "label": "리본 문구 마커",
+      "src": "/stickers/stationery-20261017-178.png"
+    },
+    {
+      "position": 35,
+      "id": "stationery-20261017-175",
+      "label": "리본 문구 크레용",
+      "src": "/stickers/stationery-20261017-175.png"
+    },
+    {
+      "position": 36,
+      "id": "stationery-20261017-195",
+      "label": "리본 문구 하트 도장",
+      "src": "/stickers/stationery-20261017-195.png"
+    },
+    {
+      "position": 37,
+      "id": "stationery-20261017-194",
+      "label": "리본 문구 잉크병",
+      "src": "/stickers/stationery-20261017-194.png"
+    },
+    {
+      "position": 38,
+      "id": "stationery-20261017-187",
+      "label": "리본 문구 압정",
+      "src": "/stickers/stationery-20261017-187.png"
+    },
+    {
+      "position": 39,
+      "id": "stationery-20261017-168",
+      "label": "리본 문구 스프링 노트",
+      "src": "/stickers/stationery-20261017-168.png"
+    },
+    {
+      "position": 40,
+      "id": "stationery-20261017-142",
+      "label": "리본 문구 리본 태그",
+      "src": "/stickers/stationery-20261017-142.png"
+    },
+    {
+      "position": 41,
+      "id": "stationery-20261017-145",
+      "label": "리본 문구 여행 태그",
+      "src": "/stickers/stationery-20261017-145.png"
+    },
+    {
+      "position": 42,
+      "id": "stationery-20261017-147",
+      "label": "리본 문구 인덱스 카드",
+      "src": "/stickers/stationery-20261017-147.png"
+    },
+    {
+      "position": 43,
+      "id": "stationery-20261017-101",
+      "label": "리본 문구 클래식 리본",
+      "src": "/stickers/stationery-20261017-101.png"
+    },
+    {
+      "position": 44,
+      "id": "stationery-20261017-121",
+      "label": "리본 문구 사선 마스킹 테이프",
+      "src": "/stickers/stationery-20261017-121.png"
+    },
+    {
+      "position": 45,
+      "id": "stationery-20261017-122",
+      "label": "리본 문구 체크 마스킹 테이프",
+      "src": "/stickers/stationery-20261017-122.png"
+    },
+    {
+      "position": 46,
+      "id": "stationery-20261017-124",
+      "label": "리본 문구 무지 마스킹 테이프",
+      "src": "/stickers/stationery-20261017-124.png"
+    },
+    {
+      "position": 47,
+      "id": "stationery-20261017-148",
+      "label": "리본 문구 엽서",
+      "src": "/stickers/stationery-20261017-148.png"
+    },
+    {
+      "position": 48,
+      "id": "minimal-20261017-200",
+      "label": "리본 문구 하트 우표",
+      "src": "/stickers/minimal-20261017-200.png"
+    },
+    {
+      "position": 49,
+      "id": "stationery-20261017-154",
+      "label": "리본 문구 하트 실",
+      "src": "/stickers/stationery-20261017-154.png"
+    },
+    {
+      "position": 50,
+      "id": "pastel-stationery-20261018-004",
+      "label": "리본 문구 연한 하늘색 슬림 리본",
+      "src": "/stickers/pastel-stationery-20261018-004.png"
+    },
+    {
+      "position": 51,
+      "id": "pastel-stationery-20261018-031",
+      "label": "리본 문구 연한 하늘색 폴라로이드 틀",
+      "src": "/stickers/pastel-stationery-20261018-031.png"
+    },
+    {
+      "position": 52,
+      "id": "pastel-stationery-20261018-011",
+      "label": "리본 문구 연한 하늘색 사선 테이프",
+      "src": "/stickers/pastel-stationery-20261018-011.png"
+    },
+    {
+      "position": 53,
+      "id": "pastel-stationery-20261018-012",
+      "label": "리본 문구 연한 하늘색 가로줄 테이프",
+      "src": "/stickers/pastel-stationery-20261018-012.png"
+    },
+    {
+      "position": 54,
+      "id": "pastel-stationery-20261018-014",
+      "label": "리본 문구 연한 하늘색 무지 테이프",
+      "src": "/stickers/pastel-stationery-20261018-014.png"
+    },
+    {
+      "position": 55,
+      "id": "pastel-stationery-20261018-015",
+      "label": "리본 문구 연한 하늘색 격자 테이프",
+      "src": "/stickers/pastel-stationery-20261018-015.png"
+    },
+    {
+      "position": 56,
+      "id": "pastel-stationery-20261018-049",
+      "label": "리본 문구 연한 하늘색 선물 상자",
+      "src": "/stickers/pastel-stationery-20261018-049.png"
+    },
+    {
+      "position": 57,
+      "id": "pastel-stationery-20261018-051",
+      "label": "리본 문구 민트 기본 리본",
+      "src": "/stickers/pastel-stationery-20261018-051.png"
+    },
+    {
+      "position": 58,
+      "id": "pastel-stationery-20261018-081",
+      "label": "리본 문구 민트 폴라로이드 틀",
+      "src": "/stickers/pastel-stationery-20261018-081.png"
+    },
+    {
+      "position": 59,
+      "id": "pastel-stationery-20261018-062",
+      "label": "리본 문구 민트 가로줄 테이프",
+      "src": "/stickers/pastel-stationery-20261018-062.png"
+    },
+    {
+      "position": 60,
+      "id": "pastel-stationery-20261018-064",
+      "label": "리본 문구 민트 무지 테이프",
+      "src": "/stickers/pastel-stationery-20261018-064.png"
+    },
+    {
+      "position": 61,
+      "id": "pastel-stationery-20261018-065",
+      "label": "리본 문구 민트 격자 테이프",
+      "src": "/stickers/pastel-stationery-20261018-065.png"
+    },
+    {
+      "position": 62,
+      "id": "pastel-stationery-20261018-098",
+      "label": "리본 문구 민트 편지지",
+      "src": "/stickers/pastel-stationery-20261018-098.png"
+    },
+    {
+      "position": 63,
+      "id": "pastel-stationery-20261018-103",
+      "label": "리본 문구 라벤더 둥근 리본",
+      "src": "/stickers/pastel-stationery-20261018-103.png"
+    },
+    {
+      "position": 64,
+      "id": "pastel-stationery-20261018-131",
+      "label": "리본 문구 라벤더 폴라로이드 틀",
+      "src": "/stickers/pastel-stationery-20261018-131.png"
+    },
+    {
+      "position": 65,
+      "id": "pastel-stationery-20261018-111",
+      "label": "리본 문구 라벤더 사선 테이프",
+      "src": "/stickers/pastel-stationery-20261018-111.png"
+    },
+    {
+      "position": 66,
+      "id": "pastel-stationery-20261018-112",
+      "label": "리본 문구 라벤더 가로줄 테이프",
+      "src": "/stickers/pastel-stationery-20261018-112.png"
+    },
+    {
+      "position": 67,
+      "id": "pastel-stationery-20261018-115",
+      "label": "리본 문구 라벤더 격자 테이프",
+      "src": "/stickers/pastel-stationery-20261018-115.png"
+    },
+    {
+      "position": 68,
+      "id": "pastel-stationery-20261018-154",
+      "label": "리본 문구 버터 옐로 슬림 리본",
+      "src": "/stickers/pastel-stationery-20261018-154.png"
+    },
+    {
+      "position": 69,
+      "id": "pastel-stationery-20261018-181",
+      "label": "리본 문구 버터 옐로 폴라로이드 틀",
+      "src": "/stickers/pastel-stationery-20261018-181.png"
+    },
+    {
+      "position": 70,
+      "id": "pastel-stationery-20261018-162",
+      "label": "리본 문구 버터 옐로 가로줄 테이프",
+      "src": "/stickers/pastel-stationery-20261018-162.png"
+    },
+    {
+      "position": 71,
+      "id": "pastel-stationery-20261018-164",
+      "label": "리본 문구 버터 옐로 무지 테이프",
+      "src": "/stickers/pastel-stationery-20261018-164.png"
+    },
+    {
+      "position": 72,
+      "id": "pastel-stationery-20261018-165",
+      "label": "리본 문구 버터 옐로 격자 테이프",
+      "src": "/stickers/pastel-stationery-20261018-165.png"
+    },
+    {
+      "position": 73,
+      "id": "pastel-stationery-20261018-200",
+      "label": "리본 문구 버터 옐로 스티커 조각",
+      "src": "/stickers/pastel-stationery-20261018-200.png"
+    },
+    {
+      "position": 74,
+      "id": "minimal-20261017-001",
+      "label": "둥근 종이 하트",
+      "src": "/stickers/minimal-20261017-001.png"
+    },
+    {
+      "position": 75,
+      "id": "minimal-20261017-003",
+      "label": "둥근 종이 다섯잎 꽃",
+      "src": "/stickers/minimal-20261017-003.png"
+    },
+    {
+      "position": 76,
+      "id": "minimal-20261017-008",
+      "label": "둥근 종이 책",
+      "src": "/stickers/minimal-20261017-008.png"
+    },
+    {
+      "position": 77,
+      "id": "minimal-20261017-013",
+      "label": "둥근 종이 벙어리장갑",
+      "src": "/stickers/minimal-20261017-013.png"
+    },
+    {
+      "position": 78,
+      "id": "minimal-20261017-014",
+      "label": "둥근 종이 양말",
+      "src": "/stickers/minimal-20261017-014.png"
+    },
+    {
+      "position": 79,
+      "id": "minimal-20261017-019",
+      "label": "둥근 종이 풍선",
+      "src": "/stickers/minimal-20261017-019.png"
+    },
+    {
+      "position": 80,
+      "id": "minimal-20261017-180",
+      "label": "레트로 플랫 여행 가방",
+      "src": "/stickers/minimal-20261017-180.png"
+    },
+    {
+      "position": 81,
+      "id": "pop-eyes",
+      "label": "팝 눈알",
+      "src": "/stickers/pop-eyes.png"
+    },
+    {
+      "position": 82,
+      "id": "minimal-20261017-061",
+      "label": "미니 픽셀 하트",
+      "src": "/stickers/minimal-20261017-061.png"
+    },
+    {
+      "position": 83,
+      "id": "minimal-20261017-062",
+      "label": "미니 픽셀 별",
+      "src": "/stickers/minimal-20261017-062.png"
+    },
+    {
+      "position": 84,
+      "id": "pixel-heart",
+      "label": "픽셀 하트",
+      "src": "/stickers/pixel-heart.png?v=2"
+    },
+    {
+      "position": 85,
+      "id": "minimal-20261017-064",
+      "label": "미니 픽셀 구름",
+      "src": "/stickers/minimal-20261017-064.png"
+    },
+    {
+      "position": 86,
+      "id": "pixel-cloud",
+      "label": "픽셀 구름",
+      "src": "/stickers/pixel-cloud.png"
+    },
+    {
+      "position": 87,
+      "id": "pixel-cherries",
+      "label": "픽셀 체리",
+      "src": "/stickers/pixel-cherries.png"
+    },
+    {
+      "position": 88,
+      "id": "minimal-20261017-066",
+      "label": "미니 픽셀 클로버",
+      "src": "/stickers/minimal-20261017-066.png"
+    },
+    {
+      "position": 89,
+      "id": "pixel-eyes",
+      "label": "픽셀 눈알",
+      "src": "/stickers/pixel-eyes.png?v=2"
+    },
+    {
+      "position": 90,
+      "id": "minimal-20261017-077",
+      "label": "미니 픽셀 웃는 얼굴",
+      "src": "/stickers/minimal-20261017-077.png"
+    },
+    {
+      "position": 91,
+      "id": "minimal-20261017-075",
+      "label": "미니 픽셀 마우스 화살표",
+      "src": "/stickers/minimal-20261017-075.png"
+    },
+    {
+      "position": 92,
+      "id": "minimal-20261017-076",
+      "label": "미니 픽셀 손가락 포인터",
+      "src": "/stickers/minimal-20261017-076.png"
+    },
+    {
+      "position": 93,
+      "id": "minimal-20261017-078",
+      "label": "미니 픽셀 유령",
+      "src": "/stickers/minimal-20261017-078.png"
+    },
+    {
+      "position": 94,
+      "id": "minimal-20261017-079",
+      "label": "미니 픽셀 고양이 얼굴",
+      "src": "/stickers/minimal-20261017-079.png"
+    },
+    {
+      "position": 95,
+      "id": "minimal-20261017-080",
+      "label": "미니 픽셀 말풍선",
+      "src": "/stickers/minimal-20261017-080.png"
+    },
+    {
+      "position": 96,
+      "id": "painted-cat",
+      "label": "페인팅 고양이",
+      "src": "/stickers/painted-cat.png"
+    },
+    {
+      "position": 97,
+      "id": "painted-bunny",
+      "label": "페인팅 토끼",
+      "src": "/stickers/painted-bunny.png"
+    },
+    {
+      "position": 98,
+      "id": "painted-leaf",
+      "label": "페인팅 나뭇잎",
+      "src": "/stickers/painted-leaf.png"
+    },
+    {
+      "position": 99,
+      "id": "painted-pretzel",
+      "label": "페인팅 프레첼",
+      "src": "/stickers/painted-pretzel.png"
+    },
+    {
+      "position": 100,
+      "id": "crayon-pudding",
+      "label": "크레용 푸딩",
+      "src": "/stickers/crayon-pudding.png"
+    },
+    {
+      "position": 101,
+      "id": "crayon-coffee",
+      "label": "크레용 커피잔",
+      "src": "/stickers/crayon-coffee.png"
+    },
+    {
+      "position": 102,
+      "id": "crayon-croissant",
+      "label": "크레용 크루아상",
+      "src": "/stickers/crayon-croissant.png"
+    },
+    {
+      "position": 103,
+      "id": "minimal-20261017-084",
+      "label": "밀키 클레이 토끼 얼굴",
+      "src": "/stickers/minimal-20261017-084.png"
+    },
+    {
+      "position": 104,
+      "id": "minimal-20261017-086",
+      "label": "밀키 클레이 오리",
+      "src": "/stickers/minimal-20261017-086.png"
+    },
+    {
+      "position": 105,
+      "id": "minimal-20261017-091",
+      "label": "밀키 클레이 하트",
+      "src": "/stickers/minimal-20261017-091.png"
+    },
+    {
+      "position": 106,
+      "id": "minimal-20261017-092",
+      "label": "밀키 클레이 별",
+      "src": "/stickers/minimal-20261017-092.png"
+    },
+    {
+      "position": 107,
+      "id": "minimal-20261017-097",
+      "label": "밀키 클레이 베이글",
+      "src": "/stickers/minimal-20261017-097.png"
+    },
+    {
+      "position": 108,
+      "id": "jelly-heart",
+      "label": "젤리 하트",
+      "src": "/stickers/jelly-heart.png"
+    },
+    {
+      "position": 109,
+      "id": "jelly-bean",
+      "label": "젤리빈",
+      "src": "/stickers/jelly-bean.png"
+    },
+    {
+      "position": 110,
+      "id": "jelly-bear",
+      "label": "젤리 곰",
+      "src": "/stickers/jelly-bear.png"
+    },
+    {
+      "position": 111,
+      "id": "chrome-heart",
+      "label": "크롬 하트",
+      "src": "/stickers/chrome-heart.png"
+    },
+    {
+      "position": 112,
+      "id": "chrome-star",
+      "label": "크롬 별",
+      "src": "/stickers/chrome-star.png"
+    },
+    {
+      "position": 113,
+      "id": "chrome-bolt",
+      "label": "크롬 번개",
+      "src": "/stickers/chrome-bolt.png"
+    }
+  ],
+  "removedItems": [
+    {
+      "id": "minimal-20261017-121",
+      "label": "심플 두들 웃는 얼굴",
+      "src": "/stickers/minimal-20261017-121.png"
+    },
+    {
+      "id": "doodle-20261017-003",
+      "label": "두들 윙크",
+      "src": "/stickers/doodle-20261017-003.png"
+    },
+    {
+      "id": "doodle-20261017-004",
+      "label": "두들 졸린 얼굴",
+      "src": "/stickers/doodle-20261017-004.png"
+    },
+    {
+      "id": "doodle-20261017-016",
+      "label": "두들 안도",
+      "src": "/stickers/doodle-20261017-016.png"
+    },
+    {
+      "id": "doodle-20261017-013",
+      "label": "두들 삐죽",
+      "src": "/stickers/doodle-20261017-013.png"
+    },
+    {
+      "id": "minimal-20261017-136",
+      "label": "심플 두들 편지",
+      "src": "/stickers/minimal-20261017-136.png"
+    },
+    {
+      "id": "minimal-20261017-188",
+      "label": "리본 문구 빈 티켓",
+      "src": "/stickers/minimal-20261017-188.png"
+    },
+    {
+      "id": "minimal-20261017-185",
+      "label": "리본 문구 마스킹 테이프",
+      "src": "/stickers/minimal-20261017-185.png"
+    },
+    {
+      "id": "minimal-20261017-187",
+      "label": "리본 문구 빈 태그",
+      "src": "/stickers/minimal-20261017-187.png"
+    },
+    {
+      "id": "stationery-20261017-118",
+      "label": "리본 문구 리본 책갈피",
+      "src": "/stickers/stationery-20261017-118.png"
+    },
+    {
+      "id": "stationery-20261017-150",
+      "label": "리본 문구 하트 우표",
+      "src": "/stickers/stationery-20261017-150.png"
+    },
+    {
+      "id": "stationery-20261017-138",
+      "label": "리본 문구 두 칸 티켓",
+      "src": "/stickers/stationery-20261017-138.png"
+    },
+    {
+      "id": "minimal-20261017-175",
+      "label": "레트로 플랫 카세트",
+      "src": "/stickers/minimal-20261017-175.png"
+    },
+    {
+      "id": "pop-heart",
+      "label": "팝 하트",
+      "src": "/stickers/pop-heart.png?v=2"
+    },
+    {
+      "id": "pop-star",
+      "label": "팝 별",
+      "src": "/stickers/pop-star.png?v=2"
+    },
+    {
+      "id": "pop-icecream",
+      "label": "팝 아이스크림",
+      "src": "/stickers/pop-icecream.png"
+    },
+    {
+      "id": "pop-balloon",
+      "label": "팝 풍선",
+      "src": "/stickers/pop-balloon.png"
+    },
+    {
+      "id": "pop-letter",
+      "label": "팝 편지",
+      "src": "/stickers/pop-letter.png"
+    },
+    {
+      "id": "pixel-star",
+      "label": "픽셀 별",
+      "src": "/stickers/pixel-star.png?v=2"
+    },
+    {
+      "id": "pixel-bubble",
+      "label": "픽셀 말풍선",
+      "src": "/stickers/pixel-bubble.png"
+    },
+    {
+      "id": "pixel-game",
+      "label": "픽셀 게임기",
+      "src": "/stickers/pixel-game.png"
+    },
+    {
+      "id": "rainbow",
+      "label": "파스텔 무지개",
+      "src": "/stickers/rainbow.png"
+    },
+    {
+      "id": "painted-dog",
+      "label": "페인팅 강아지",
+      "src": "/stickers/painted-dog.png"
+    },
+    {
+      "id": "jelly-star",
+      "label": "젤리 별",
+      "src": "/stickers/jelly-star.png"
+    },
+    {
+      "id": "pop-bubble",
+      "label": "팝 말풍선",
+      "src": "/stickers/pop-bubble.png"
+    }
+  ]
+}

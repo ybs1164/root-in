@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>스티커 순서 정리</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f8f7f3;color:#2a3354;font-family:system-ui,-apple-system,sans-serif}header{position:sticky;top:0;z-index:4;background:#f8f7f3f5;border-bottom:1px solid #dddfe5;padding:18px 24px}h1{margin:0 0 7px;font-size:23px}p{font-size:14px;line-height:1.65;margin:4px 0;color:#60677b}.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}button,input{font:inherit;color:inherit}button{min-height:42px;border:1px solid #cfd5e1;border-radius:10px;background:white;padding:8px 12px;cursor:pointer}button:disabled{opacity:.45;cursor:default}.primary{background:#47679b;border-color:#47679b;color:white}#status{font-size:13px;min-width:100px}#status.error{color:#a62f3c}#notice{padding:12px;border-radius:10px;background:#fff0d5;margin-top:10px}#notice[hidden]{display:none}main{max-width:1320px;margin:auto;padding:20px 24px 60px}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}.sticker{background:white;border:1px solid #e0e3e9;border-radius:14px;padding:10px;min-width:0;scroll-margin-top:230px}.sticker.dragging{opacity:.25}.top{display:flex;align-items:center;justify-content:space-between}.position{font-weight:750;font-size:18px;font-variant-numeric:tabular-nums}.handle{touch-action:none;cursor:grab;padding:8px 12px;font-size:20px;min-width:44px;user-select:none}.handle:active{cursor:grabbing}.preview{aspect-ratio:1;display:flex;align-items:center;justify-content:center;background:repeating-conic-gradient(#f3f4f6 0% 25%,#fff 0% 50%) 50%/16px 16px;border-radius:8px;margin:6px 0}.preview img{width:100%;height:100%;object-fit:contain;user-select:none;pointer-events:none}.label{font-size:13px;line-height:1.5;min-height:40px;margin-top:8px;overflow-wrap:anywhere}.original{font-size:11px;color:#7a8193;margin-bottom:8px}.move{display:flex;align-items:center;gap:5px;font-size:12px}.move input{width:58px;min-width:0;min-height:40px;border:1px solid #d9dee8;border-radius:8px;padding:6px;background:white}.move button{flex:1;padding:6px;min-height:40px;font-size:12px}button:focus-visible,input:focus-visible{outline:3px solid #91b5ec;outline-offset:2px}.ghost{position:fixed;z-index:10;width:140px;padding:10px;background:#fff;box-shadow:0 8px 28px #2a335440;border:2px solid #6c90d8;border-radius:14px;pointer-events:none;transform:translate(-50%,-35%)}.ghost img{width:100%;height:100px;object-fit:contain}.ghost span{display:block;font-size:12px}#count{margin-right:4px}#live{position:fixed;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}@media(max-width:500px){header{padding:12px 14px}h1{font-size:20px}main{padding:14px 12px 40px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.toolbar{gap:6px}button{padding:8px 10px;font-size:13px}.sticker{padding:9px}.label{min-height:39px}}
+.keep{display:flex;align-items:center;gap:7px;font-size:13px;min-height:40px;cursor:pointer}.keep input{width:21px;height:21px;accent-color:#47679b}.sticker.excluded{border-color:#e5bdc3;background:#fffafa}.excluded .position{font-size:13px;color:#ad5360}.excluded .move,.excluded .handle{display:none}#deletions{margin-top:40px;border-top:2px solid #e5cbd0;padding-top:20px}h2{font-size:20px;margin:0 0 8px}#deletedGrid{margin-top:16px}#emptyDeleted{padding:16px;background:white;border-radius:12px}
+</style>
+<header>
+  <h1>스티커 순서 정리</h1>
+  <p>앱에 표시되는 순서 그대로 불러옵니다. <b>⠿ 손잡이를 드래그</b>하거나 원하는 번호를 입력해 이동하세요.</p>
+  <p>체크를 해제하면 맨 아래 <a href="#deletions">삭제 목록</a>으로 이동합니다. 다시 체크하면 원래 위치로 복귀합니다. 앱에서는 나중에 적용할 때 제거됩니다.</p>
+  <p><b>정렬 완료 저장</b>을 누른 뒤 채팅에 <b>“정렬 완료”</b>라고 알려주시면 그 순서로 앱에 반영합니다.</p>
+  <div class="toolbar">
+    <strong id="count">목록 확인 중…</strong>
+    <button id="undo" disabled>실행 취소</button><button id="redo" disabled>다시 실행</button>
+    <button id="reset" disabled>앱 순서로 되돌리기</button>
+    <button id="finish" class="primary" disabled>정렬 완료 저장</button>
+    <button id="export" disabled>목록 파일 내보내기</button>
+    <button id="import" disabled>목록 파일 불러오기</button>
+    <input id="file" type="file" accept=".json,application/json" hidden>
+    <span id="status" role="status">불러오는 중…</span>
+  </div>
+  <div id="notice" hidden><span id="noticeText"></span> <button id="fresh">최신 앱 순서로 시작</button></div>
+</header>
+<main><div id="grid" class="grid" aria-label="전체 스티커 정렬 목록"></div><section id="deletions" aria-labelledby="deletedHeading"><h2 id="deletedHeading">삭제 목록 <span id="deletedCount">0개</span></h2><p>체크를 해제한 스티커입니다. 다시 체크하면 정렬 목록으로 돌아갑니다.</p><p id="emptyDeleted">삭제할 스티커가 없습니다.</p><div id="deletedGrid" class="grid" aria-label="삭제 예정 스티커 목록"></div></section></main>
+<div id="live" aria-live="polite"></div>
+<script>
+const $=id=>document.getElementById(id),grid=$('grid'),statusEl=$('status');
+const storageKey='root-in-sticker-order-v1';
+let catalogue,order=[],removed=new Set(),completed=false,locked=false,previousDocument=null;
+let history=[],future=[],revision=0,savedRevision=0,saveChain=Promise.resolve(),drag=null,animation=0;
+const nodes=new Map();
+function same(a,b){return JSON.stringify(a)===JSON.stringify(b);}
+function validate(doc){const ids=doc?.ids,known=catalogue.items.map(i=>i.id);if(doc?.catalogueHash!==catalogue.catalogueHash||!Array.isArray(ids)||ids.length!==known.length||new Set(ids).size!==known.length||ids.some(id=>!known.includes(id)))throw Error('현재 앱의 스티커 전체를 포함한 정렬 파일이 필요합니다.');const removed=doc.removedIds??[];if(!Array.isArray(removed)||new Set(removed).size!==removed.length||removed.some(id=>!ids.includes(id)))throw Error('삭제 목록이 올바르지 않습니다.');return ids;}
+function payload(){return {version:2,catalogueHash:catalogue.catalogueHash,ids:[...order],removedIds:order.filter(id=>removed.has(id)),completed};}
+function localSave(){try{localStorage.setItem(storageKey,JSON.stringify({...payload(),dirty:revision>savedRevision}));}catch(e){}}
+function message(text,error=false){statusEl.textContent=text;statusEl.className=error?'error':'';}
+function updateControls(){
+  $('count').textContent=`유지 ${order.length-removed.size}개 · 삭제 ${removed.size}개`;$('undo').disabled=locked||!history.length;$('redo').disabled=locked||!future.length;
+  for(const id of ['reset','finish','import'])$(id).disabled=locked;
+  $('export').disabled=false;$('finish').textContent=completed?'정렬 완료 저장됨':'정렬 완료 저장';
+}
+function save(){
+  const version=++revision,body=payload();localSave();message('저장 중…');
+  const task=saveChain.catch(()=>{}).then(async()=>{
+    const response=await fetch('/api/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const result=await response.json();if(!response.ok)throw Error(result.error||'저장에 실패했습니다.');
+    savedRevision=version;if(version===revision){localSave();message(body.completed?'정렬 완료 저장됨':'자동 저장됨');}
+  });
+  saveChain=task;
+  return task.then(()=>true,error=>{message(error.message+' · 목록 파일 내보내기로 백업할 수 있습니다.',true);return false;});
+}
+function snapshot(){return {ids:[...order],removedIds:[...removed]};}
+function restore(state){order=[...state.ids];removed=new Set(state.removedIds);}
+function active(){return order.filter(id=>!removed.has(id));}
+function mergeActive(ids){let index=0;return order.map(id=>removed.has(id)?id:ids[index++]);}
+function remember(before){history.push(before);if(history.length>60)history.shift();future=[];}
+function change(next,announcement,nextRemoved=[...removed]){if(locked||(same(next,order)&&same(nextRemoved,[...removed])))return;remember(snapshot());order=[...next];removed=new Set(nextRemoved);completed=false;render();save();$('live').textContent=announcement||'순서를 변경했습니다.';}
+function move(id,target){
+  if(locked||removed.has(id))return;const visible=active();
+  if(!Number.isInteger(target)||target<1||target>visible.length){message(`1부터 ${visible.length} 사이의 번호를 입력해주세요.`,true);return;}
+  const next=[...visible],from=next.indexOf(id);next.splice(from,1);next.splice(target-1,0,id);change(mergeActive(next),`${target}번으로 이동했습니다.`);
+}
+function makeCard(item,index){
+  const card=document.createElement('article');card.className='sticker';card.dataset.sticker=item.id;
+  const top=document.createElement('div');top.className='top';const position=document.createElement('span');position.className='position';
+  const handle=document.createElement('button');handle.className='handle';handle.textContent='⠿';handle.title='드래그 또는 방향키로 이동';handle.setAttribute('aria-label',`${item.label} 순서 이동 손잡이`);
+  handle.addEventListener('pointerdown',event=>{if(locked||event.button!==0)return;event.preventDefault();drag={id:item.id,before:snapshot(),startX:event.clientX,startY:event.clientY,x:event.clientX,y:event.clientY,started:false,card};});
+  handle.addEventListener('keydown',event=>{const columns=getComputedStyle(grid).gridTemplateColumns.split(/\s+/).length;const delta={ArrowLeft:-1,ArrowRight:1,ArrowUp:-columns,ArrowDown:columns}[event.key];if(!delta)return;event.preventDefault();move(item.id,Math.min(active().length,Math.max(1,active().indexOf(item.id)+1+delta)));});
+  top.append(position,handle);const preview=document.createElement('div');preview.className='preview';const img=document.createElement('img');img.src=item.src;img.alt=item.label;img.loading='lazy';img.draggable=false;preview.append(img);
+  const label=document.createElement('div');label.className='label';label.textContent=item.label;
+  const original=document.createElement('div');original.className='original';original.textContent=`앱 원래 순서 ${String(index+1).padStart(3,'0')}`;
+  const controls=document.createElement('div');controls.className='move';const input=document.createElement('input');input.type='number';input.min='1';input.max=String(catalogue.items.length);input.setAttribute('aria-label',`${item.label} 이동할 번호`);
+  const button=document.createElement('button');button.textContent='번으로 이동';button.setAttribute('aria-label',`${item.label} 입력한 번호로 이동`);button.addEventListener('click',()=>move(item.id,Number(input.value)));
+  input.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();move(item.id,Number(input.value));}});controls.append(input,button);card.append(top,preview,label,original,controls);
+  const keep=document.createElement('label');keep.className='keep';const check=document.createElement('input');check.type='checkbox';check.checked=true;check.setAttribute('aria-label',`${item.label} 앱에 유지`);const checkText=document.createElement('span');keep.append(check,checkText);card.insertBefore(keep,preview);
+  check.addEventListener('change',()=>{const next=new Set(removed);if(check.checked)next.delete(item.id);else next.add(item.id);change(order,check.checked?'정렬 목록으로 복귀했습니다.':'삭제 목록으로 이동했습니다.',[...next]);});
+  return {card,position,input,handle,button,check,checkText};
+}
+function render(){
+  if(!nodes.size)catalogue.items.forEach((item,index)=>nodes.set(item.id,makeCard(item,index)));
+  let position=0;order.forEach(id=>{const node=nodes.get(id),excluded=removed.has(id);if(!excluded)position++;node.position.textContent=excluded?'삭제 예정':String(position).padStart(3,'0');node.card.classList.toggle('excluded',excluded);node.check.checked=!excluded;node.check.disabled=locked;node.checkText.textContent=excluded?'다시 유지하기':'앱에 유지';if(document.activeElement!==node.input)node.input.value=excluded?'':String(position);node.input.max=String(order.length-removed.size);node.handle.disabled=locked||excluded;node.input.disabled=locked||excluded;node.button.disabled=locked||excluded;(excluded?$('deletedGrid'):grid).append(node.card);});$('deletedCount').textContent=removed.size+'개';$('emptyDeleted').hidden=removed.size>0;updateControls();
+}
+function dragFrame(){
+  if(!drag?.started)return;
+  const edge=60,header=document.querySelector('header').getBoundingClientRect().bottom;
+  const speed=drag.y>innerHeight-edge?14:drag.y<header+edge?-14:0;
+  if(speed)window.scrollBy(0,speed);
+  const hit=document.elementFromPoint(drag.x,drag.y)?.closest('[data-sticker]');
+  if(hit&&!removed.has(hit.dataset.sticker)&&hit.dataset.sticker!==drag.id){const next=active(),from=next.indexOf(drag.id),to=next.indexOf(hit.dataset.sticker);next.splice(from,1);next.splice(to,0,drag.id);order=mergeActive(next);render();}
+  animation=requestAnimationFrame(dragFrame);
+}
+window.addEventListener('pointermove',event=>{
+  if(!drag)return;drag.x=event.clientX;drag.y=event.clientY;
+  if(!drag.started&&Math.hypot(drag.x-drag.startX,drag.y-drag.startY)<6)return;
+  event.preventDefault();
+  if(!drag.started){drag.started=true;drag.card.classList.add('dragging');drag.ghost=document.createElement('div');drag.ghost.className='ghost';const image=drag.card.querySelector('img').cloneNode();const label=document.createElement('span');label.textContent=drag.card.querySelector('.label').textContent;drag.ghost.append(image,label);document.body.append(drag.ghost);animation=requestAnimationFrame(dragFrame);}
+  drag.ghost.style.left=drag.x+'px';drag.ghost.style.top=drag.y+'px';
+},{passive:false});
+function endDrag(cancel=false){if(!drag)return;cancelAnimationFrame(animation);const previous=drag.before;drag.card.classList.remove('dragging');drag.ghost?.remove();const started=drag.started;drag=null;if(cancel){restore(previous);render();return;}if(started&&!same(snapshot(),previous)){remember(previous);completed=false;render();save();$('live').textContent='드래그로 순서를 변경했습니다.';}}
+window.addEventListener('pointerup',()=>endDrag());window.addEventListener('pointercancel',()=>endDrag(true));window.addEventListener('keydown',event=>{if(event.key==='Escape')endDrag(true);});
+$('undo').addEventListener('click',()=>{if(!history.length)return;future.push(snapshot());restore(history.pop());completed=false;render();save();});
+$('redo').addEventListener('click',()=>{if(!future.length)return;history.push(snapshot());restore(future.pop());completed=false;render();save();});
+$('reset').addEventListener('click',()=>change(catalogue.items.map(i=>i.id),'앱의 현재 순서로 되돌렸습니다.',[]));
+$('finish').addEventListener('click',async()=>{completed=true;updateControls();$('finish').disabled=true;const ok=await save();if(!ok)completed=false;updateControls();});
+$('export').addEventListener('click',()=>{
+  const lookup=new Map(catalogue.items.map(i=>[i.id,i]));const documentData=previousDocument||{...payload(),items:active().map((id,index)=>({position:index+1,...lookup.get(id)})),removedItems:order.filter(id=>removed.has(id)).map(id=>lookup.get(id))};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(documentData,null,2)],{type:'application/json'}));const anchor=document.createElement('a');anchor.href=url;anchor.download='sticker-order.json';anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+$('import').addEventListener('click',()=>$('file').click());
+$('file').addEventListener('change',async event=>{try{const file=event.target.files[0];if(!file)return;if(file.size>65536)throw Error('파일이 너무 큽니다.');const doc=JSON.parse(await file.text());change(validate(doc),'불러온 순서와 삭제 목록을 저장했습니다.',doc.removedIds??[]);}catch(error){message(error.message,true);}finally{event.target.value='';}});
+$('fresh').addEventListener('click',async()=>{try{if(previousDocument)localStorage.setItem(storageKey+':previous',JSON.stringify(previousDocument));catalogue=await (await fetch('/api/catalogue',{cache:'no-store'})).json();order=catalogue.items.map(i=>i.id);removed=new Set();$('deletedGrid').replaceChildren();locked=false;previousDocument=null;completed=false;history=[];future=[];nodes.clear();grid.replaceChildren();$('notice').hidden=true;render();await save();}catch(error){message(error.message,true);}});
+window.addEventListener('beforeunload',event=>{if(revision>savedRevision||drag?.started){event.preventDefault();event.returnValue='';}});
+async function init(){try{
+  const response=await fetch('/api/catalogue',{cache:'no-store'});catalogue=await response.json();if(!response.ok)throw Error(catalogue.error);order=catalogue.items.map(i=>i.id);
+  let state=null;try{const saved=await fetch('/api/order',{cache:'no-store'});if(!saved.ok)throw Error();state=await saved.json();}catch(error){message('저장된 순서를 읽지 못했습니다. 잠시 후 새로고침해주세요.',true);throw error;}
+  let draft=null;try{draft=JSON.parse(localStorage.getItem(storageKey)||'null');}catch(error){}if(draft?.dirty)state=draft;
+  if(state){try{validate(state);order=[...state.ids];removed=new Set(state.removedIds??[]);completed=state.completed===true;}catch(error){if(Array.isArray(state.ids)&&same(state.ids.filter(id=>!(state.removedIds??[]).includes(id)),order)){completed=state.completed===true;}else{locked=true;previousDocument=state;$('noticeText').textContent='앱의 스티커 목록이 바뀌었습니다. 이전 정렬은 목록 파일로 백업할 수 있습니다. 최신 앱 순서에서 다시 시작해주세요.';$('notice').hidden=false;}}}
+  render();message(locked?'앱 목록 변경 · 이전 순서 보존됨':completed?'정렬 완료 저장됨':'준비됨 · 이동할 때 자동 저장');if(draft?.dirty&&!locked)save();
+}catch(error){message(error.message||'목록을 불러오지 못했습니다.',true);}}
+init();
+</script>
+</html>
