@@ -6251,33 +6251,6 @@ button:disabled {
   touch-action: pan-y;
 }
 
-.page__head {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 56px;
-  margin: 0 auto;
-  padding: 4px 8px 0 16px;
-}
-
-.page__head .icon-btn {
-  margin-left: auto;
-}
-
-.page__head h1 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-}
-
-.page__head,
-.page .sheet__content {
-  width: 100%;
-  max-width: 640px;
-  margin: 0 auto;
-}
-
 /* The map's own controls belong to the map screen. */
 .app--page:not(.app--page-moving) .search,
 .app--page:not(.app--page-moving) .corner-btn {

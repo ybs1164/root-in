@@ -1205,30 +1205,29 @@ export default function App() {
     };
   }, [aimable, searchService]);
 
-  // We Now is a page on top of the map: the phone's
-  // back button goes back to the map. Opening one pushes a history entry
-  // (going page to page keeps it); leaving some other way takes that entry
-  // back off, so back on the map leaves the app as before.
-  const calendarEntry = useRef(false);
+  // We Now is a page on top of the map: the phone's back button goes back to
+  // the map. Opening it pushes a history entry; leaving some other way takes
+  // that entry back off, so back on the map leaves the app as before.
+  const pageEntry = useRef(false);
   useEffect(() => {
-    if (tab !== 'pins' && !calendarEntry.current) {
-      calendarEntry.current = true;
+    if (tab !== 'pins' && !pageEntry.current) {
+      pageEntry.current = true;
       history.pushState({ rootIn: tab }, '');
-    } else if (tab === 'pins' && calendarEntry.current) {
-      calendarEntry.current = false;
+    } else if (tab === 'pins' && pageEntry.current) {
+      pageEntry.current = false;
       history.back();
     }
   }, [tab]);
   useEffect(() => {
     const pop = () => {
-      if (!calendarEntry.current) return;
+      if (!pageEntry.current) return;
       if (openGroup || todayOpen) {
         setOpenGroupId(null);
         setTodayOpen(false);
         history.pushState({ rootIn: tab }, '');
         return;
       }
-      calendarEntry.current = false;
+      pageEntry.current = false;
       // Back goes to the map, the page sliding off toward the side the map is on.
       if (onPage && (swipeTo.left === 'pins' || swipeTo.right === 'pins')) swipe.leave(swipeTo.left === 'pins' ? -1 : 1);
       else changeTab('pins');
@@ -1534,16 +1533,9 @@ export default function App() {
           {...swipe.handlers}
         >
           {calendarZoom && <DayPattern pattern={dayPattern} />}
-          {/* The calendar has no head bar: its own TODAY / DAY n heading takes the
-              stage and the 꾸미기 rail runs up to the top corner. We Now shows no
-              title either (named for screen readers only). */}
-          {calendarZoom || tab === 'people' ? (
-            <h1 className="sr-only">{PAGE_TITLES[tab]}</h1>
-          ) : (
-            <header className="page__head">
-              <h1>{PAGE_TITLES[tab]}</h1>
-            </header>
-          )}
+          {/* No head bar: TODAY's own heading takes the stage, and We Now shows
+              no title (named for screen readers only). */}
+          <h1 className="sr-only">{PAGE_TITLES[tab]}</h1>
           {calendarZoom ? (
             <CalendarZoom
               command={calendarCommand}

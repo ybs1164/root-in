@@ -1,10 +1,11 @@
 import { Plus, UserRound, Users } from 'lucide-react';
-import { useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { PinIcon, PinTint } from '../types/pin';
 import { groupPingCount, memberColor, tilePaths, type Group, type GroupMember } from '../domain/groups';
 import { edgeKey, pingKey, pingsLandedMs, type DayPing } from '../domain/dayPings';
 import { dateKey } from '../domain/diary';
 import { loadDays, saveDays, type DayStore } from '../services/dayRepository';
+import { onPulled } from '../services/syncBus';
 import ConfirmDialog from './ConfirmDialog';
 import DayPattern from './DayPattern';
 import DayPings from './DayPings';
@@ -104,12 +105,21 @@ function GroupTile({ group, fresh, onOpen }: { group: Group; fresh: number; onOp
 function TodayTile({ pings, pinLookOf, onOpen }: { pings: DayPing[]; pinLookOf: (ping: DayPing) => { icon: PinIcon; color: PinTint }; onOpen: () => void }) {
   const today = dateKey();
   const [days, setDays] = useState<DayStore>(loadDays);
-  const change = (next: (d: DayStore) => DayStore) =>
-    setDays((d) => {
-      const after = next(d);
-      saveDays(after);
-      return after;
-    });
+  // A change goes onto what's stored right now, not this card's copy: another
+  // phone's decorations may have come in since it was read.
+  const change = (next: (d: DayStore) => DayStore) => {
+    const after = next(loadDays());
+    saveDays(after);
+    setDays(after);
+  };
+  // …and when they do, the card shows them.
+  useEffect(
+    () =>
+      onPulled((changed) => {
+        if (changed.has('days')) setDays(loadDays());
+      }),
+    [],
+  );
   const decor = days.decor[today] ?? EMPTY_DECOR;
   const theme = decor.theme ?? 'default';
   // A press on a ping, a line or an open picker (its backdrop too) is the drawing's, not the card's.
