@@ -49,4 +49,13 @@ describe('privacy storage', () => {
     expect(parents.name).toHaveLength(10);
     expect(plain.name).toBeUndefined();
   });
+
+  it('keeps 집 and up to twenty more addresses', () => {
+    const others = Array.from({ length: 25 }, (_, i) => ({ id: `o${i}`, kind: 'other' as const, address: `주소 ${i}` }));
+    localStorage.setItem('goodroot:privacy:v1', JSON.stringify({ excluded: [{ id: 'home', kind: 'home', address: '집' }, ...others] }));
+    const kept = loadPrivacy().excluded;
+    expect(kept).toHaveLength(21);
+    expect(kept[0].kind).toBe('home');
+    expect(kept[20].id).toBe('o19');
+  });
 });

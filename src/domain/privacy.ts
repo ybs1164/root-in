@@ -20,8 +20,8 @@ export interface ExcludedPlace {
 export const PRIVACY_LIMITS = {
   address: 80,
   name: 10,
-  /** 집 plus up to five more. */
-  maxPlaces: 6,
+  /** 집 plus up to twenty more (five until 2026-10-19). */
+  maxPlaces: 21,
 } as const;
 
 /** A shared place this close to an excluded address counts as that address (same building, its entrance, …). */

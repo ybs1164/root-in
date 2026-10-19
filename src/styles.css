@@ -8139,6 +8139,12 @@ button:disabled {
   margin-bottom: 0;
 }
 
+/* A whole screen here, not a popup: the addresses run on down the page (it scrolls). */
+.settings__page .privacy__list {
+  max-height: none;
+  overflow-y: visible;
+}
+
 /* The page sliding in is the only motion: its sections don't also unfold
    the way they do opening on the profile (2026-10-19). */
 .settings__page .privacy,
