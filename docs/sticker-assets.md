@@ -282,3 +282,18 @@ Removed 13 stickers using their positions in the previous 81-item tray: 3, 9, 15
 ## Latest tray order — 2026-10-07
 
 The tray now follows paper → pop → pixel → painted → crayon → jelly 3D → chrome → speech bubbles. Removed the crayon gift and ribbon and pixel ghost. Pixel order is heart → yellow star → sparkle star → moon → planet → game console → drink → cloud → clover → cherries → eyes. Earlier revision notes document historical changes.
+
+
+## Selected doodle and pastel stationery — 2026-10-19
+
+Added only the completed checklist selections: 26 doodle, 21 ribbon stationery, and 25 pastel stationery stickers (sky blue8, mint6, lavender5, butter yellow6), 72 total. Doodle additions follow existing doodles; ribbon stationery and pastel additions follow existing ribbon stationery. Original transparent PNGs are copied unchanged, and all existing sticker IDs remain stable.
+
+The exact batch IDs, approved checklist numbers, app IDs, labels, SHA-256 hashes and generation prompts are recorded in [selected-sticker-assets-20261019.json](selected-sticker-assets-20261019.json). The unselected previews remain outside app assets.
+
+## Sticker ordering tool
+
+Run `python3 tools/sticker-order/server.py` and open http://127.0.0.1:5178/ to rearrange the current active tray. Changes are saved to `output/sticker-order/order.json`; the app order stays unchanged until the user finishes and requests application. See [the tool guide](../tools/sticker-order/README.md) for ID validation, backups, and the explicit apply command.
+
+## Applied saved tray — 2026-10-19
+
+Applied the completed ordering checklist exactly: 113 active stickers and 25 unchecked stickers hidden from the tray. Existing artwork can still resolve every hidden sticker by ID; PNG assets remain intact. The approved full order and removal IDs are recorded in [sticker-order-20261019.json](sticker-order-20261019.json).
