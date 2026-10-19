@@ -98,7 +98,7 @@ const STATES = {
   'calendar': async (page) => { await click(page, 'We Now'); await click(page, /^TODAY/); },
   'calendar-month': async (page) => { await click(page, 'We Now'); await click(page, /^TODAY/); await click(page, '월 달력'); },
   'profile': async (page) => { await click(page, '프로필'); },
-  'profile-account': async (page) => { await click(page, '프로필'); await click(page, '계정·약관·정책'); },
+  'profile-account': async (page) => { await click(page, '프로필'); await click(page, '설정'); await click(page, '계정 관리'); },
   'profile-edit': async (page) => {
     await click(page, '프로필');
     await click(page, '아이디 수정');

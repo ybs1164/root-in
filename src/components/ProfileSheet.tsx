@@ -87,7 +87,7 @@ export default function ProfileSheet({ profile, onChange, onNickname, account, p
       }}
     >
       <div className="profile ticket-dialog__main">
-        {/* Top right: ⚙ → 설정 (소리, 알림, 디스플레이 및 언어, 계정·약관·정책 moved there). */}
+        {/* Top right: ⚙ → 설정 (소리, 알림, 디스플레이 및 언어, 계정 관리, 약관 및 정책 moved there). */}
         <div className="profile__switches">
           <button className="profile__switch" aria-label="설정" onClick={() => setSettingsOpen(true)}>
             <Settings size={20} aria-hidden />
@@ -149,7 +149,19 @@ export default function ProfileSheet({ profile, onChange, onNickname, account, p
 
       {/* Past the tear line: 제외 주소 설정 (the rest of the settings are behind ⚙). */}
       <div className="ticket-dialog__stub profile__stub">{privacyPart}</div>
-      {settingsOpen && <SettingsScreen profile={profile} onChange={onChange} account={account} privacy={privacy} onClose={() => setSettingsOpen(false)} />}
+      {/* Leaving 설정 (‹ on its list, Esc, the phone's back) closes the profile too, back to where it was opened. */}
+      {settingsOpen && (
+        <SettingsScreen
+          profile={profile}
+          onChange={onChange}
+          account={account}
+          privacy={privacy}
+          onClose={() => {
+            setSettingsOpen(false);
+            onClose();
+          }}
+        />
+      )}
     </dialog>
   );
 }

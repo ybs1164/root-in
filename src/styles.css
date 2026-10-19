@@ -7971,7 +7971,7 @@ button:disabled {
   height: 100dvh;
   max-height: none;
   margin: 0;
-  padding: var(--safe-top) 0 var(--safe-bottom);
+  padding: 0;
   border: 0;
   background: var(--bg);
   color: var(--text);
@@ -8024,14 +8024,33 @@ button:disabled {
   margin: 0 auto;
 }
 
-/* A page comes in from the side it's going: a detail page from the right, the list back from the left. */
-.settings__page.is-forward {
-  animation: settings-page-in 0.26s var(--slide-ease) both;
+/* The list's screen, and a detail screen over it: that one comes in from
+   the right and, going back, slides out to the right again (2026-10-19). */
+.settings__screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--safe-top) 0 var(--safe-bottom);
+  background: var(--bg);
 }
 
-.settings__page.is-back {
-  --from: -24%;
-  animation: settings-page-in 0.26s var(--slide-ease) both;
+.settings__screen--detail {
+  z-index: 1;
+  box-shadow: var(--shadow);
+  /* One layer, painted whole before it moves: it starts off screen, and
+     without this its contents were painted in only as they slid into view,
+     trailing the page's own background. */
+  will-change: translate;
+  backface-visibility: hidden;
+  contain: layout paint;
+  animation: settings-in 0.26s var(--slide-ease) both;
+}
+
+.settings__screen--detail.is-leaving {
+  /* PAGE_OUT_MS in SettingsScreen.tsx */
+  animation: settings-screen-out 0.26s var(--slide-ease) both;
+  pointer-events: none;
 }
 
 .settings__list {
@@ -8117,6 +8136,13 @@ button:disabled {
   margin-bottom: 0;
 }
 
+/* The page sliding in is the only motion: its sections don't also unfold
+   the way they do opening on the profile (2026-10-19). */
+.settings__page .privacy,
+.settings__page .profile__actions {
+  animation: none;
+}
+
 .settings__account {
   display: grid;
   gap: 12px;
@@ -8128,17 +8154,16 @@ button:disabled {
   }
 }
 
-@keyframes settings-page-in {
-  from {
-    opacity: 0;
-    translate: var(--from, 24%) 0;
+@keyframes settings-screen-out {
+  to {
+    translate: 100% 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .settings[open],
-  .settings__page.is-forward,
-  .settings__page.is-back {
+  .settings__screen--detail,
+  .settings__screen--detail.is-leaving {
     animation: none;
   }
 }
