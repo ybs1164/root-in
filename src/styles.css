@@ -7979,13 +7979,17 @@ button:disabled {
 }
 
 .settings[open] {
+  /* Up and down scroll as usual; a sideways move is the swipe back. */
+  touch-action: pan-y;
   display: flex;
   flex-direction: column;
   animation: settings-in 0.26s var(--slide-ease) both;
 }
 
+/* No grey of its own: it slides in over the profile's (which goes once it's
+   covered), and sliding off it uncovers the screen as it was. */
 .settings::backdrop {
-  background: var(--backdrop);
+  background: transparent;
 }
 
 .settings__head {
@@ -8047,9 +8051,8 @@ button:disabled {
   animation: settings-in 0.26s var(--slide-ease) both;
 }
 
+/* Sliding back out (SettingsScreen plays it, from wherever a swipe let go). */
 .settings__screen--detail.is-leaving {
-  /* PAGE_OUT_MS in SettingsScreen.tsx */
-  animation: settings-screen-out 0.26s var(--slide-ease) both;
   pointer-events: none;
 }
 
@@ -8154,16 +8157,9 @@ button:disabled {
   }
 }
 
-@keyframes settings-screen-out {
-  to {
-    translate: 100% 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .settings[open],
-  .settings__screen--detail,
-  .settings__screen--detail.is-leaving {
+  .settings__screen--detail {
     animation: none;
   }
 }

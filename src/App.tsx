@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import { useBackButton } from './hooks/useBackButton';
 import { closeTopDialog } from './lib/native';
 import BottomBar from './components/BottomBar';
+import SettingsScreen from './components/SettingsScreen';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
 import NewPinCard, { type NewPinInput } from './components/NewPinCard';
 import PinCard from './components/PinCard';
@@ -136,6 +137,7 @@ export default function App() {
 
   const [tab, setTab] = useState<AppTab>('pins');
   const [profileOpen, setProfileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [profile, setProfile] = useState(loadProfile);
   // 로그인: the account's profile replaces this one on sign-in, and changes go up after.
   const account = useAccount(profile, (next) => {
@@ -443,6 +445,15 @@ export default function App() {
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
   // 제외 주소 are located with the same place search (search failing just leaves the address text to match).
   const privacy = usePrivacy(async (address) => (await searchService?.search(address))?.[0]?.center ?? null);
+  // 제외 주소 설정 as the profile and 설정 both show it.
+  const privacyProps = {
+    places: privacy.excluded,
+    resolving: privacy.resolving,
+    onAddress: privacy.setAddress,
+    onName: privacy.setName,
+    onAdd: privacy.add,
+    onRemove: privacy.remove,
+  };
 
   // The trays and the bottom bar cover part of the map; fit and focus around them.
   const mapPadding = useCallback((extraBottom = 0): MapPadding => {
@@ -1787,19 +1798,29 @@ export default function App() {
           onChange={changeProfile}
           onNickname={(nickname) => account.push(profile, nickname)}
           account={account}
-          privacy={{
-            places: privacy.excluded,
-            resolving: privacy.resolving,
-            onAddress: privacy.setAddress,
-            onName: privacy.setName,
-            onAdd: privacy.add,
-            onRemove: privacy.remove,
-          }}
+          privacy={privacyProps}
           privacyNotice={hasHome(privacy.excluded) ? null : privacyNotice}
+          // 설정 slides in over the profile; the profile (and its grey) goes once it's covered.
+          onSettings={() => setSettingsOpen(true)}
           onClose={() => {
             setProfileOpen(false);
             setPrivacyNotice(null);
           }}
+        />
+      )}
+      {/* 설정, opened from the profile's ⚙: the profile closes once 설정 covers the screen,
+          so leaving 설정 goes back to the screen under it, with no grey left over. */}
+      {settingsOpen && (
+        <SettingsScreen
+          profile={profile}
+          onChange={changeProfile}
+          account={account}
+          privacy={privacyProps}
+          onCovered={() => {
+            setProfileOpen(false);
+            setPrivacyNotice(null);
+          }}
+          onClose={() => setSettingsOpen(false)}
         />
       )}
       {categoriesOpen && (
