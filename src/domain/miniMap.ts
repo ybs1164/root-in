@@ -1,4 +1,5 @@
 import type { AdminArea } from './adminAreas';
+import type { BaseMap } from './baseMap';
 import { pingOverlap } from './stopLabels';
 import type { Bbox, LonLat } from './districtMap';
 
@@ -220,8 +221,12 @@ export interface MapPart {
   blur?: number;
   /** Rings of one polygon with holes (areas on a real map): filled with the even-odd rule. */
   evenodd?: boolean;
-  /** Cut the polygons' own outlines out of the part, this wide: the borders between areas become see-through gaps. */
-  gaps?: number;
+  /** Polylines (real roads), drawn `w` wide in the part's colour with round ends and joins. */
+  ways?: { path: MapPoint[]; w: number }[];
+  /** Only what lies inside these rings (even-odd) is drawn: the real map's features kept to the lump. */
+  clip?: MapPoint[][];
+  /** Also stroke the polygons in their own colour, this wide: hides the hairline seams where pieces meet. */
+  seal?: number;
 }
 
 const TOP: MapFill = { role: 'land' };
@@ -562,10 +567,15 @@ export function miniMapLayers(points: MapPoint[], style: MiniMapId, centers?: Lo
   return parts;
 }
 
-/** What the real map is made of: the areas around the stops (lon/lat), split into 읍면동, and whole neighbours. */
+/**
+ * What the real map is made of: the areas around the stops (lon/lat), split
+ * into 읍면동, and whole neighbours; and the base map over them (land, so
+ * water where there is none; parks; roads) when it could be had.
+ */
 export interface TerrainShapes {
   parts: AdminArea[];
   others: AdminArea[];
+  base?: BaseMap | null;
 }
 
 /** One screen pixel is this many metres on the real map: neighbourhood scale, where the areas are 읍면동. */
@@ -800,9 +810,19 @@ export function terrainViewport(centers: LonLat[]) {
   return { bounds: window, widthPx: Math.max(1, widthM / TERRAIN_MPP) };
 }
 
-/** The lump's one tone, and how wide the see-through gap between two areas is. */
 const LAND: MapFill = { role: 'land' };
-const GAP_W = 0.005;
+const WATER: MapFill = { role: 'water' };
+const PARK: MapFill = { role: 'park' };
+/** How wide the seal stroke over the seams between pieces of one fill is (unit square). */
+const SEAL = 0.002;
+/**
+ * Road tiers the real map keeps, and their widths (unit square): only
+ * motorways and trunks, the city's corridors. Main roads (tier 2) made a
+ * dense white mesh at this size and took the quiet out of the land.
+ */
+const BIG_ROAD_WIDTH: Partial<Record<number, number>> = { 1: 0.008 };
+/** Parks smaller than this across (unit square) are left out: specks, not places. */
+const MIN_PARK = 0.012;
 
 /** Douglas-Peucker: drops points closer than `tol` to the line the ones around them make. */
 function simplify(ring: MapPoint[], tol: number): MapPoint[] {
@@ -825,28 +845,62 @@ function simplify(ring: MapPoint[], tol: number): MapPoint[] {
   return ring.filter((_, i) => keep[i]);
 }
 
+/** The box (lon/lat) around the lump's areas. */
+export const lumpBox = (lump: AdminArea[]): Bbox => ({
+  west: Math.min(...lump.map((a) => a.bbox.west)),
+  east: Math.max(...lump.map((a) => a.bbox.east)),
+  south: Math.min(...lump.map((a) => a.bbox.south)),
+  north: Math.max(...lump.map((a) => a.bbox.north)),
+});
+
+const pathBox = (path: LonLat[]): Bbox => ({
+  west: Math.min(...path.map((p) => p[0])),
+  east: Math.max(...path.map((p) => p[0])),
+  south: Math.min(...path.map((p) => p[1])),
+  north: Math.max(...path.map((p) => p[1])),
+});
+
 /**
- * 상세: the real map as one lump. The areas of the lump (see `lumpAreas`)
- * keep their own angular outlines, projected on the same layout as the stops
- * and tilted with it, in one tone and parted by see-through gaps where their
- * borders are; a soft shadow lies below, unbroken, so it shows through the gaps. Nothing is cut to a window.
- * Empty when there is no data.
+ * 상세: the real map, cut to one lump. The lump's outline is that of the
+ * 읍면동 around the stops (see `lumpAreas`), but what is drawn inside it is
+ * what people know a place by (Lynch): water as the edges, parks as the
+ * districts, the big roads as the paths, all from the base map; the borders
+ * between 읍면동, which nobody sees on the ground, are not drawn. Everything
+ * is projected on the same layout as the stops and tilted with it, over a soft
+ * shadow. With no base map the lump is plain land. Empty when there is no data.
  */
 export function terrainParts(shapes: TerrainShapes | null, centers: LonLat[], distance: MapDistance = 'true'): MapPart[] {
   const lump = lumpAreas(shapes, centers, powerOf(distance));
   if (!lump.length) return [];
   const project = terrainProject(centers, lump, distance);
-  const areas = lump.flatMap((a) =>
-    a.polygons.map((rings) => ({
-      code: a.code,
-      rings: rings.map((ring) => simplify(ring.map(project), 0.0007)).filter((ring) => ring.length >= 4),
-    })),
-  ).filter((a) => a.rings.length);
-  const rings = areas.flatMap((a) => a.rings);
+  const shape = (rings: LonLat[][], tol = 0.0007) => rings.map((ring) => simplify(ring.map(project), tol)).filter((ring) => ring.length >= 4);
+  const rings = lump.flatMap((a) => a.polygons.flatMap((polygon) => shape(polygon)));
+  const shadow = part({ polys: rings }, SHADOW, { dy: SHADOW_DY, blur: SHADOW_BLUR, evenodd: true });
+  const base = shapes?.base;
+  if (!base) return [shadow, part({ polys: rings }, LAND, { evenodd: true, seal: SEAL })];
+
+  const box = lumpBox(lump);
+  const near = (path: LonLat[]) => overlaps(pathBox(path), box);
+  const polygons = (list: BaseMap['land']) => list.filter((polygon) => polygon[0] && near(polygon[0])).map((polygon) => shape(polygon)).filter((polygon) => polygon.length);
+  const across = (polygon: MapPoint[][]) => {
+    const xs = polygon[0].map((p) => p.x);
+    const ys = polygon[0].map((p) => p.y);
+    return Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+  };
+  const land = polygons(base.land).flat();
+  const parks = polygons(base.parks).filter((polygon) => across(polygon) >= MIN_PARK).flat();
+  const ways = base.roads
+    .filter((road) => BIG_ROAD_WIDTH[road.tier] !== undefined && near(road.path))
+    // Narrow first, so the wide roads lie over them where they meet.
+    .sort((a, b) => b.tier - a.tier)
+    .map((road) => ({ path: simplify(road.path.map(project), 0.001), w: BIG_ROAD_WIDTH[road.tier]! }));
+  const clip = rings;
   return [
-    // The shadow: the areas' shapes, below them, soft and whole, so it shows through the gaps between the areas.
-    part({ polys: rings }, SHADOW, { dy: SHADOW_DY, blur: SHADOW_BLUR, evenodd: true }),
-    // The areas in one tone, parted by see-through gaps where their borders are.
-    part({ polys: rings }, LAND, { evenodd: true, gaps: GAP_W }),
+    shadow,
+    // The lump is water first; the land lies over it, so the rivers are what land leaves open.
+    part({ polys: rings }, WATER, { evenodd: true, seal: SEAL }),
+    part({ polys: land }, LAND, { evenodd: true, seal: SEAL, clip }),
+    part({ polys: parks }, PARK, { evenodd: true, clip }),
+    part({}, ROAD, { ways, clip }),
   ];
 }

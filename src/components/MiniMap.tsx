@@ -41,11 +41,10 @@ export default function MiniMap({ points, centers, style, distance, terrain }: {
       <defs>
         {parts.map(
           (part, i) =>
-            part.gaps && (
-              <mask key={`m${i}`} id={`${id}-g${i}`} maskUnits="userSpaceOnUse" x="-0.5" y="-0.5" width="2" height="2">
-                <rect x="-0.5" y="-0.5" width="2" height="2" style={{ fill: 'var(--mask-show)' }} />
-                <path d={pathOf(part.polys)} fillRule="evenodd" strokeWidth={part.gaps} strokeLinejoin="round" style={{ fill: 'none', stroke: 'var(--mask-hide)' }} />
-              </mask>
+            part.clip && (
+              <clipPath key={`c${i}`} id={`${id}-c${i}`}>
+                <path d={pathOf(part.clip)} clipRule="evenodd" />
+              </clipPath>
             ),
         )}
         {parts.map(
@@ -59,13 +58,32 @@ export default function MiniMap({ points, centers, style, distance, terrain }: {
       </defs>
       {parts.map((part, i) => {
         const colour = fillCss(part.fill);
+        // Polylines of one width go in one path: a real map has hundreds of roads.
+        const widths = [...new Set((part.ways ?? []).map((way) => way.w))];
         return (
-          <g key={i} opacity={part.fill.alpha} filter={part.blur ? `url(#${id}-b${i})` : undefined} mask={part.gaps ? `url(#${id}-g${i})` : undefined}>
-            {/* Moved down inside the masked group: the gaps stay where the borders are, whatever lies below. */}
+          <g key={i} opacity={part.fill.alpha} filter={part.blur ? `url(#${id}-b${i})` : undefined} clipPath={part.clip ? `url(#${id}-c${i})` : undefined}>
             <g transform={part.dy ? `translate(0 ${part.dy})` : undefined}>
-              {part.polys.length > 0 && <path d={pathOf(part.polys, !part.evenodd)} fillRule={part.evenodd ? 'evenodd' : 'nonzero'} style={{ fill: colour }} />}
+              {part.polys.length > 0 && (
+                <path
+                  d={pathOf(part.polys, !part.evenodd)}
+                  fillRule={part.evenodd ? 'evenodd' : 'nonzero'}
+                  strokeWidth={part.seal}
+                  strokeLinejoin="round"
+                  style={{ fill: colour, stroke: part.seal ? colour : 'none' }}
+                />
+              )}
               {part.lines.map(({ a, b, w }, j) => (
                 <line key={`l${j}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} strokeWidth={w} strokeLinecap="round" style={{ stroke: colour }} />
+              ))}
+              {widths.map((w) => (
+                <path
+                  key={`w${w}`}
+                  d={part.ways!.filter((way) => way.w === w).map((way) => `M${way.path.map((p) => `${p.x.toFixed(4)} ${p.y.toFixed(4)}`).join('L')}`).join('')}
+                  strokeWidth={w}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ fill: 'none', stroke: colour }}
+                />
               ))}
             </g>
           </g>

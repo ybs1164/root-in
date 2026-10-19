@@ -134,17 +134,16 @@ describe('미니맵', () => {
     // Only the areas reaching the stops make the lump, each whole (nothing cut to a window).
     expect(lumpAreas(shapes, centers).map((a) => a.code)).toEqual(['a', 'b']);
     const parts = terrainParts(shapes, centers);
-    // One tone for every area, parted by see-through gaps (cut out along their borders), not painted lines.
+    // With no base map: one tone of land, the borders between the areas sealed over (nobody sees them on the ground).
     const fills = parts.filter((p) => p.evenodd && p.fill.alpha === undefined);
     expect(fills).toHaveLength(1);
+    expect(fills[0].fill.role).toBe('land');
     const filled = fills[0].polys;
     expect(filled).toHaveLength(2);
-    expect(fills[0].gaps).toBeGreaterThan(0);
+    expect(fills[0].seal).toBeGreaterThan(0);
     const shadow = parts.filter((p) => p.fill.alpha !== undefined);
     expect(shadow).toHaveLength(1);
     expect(shadow[0].dy).toBeGreaterThan(0);
-    // The shadow is whole (no gaps cut in it), so it shows through the land's gaps.
-    expect(shadow[0].gaps).toBeUndefined();
     // Every stop is on one of the areas, at the real scale.
     const spots = viewPoints(centers, { shape: 'detail', distance: 'true' }, shapes);
     expect(spots.every((p) => filled.some((ring) => inPolygon(p, ring)))).toBe(true);
@@ -157,6 +156,33 @@ describe('미니맵', () => {
     // No data: nothing is drawn, and the stops fit themselves.
     expect(terrainParts(null, centers)).toEqual([]);
     expect(uniformProjection(centers).window.west).toBeLessThan(126.98);
+  });
+
+  it('상세 with a base map: water, land, parks and only the big roads, all kept to the lump', () => {
+    const centers: [number, number][] = [[126.98, 37.56], [127.0, 37.57]];
+    const square = (west: number, east: number, south: number, north: number): [number, number][] => [[west, south], [east, south], [east, north], [west, north], [west, south]];
+    const area = (code: string, west: number, east: number): AdminArea => ({ code, name: code, bbox: { west, east, south: 37.54, north: 37.58 }, polygons: [[square(west, east, 37.54, 37.58)]] });
+    const road = (tier: 1 | 2 | 3, lat: number) => ({ tier, path: [[126.96, lat], [127.02, lat]] as [number, number][] });
+    const shapes = {
+      parts: [area('a', 126.97, 126.99), area('b', 126.99, 127.01)],
+      others: [],
+      base: {
+        // Land north of a river along 37.55, a park in it, and roads of three tiers.
+        land: [[square(126.9, 127.1, 37.552, 37.6)]],
+        parks: [[square(126.975, 126.985, 37.565, 37.575)], [square(126.99, 126.9901, 37.57, 37.5701)]],
+        roads: [road(1, 37.555), road(2, 37.565), road(3, 37.575)],
+      },
+    };
+    const parts = terrainParts(shapes, centers);
+    expect(parts.map((p) => p.fill.role)).toEqual(['shadow', 'water', 'land', 'park', 'road']);
+    const [, water, land, park, roads] = parts;
+    // The lump is water under the land, so the river shows where there is no land; the rest is kept to the lump.
+    expect(water.polys).toHaveLength(2);
+    expect(water.clip).toBeUndefined();
+    for (const p of [land, park, roads]) expect(p.clip).toEqual(water.polys);
+    // A speck of a park is left out; of the roads only the motorway (the main roads made a busy mesh).
+    expect(park.polys).toHaveLength(1);
+    expect(roads.ways).toHaveLength(1);
   });
 
   it('the lump takes the areas the circle around the stops reaches, and fills its dents', () => {
@@ -264,7 +290,7 @@ describe('미니맵', () => {
 
     it('every distance draws the real areas under their own stops', () => {
       for (const distance of DISTANCES) {
-        const land = terrainParts(shapes, centers, distance).find((p) => p.gaps)!;
+        const land = terrainParts(shapes, centers, distance).find((p) => p.fill.role === 'land')!;
         const spots = viewPoints(centers, miniMapView('detail', distance), shapes);
         // jung holds the first three, jamsil the last.
         expect(spots.every((p, i) => inPolygon(p, land.polys[i < 3 ? 0 : 1]))).toBe(true);

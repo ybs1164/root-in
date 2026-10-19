@@ -520,6 +520,15 @@ function drawMiniMap(ctx: CanvasRenderingContext2D, c: Tokens, points: { x: numb
     g.fillStyle = fill;
     g.strokeStyle = fill;
     const dy = part.dy ?? 0;
+    // The real map's features are kept to the lump.
+    if (part.clip) {
+      g.beginPath();
+      for (const ring of part.clip) {
+        ring.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)));
+        g.closePath();
+      }
+      g.clip('evenodd');
+    }
     // Areas with holes are one path (even-odd); the abstract land is one shape per polygon.
     const trace = (rings: { x: number; y: number }[][]) => {
       g.beginPath();
@@ -531,6 +540,11 @@ function drawMiniMap(ctx: CanvasRenderingContext2D, c: Tokens, points: { x: numb
     if (part.evenodd) {
       trace(part.polys);
       g.fill('evenodd');
+      // Over the hairline seams where pieces of one fill meet.
+      if (part.seal) {
+        g.lineWidth = part.seal;
+        g.stroke();
+      }
     } else {
       for (const poly of part.polys) {
         trace([poly]);
@@ -544,6 +558,12 @@ function drawMiniMap(ctx: CanvasRenderingContext2D, c: Tokens, points: { x: numb
       g.lineTo(b.x, b.y + dy);
       g.stroke();
     }
+    for (const { path, w } of part.ways ?? []) {
+      g.lineWidth = w;
+      g.beginPath();
+      path.forEach((p, i) => (i ? g.lineTo(p.x, p.y + dy) : g.moveTo(p.x, p.y + dy)));
+      g.stroke();
+    }
     g.restore();
   };
 
@@ -552,11 +572,11 @@ function drawMiniMap(ctx: CanvasRenderingContext2D, c: Tokens, points: { x: numb
   ctx.scale(BOX.size, BOX.size);
   for (const part of view.shape === 'detail' ? terrainParts(terrain, centers, view.distance) : miniMapLayers(unit, view.shape, centers)) {
     const faded = part.fill.alpha !== undefined && part.fill.alpha < 1;
-    if (!faded && !part.gaps) {
+    if (!faded) {
       paintPart(ctx, part, colour(part.fill));
       continue;
     }
-    // On its own canvas (the unit square mapped to the box): the gaps are cut out of it, then it is blurred and faded as one.
+    // On its own canvas (the unit square mapped to the box), then blurred and faded as one.
     const layer = document.createElement('canvas');
     layer.width = POLAROID.w;
     layer.height = POLAROID.h;
@@ -564,18 +584,6 @@ function drawMiniMap(ctx: CanvasRenderingContext2D, c: Tokens, points: { x: numb
     g.translate(BOX.x, BOX.y);
     g.scale(BOX.size, BOX.size);
     paintPart(g, part, colour(part.fill));
-    if (part.gaps) {
-      // Cut where the borders are (not moved down with a shadow), so the gaps are clear all the way through.
-      g.globalCompositeOperation = 'destination-out';
-      g.lineWidth = part.gaps;
-      g.lineJoin = 'round';
-      g.beginPath();
-      for (const poly of part.polys) {
-        poly.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)));
-        g.closePath();
-      }
-      g.stroke();
-    }
     // Back to the card's own pixels (the layer is drawn in them), so it turns and scales with the card.
     ctx.save();
     ctx.scale(1 / BOX.size, 1 / BOX.size);
