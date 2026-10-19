@@ -6249,6 +6249,11 @@ button:disabled {
   display: none;
 }
 
+/* …except We Now's own profile button, top right on its page. */
+.app--page .page .corner-btn--profile {
+  display: grid;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -7106,4 +7111,946 @@ button:disabled {
     opacity: 0;
     translate: var(--anim-x, 0px) -6px;
   }
+}
+
+/* ---------- We Now: groups (2026-10-16) ---------- */
+/* The first screen: WE NOW where TODAY sits, then a two-column grid of group
+   tiles (each a little map of its members' pings today) and a + tile. */
+.we-now {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  /* Clear of the bottom row's big button. */
+  padding: 0 14px 132px;
+}
+
+.we-now__title {
+  margin: 0;
+  padding-top: 108px;
+  color: var(--text);
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  font-size: 56px;
+  font-weight: 400;
+  line-height: 1;
+  text-align: center;
+}
+
+.we-now__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  max-width: 560px;
+  margin: 26px auto 0;
+}
+
+.group-tile {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  text-align: left;
+}
+
+.group-tile:active {
+  transform: scale(0.98);
+}
+
+.group-tile__map {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--map-bg);
+}
+
+.group-cover__area {
+  fill: var(--map-area);
+}
+
+.group-cover__other {
+  fill: var(--map-area-other);
+}
+
+.group-cover__water {
+  fill: var(--map-water);
+  opacity: 0.55;
+}
+
+.group-tile__line {
+  fill: none;
+  stroke: var(--member);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.group-tile__dot {
+  fill: var(--member);
+}
+
+.group-tile__empty {
+  fill: var(--muted);
+  font-size: 9px;
+}
+
+.group-tile__body {
+  display: grid;
+  gap: 6px;
+  padding: 9px 11px 11px;
+}
+
+.group-tile__name {
+  overflow: hidden;
+  font-size: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-tile__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.group-tile__faces {
+  display: flex;
+  align-items: center;
+}
+
+.group-tile__faces > * + * {
+  margin-left: -7px;
+}
+
+.group-tile__more {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  box-shadow: 0 0 0 1.5px var(--surface);
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.group-tile__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+}
+
+.group-tile__count.is-live {
+  color: var(--accent-strong);
+}
+
+.group-tile__count.is-live::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.group-tile--new {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  min-height: 210px;
+  border: 2px dashed var(--perforation);
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+  font-size: 16px;
+  text-align: center;
+}
+
+.group-tile__plus {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.we-now__note {
+  margin: 40px 0 0;
+  color: var(--muted);
+  text-align: center;
+}
+
+.we-now__empty {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  max-width: 320px;
+  margin: 64px auto 0;
+  text-align: center;
+}
+
+.we-now__badge {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.we-now__empty h3 {
+  margin: 6px 0 0;
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.we-now__empty p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
+.we-now__cta {
+  min-width: 220px;
+  min-height: 52px;
+  margin-top: 8px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 26px;
+  background: var(--accent);
+  box-shadow: var(--round-btn-shadow);
+  color: var(--on-accent);
+  font-size: 17px;
+}
+
+/* A member's face: their photo (or initial) in a ring of their colour. */
+.member-face {
+  flex: none;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--member);
+  box-shadow: 0 0 0 1.5px var(--surface);
+  color: var(--on-accent);
+  line-height: 1;
+}
+
+.member-face img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* An open group: the map's own search bar and profile button step aside. */
+.app--group .search,
+.app--group .corner-btn--profile {
+  visibility: hidden;
+}
+
+.group-view__btn {
+  position: fixed;
+  top: calc(12px + var(--safe-top));
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+}
+
+.group-view__btn--back {
+  left: 12px;
+}
+
+.group-view__btn--settings {
+  right: 14px;
+  /* The accent, white icon. */
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.group-view__title {
+  position: fixed;
+  top: calc(var(--safe-top) + 72px);
+  left: 64px;
+  right: 64px;
+  z-index: 14;
+  text-align: center;
+  pointer-events: none;
+}
+
+.group-view__title h2 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow:
+    0 0 6px var(--surface),
+    0 0 2px var(--surface);
+}
+
+.group-view__title p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  text-shadow: 0 0 5px var(--surface);
+}
+
+/* The < > at the middle of the sides, paging the members (route-step sits at the middle already). */
+.route-step.group-view__step {
+  top: 50%;
+}
+
+/* ALL then the members' faces, down the right under ⚙ (the pin rail's place). */
+.group-rail {
+  position: fixed;
+  /* Right under ⚙ (12 + 48 + 12), as the pin rail sits under the profile. */
+  top: calc(var(--safe-top) + 72px);
+  right: 14px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 180px);
+  /* Room for the buttons' shadows inside the scroll box (it clips them). */
+  margin: -10px -10px 0 0;
+  padding: 10px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.group-rail > button {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--round-btn-shadow);
+  color: var(--text);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.group-rail__all {
+  color: var(--muted);
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  font-size: 17px;
+}
+
+.group-rail__all.is-on {
+  box-shadow: var(--round-btn-shadow), inset 0 0 0 2px var(--accent);
+  color: var(--accent);
+}
+
+.group-rail__member .member-face {
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.group-rail__member.is-on {
+  box-shadow: var(--round-btn-shadow), 0 0 0 3px var(--member);
+  transform: scale(1.08);
+}
+
+.group-rail__member.is-off {
+  opacity: 0.4;
+}
+
+/* The rail's buttons drop out one after another (opening the group, or ↓ for
+   the rest), and tuck back up folding — the pin rail's own motion. */
+.group-rail > button {
+  animation: pin-rail-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+  animation-delay: calc(var(--i, 0) * 30ms);
+}
+
+.group-rail > button.is-leaving {
+  animation: pin-rail-out 0.16s ease-in both;
+  pointer-events: none;
+}
+
+.group-rail__more {
+  color: var(--muted) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group-rail > button,
+  .group-rail > button.is-leaving {
+    animation: none;
+  }
+}
+
+/* On the map: a member's pings as dots in their colour, their latest as their face. */
+.group-ping {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--member);
+  box-shadow: 0 0 0 2px var(--surface);
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.group-ping--face {
+  width: 0;
+  height: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.group-ping__face {
+  position: absolute;
+  left: -19px;
+  top: -50px;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--member);
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--member), var(--pin-shadow);
+  color: var(--on-accent);
+  font-size: 15px;
+}
+
+.group-ping__face img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The face's tail down to the spot. */
+.group-ping--face::after {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: -12px;
+  border: 7px solid transparent;
+  border-top: 12px solid var(--member);
+  border-bottom: 0;
+}
+
+.group-ping--face::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--member);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.group-ping.is-faded {
+  /* !important: MapLibre sets each marker's opacity inline. */
+  opacity: 0.25 !important;
+}
+
+.group-lines {
+  position: fixed;
+  inset: 0;
+  /* Over the map but under its markers, as the route's lines. */
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.group-lines polyline {
+  fill: none;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: opacity 0.25s ease;
+}
+
+.group-lines polyline.is-faded {
+  opacity: 0.22;
+}
+
+/* 새 그룹 / 그룹 설정: a boarding pass (ticket-dialog). */
+.group-form {
+  width: min(340px, calc(100vw - 32px));
+}
+
+.group-form__main {
+  display: grid;
+  gap: 4px;
+  padding: 24px 22px 20px;
+}
+
+.group-form__title {
+  margin: 0 0 14px;
+  font-size: 22px;
+  font-weight: 400;
+  text-align: center;
+}
+
+.group-form__name {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  border-bottom: 2px solid var(--text);
+}
+
+.group-form__name input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 2px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 20px;
+}
+
+.group-form__name small {
+  flex: none;
+  padding-bottom: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.group-form__label {
+  margin: 18px 0 8px;
+  color: var(--muted);
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+}
+
+.group-form__covers {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.group-form__covers button {
+  aspect-ratio: 1;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 12px;
+  background: var(--map-bg);
+}
+
+.group-form__covers button svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.group-form__covers button.is-on {
+  box-shadow: 0 0 0 2.5px var(--accent);
+}
+
+.group-form__invite {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.group-form__invite button {
+  flex: none;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 14px;
+}
+
+.group-form__hint {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.group-form__label--first {
+  margin-top: 0;
+}
+
+.group-form__fold {
+  animation: unfold 0.18s ease-out both;
+}
+
+/* 그룹 관리 → 그룹 삭제 (the maker) / 그룹 나가기 (a member). */
+.group-form__danger {
+  width: 100%;
+  min-height: 48px;
+  border: 1.5px solid var(--danger);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--danger);
+  font-size: 16px;
+}
+
+.group-form__danger:active {
+  background: var(--danger);
+  color: var(--on-accent);
+}
+
+/* No photo: the default profile picture (as on the profile button), in the member's ring. */
+.member-face--default {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.group-ping__face svg {
+  display: block;
+}
+
+.group-ping__face:not(:has(img)) {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+/* A group's invite link: a read-only field, tap anywhere to copy, the link icon at its right end. */
+.invite-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 14px;
+  text-align: left;
+}
+
+.invite-field__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invite-field svg {
+  flex: none;
+  color: var(--accent);
+}
+
+/* 'Copied': the black pill of route-making, centred on the screen, over the dialog (a popover). */
+.copied-pill {
+  inset: 0;
+  margin: auto;
+  width: max-content;
+  height: max-content;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--tray-bg);
+  color: var(--tray-fg);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.copied-pill:popover-open {
+  animation: settle 0.36s var(--settle-ease) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .copied-pill:popover-open {
+    animation: none;
+  }
+}
+
+.invite-field:active {
+  opacity: 0.8;
+}
+
+/* 그룹원 관리: folded like the profile's sections, every member with 추방 for the maker. */
+.group-form__section {
+  margin-top: 14px;
+}
+
+.group-members {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.group-members__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+}
+
+.group-members__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-members__name small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.group-members__kick {
+  flex: none;
+  min-width: 56px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1.5px solid var(--danger);
+  border-radius: 18px;
+  background: transparent;
+  color: var(--danger);
+  font-size: 14px;
+}
+
+/* ---------- 설정 (profile ⚙, 2026-10-18) ---------- */
+/* A full screen over the profile: ‹ + title, then the list or a detail page. */
+.settings {
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: var(--safe-top) 0 var(--safe-bottom);
+  border: 0;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+.settings[open] {
+  display: flex;
+  flex-direction: column;
+  animation: settings-in 0.26s var(--slide-ease) both;
+}
+
+.settings::backdrop {
+  background: var(--backdrop);
+}
+
+.settings__head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 60px;
+  padding: 6px 12px;
+}
+
+.settings__head h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.settings__back {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+}
+
+.settings__page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 16px 24px;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+/* A page comes in from the side it's going: a detail page from the right, the list back from the left. */
+.settings__page.is-forward {
+  animation: settings-page-in 0.26s var(--slide-ease) both;
+}
+
+.settings__page.is-back {
+  --from: -24%;
+  animation: settings-page-in 0.26s var(--slide-ease) both;
+}
+
+.settings__list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.settings__row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  font-size: 16px;
+  text-align: left;
+}
+
+.settings__row:active {
+  background: var(--surface-2);
+}
+
+.settings__icon {
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+}
+
+.settings__icon.is-off {
+  color: var(--muted);
+}
+
+.settings__label {
+  flex: 1;
+}
+
+.settings__chevron {
+  color: var(--muted);
+}
+
+/* 소리: a switch, on in the accent. */
+.settings__switch {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border);
+  transition: background 0.2s ease;
+}
+
+.settings__switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: translate 0.2s ease;
+}
+
+.settings__switch.is-on {
+  background: var(--accent);
+}
+
+.settings__switch.is-on::after {
+  translate: 18px 0;
+}
+
+/* The detail pages reuse the profile's sections; here they have the whole width. */
+.settings__page .privacy {
+  margin-bottom: 0;
+}
+
+.settings__account {
+  display: grid;
+  gap: 12px;
+}
+
+@keyframes settings-in {
+  from {
+    translate: 100% 0;
+  }
+}
+
+@keyframes settings-page-in {
+  from {
+    opacity: 0;
+    translate: var(--from, 24%) 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings[open],
+  .settings__page.is-forward,
+  .settings__page.is-back {
+    animation: none;
+  }
+}
+
+/* The picked member's place names, under each of their pings (as a route's stop names). */
+.group-ping__label {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 5px);
+  max-width: 140px;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow:
+    0 0 4px var(--surface),
+    0 0 2px var(--surface),
+    0 0 1px var(--surface);
+  translate: -50% 0;
+  animation: settle 0.36s var(--settle-ease) both;
+  --anim-x: -50%;
+}
+
+/* The face marker is a point: its name goes just under the spot. */
+.group-ping--face .group-ping__label {
+  top: 9px;
 }

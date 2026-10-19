@@ -13,6 +13,8 @@ import {
   type MapPadding,
   type PinMarker,
   ADMIN_ATTRIBUTION,
+  createGroupPingElement,
+  type GroupPingMark,
 } from './courseMap';
 
 type Overlay = { setMap(map: KakaoMapInstance | null): void };
@@ -29,6 +31,7 @@ export class KakaoCourseMap implements CourseMap {
   private preview: Overlay | null = null;
   private me: (Overlay & { setPosition(position: ReturnType<KakaoCourseMap['latLng']>): void }) | null = null;
   private pinOverlays: Overlay[] = [];
+  private groupOverlays: Overlay[] = [];
   private guide: Overlay | null = null;
   private areas: AreaShapes | null = null;
   private areaCover: KakaoPolygon | null = null;
@@ -145,6 +148,21 @@ export class KakaoCourseMap implements CourseMap {
           content: createPinElement(pin, this.options.onPinClick),
           yAnchor: 0.5,
           zIndex: pin.selected ? 4 : 1,
+          map: this.map,
+        }),
+    );
+  }
+
+  setGroupPings(marks: GroupPingMark[]): void {
+    this.groupOverlays.forEach((o) => o.setMap(null));
+    this.groupOverlays = marks.map(
+      (mark) =>
+        new this.maps.CustomOverlay({
+          position: this.latLng(mark.center),
+          content: createGroupPingElement(mark),
+          yAnchor: 0.5,
+          // Faces over the dots, the picked member's over everyone else's.
+          zIndex: (mark.face ? 3 : 2) + (mark.faded ? 0 : 2),
           map: this.map,
         }),
     );

@@ -50,15 +50,14 @@ export function showsPage(tab: AppTab, mapNeeded: boolean): boolean {
 }
 
 /**
- * Pages slide off toward the side their button sits on to uncover the map:
- * 달력 (left button) goes left on a right-to-left swipe. -1 = left,
- * 1 = right, 0 = no swipe.
+ * Where a sideways swipe on a page goes: `left` for a right-to-left swipe
+ * (the page slides off to the left), `right` for left-to-right. 달력 ←
+ * 핀(map), → We Now; We Now ← 달력, → 핀. The map itself has no swipe.
  */
-export function homeSwipeDirection(tab: AppTab): -1 | 0 | 1 {
-  if (tab === 'calendar') return -1;
-  // 사람 sits right of the map's big pin: its page goes off to the right.
-  if (tab === 'people') return 1;
-  return 0;
+export function pageSwipes(tab: AppTab): { left: AppTab | null; right: AppTab | null } {
+  if (tab === 'calendar') return { left: 'pins', right: 'people' };
+  if (tab === 'people') return { left: 'calendar', right: 'pins' };
+  return { left: null, right: null };
 }
 
 export const SWIPE = {

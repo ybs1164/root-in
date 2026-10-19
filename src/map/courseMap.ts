@@ -26,6 +26,8 @@ export interface CourseMap {
   setMyLocation(center: [number, number] | null): void;
   /** Saved pins, colored/iconed by category. Drawn under the course markers. */
   setPins(pins: PinMarker[]): void;
+  /** We Now: a group's pings (dots, each member's latest as their face); [] clears them. Not tappable. */
+  setGroupPings(marks: GroupPingMark[]): void;
   /** A faint dashed line (e.g. "이 카테고리 잇기"); not a saved course. */
   setGuideLine(points: [number, number][] | null): void;
   /**
@@ -64,6 +66,21 @@ export interface PinMarker {
   color: PinTint;
   name: string;
   selected?: boolean;
+}
+
+export interface GroupPingMark {
+  /** Whose ping, and its place in their day (0 = first): the lines between them are drawn from these. */
+  member: string;
+  seq: number;
+  center: [number, number];
+  /** CSS colour of the member. */
+  color: string;
+  /** Their latest ping: drawn as their face (their profile photo, or the default one). */
+  face?: { photo: string | null };
+  /** Someone else is picked: this one steps back. */
+  faded?: boolean;
+  /** The place's name under it (the picked member's pings only). */
+  label?: string;
 }
 
 export interface CourseMapOptions {
@@ -147,6 +164,37 @@ export function syncAreaLabels<M>(
       entry.label = label;
     }
   }
+}
+
+/** The default profile picture (lucide's UserRound), as on the profile button. */
+const DEFAULT_FACE_SVG =
+  '<svg viewBox="0 0 24 24" width="60%" height="60%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>';
+
+export function createGroupPingElement(mark: GroupPingMark): HTMLElement {
+  const el = document.createElement('div');
+  el.className = `group-ping${mark.face ? ' group-ping--face' : ''}${mark.faded ? ' is-faded' : ''}`;
+  el.style.setProperty('--member', mark.color);
+  el.dataset.member = mark.member;
+  el.dataset.seq = String(mark.seq);
+  el.setAttribute('aria-hidden', 'true');
+  if (mark.face) {
+    const face = document.createElement('span');
+    face.className = 'group-ping__face';
+    if (mark.face.photo) {
+      const img = document.createElement('img');
+      img.src = mark.face.photo;
+      img.alt = '';
+      face.append(img);
+    } else face.innerHTML = DEFAULT_FACE_SVG;
+    el.append(face);
+  }
+  if (mark.label) {
+    const label = document.createElement('span');
+    label.className = 'group-ping__label';
+    label.textContent = mark.label;
+    el.append(label);
+  }
+  return el;
 }
 
 export function createPinElement(pin: PinMarker, onClick?: (id: string) => void): HTMLElement {

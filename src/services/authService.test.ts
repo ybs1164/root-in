@@ -2,8 +2,8 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
 import { createSupabaseAuthService } from './authService';
 
-function fakeClient(opts: { userId?: string; rpcError?: boolean; oauthError?: boolean; files?: { name: string }[] } = {}) {
-  const session = opts.userId ? { user: { id: opts.userId } } : null;
+function fakeClient(opts: { userId?: string; anonymous?: boolean; rpcError?: boolean; oauthError?: boolean; linkError?: boolean; anonError?: boolean; files?: { name: string }[] } = {}) {
+  const session = opts.userId ? { user: { id: opts.userId, is_anonymous: !!opts.anonymous } } : null;
   const listeners: ((event: string, session: unknown) => void)[] = [];
   const unsubscribe = vi.fn();
   const auth = {
@@ -14,6 +14,8 @@ function fakeClient(opts: { userId?: string; rpcError?: boolean; oauthError?: bo
     }),
     signInWithOAuth: vi.fn(async () => ({ error: opts.oauthError ? { message: 'x' } : null })),
     signOut: vi.fn(async () => ({ error: null })),
+    signInAnonymously: vi.fn(async () => ({ error: opts.anonError ? { message: 'off' } : null })),
+    linkIdentity: vi.fn(async () => ({ error: opts.linkError ? { message: 'identity_already_exists' } : null })),
   };
   const list = vi.fn(async () => ({ data: opts.files ?? [] }));
   const remove = vi.fn(async () => ({ error: null }));
@@ -68,5 +70,30 @@ describe('authService', () => {
     expect(await createSupabaseAuthService(async () => fake.client, true).deleteAccount()).toBe(false);
     expect(fake.auth.signOut).not.toHaveBeenCalled();
     expect(await createSupabaseAuthService(async () => fakeClient().client, true).deleteAccount()).toBe(false);
+  });
+
+  it('makes a guest account only when no one is signed in, and says when it could not', async () => {
+    const fresh = fakeClient();
+    expect(await createSupabaseAuthService(async () => fresh.client, true).signInAsGuest()).toBe(true);
+    expect(fresh.auth.signInAnonymously).toHaveBeenCalledTimes(1);
+    const signedIn = fakeClient({ userId: 'u1' });
+    expect(await createSupabaseAuthService(async () => signedIn.client, true).signInAsGuest()).toBe(true);
+    expect(signedIn.auth.signInAnonymously).not.toHaveBeenCalled();
+    expect(await createSupabaseAuthService(async () => fakeClient({ anonError: true }).client, true).signInAsGuest()).toBe(false);
+    expect(await createSupabaseAuthService(async () => null, false).signInAsGuest()).toBe(false);
+  });
+
+  it('marks a guest, and links Kakao to their account (an ordinary login if that Kakao has one already)', async () => {
+    vi.stubGlobal('location', { origin: 'https://root.in', pathname: '/app/', hash: '', href: 'https://root.in/app/' });
+    const guest = fakeClient({ userId: 'g1', anonymous: true });
+    const service = createSupabaseAuthService(async () => guest.client, true);
+    expect(await service.current()).toEqual({ id: 'g1', anonymous: true });
+    expect(await service.signInWithKakao()).toBe(true);
+    expect(guest.auth.linkIdentity).toHaveBeenCalledWith(expect.objectContaining({ provider: 'kakao' }));
+    expect(guest.auth.signInWithOAuth).not.toHaveBeenCalled();
+    const taken = fakeClient({ userId: 'g1', anonymous: true, linkError: true });
+    expect(await createSupabaseAuthService(async () => taken.client, true).signInWithKakao()).toBe(true);
+    expect(taken.auth.signInWithOAuth).toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 });
