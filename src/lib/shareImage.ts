@@ -8,7 +8,7 @@ import type { CardStamp, StopMark } from '../domain/shareSubject';
 import { paintPattern } from './dayPatterns';
 import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
 import { fitPingLabels } from '../domain/stopLabels';
-import { MAP_ROLES, terrainParts, viewPoints, type MapFill, type MapRole, type MapPart, type TerrainShapes } from '../domain/miniMap';
+import { MAP_ROLES, dayMap, type MapFill, type MapRole, type MapPart, type TerrainShapes } from '../domain/miniMap';
 import { terrainService } from '../services/terrainService';
 
 export interface ShareImageInput {
@@ -607,12 +607,14 @@ function drawStops(
 ) {
   // A route's card keeps the usual layout.
   const centers = pings.map((p) => p.center);
-  const points = (show.day ? viewPoints(centers, show.terrain ?? null) : layoutPings(centers)).map((p) => ({
+  // A day's photo is its day screen: the same pins (the latest bigger, spread apart) on the same map.
+  const day = show.day ? dayMap(show.terrain ?? null, centers, pings.some((p) => p.time) ? latestPingIndex(pings) : -1) : null;
+  const points = (day ? day.points : layoutPings(centers)).map((p) => ({
     x: BOX.x + p.x * BOX.size,
     y: BOX.y + p.y * BOX.size,
   }));
 
-  const parts = show.day ? terrainParts(show.terrain ?? null, centers) : [];
+  const parts = day?.parts ?? [];
   if (parts.length) drawMiniMap(ctx, c, parts);
 
   // On a 미니맵 every line gets a casing in the page colour first, as on the day screen (pings__case).

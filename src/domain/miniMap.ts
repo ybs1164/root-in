@@ -2,6 +2,7 @@ import type { AdminArea } from './adminAreas';
 import type { BaseMap } from './baseMap';
 import { pingOverlap } from './stopLabels';
 import type { Bbox, LonLat } from './districtMap';
+import { silhouette } from './silhouette';
 
 /**
  * 미니맵: the real map drawn behind a day's pings (and its share card's
@@ -352,7 +353,7 @@ export function lumpAreas(shapes: TerrainShapes | null, centers: LonLat[], power
 }
 
 /** The lump's outline points that matter for fitting it: the corners of its convex hull. */
-const lumpReach = (lump: AdminArea[]): LonLat[] =>
+export const lumpReach = (lump: AdminArea[]): LonLat[] =>
   convexHull(lump.flatMap((a) => a.polygons.flatMap((rings) => (rings[0] ?? []).map(([x, y]) => ({ x, y }))))).map((p) => [p.x, p.y] as LonLat);
 
 /** The picture the pins are judged in: this many px across, as on the day screen. */
@@ -397,37 +398,105 @@ const STOPS_MARGIN = 0.18;
 /** Room around a real map's lump, which reaches past the stops anyway. */
 const LUMP_MARGIN = 0.1;
 
+/** A pin on the day screen (px of the `JUDGE_PX` picture; the latest is drawn 1.4 times as big) and the gap kept between two. */
+const PIN_PX = { w: 34, h: 44 };
+const LATEST_PIN = 1.4;
+const PIN_GAP_PX = 4;
+
 /**
- * Lon/lat to the view: the legs evened out (`LEG_POWER`, everything else
- * bent along), one scale, turned to part the pins, fitted with `reach`, then
- * tilted. It is one continuous mapping, so the real map's areas go through it
- * too and stay under their stops.
+ * Pins (tilted view, unit square) moved apart until none covers another
+ * (displacement, one of McMaster & Shea's generalization operators): a pair
+ * that overlaps is pushed apart, half each, along the axis it overlaps
+ * least, over and over. Pins that cover nothing stay where they are, and all
+ * stay in the picture. `latest` is the pin drawn bigger.
  */
-export function stopProjection(centers: LonLat[], reach: LonLat[] = []): (c: LonLat) => MapPoint {
+export function spreadPins(points: MapPoint[], latest = -1): MapPoint[] {
+  const px = points.map((p) => ({ x: p.x * JUDGE_PX, y: p.y * JUDGE_PX }));
+  const size = (i: number) => (i === latest ? LATEST_PIN : 1);
+  const [w, h] = [(i: number) => PIN_PX.w * size(i), (i: number) => PIN_PX.h * size(i)];
+  // Which way a pair parts when it stands on one spot: the way they lie on the ground, else in order.
+  const away = (d: number, real: number) => Math.sign(d) || Math.sign(real) || 1;
+  for (let round = 0; round < 300; round++) {
+    let moved = false;
+    for (let i = 0; i < px.length; i++) {
+      for (let j = i + 1; j < px.length; j++) {
+        const [a, b] = [px[i], px[j]];
+        const ox = (w(i) + w(j)) / 2 + PIN_GAP_PX - Math.abs(b.x - a.x);
+        const oy = Math.min(a.y, b.y) - Math.max(a.y - h(i), b.y - h(j)) + PIN_GAP_PX;
+        if (ox <= 0.01 || oy <= 0.01) continue;
+        moved = true;
+        if (ox <= oy) {
+          const s = (away(b.x - a.x, points[j].x - points[i].x) * ox) / 2;
+          a.x -= s;
+          b.x += s;
+        } else {
+          const s = (away(b.y - a.y, points[j].y - points[i].y) * oy) / 2;
+          a.y -= s;
+          b.y += s;
+        }
+      }
+    }
+    px.forEach((p, i) => {
+      p.x = Math.min(JUDGE_PX - w(i) / 2, Math.max(w(i) / 2, p.x));
+      p.y = Math.min(JUDGE_PX, Math.max(h(i), p.y));
+    });
+    if (!moved) break;
+  }
+  return px.map((p) => ({ x: p.x / JUDGE_PX, y: p.y / JUDGE_PX }));
+}
+
+/**
+ * A day's layout, flat (before the tilt): the legs evened out (`LEG_POWER`,
+ * everything else bent along), one scale, turned to part the pins, fitted
+ * with `reach`, then the pins spread so none covers another, and the land
+ * bent along with them again. It is one continuous mapping, so the real map's
+ * areas go through it too and stay under their stops.
+ */
+function dayLayout(centers: LonLat[], reach: LonLat[], latest: number) {
   const margin = reach.length ? LUMP_MARGIN : STOPS_MARGIN;
   // One way up for the day, with or without the map, so the stops do not turn when it arrives.
   const bearing = bearingFor(centers, [], LEG_POWER, '');
   const { project } = uniformProjection(centers, margin, reach, bearing, LEG_POWER);
-  return (c) => tiltPoint(project(c));
+  const laid = centers.map(project);
+  const stops = spreadPins(laid.map(tiltPoint), latest).map(untiltPoint);
+  const bend = bendField(laid, stops);
+  return { flat: (c: LonLat) => bend(project(c)), stops };
 }
 
-/** The projection for a real map's lump: fitted to the whole lump. */
-function terrainProject(centers: LonLat[], lump: AdminArea[]): (c: LonLat) => MapPoint {
-  return stopProjection(centers, lumpReach(lump));
+/** Lon/lat to the view (`dayLayout`, then tilted). */
+export function stopProjection(centers: LonLat[], reach: LonLat[] = [], latest = -1): (c: LonLat) => MapPoint {
+  const { flat } = dayLayout(centers, reach, latest);
+  return (c) => tiltPoint(flat(c));
 }
+
+/** A day's picture: where its stops stand and the real map under them (none when there is no data). */
+export interface DayMap {
+  points: MapPoint[];
+  parts: MapPart[];
+}
+
+let lastMap: { shapes: TerrainShapes | null; key: string; map: DayMap } | null = null;
 
 /**
- * Where the stops stand: fitted with the real map's lump when its areas are
- * known; with none (no data here, or while it is fetched) the fit is the
- * stops' own, and the pings are drawn on the page with no map.
+ * The day's picture: the stops fitted with the real map's lump when its areas
+ * are known; with none (no data here, or while it is fetched) the fit is the
+ * stops' own, and the pings are drawn on the page with no map. `latest` is
+ * the pin drawn bigger. The last one is kept (the day screen and its share
+ * card ask for the same day).
  */
-export function viewPoints(centers: LonLat[], shapes: TerrainShapes | null = null): MapPoint[] {
-  if (centers.length === 0) return [];
+export function dayMap(shapes: TerrainShapes | null, centers: LonLat[], latest = -1): DayMap {
+  if (centers.length === 0) return { points: [], parts: [] };
+  const key = `${centers.map((c) => c.join(',')).join(' ')}|${latest}`;
+  if (lastMap && lastMap.shapes === shapes && lastMap.key === key) return lastMap.map;
   const lump = lumpAreas(shapes, centers, LEG_POWER);
-  const project = lump.length ? terrainProject(centers, lump) : stopProjection(centers);
-  return centers.map(project);
+  const layout = dayLayout(centers, lump.length ? lumpReach(lump) : [], latest);
+  const map = { points: layout.stops.map(tiltPoint), parts: lump.length ? terrainOn(shapes, lump, layout) : [] };
+  lastMap = { shapes, key, map };
+  return map;
 }
 
+/** Where the stops stand (see `dayMap`). */
+export const viewPoints = (centers: LonLat[], shapes: TerrainShapes | null = null, latest = -1): MapPoint[] => dayMap(shapes, centers, latest).points;
 /** The viewport to fetch the real map for: the stops' own window at neighbourhood scale. */
 export function terrainViewport(centers: LonLat[]) {
   const { window, kx } = uniformProjection(centers);
@@ -486,44 +555,57 @@ const pathBox = (path: LonLat[]): Bbox => ({
 });
 
 /**
- * 상세: the real map, cut to one lump. The lump's outline is that of the
- * 읍면동 around the stops (see `lumpAreas`), but what is drawn inside it is
+ * 상세: the real map, cut to one lump. The lump is the 읍면동 around the
+ * stops (see `lumpAreas`), its outline made a silhouette (`silhouette`: no
+ * thin arms, bites or steps, corners rounded); what is drawn inside it is
  * what people know a place by (Lynch): water as the edges, parks as the
  * districts, the big roads as the paths, all from the base map; the borders
  * between 읍면동, which nobody sees on the ground, are not drawn. Everything
  * is projected on the same layout as the stops and tilted with it, over a soft
  * shadow. With no base map the lump is plain land. Empty when there is no data.
  */
-export function terrainParts(shapes: TerrainShapes | null, centers: LonLat[]): MapPart[] {
-  const lump = lumpAreas(shapes, centers, LEG_POWER);
-  if (!lump.length) return [];
-  const project = terrainProject(centers, lump);
+export function terrainParts(shapes: TerrainShapes | null, centers: LonLat[], latest = -1): MapPart[] {
+  return dayMap(shapes, centers, latest).parts;
+}
+
+/** Water holes in the land smaller than this across (unit square) are filled: ponds and slivers read as specks. */
+const MIN_POND = MIN_PARK;
+
+/** How far across a ring reaches (unit square). */
+const ringAcross = (ring: MapPoint[]) => {
+  const xs = ring.map((p) => p.x);
+  const ys = ring.map((p) => p.y);
+  return Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
+};
+
+function terrainOn(shapes: TerrainShapes | null, lump: AdminArea[], layout: ReturnType<typeof dayLayout>): MapPart[] {
+  // The outline is a silhouette made from the lump (docs/plan-minimap-silhouette.md), drawn flat so its rounding is even, then tilted.
+  const outline = silhouette(
+    lump.flatMap((a) => a.polygons.map((rings) => rings.map((ring) => ring.map(layout.flat)))),
+    layout.stops,
+  ).map((ring) => ring.map(tiltPoint));
+  if (!outline.length) return [];
+  const project = (c: LonLat) => tiltPoint(layout.flat(c));
   const shape = (rings: LonLat[][], tol = 0.0007) => rings.map((ring) => simplify(ring.map(project), tol)).filter((ring) => ring.length >= 4);
-  const rings = lump.flatMap((a) => a.polygons.flatMap((polygon) => shape(polygon)));
-  const { under, over } = slab(rings, true);
+  const { under, over } = slab(outline, true);
   const base = shapes?.base;
-  if (!base) return [...under, part({ polys: rings }, LAND, { evenodd: true, seal: SEAL }), over];
+  if (!base) return [...under, part({ polys: outline }, LAND, { evenodd: true }), over];
 
   const box = lumpBox(lump);
   const near = (path: LonLat[]) => overlaps(pathBox(path), box);
   const polygons = (list: BaseMap['land']) => list.filter((polygon) => polygon[0] && near(polygon[0])).map((polygon) => shape(polygon)).filter((polygon) => polygon.length);
-  const across = (polygon: MapPoint[][]) => {
-    const xs = polygon[0].map((p) => p.x);
-    const ys = polygon[0].map((p) => p.y);
-    return Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys));
-  };
-  const land = polygons(base.land).flat();
-  const parks = polygons(base.parks).filter((polygon) => across(polygon) >= MIN_PARK).flat();
+  const land = polygons(base.land).flatMap(([outer, ...holes]) => [outer, ...holes.filter((hole) => ringAcross(hole) >= MIN_POND)]);
+  const parks = polygons(base.parks).filter((polygon) => ringAcross(polygon[0]) >= MIN_PARK).flat();
   const ways = base.roads
     .filter((road) => BIG_ROAD_WIDTH[road.tier] !== undefined && near(road.path))
     // Narrow first, so the wide roads lie over them where they meet.
     .sort((a, b) => b.tier - a.tier)
     .map((road) => ({ path: simplify(road.path.map(project), 0.001), w: BIG_ROAD_WIDTH[road.tier]! }));
-  const clip = rings;
+  const clip = outline;
   return [
     ...under,
-    // The lump is water first; the land lies over it, so the rivers are what land leaves open.
-    part({ polys: rings }, WATER, { evenodd: true, seal: SEAL }),
+    // The outline is water first; the land lies over it, so the rivers are what land leaves open.
+    part({ polys: outline }, WATER, { evenodd: true }),
     part({ polys: land }, LAND, { evenodd: true, seal: SEAL, clip }),
     part({ polys: parks }, PARK, { evenodd: true, clip }),
     part({}, ROAD, { ways, clip }),

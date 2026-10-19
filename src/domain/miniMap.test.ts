@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { pingOverlap, placePingLabels, pingInfoSize } from './stopLabels';
 import type { AdminArea } from './adminAreas';
 import { readDecor } from '../services/dayRepository';
-import { bestBearing, clusterPoints, convexHull, inPolygon, LEG_POWER, legLayout, lumpAreas, stopProjection, stopsCircle, terrainParts, terrainRange, tiltPoint, uniformProjection, untiltPoint, viewPoints } from './miniMap';
+import { bestBearing, clusterPoints, spreadPins, convexHull, inPolygon, LEG_POWER, legLayout, lumpAreas, stopProjection, stopsCircle, terrainParts, terrainRange, tiltPoint, uniformProjection, untiltPoint, viewPoints } from './miniMap';
 
 describe('미니맵', () => {
   it('stops close together share a group, far ones get their own', () => {
@@ -36,12 +36,11 @@ describe('미니맵', () => {
     // Only the areas reaching the stops make the lump, each whole (nothing cut to a window).
     expect(lumpAreas(shapes, centers).map((a) => a.code)).toEqual(['a', 'b']);
     const parts = terrainParts(shapes, centers);
-    // With no base map: one tone of land, the borders between the areas sealed over (nobody sees them on the ground).
+    // With no base map: one tone of land in one outline (the border between the areas is not drawn).
     expect(parts.map((p) => p.fill.role)).toEqual(['shadow', 'side', 'land', 'haze']);
     const fills = parts.filter((p) => p.fill.role === 'land');
     const filled = fills[0].polys;
-    expect(filled).toHaveLength(2);
-    expect(fills[0].seal).toBeGreaterThan(0);
+    expect(filled).toHaveLength(1);
     const shadow = parts.filter((p) => p.fill.alpha !== undefined);
     expect(shadow).toHaveLength(1);
     expect(shadow[0].dy).toBeGreaterThan(0);
@@ -78,7 +77,7 @@ describe('미니맵', () => {
     expect(parts.map((p) => p.fill.role)).toEqual(['shadow', 'side', 'water', 'land', 'park', 'road', 'haze']);
     const [, side, water, land, park, roads, haze] = parts;
     // The lump is water under the land, so the river shows where there is no land; the rest is kept to the lump.
-    expect(water.polys).toHaveLength(2);
+    expect(water.polys).toHaveLength(1);
     expect(water.clip).toBeUndefined();
     for (const p of [land, park, roads]) expect(p.clip).toEqual(water.polys);
     // A speck of a park is left out; of the roads only the motorway (the main roads made a busy mesh).
@@ -140,6 +139,27 @@ describe('미니맵', () => {
     expect(bestBearing(stops, [cell(126.998)])).toBe(angle);
   });
 
+  it('pins that cover one another are moved apart, the land along with them; others stay', () => {
+    const px = (p: { x: number; y: number }) => ({ x: p.x * 330, y: p.y * 330 });
+    const covers = (a: { x: number; y: number }, b: { x: number; y: number }, wa = 34, wb = 34) => Math.abs(a.x - b.x) < (wa + wb) / 2 && Math.abs(a.y - b.y) < 44;
+    // Two on one spot and one far off.
+    const spread = spreadPins([{ x: 0.5, y: 0.5 }, { x: 0.5, y: 0.5 }, { x: 0.2, y: 0.2 }]).map(px);
+    expect(covers(spread[0], spread[1])).toBe(false);
+    expect(spread[2]).toEqual({ x: 66, y: 66 });
+    // A tight cluster of five: none covers another, all stay in the picture.
+    const five = spreadPins([0, 1, 2, 3, 4].map((k) => ({ x: 0.5 + k * 0.01, y: 0.5 + (k % 2) * 0.01 })), 4).map(px);
+    for (let i = 0; i < 5; i++) for (let j = i + 1; j < 5; j++) expect(covers(five[i], five[j], i === 4 ? 48 : 34, j === 4 ? 48 : 34)).toBe(false);
+    expect(five.every((p) => p.x >= 0 && p.x <= 330 && p.y >= 0 && p.y <= 330)).toBe(true);
+    // Two places in one building on the real map: the pins stand apart, each on land.
+    const same: [number, number][] = [[127.0, 37.5], [127.00002, 37.50001]];
+    const cell: AdminArea = { code: 'c', name: 'c', bbox: { west: 126.99, east: 127.01, south: 37.49, north: 37.51 }, polygons: [[[[126.99, 37.49], [127.01, 37.49], [127.01, 37.51], [126.99, 37.51], [126.99, 37.49]]]] };
+    const shapes = { parts: [cell], others: [] };
+    const spots = viewPoints(same, shapes).map(px);
+    expect(covers(spots[0], spots[1])).toBe(false);
+    const land = terrainParts(shapes, same).find((p) => p.fill.role === 'land')!;
+    expect(viewPoints(same, shapes).every((p) => land.polys.some((ring) => inPolygon(p, ring)))).toBe(true);
+  });
+
   it('old days with a map shape or distance stored still load, without them', () => {
     const read = readDecor({ strokes: [], stickers: [], miniMap: 'whole', mapDistance: 'light', hideTimes: true });
     expect(read).not.toBeNull();
@@ -189,8 +209,12 @@ describe('미니맵', () => {
     it('draws the real areas under their own stops', () => {
       const land = terrainParts(shapes, centers).find((p) => p.fill.role === 'land')!;
       const spots = viewPoints(centers, shapes);
-      // jung holds the first three, jamsil the last.
-      expect(spots.every((p, i) => inPolygon(p, land.polys[i < 3 ? 0 : 1]))).toBe(true);
+      // Two islands: one under the first three (jung), one under the last (jamsil).
+      expect(land.polys).toHaveLength(2);
+      const islandOf = (p: { x: number; y: number }) => land.polys.findIndex((ring) => inPolygon(p, ring));
+      expect(spots.map(islandOf).every((k) => k >= 0)).toBe(true);
+      expect(new Set(spots.slice(0, 3).map(islandOf)).size).toBe(1);
+      expect(islandOf(spots[3])).not.toBe(islandOf(spots[0]));
     });
 
     it('on the real map no stop stands on the edge: the areas around each one are taken in', () => {

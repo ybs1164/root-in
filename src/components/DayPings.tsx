@@ -14,7 +14,7 @@ import {
 import { pinColorCss } from '../domain/pin';
 import { HEART_PATH, PIN_PATH, STAR_PATH } from '../lib/pingPaths';
 import { fitPingLabels } from '../domain/stopLabels';
-import { terrainParts, viewPoints } from '../domain/miniMap';
+import { dayMap } from '../domain/miniMap';
 import { useTerrain } from '../hooks/useTerrain';
 import type { PinIcon, PinTint } from '../types/pin';
 import MiniMap from './MiniMap';
@@ -109,14 +109,15 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
   const { shapes: terrain, ready } = useTerrain(centers, true);
   // While it is being fetched nothing of it (and no pin) shows: the stops are laid out on it once it is here.
   // No data for these stops: the pings stand on the page with no map.
-  const centersKey = centers.map((c) => c.join(',')).join(' ');
+  // The 후보군 ghost is laid out with the day's pings (as the latest, drawn as it), so it lands on the same spot once added.
+  const stops = ghost ? [...centers, ghost] : centers;
+  const stopsKey = `${stops.map((c) => c.join(',')).join(' ')}|${latest}`;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const mapParts = useMemo(() => terrainParts(terrain, centers), [centersKey, terrain]);
+  const day = useMemo(() => dayMap(terrain, stops, ghost ? pings.length : latest), [stopsKey, terrain]);
+  const mapParts = day.parts;
   const mapped = mapParts.length > 0;
-  // The 후보군 ghost is laid out with the day's pings, so it lands on the same spot once added.
-  const laid = viewPoints(ghost ? [...centers, ghost] : centers, terrain);
-  const points = laid.slice(0, pings.length);
-  const ghostAt = ghost ? laid[pings.length] : null;
+  const points = day.points.slice(0, pings.length);
+  const ghostAt = ghost ? day.points[pings.length] : null;
   // Pings there when this drawing mounted play the visit's intro together;
   // ones added after (a 후보군 picked) drop on their own and draw their line.
   const atMount = useRef(pings.length);

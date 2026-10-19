@@ -13,6 +13,7 @@ React 19 + Vite 7 + TypeScript. 지도는 **카카오맵 JS SDK**(키 없으면 
 - `npm test` / `npm run test:watch`
 - 개발 서버: `.claude/launch.json`의 `goodroot-dev` (포트 5188) — Bash로 띄우지 말고 preview로
 - `npm run shots` — 개발 서버가 떠 있을 때 주요 화면(홈·검색·핀 메뉴(경로·카테고리 선택)·핀 꽂기·달력(TODAY·월)·설정·공유 코스/하루)을 모바일(375px)·데스크톱(1280px)으로 찍어 `ui-shots/`에 저장. `npm run shots -- course`처럼 이름으로 거를 수 있다. 샘플 데이터는 스크립트가 앱 저장소 모듈로 직접 넣는다 (`scripts/ui-shots.mjs`)
+- 미니맵(TODAY 지도) 확인을 브라우저 없이: `npx vite-node scripts/minimap-report.ts`(예제 날 그림 + 핀 겹침 넓이 → `ui-shots/minimap-days.html`), `npx vite-node scripts/silhouette-report.ts`(외곽선 전/후 시트와 점수 → `ui-shots/silhouettes.html`). 둘 다 `public/korea`를 직접 읽음. 외곽선 다듬기와 핀 떼어 놓기: [docs/plan-minimap-silhouette.md](docs/plan-minimap-silhouette.md)
 - UI 검증은 모바일 폭(`resize_window` preset `mobile`, 375px)을 기본으로 하고, 데스크톱 폭도 깨지지 않는지 본다
 
 ## 안드로이드 (Capacitor, 2026-10-06)

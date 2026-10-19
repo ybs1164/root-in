@@ -3,6 +3,7 @@
 //   npm run shots                 -> all states, both widths
 //   npm run shots -- calendar pin  -> only states whose name contains a filter
 //   npm run shots -- minimap       -> TODAY's 미니맵 on six example days
+//   npm run shots -- silhouettes   -> 미니맵 outlines, before | after, filled in one colour (the silhouette test)
 // Output: ui-shots/<width>-<state>.png (git-ignored).
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
@@ -114,6 +115,15 @@ async function miniMapDay(page, spots, reload) {
   await page.waitForTimeout(2500);
 }
 
+/** docs/plan-minimap-silhouette.md: every example day's outline before | after (scripts/silhouette-sheet.ts). */
+async function silhouetteSheet(page) {
+  await page.setViewportSize({ width: 1000, height: 1900 });
+  await page.evaluate(async () => {
+    const { drawSheet } = await import('/scripts/silhouette-sheet.ts');
+    await drawSheet();
+  });
+}
+
 const settle = (page, ms = 1500) => page.waitForTimeout(ms);
 const click = (page, name) => page.getByRole('button', { name }).first().click({ timeout: 3000 });
 
@@ -149,6 +159,7 @@ const STATES = {
     await click(page, '카테고리 추가');
   },
   ...Object.fromEntries(Object.entries(MINI_DAYS).map(([day, spots]) => [`minimap-${day}`, (page, vp, reload) => miniMapDay(page, spots, reload)])),
+  'silhouettes': async (page) => { await silhouetteSheet(page); },
   'shared-course': async (page, vp, reload) => { await reload(await shareHash(page, 'share')); },
   'shared-diary': async (page, vp, reload) => { await reload(await shareHash(page, 'diary')); },
 };

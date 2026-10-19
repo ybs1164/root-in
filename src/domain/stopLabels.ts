@@ -129,7 +129,7 @@ const CORNER_TUCK = 4;
 const POINT_TUCK = 6;
 
 /** Where a ping's info of `size` sits for each side of its pin. */
-function infoRect(at: Pt, size: { w: number; h: number }, side: PingLabelSide): Rect {
+export function infoRect(at: Pt, size: { w: number; h: number }, side: PingLabelSide): Rect {
   const { w, h } = size;
   const mid = at.y - PIN_H / 2;
   const head = at.y - PIN_H + CORNER_TUCK;
