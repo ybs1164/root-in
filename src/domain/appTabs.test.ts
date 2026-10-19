@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { barSlot, barTurn, calendarAgain, homeSwipeDirection, showsPage, swipeCommits, tabForIncoming, type AppTab, type BarButton } from './appTabs';
+import { barSlot, barTurn, calendarAgain, pageSwipes, showsPage, swipeCommits, tabForIncoming, type AppTab, type BarButton } from './appTabs';
 
 describe('bottom-bar tabs', () => {
   it('incoming #share= / #diary= / #pins= links open the matching tab', () => {
@@ -15,8 +15,8 @@ describe('bottom-bar tabs', () => {
   });
 
   it('달력 slides off to the left to uncover the map', () => {
-    expect(homeSwipeDirection('calendar')).toBe(-1);
-    expect(homeSwipeDirection('pins')).toBe(0);
+    expect(pageSwipes('calendar')).toEqual({ left: 'pins', right: 'people' });
+    expect(pageSwipes('pins')).toEqual({ left: null, right: null });
   });
 
   it('a swipe commits past 30% of the width or on a quick flick, and only the right way', () => {
@@ -35,7 +35,7 @@ describe('bottom-bar tabs', () => {
 
   it('사람 is a full screen too, sliding off to the right', () => {
     expect(showsPage('people', false)).toBe(true);
-    expect(homeSwipeDirection('people')).toBe(1);
+    expect(pageSwipes('people')).toEqual({ left: 'calendar', right: 'pins' });
   });
 
   it('the row turns like a wheel: 달력 핑 사람 / 사람 달력 핑 / 핑 사람 달력', () => {

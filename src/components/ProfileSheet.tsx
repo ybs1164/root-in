@@ -1,31 +1,13 @@
-import { ChevronDown, PenLine, UserRound, Volume2, VolumeX } from 'lucide-react';
-import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
-import { handleProblem, PING_ALERT_HOURS, PROFILE_LIMITS, sanitizeHandleInput, SHARE_ALERT_COUNTS, shareCountLabel } from '../domain/profile';
+import { ChevronDown, PenLine, Settings, UserRound } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { handleProblem, PROFILE_LIMITS, sanitizeHandleInput } from '../domain/profile';
 import { avatarFromFile } from '../lib/avatarImage';
 import { getDisplayName, setDisplayName } from '../lib/currentUser';
-import type { ColorScheme, Profile } from '../services/profileRepository';
-import { clearAppData } from '../services/settingsRepository';
+import type { Profile } from '../services/profileRepository';
 import type { Account } from '../hooks/useAccount';
 import { useBackdropTap } from '../hooks/useBackdropTap';
-import AlertBoard from './AlertBoard';
-import PinGlyph from './PinGlyph';
 import PrivacySection from './PrivacySection';
-
-/** 알림 설정's two boards: 투데이 알림 by hour, 공유수 알림 by share count. */
-const PING_STEPS = PING_ALERT_HOURS.map((hour) => ({ value: hour, text: `${hour}:00` }));
-const SHARE_STEPS = SHARE_ALERT_COUNTS.map((count) => ({ value: count, text: shareCountLabel(count) }));
-
-/** 디스플레이 및 언어 → 디스플레이's two choices. */
-const SCHEMES: { id: ColorScheme; label: string }[] = [
-  { id: 'light', label: '기본' },
-  { id: 'dark', label: '다크' },
-];
-
-/** The scheme on screen: the one picked, or the phone's own until then. */
-function shownScheme(picked: ColorScheme | null): ColorScheme {
-  if (picked) return picked;
-  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
+import SettingsScreen from './SettingsScreen';
 
 interface ProfileSheetProps {
   profile: Profile;
@@ -60,10 +42,9 @@ export default function ProfileSheet({ profile, onChange, onNickname, account, p
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [nickname, setNickname] = useState(getDisplayName);
   const [note, setNote] = useState<string | null>(null);
-  const [accountOpen, setAccountOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(!!privacyNotice);
-  const [alertsOpen, setAlertsOpen] = useState(false);
-  const [displayOpen, setDisplayOpen] = useState(false);
+  // ⚙ (top right): 설정 as its own screen over the profile.
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -92,131 +73,6 @@ export default function ProfileSheet({ profile, onChange, onNickname, account, p
       {privacyOpen && <PrivacySection {...privacy} notice={privacyNotice} />}
     </>
   );
-  // 알림 설정: which hours a ping reminder may come, each switched on its own.
-  const alertsPart = (
-    <>
-      <button
-        className={`profile__account ${alertsOpen ? 'is-open' : ''}`}
-        aria-expanded={alertsOpen}
-        aria-controls="profile-alerts"
-        onClick={() => setAlertsOpen((open) => !open)}
-      >
-        알림 설정
-        <ChevronDown size={18} aria-hidden />
-      </button>
-      {alertsOpen && (
-        <section id="profile-alerts" className="privacy alerts" aria-label="알림 설정">
-          <AlertBoard
-            label="투데이 알림"
-            steps={PING_STEPS}
-            on={profile.pingAlerts}
-            onChange={(pingAlerts) => onChange({ ...profile, pingAlerts })}
-          />
-          <AlertBoard
-            label="공유수 알림"
-            steps={SHARE_STEPS}
-            on={profile.shareAlerts}
-            random={false}
-            onChange={(shareAlerts) => onChange({ ...profile, shareAlerts })}
-          />
-        </section>
-      )}
-    </>
-  );
-  // 디스플레이 및 언어: 기본 / 다크, and the language (한국어 only for now).
-  const scheme = shownScheme(profile.scheme);
-  const displayPart = (
-    <>
-      <button
-        className={`profile__account ${displayOpen ? 'is-open' : ''}`}
-        aria-expanded={displayOpen}
-        aria-controls="profile-display"
-        onClick={() => setDisplayOpen((open) => !open)}
-      >
-        디스플레이 및 언어
-        <ChevronDown size={18} aria-hidden />
-      </button>
-      {displayOpen && (
-        <section id="profile-display" className="privacy display" aria-label="디스플레이 및 언어">
-          <h3 className="privacy__title">디스플레이</h3>
-          <div className="display__schemes" role="group" aria-label="디스플레이">
-            {SCHEMES.map(({ id, label }) => (
-              <button
-                key={id}
-                className={`display__scheme ${scheme === id ? 'is-on' : ''}`}
-                aria-pressed={scheme === id}
-                onClick={() => onChange({ ...profile, scheme: id })}
-              >
-                {/* A small sample of that mode: its page colour, a pin and a bar in its accent. */}
-                <span className={`display__swatch display__swatch--${id}`} aria-hidden>
-                  <PinGlyph icon="pin" />
-                  <i />
-                </span>
-                {label}
-              </button>
-            ))}
-          </div>
-          <div className="display__lang">
-            <h3 className="privacy__title">언어</h3>
-            <button className="display__lang-btn" aria-label="언어: 한국어">
-              한국어
-            </button>
-          </div>
-        </section>
-      )}
-    </>
-  );
-  // 계정·약관·정책: room kept for 개인정보처리방침 and the like, then 로그아웃·탈퇴
-  // at the very bottom — folded away by default so 탈퇴 isn't one stray tap from the profile.
-  const accountPart = (
-    <>
-      <button
-        className={`profile__account ${accountOpen ? 'is-open' : ''}`}
-        aria-expanded={accountOpen}
-        aria-controls="profile-account"
-        onClick={() => setAccountOpen((open) => !open)}
-      >
-        계정·약관·정책
-        <ChevronDown size={18} aria-hidden />
-      </button>
-      {accountOpen && (
-        <div id="profile-account">
-          {/* 약관 및 정책: nothing yet. */}
-          <section className="terms" aria-label="약관 및 정책" />
-          <div className="profile__actions">
-            {account?.available && !account.user ? (
-              <button className="btn btn--secondary" disabled={account.busy} onClick={account.signIn}>
-                카카오로 로그인
-              </button>
-            ) : (
-              // Without an account (no Supabase keys) there's nothing to log out of.
-              <button className="btn btn--secondary" disabled={!account?.user || account.busy} onClick={account?.signOut}>
-                로그아웃
-              </button>
-            )}
-            <button
-              className="btn btn--ghost profile__leave"
-              disabled={account?.busy}
-              onClick={async () => {
-                const signedIn = !!account?.user;
-                const warning = signedIn
-                  ? '탈퇴하면 계정과 이 기기의 프로필·핀·코스·기록이 모두 지워져요. 되돌릴 수 없어요.'
-                  : '탈퇴하면 이 기기의 프로필·핀·코스·기록이 모두 지워져요. 되돌릴 수 없어요.';
-                if (!window.confirm(warning)) return;
-                // The account goes first: if that fails, this device keeps its data too.
-                if (signedIn && !(await account.deleteAccount())) return;
-                clearAppData();
-                window.location.reload();
-              }}
-            >
-              탈퇴
-            </button>
-          </div>
-          {account?.user && <p className="profile__account-note">카카오 계정으로 로그인했어요.</p>}
-        </div>
-      )}
-    </>
-  );
 
   return (
     <dialog
@@ -231,15 +87,10 @@ export default function ProfileSheet({ profile, onChange, onNickname, account, p
       }}
     >
       <div className="profile ticket-dialog__main">
-        {/* Top right: 음소거, an icon that flips on / off. */}
+        {/* Top right: ⚙ → 설정 (소리, 알림, 디스플레이 및 언어, 계정·약관·정책 moved there). */}
         <div className="profile__switches">
-          <button
-            className={`profile__switch ${profile.sound ? '' : 'is-off'}`}
-            aria-label="음소거"
-            aria-pressed={!profile.sound}
-            onClick={() => onChange({ ...profile, sound: !profile.sound })}
-          >
-            {profile.sound ? <Volume2 size={20} aria-hidden /> : <VolumeX size={20} aria-hidden />}
+          <button className="profile__switch" aria-label="설정" onClick={() => setSettingsOpen(true)}>
+            <Settings size={20} aria-hidden />
           </button>
         </div>
         <div className="profile__photo">
@@ -296,37 +147,11 @@ export default function ProfileSheet({ profile, onChange, onNickname, account, p
         {(note ?? account?.note) && <p className="profile__note">{note ?? account?.note}</p>}
       </div>
 
-      {/* Past the tear line: 제외 주소 설정, 알림 설정, 디스플레이 및 언어, then 계정·약관·정책. A toggle
-          that's open with another below it is torn off from it by a tear line of its own. */}
-      {tornStubs([
-        { part: privacyPart, open: privacyOpen },
-        { part: alertsPart, open: alertsOpen },
-        { part: displayPart, open: displayOpen },
-        { part: accountPart, open: accountOpen },
-      ])}
+      {/* Past the tear line: 제외 주소 설정 (the rest of the settings are behind ⚙). */}
+      <div className="ticket-dialog__stub profile__stub">{privacyPart}</div>
+      {settingsOpen && <SettingsScreen profile={profile} onChange={onChange} account={account} privacy={privacy} onClose={() => setSettingsOpen(false)} />}
     </dialog>
   );
-}
-
-/**
- * The stub's toggles, grouped so each open one sits in a stub of its own: a
- * tear line above its name (unless the profile's own tear line already is)
- * and one below it (unless it's the last).
- */
-function tornStubs(parts: { part: ReactNode; open: boolean }[]): ReactNode {
-  const stubs: ReactNode[][] = [[]];
-  parts.forEach(({ part, open }, i) => {
-    if (open && stubs[stubs.length - 1].length) stubs.push([]);
-    stubs[stubs.length - 1].push(part);
-    if (open && i < parts.length - 1) stubs.push([]);
-  });
-  return stubs.map((group, i) => (
-    <div key={i} className={`ticket-dialog__stub ${i < stubs.length - 1 ? 'ticket-dialog__stub--mid' : ''} profile__stub`}>
-      {group.map((part, j) => (
-        <Fragment key={j}>{part}</Fragment>
-      ))}
-    </div>
-  ));
 }
 
 interface EditLineProps {

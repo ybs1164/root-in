@@ -1,7 +1,6 @@
 import { ChevronLeft, ChevronRight, Share } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MutableRefObject, type TouchEvent } from 'react';
-import { swipeCommits, SWIPE } from '../domain/appTabs';
-import { daySwipeTarget, dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingCounts, pingKey, pingsForDate, pingsLandedMs, todayCandidates, type DayPing } from '../domain/dayPings';
+import { dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingCounts, pingKey, pingsForDate, pingsLandedMs, todayCandidates, type DayPing } from '../domain/dayPings';
 import { useStoredPings } from '../hooks/useStoredPings';
 import { recordPing, removePing } from '../services/pingRepository';
 import { categoryStyle, UNCATEGORIZED } from '../domain/pin';
@@ -53,20 +52,6 @@ const NO_PLANS = new Set<string>();
 const SLIDE_MS = 260;
 
 /** One-finger sideways drag on a day screen, paging to the day before / after. */
-interface DaySwipe {
-  x: number;
-  y: number;
-  axis: 'x' | 'other' | null;
-  /** The day being paged to, and the side it comes in from (-1 left, 1 right). */
-  to: string | null;
-  side: -1 | 1;
-  dx: number;
-  lastX: number;
-  lastT: number;
-  prevX: number;
-  prevT: number;
-}
-
 type LayerLook = { transform: string; opacity: string };
 
 /**
@@ -191,7 +176,6 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
     setYearOut({ year: yearShown.current, dir: month.year > yearShown.current ? 1 : -1 });
     yearShown.current = month.year;
   }, [month.year]);
-  const daySwipe = useRef<DaySwipe | null>(null);
   const sliding = useRef(false);
   const resetSlide = useRef(false);
   const curEl = useRef<HTMLDivElement | null>(null);
@@ -431,7 +415,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
   }, [mode]);
   useEffect(() => () => onDecorating(false), []);
 
-  // ----- Paging days (one-finger swipe on a day screen) -----
+  // ----- Paging days (the < > beside a day; a swipe now changes the screen, App) -----
 
   // Like the pinch, drawn straight onto the two panels rather than through
   // state, one paint per frame.
@@ -465,7 +449,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
    * Today has no day after it.
    */
   const stepDay = (step: -1 | 1) => {
-    if (sliding.current || daySwipe.current || toolRef.current) return;
+    if (sliding.current || toolRef.current) return;
     const to = step < 0 ? addDays(date, -1) : date !== today ? addDays(date, 1) : null;
     if (!to) return;
     sliding.current = true;
@@ -484,87 +468,6 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
         }, SLIDE_MS);
       }),
     );
-  };
-
-  const endDaySwipe = (commit: boolean) => {
-    const sw = daySwipe.current;
-    daySwipe.current = null;
-    cancelAnimationFrame(frame.current);
-    frame.current = 0;
-    if (!sw || sw.axis !== 'x' || !sw.to) return;
-    const width = stageEl.current?.clientWidth ?? window.innerWidth;
-    const to = sw.to;
-    sliding.current = true;
-    // The current day leaves the way the finger went; the neighbour lands.
-    paintSlide(commit ? -sw.side * width : 0, sw.side, true);
-    window.setTimeout(() => {
-      sliding.current = false;
-      if (commit) {
-        resetSlide.current = true;
-        setDate(to);
-        setMonth(monthOf(to));
-        setVisit((v) => v + 1); // the new day's pins drop in now
-      }
-      setNeighbor(null);
-    }, SLIDE_MS);
-  };
-
-  const onDayTouchStart = (e: TouchEvent) => {
-    if (e.touches.length !== 1 || modeRef.current !== 'day' || gesture.current || sliding.current || toolRef.current) {
-      if (daySwipe.current?.axis === 'x') endDaySwipe(false); // a second finger: back off for the pinch
-      daySwipe.current = null;
-      return;
-    }
-    const { clientX: x, clientY: y } = e.touches[0];
-    const t = performance.now();
-    daySwipe.current = { x, y, axis: null, to: null, side: -1, dx: 0, lastX: x, lastT: t, prevX: x, prevT: t };
-  };
-
-  const onDayTouchMove = (e: TouchEvent) => {
-    const sw = daySwipe.current;
-    if (!sw || e.touches.length !== 1) return;
-    const { clientX: x, clientY: y } = e.touches[0];
-    const mx = x - sw.x;
-    if (sw.axis === null) {
-      if (Math.abs(mx) < SWIPE.startPx && Math.abs(y - sw.y) < SWIPE.startPx) return;
-      const to = Math.abs(mx) > Math.abs(y - sw.y) ? daySwipeTarget(date, today, mx) : null;
-      // Not ours (vertical, or right-to-left on TODAY): let the page have it.
-      if (!to) {
-        sw.axis = 'other';
-        return;
-      }
-      sw.axis = 'x';
-      sw.to = to;
-      sw.side = mx > 0 ? -1 : 1; // the day before comes in from the left
-      setNeighbor({ date: to, side: sw.side });
-    }
-    if (sw.axis !== 'x') return;
-    e.stopPropagation(); // keeps the page's swipe-to-map out of it
-    sw.prevX = sw.lastX;
-    sw.prevT = sw.lastT;
-    sw.lastX = x;
-    sw.lastT = performance.now();
-    // Dragging back past the start just resists.
-    sw.dx = mx * -sw.side > 0 ? mx : mx * 0.15;
-    if (!frame.current) {
-      frame.current = requestAnimationFrame(() => {
-        frame.current = 0;
-        if (daySwipe.current === sw) paintSlide(sw.dx, sw.side, false);
-      });
-    }
-  };
-
-  const onDayTouchEnd = (e: TouchEvent) => {
-    const sw = daySwipe.current;
-    if (!sw || e.touches.length > 0) return;
-    if (sw.axis !== 'x') {
-      daySwipe.current = null;
-      return;
-    }
-    e.stopPropagation();
-    const width = stageEl.current?.clientWidth ?? window.innerWidth;
-    const velocity = (sw.lastX - sw.prevX) / Math.max(1, sw.lastT - sw.prevT);
-    endDaySwipe(swipeCommits(-sw.side as -1 | 1, sw.dx, width, velocity));
   };
 
   // ----- Pinch (touch) and ctrl+wheel (trackpad) -----
@@ -643,7 +546,6 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
   };
 
   const onTouchStart = (e: TouchEvent) => {
-    onDayTouchStart(e);
     // No zooming while a sticker or pen is out: fingers belong to the drawing.
     if (e.touches.length !== 2 || toolRef.current) return;
     const f = fingers(e);
@@ -651,14 +553,12 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
   };
 
   const onTouchMove = (e: TouchEvent) => {
-    onDayTouchMove(e);
     const g = gesture.current;
     if (!g || e.touches.length !== 2) return;
     move(fingers(e).dist / g.startDist);
   };
 
   const onTouchEnd = (e: TouchEvent) => {
-    onDayTouchEnd(e);
     if (e.touches.length < 2) release();
   };
 
@@ -785,7 +685,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
               onPickedChange={(ping) => onPingPicked?.(ping?.id ? () => setDeleting(ping) : null)}
               dropZone={pingDropZone}
               onDropHover={onPingDropHover}
-              pressable={() => gesture.current === null && daySwipe.current?.axis !== 'x' && !toolRef.current}
+              pressable={() => gesture.current === null && !toolRef.current}
               showNames={!dayDecor.hideNames}
               showTimes={!dayDecor.hideTimes}
               ghost={

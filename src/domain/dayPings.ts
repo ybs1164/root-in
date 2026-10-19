@@ -83,17 +83,6 @@ export function pingCounts(stored: readonly StoredPing[]): Map<string, number> {
   return counts;
 }
 
-/**
- * Sideways swipe on a day screen. Left-to-right (dx > 0) always pages to
- * the day before. Right-to-left pages to the next day, except on TODAY,
- * where it isn't the calendar's: the page slides off to the map instead.
- */
-export function daySwipeTarget(date: string, today: string, dx: number): string | null {
-  if (dx > 0) return addDays(date, -1);
-  if (dx < 0 && date !== today) return addDays(date, 1);
-  return null;
-}
-
 /** The most recent ping (latest time; the later one on ties), drawn bigger. */
 export function latestPingIndex(pings: DayPing[]): number {
   return pings.reduce((best, ping, i) => (best < 0 || ping.time >= pings[best].time ? i : best), -1);

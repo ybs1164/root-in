@@ -45,6 +45,11 @@
    `20261010000000_sync_cursor.sql` — 동기화 테이블에 `server_updated_at`(트리거)·`deleted_at`, `pins.geom`을 서버가 `place.center`에서 채움(트리거), 행 크기 상한(NOT VALID — 새 쓰기만 검사), `purge_sync_tombstones()`.
    `20261011000000_shares_revoke.sql` — 공유에 `kind`·`revoked_at`·`add_count`·`last_opened_at`, 루트를 지우면 링크를 끊는 트리거, `open_share`가 끊긴 링크엔 null, `count_share_add`.
    `20261012000000_pings.sql` — 투데이 핑 테이블(`pings`, 동기화 열·RLS), 안 쓰던 `days.pings` 열 삭제, `purge_sync_tombstones`에 핑 추가.
+   `20261016000000_groups.sql` — We Now 그룹(`groups`·`group_members`, 모임원만 select), `create_group`·`join_group`·`rename_group`·`leave_group`·`my_groups(day)`(모임원 그날 핑의 시각·좌표만). 109줄이라 SQL Editor에는 둘로 나눠 붙일 것(`add_group_member`까지 / 나머지).
+   `20261017000000_group_kick.sql` — 그룹원 추방 `kick_group_member(gid, member)`(만든 사람만, 자기 자신은 안 됨).
+   `20261018000000_group_alias_delete.sql` — 그룹원 별명 `group_members.alias`·`set_group_alias`, 그룹 삭제 `delete_group`(만든 사람만), `my_groups`가 별명도 돌려줌.
+   `20261019000000_group_alias_default.sql` — 그룹에 들어올 때 프로필 닉네임을 그 그룹의 이름(`alias`)으로 넣고, 이미 있는 그룹원도 채움; 이름은 비울 수 없음.
+   `20261020000000_group_ping_names.sql` — `my_groups`가 핑마다 장소 이름(80자)도 보냄(포커스한 그룹원의 장소 이름 표시용, 주소는 여전히 안 보냄).
    **이 마이그레이션들을 먼저 적용하고 나서 클라이언트를 배포**할 것 — 새 클라이언트는 이 열을 읽어서, 적용 전 DB에서는 동기화가 실패(프로필 창 안내)한다.
    지움 표시는 30일 뒤 지운다: Integrations → Cron(pg_cron)에 매일 `select public.purge_sync_tombstones();` 등록. 그 전까지 지운 핀·루트의 내용이 서버에 남아 있음.
 3. Project Settings → API의 Project URL과 **anon(public)** 키를 `.env.local`에:
@@ -61,6 +66,7 @@
    - Supabase → Authentication → Sign In / Providers → Kakao: REST API 키를 Client ID로, Client Secret 입력,
      "Allow users without an email"(이메일 없는 사용자 허용) 켜기.
      *(REST API 키는 Supabase 서버 설정에만 들어간다 — 프론트에는 여전히 JS 키뿐.)*
+   - **We Now 게스트**(카카오 없이 그룹 쓰기): Authentication → Sign In / Providers → **Allow anonymous sign-ins** 켜기, 그리고 게스트가 나중에 카카오로 로그인할 때 같은 계정에 이어지도록 Authentication → **Allow manual linking** 켜기. 끄면 We Now가 '그룹을 불러오지 못했어요'로 남음. 익명 가입 남용이 걱정되면 같은 화면의 CAPTCHA·속도 제한을 켤 것.
    - Authentication → URL Configuration: Site URL은 배포 주소, Redirect URLs에
      `http://localhost:5188/**`와 배포 도메인 추가.
 

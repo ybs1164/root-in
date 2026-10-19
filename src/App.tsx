@@ -24,7 +24,7 @@ import ProfileSheet, { ProfileAvatar } from './components/ProfileSheet';
 import CategorySheet from './components/CategorySheet';
 import SharedRouteDialog from './components/SharedRouteDialog';
 import { visibleRange } from './domain/adminAreas';
-import { calendarAgain, homeSwipeDirection, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
+import { calendarAgain, pageSwipes, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { COURSE_LIMITS } from './domain/course';
 import type { MapViewport } from './domain/districtMap';
 import { categoryStyle, filterPinsByCategories, isUncategorized, UNCATEGORIZED } from './domain/pin';
@@ -42,6 +42,14 @@ import { removePingsOfPin } from './services/pingRepository';
 import { useAccount } from './hooks/useAccount';
 import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
+import { useGroups } from './hooks/useGroups';
+import { groupsNeedLogin, inviteUrl } from './services/groupService';
+import { focusPoints, memberColor, type GroupMember } from './domain/groups';
+import WeNowPage from './components/WeNowPage';
+import GroupMapView from './components/GroupMapView';
+import GroupFormDialog from './components/GroupFormDialog';
+import GroupSettingsDialog from './components/GroupSettingsDialog';
+import GroupLines, { type GroupLine } from './components/GroupLines';
 import { shareLinkService } from './services/shareLinkService';
 import { planShare } from './services/shareTargets';
 import { usePageSwipe } from './hooks/usePageSwipe';
@@ -251,14 +259,73 @@ export default function App() {
   const sharedCourse = incomingCourse.status === 'ready' ? incomingCourse.course : null;
   const incomingMeta = incomingCourse.status === 'ready' ? incomingCourse.meta : undefined;
   const activePin = pins.find((p) => p.id === activePinId) ?? null;
-  const onPage = showsPage(tab, Boolean(searchOpen || preview));
-  // Swiping 달력 left slides the page off and uncovers the map (핀).
-  const swipe = usePageSwipe(onPage && !decorating && !studio ? homeSwipeDirection(tab) : 0, () => changeTab('pins'));
+  // We Now: the groups (signed in), and the one opened from its grid — the map shows for it.
+  const [openGroupId, setOpenGroupId] = useState<string | null>(null);
+  const [groupPicked, setGroupPicked] = useState<string | null>(null);
+  const [groupFormOpen, setGroupFormOpen] = useState(false);
+  const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
+  const [groupLeaving, setGroupLeaving] = useState(false);
+  const [groupDeleting, setGroupDeleting] = useState(false);
+  // We Now needs no Kakao (unless VITE_GROUPS_NEED_LOGIN): with no one signed in, a guest account is made for this device.
+  const needLogin = groupsNeedLogin();
+  const [guest, setGuest] = useState<'idle' | 'trying' | 'done' | 'failed'>('idle');
+  const startGuest = useCallback(() => {
+    setGuest('trying');
+    void account.signInAsGuest().then((ok) => setGuest(ok ? 'done' : 'failed'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account.signInAsGuest]);
+  const groups = useGroups(account.user, tab === 'people', {
+    onJoined: (id) => {
+      changeTab('people');
+      setOpenGroupId(id);
+      notify('그룹에 들어왔어요.');
+    },
+    // An invite opened with no one signed in: as a guest, then it's joined.
+    onNeedLogin: () => {
+      if (!needLogin) return startGuest();
+      notify('그룹에 들어가려면 먼저 로그인하세요.');
+      setProfileOpen(true);
+    },
+    onJoinFailed: () => notify('그룹 초대 링크를 열 수 없어요.'),
+  });
+  // My own place in each group wears this phone's photo and nickname (the server's copy may lag behind).
+  const myId = account.user?.id ?? null;
+  const groupList = useMemo(
+    () =>
+      groups.groups.map((g) => ({
+        ...g,
+        members: g.members.map((m) => (m.userId === myId ? { ...m, photo: profile.photo ?? m.photo, nickname: m.alias ?? (getDisplayName().trim() || m.nickname) } : m)),
+      })),
+    [groups.groups, myId, profile.photo],
+  );
+  const [kicking, setKicking] = useState<GroupMember | null>(null);
+  const openGroup = tab === 'people' && openGroupId ? (groupList.find((g) => g.id === openGroupId) ?? null) : null;
+  // A group I've left (or that's gone) closes; a member who left can't stay picked.
+  useEffect(() => {
+    if (openGroupId && groups.status === 'ready' && !groups.groups.some((g) => g.id === openGroupId)) setOpenGroupId(null);
+  }, [openGroupId, groups.status, groups.groups]);
+  useEffect(() => {
+    if (tab !== 'people') setOpenGroupId(null);
+  }, [tab]);
+  useEffect(() => setGroupPicked(null), [openGroupId]);
+  useEffect(() => {
+    if (!needLogin && tab === 'people' && account.available && !account.user && guest === 'idle') startGuest();
+  }, [needLogin, tab, account.available, account.user, guest, startGuest]);
+  const onPage = showsPage(tab, Boolean(searchOpen || preview || openGroup));
+  // Swiping a page sideways slides it off toward another screen: 달력 ← 핀,
+  // → We Now; We Now ← 달력, → 핀 (pageSwipes).
+  const swipeTo = onPage && !decorating && !studio ? pageSwipes(tab) : { left: null, right: null };
+  const swipe = usePageSwipe(
+    swipeTo.left ? () => changeTab(swipeTo.left!) : null,
+    swipeTo.right ? () => changeTab(swipeTo.right!) : null,
+  );
   // While the page is swiped off, the map screen under it stays whole.
   const pageMoving = swipe.moving;
+  // The screen the moving page is heading for (the bottom row turns to it meanwhile).
+  const swipeTarget = swipe.heading ? (swipe.heading < 0 ? swipeTo.left : swipeTo.right) : null;
   const onPinHome = tab === 'pins';
-  // The map's own things (pins, rail, row) show on the map, and under a moving page.
-  const mapUi = onPinHome || pageMoving;
+  // The map's own things (pins, rail, row) show on the map, and under a page sliding off to it.
+  const mapUi = onPinHome || (pageMoving && swipeTarget === 'pins');
   // On phones the pin screen's sheet drops down from the top, leaving the map's lower half clear.
   const sheetTop = tab === 'pins';
   // 경로 open on the pin map: the folder sheet takes the tab buttons' place.
@@ -482,6 +549,100 @@ export default function App() {
   useEffect(() => {
     mapRef.current?.setPins(pinMarkers);
   }, [pinMarkers, mapProvider]);
+
+  // An open group: every member's pings (their latest as their face), the
+  // picked member's over the rest, everyone else stepping back.
+  const groupMarks = useMemo(() => {
+    if (!openGroup) return [];
+    return openGroup.members.flatMap((m) =>
+      m.pings.map((p, i) => ({
+        member: m.userId,
+        seq: i,
+        center: p.center,
+        color: memberColor(m.slot),
+        face: i === m.pings.length - 1 ? { photo: m.photo } : undefined,
+        faded: !!groupPicked && groupPicked !== m.userId,
+        // The picked member's places by name; nobody's while ALL.
+        label: groupPicked === m.userId ? p.name : undefined,
+      })),
+    );
+  }, [openGroup, groupPicked]);
+  const groupLines = useMemo<GroupLine[]>(
+    () =>
+      (openGroup?.members ?? [])
+        .filter((m) => m.pings.length > 1)
+        .map((m) => ({ member: m.userId, color: memberColor(m.slot), count: m.pings.length, faded: !!groupPicked && groupPicked !== m.userId })),
+    [openGroup, groupPicked],
+  );
+  useEffect(() => {
+    mapRef.current?.setGroupPings(groupMarks);
+  }, [groupMarks, mapProvider]);
+  // Opening a group fits all of it; picking someone brings the map in close on their day.
+  const groupFitted = useRef<{ group: string; picked: string | null } | null>(null);
+  const groupFitKey = openGroup ? `${openGroup.id}|${groupPicked ?? ''}|${focusPoints(openGroup, groupPicked).length}` : '';
+  useEffect(() => {
+    if (!openGroup || !mapRef.current) return;
+    const points = focusPoints(openGroup, groupPicked);
+    if (points.length === 0) return;
+    const el = mapEl.current;
+    const width = el?.clientWidth ?? window.innerWidth;
+    // Under the title, clear of the rail on the right; the same margin on the left keeps it centred.
+    const side = width < 520 ? 76 : 96;
+    const padding = { top: 150, right: side, bottom: 64, left: side };
+    // Like a route: the first move onto someone (from ALL, or opening the
+    // group) glides at the usual pace; going on from one member to the next
+    // is as quick as stepping between routes with < >.
+    const last = groupFitted.current;
+    const memberToMember = !!last && last.group === openGroup.id && !!last.picked && !!groupPicked;
+    groupFitted.current = { group: openGroup.id, picked: groupPicked };
+    const id = requestAnimationFrame(() => {
+      void mapRef.current?.fitPoints(points, padding, memberToMember ? STEP_GLIDE_MS : undefined);
+    });
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupFitKey, mapProvider]);
+  useEffect(() => {
+    if (!openGroup) groupFitted.current = null;
+  }, [openGroup]);
+
+  // On a group's map, a quick tap (not a pan or a long press) on someone's
+  // face (faded or not) puts the focus on them; on bare map, with someone
+  // picked, it goes back to ALL; on a ping dot it does nothing. The pings
+  // let taps through to the map, so they're found by where they are on screen.
+  const groupOnMap = !!openGroup;
+  useEffect(() => {
+    const el = mapEl.current;
+    if (!groupOnMap || !el) return;
+    let tap: { x: number; y: number; at: number } | null = null;
+    const hit = (x: number, y: number): { member: string | null } | null => {
+      let dot = false;
+      for (const p of document.querySelectorAll<HTMLElement>('.group-ping')) {
+        const face = p.querySelector('.group-ping__face')?.getBoundingClientRect();
+        if (face && x >= face.left - 4 && x <= face.right + 4 && y >= face.top - 4 && y <= face.bottom + 4) return { member: p.dataset.member ?? null };
+        const r = p.getBoundingClientRect();
+        if (Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2)) < 22) dot = true;
+      }
+      return dot ? { member: null } : null;
+    };
+    const down = (e: PointerEvent) => {
+      tap = e.isPrimary && el.contains(e.target as Node) ? { x: e.clientX, y: e.clientY, at: performance.now() } : null;
+    };
+    const up = (e: PointerEvent) => {
+      const t = tap;
+      tap = null;
+      if (!t || !e.isPrimary || !el.contains(e.target as Node)) return;
+      if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > PRESS.slopPx || performance.now() - t.at >= PRESS.longMs) return;
+      const on = hit(e.clientX, e.clientY);
+      if (on?.member) setGroupPicked(on.member);
+      else if (!on) setGroupPicked(null);
+    };
+    document.addEventListener('pointerdown', down, true);
+    document.addEventListener('pointerup', up, true);
+    return () => {
+      document.removeEventListener('pointerdown', down, true);
+      document.removeEventListener('pointerup', up, true);
+    };
+  }, [groupOnMap]);
 
   // Making or editing a route: a pin already in it steps aside (its numbered stop
   // stands in), and so does one the moment it's added; taken out, it's back.
@@ -884,6 +1045,7 @@ export default function App() {
   useBackButton(() => {
     if (closeTopDialog()) return true;
     if (studio) return setStudio(null), true;
+    if (openGroupId) return setOpenGroupId(null), true;
     if (searchOpen) return setSearchOpen(false), setQuery(''), searchInput.current?.blur(), true;
     if (preview) return setPreview(null), true;
     if (activePinId) return setActivePinId(null), true;
@@ -1014,8 +1176,14 @@ export default function App() {
   useEffect(() => {
     const pop = () => {
       if (!calendarEntry.current) return;
+      if (openGroup) {
+        setOpenGroupId(null);
+        history.pushState({ rootIn: tab }, '');
+        return;
+      }
       calendarEntry.current = false;
-      if (onPage) swipe.leave();
+      // Back goes to the map, the page sliding off toward the side the map is on.
+      if (onPage && (swipeTo.left === 'pins' || swipeTo.right === 'pins')) swipe.leave(swipeTo.left === 'pins' ? -1 : 1);
       else changeTab('pins');
     };
     window.addEventListener('popstate', pop);
@@ -1052,7 +1220,7 @@ export default function App() {
   const barAway = (decorating && calendarZoom && onPage) || routeMode;
   // Under the 꾸미기 screen the row is simply gone, so coming back it is just
   // there again rather than sliding up.
-  const barGone = !!studio;
+  const barGone = !!studio || !!openGroup;
   // 공유 before 집 is set (it's required) opens the profile on 개인 정보 instead.
   const needHome = (kind: ShareKind) => {
     analytics.track('share_blocked_need_home', { kind });
@@ -1061,7 +1229,7 @@ export default function App() {
   };
 
   return (
-    <div className={`app ${searchOpen ? 'app--searching' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''} ${pageMoving ? 'app--page-moving' : ''}`}>
+    <div className={`app ${searchOpen ? 'app--searching' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''} ${pageMoving ? 'app--page-moving' : ''} ${openGroup ? 'app--group' : ''}`}>
       <div ref={mapEl} className="map" aria-label="지도" />
 
       <SearchBar
@@ -1355,8 +1523,110 @@ export default function App() {
               onMode={setCalendarMode}
             />
           ) : null}
+          {tab === 'people' && (
+            <WeNowPage
+              status={groups.status === 'signed-out' && !needLogin ? (guest === 'idle' || guest === 'trying' ? 'loading' : 'error') : groups.status}
+              groups={groupList}
+              photo={profile.photo}
+              onProfile={() => setProfileOpen(true)}
+              onOpen={setOpenGroupId}
+              onCreate={() => setGroupFormOpen(true)}
+              onSignIn={account.signIn}
+              onRetry={() => (account.user || needLogin ? groups.refresh() : startGuest())}
+            />
+          )}
         </section>
       ) : null}
+
+      {openGroup && (
+        <>
+          <GroupLines lines={groupLines} />
+          <GroupMapView
+            group={openGroup}
+            picked={groupPicked}
+            onPick={setGroupPicked}
+            onBack={() => setOpenGroupId(null)}
+            onSettings={() => setGroupSettingsOpen(true)}
+          />
+        </>
+      )}
+
+      {groupFormOpen && (
+        <GroupFormDialog
+          onSubmit={async (name, cover, slug) => {
+            const made = await groups.create(name, cover, slug);
+            if (!made) return false;
+            notify(made.inviteSlug === slug ? '그룹을 만들었어요.' : '그룹을 만들었어요. 초대 링크가 바뀌었으니 ⚙에서 다시 복사하세요.');
+            return true;
+          }}
+          onClose={() => setGroupFormOpen(false)}
+        />
+      )}
+
+      {groupSettingsOpen && openGroup && (
+        <GroupSettingsDialog
+          group={openGroup}
+          onRename={(name) => groups.rename(openGroup.id, name)}
+          me={myId}
+          onKick={setKicking}
+          onAlias={(alias) => groups.setAlias(openGroup.id, alias)}
+          onDelete={() => setGroupDeleting(true)}
+          onLeave={() => setGroupLeaving(true)}
+          onClose={() => setGroupSettingsOpen(false)}
+        />
+      )}
+
+      {kicking && openGroup && (
+        <ConfirmDialog
+          label="그룹원 추방"
+          message={`'${kicking.nickname}'님을 그룹에서 내보냅니다.`}
+          detail="초대 링크로 다시 들어올 수 있어요."
+          confirmLabel="추방"
+          onConfirm={() => {
+            const member = kicking;
+            void groups.kick(openGroup.id, member.userId).then((ok) => {
+              if (!ok) notify('내보내지 못했어요.');
+              else if (groupPicked === member.userId) setGroupPicked(null);
+            });
+          }}
+          onClose={() => setKicking(null)}
+        />
+      )}
+
+      {groupDeleting && openGroup && (
+        <ConfirmDialog
+          label="그룹 삭제"
+          message={`'${openGroup.name}' 그룹을 삭제합니다.`}
+          detail="모든 그룹원이 이 그룹을 더는 볼 수 없어요. 되돌릴 수 없어요."
+          confirmLabel="삭제"
+          onConfirm={() => {
+            void groups.remove(openGroup.id).then((ok) => {
+              if (!ok) return notify('그룹을 삭제하지 못했어요.');
+              setGroupSettingsOpen(false);
+              setOpenGroupId(null);
+            });
+          }}
+          onClose={() => setGroupDeleting(false)}
+        />
+      )}
+
+      {groupLeaving && openGroup && (
+        <ConfirmDialog
+          label="그룹 나가기"
+          message={`'${openGroup.name}' 그룹에서 나갑니다.`}
+          detail="내 오늘 핑도 이 그룹에서 더는 안 보여요."
+          confirmLabel="나가기"
+          onConfirm={() => {
+            const id = openGroup.id;
+            void groups.leave(id).then((ok) => {
+              if (!ok) return notify('그룹에서 나가지 못했어요.');
+              setGroupSettingsOpen(false);
+              setOpenGroupId(null);
+            });
+          }}
+          onClose={() => setGroupLeaving(false)}
+        />
+      )}
 
       {aimable && (
         <div className={`aim ${panAim ? 'is-on' : ''}`} aria-hidden>
@@ -1381,7 +1651,7 @@ export default function App() {
         inert={barAway || barGone}
       >
         <BottomBar
-          tab={pageMoving ? 'pins' : tab}
+          tab={pageMoving && swipeTarget ? swipeTarget : tab}
           calendarMode={calendarMode}
           onCalendar={() => tagTab('calendar')}
           onDeletePing={onPage && calendarZoom && calendarMode === 'day' && pingRemove ? pingRemove : undefined}

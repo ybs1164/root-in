@@ -18,6 +18,11 @@ export interface Account {
   /** A line for the profile popup when something didn't go through. */
   note: string | null;
   signIn(): void;
+  /**
+   * Makes a guest account (no Kakao) if there's no one signed in, for We Now.
+   * Resolves whether there's an account now.
+   */
+  signInAsGuest(): Promise<boolean>;
   signOut(): void;
   /** 탈퇴 on the server; false when it didn't happen (then nothing on this device is cleared either). */
   deleteAccount(): Promise<boolean>;
@@ -117,6 +122,17 @@ export function useAccount(
           setNote('로그인을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.');
         }
       });
+    },
+    async signInAsGuest() {
+      if (!auth.available) return false;
+      if (user) return true;
+      const ok = await auth.signInAsGuest();
+      // onChange brings the user in; read it too in case that's late.
+      if (ok) {
+        const current = await auth.current();
+        if (current) setUser((was) => was ?? current);
+      }
+      return ok;
     },
     signOut() {
       setBusy(true);

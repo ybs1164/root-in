@@ -14,6 +14,8 @@ import {
   type MapPadding,
   type PinMarker,
   ADMIN_ATTRIBUTION,
+  createGroupPingElement,
+  type GroupPingMark,
 } from './courseMap';
 
 /** A route's glide into view (App waits for its end before playing the route in). */
@@ -43,6 +45,7 @@ export class MapLibreCourseMap implements CourseMap {
   private previewMarker: Marker | null = null;
   private meMarker: Marker | null = null;
   private pinMarkers: Marker[] = [];
+  private groupMarkers: Marker[] = [];
   private guide: [number, number][] = [];
   private areas: AreaShapes | null = null;
   private areaLabels = new Map<string, { label: AreaLabel; marker: Marker }>();
@@ -176,6 +179,13 @@ export class MapLibreCourseMap implements CourseMap {
     );
   }
 
+  setGroupPings(marks: GroupPingMark[]): void {
+    this.groupMarkers.forEach((m) => m.remove());
+    this.groupMarkers = marks.map((mark) =>
+      new maplibregl.Marker({ element: createGroupPingElement(mark) }).setLngLat(mark.center).addTo(this.map),
+    );
+  }
+
   setGuideLine(points: [number, number][] | null): void {
     this.guide = points ?? [];
     const source = this.map.getSource(GUIDE_SOURCE) as maplibregl.GeoJSONSource | undefined;
@@ -185,7 +195,7 @@ export class MapLibreCourseMap implements CourseMap {
   fitPoints(points: [number, number][], padding: MapPadding, glideMs = GLIDE_MS): Promise<void> {
     if (points.length === 0) return Promise.resolve();
     if (points.length === 1) {
-      this.focus(points[0], padding);
+      this.focus(points[0], padding, glideMs === GLIDE_MS ? FOCUS_MS : glideMs);
       return this.moveSettled();
     }
     const bounds = new maplibregl.LngLatBounds();
@@ -253,13 +263,13 @@ export class MapLibreCourseMap implements CourseMap {
     );
   }
 
-  focus(center: [number, number], padding?: MapPadding): void {
+  focus(center: [number, number], padding?: MapPadding, glideMs = FOCUS_MS): void {
     // `offset`, not `padding`: easeTo's padding sticks to the map and would
     // be added to the next fitBounds padding, making the course unfittable.
     const offset: [number, number] = padding
       ? [(padding.left - padding.right) / 2, (padding.top - padding.bottom) / 2]
       : [0, 0];
-    this.map.easeTo({ center, zoom: Math.max(this.map.getZoom(), FOCUS_ZOOM), offset, duration: this.duration(FOCUS_MS) });
+    this.map.easeTo({ center, zoom: Math.max(this.map.getZoom(), FOCUS_ZOOM), offset, duration: this.duration(glideMs) });
   }
 
   /**

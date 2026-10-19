@@ -1,0 +1,132 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { describe, expect, it, vi } from 'vitest';
+import { createSupabaseGroupService, inviteUrl, readGroups, readInviteSlug } from './groupService';
+
+const G1 = '11111111-1111-1111-1111-111111111111';
+const U1 = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+const U2 = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+
+// A stand-in for the bits of supabase-js the service touches (no network in tests).
+function fakeClient(answer: (fn: string, args: Record<string, unknown>) => { data?: unknown; error?: { code?: string } | null }) {
+  const rpc = vi.fn(async (fn: string, args: Record<string, unknown>) => ({ data: null, error: null, ...answer(fn, args) }));
+  const client = {
+    rpc,
+    storage: { from: () => ({ getPublicUrl: (path: string) => ({ data: { publicUrl: `https://cdn/${path}` } }) }) },
+  } as unknown as SupabaseClient;
+  return { client, rpc };
+}
+
+const row = {
+  id: G1,
+  name: '  대학 동기  ',
+  cover: 2,
+  invite_slug: 'abcDEF123_',
+  mine: true,
+  members: [
+    {
+      user_id: U2,
+      slot: 1,
+      nickname: '민수',
+      avatar_path: `${U2}/avatar.jpg`,
+      pings: [
+        { at: '2026-10-16T05:00:00Z', center: [126.92, 37.55] },
+        { at: '2026-10-16T01:00:00Z', center: [126.91, 37.56] },
+        { at: '2026-10-16T02:00:00Z', center: [2.35, 48.85] }, // outside Korea
+        { at: 'nope', center: [126.9, 37.5] },
+      ],
+    },
+    { user_id: U1, slot: 0, nickname: '', avatar_path: 'someone/else.png', pings: [] },
+    { user_id: U1, slot: 3, nickname: 'dup', pings: [] },
+    { user_id: 'not-a-uuid', slot: 2, pings: [] },
+  ],
+};
+
+describe('groupService', () => {
+  it('reads my_groups like received data: shapes, Korea-only pings in time order, safe photo paths', () => {
+    const [g] = readGroups([row, { id: 'bad' }], (p) => `https://cdn/${p}`);
+    expect(g).toMatchObject({ id: G1, name: '대학 동기', cover: 2, inviteSlug: 'abcDEF123_', mine: true });
+    expect(g.members.map((m) => m.userId)).toEqual([U1, U2]);
+    expect(g.members[0]).toMatchObject({ nickname: '익명', photo: null });
+    expect(g.members[1].photo).toBe(`https://cdn/${U2}/avatar.jpg`);
+    expect(g.members[1].pings.map((p) => p.center)).toEqual([
+      [126.91, 37.56],
+      [126.92, 37.55],
+    ]);
+    expect(readGroups('nope', () => null)).toEqual([]);
+  });
+
+  it('lists through my_groups for the given day, and says error rather than rejecting', async () => {
+    const fake = fakeClient(() => ({ data: [row] }));
+    const service = createSupabaseGroupService(async () => fake.client, true);
+    const list = await service.list('2026-10-16');
+    expect(fake.rpc).toHaveBeenCalledWith('my_groups', { on_day: '2026-10-16' });
+    expect(list !== 'error' && list[0].id).toBe(G1);
+    expect(await createSupabaseGroupService(async () => fakeClient(() => ({ error: {} })).client, true).list('2026-10-16')).toBe('error');
+    expect(await createSupabaseGroupService(() => Promise.reject(new Error('down')), true).list('2026-10-16')).toBe('error');
+    expect(await createSupabaseGroupService(async () => null, true).list('2026-10-16')).toBe('error');
+  });
+
+  it('creates with a fresh invite slug, trying another when it was taken', async () => {
+    let calls = 0;
+    const fake = fakeClient(() => (++calls === 1 ? { error: { code: '23505' } } : { data: G1 }));
+    const slugs = ['first0', 'second'];
+    const service = createSupabaseGroupService(async () => fake.client, true, () => slugs.shift() ?? 'xxxxxx');
+    expect(await service.create(' 러닝크루 ', 9)).toEqual({ id: G1, inviteSlug: 'second' });
+    expect(fake.rpc).toHaveBeenLastCalledWith('create_group', { group_name: '러닝크루', group_cover: 0, slug: 'second' });
+    expect(await service.create('   ', 0)).toBeNull();
+  });
+
+  it('joins by invite slug, and checks the slug before asking', async () => {
+    const fake = fakeClient(() => ({ data: G1 }));
+    const service = createSupabaseGroupService(async () => fake.client, true);
+    expect(await service.join('abcDEF123_')).toBe(G1);
+    expect(await service.join('../x')).toBeNull();
+    expect(fake.rpc).toHaveBeenCalledTimes(1);
+    expect(await createSupabaseGroupService(async () => fakeClient(() => ({ data: null })).client, true).join('abcdefgh')).toBeNull();
+  });
+
+  it('renames and leaves without rejecting', async () => {
+    const fake = fakeClient((fn) => (fn === 'rename_group' ? { data: true } : {}));
+    const service = createSupabaseGroupService(async () => fake.client, true);
+    expect(await service.rename(G1, '새 이름')).toBe(true);
+    expect(await service.leave(G1)).toBe(true);
+    expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).leave(G1)).toBe(false);
+  });
+
+  it('makes and reads invite links', () => {
+    expect(inviteUrl('abcdefgh', 'https://root.in/')).toBe('https://root.in/#g=abcdefgh');
+    expect(readInviteSlug('https://root.in/#g=abcdefgh')).toBe('abcdefgh');
+    expect(readInviteSlug('https://root.in/#g=bad!')).toBeNull();
+    expect(readInviteSlug('https://root.in/#share=x')).toBeNull();
+  });
+
+  it("uses the invite slug the dialog showed, and kicks through the maker-only function", async () => {
+    const fake = fakeClient((fn) => (fn === 'create_group' ? { data: G1 } : fn === 'kick_group_member' ? { data: true } : {}));
+    const service = createSupabaseGroupService(async () => fake.client, true, () => 'fallback');
+    expect(await service.create('그룹', 0, 'shown123')).toEqual({ id: G1, inviteSlug: 'shown123' });
+    expect(await service.kick(G1, U2)).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('kick_group_member', { gid: G1, member: U2 });
+    expect(await service.kick(G1, 'not-a-uuid')).toBe(false);
+  });
+
+  it("shows a member's 별명 instead of their nickname, and sets / clears it", async () => {
+    const [g] = readGroups([{ ...row, members: [{ user_id: U1, slot: 0, nickname: '민수', alias: '  막내  ', pings: [] }] }], () => null);
+    expect(g.members[0]).toMatchObject({ nickname: '막내', alias: '막내' });
+    const fake = fakeClient((fn) => ({ data: fn === 'set_group_alias' || fn === 'delete_group' }));
+    const service = createSupabaseGroupService(async () => fake.client, true);
+    expect(await service.setAlias(G1, ' 막내 ')).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('set_group_alias', { gid: G1, new_alias: '막내' });
+    expect(await service.remove(G1)).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('delete_group', { gid: G1 });
+    expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).remove(G1)).toBe(false);
+  });
+
+  it("keeps each ping's place name (trimmed, capped), and does without one", () => {
+    const [g] = readGroups(
+      [{ ...row, members: [{ user_id: U1, slot: 0, nickname: 'a', pings: [{ at: '2026-10-18T01:00:00Z', center: [127, 37.5], name: `  ${'가'.repeat(100)} ` }, { at: '2026-10-18T02:00:00Z', center: [127, 37.6] }] }] }],
+      () => null,
+    );
+    expect(g.members[0].pings[0].name).toHaveLength(80);
+    expect(g.members[0].pings[1].name).toBeUndefined();
+  });
+});

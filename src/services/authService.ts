@@ -7,6 +7,11 @@ import { getSupabase, supabaseConfigured } from '../lib/supabase';
 
 export interface AuthUser {
   id: string;
+  /**
+   * A guest account (Supabase anonymous sign-in), made so We Now works
+   * without Kakao. 카카오로 로그인 later links Kakao to this same account.
+   */
+  anonymous?: boolean;
 }
 
 export interface AuthService {
@@ -15,8 +20,10 @@ export interface AuthService {
   current(): Promise<AuthUser | null>;
   /** Called with the signed-in user (or null) whenever that changes. Returns an unsubscribe. */
   onChange(listener: (user: AuthUser | null) => void): () => void;
-  /** Leaves for Kakao's login page; false if that couldn't start. */
+  /** Leaves for Kakao's login page; false if that couldn't start. A guest's account is kept (Kakao is linked to it). */
   signInWithKakao(): Promise<boolean>;
+  /** A guest account for this device, no Kakao; false if it couldn't be made (e.g. anonymous sign-ins are off). */
+  signInAsGuest(): Promise<boolean>;
   signOut(): Promise<void>;
   /** Removes the account and everything stored under it on the server, then signs out. */
   deleteAccount(): Promise<boolean>;
@@ -39,7 +46,8 @@ export function clearLoginReturn(): void {
 type ClientSource = () => Promise<SupabaseClient | null>;
 
 export function createSupabaseAuthService(getClient: ClientSource = getSupabase, available = supabaseConfigured()): AuthService {
-  const toUser = (user: { id: string } | null | undefined): AuthUser | null => (user?.id ? { id: user.id } : null);
+  const toUser = (user: { id: string; is_anonymous?: boolean } | null | undefined): AuthUser | null =>
+    user?.id ? (user.is_anonymous ? { id: user.id, anonymous: true } : { id: user.id }) : null;
 
   return {
     available,
@@ -80,7 +88,28 @@ export function createSupabaseAuthService(getClient: ClientSource = getSupabase,
         // Back to this page without the hash: a share link that was open has
         // been handled by then, and the code comes back in the query.
         const redirectTo = `${window.location.origin}${window.location.pathname}`;
+        // A guest keeps their account (groups, synced pins): Kakao is linked to
+        // it. If that Kakao already has an account, linking fails and it's an
+        // ordinary login into that one instead.
+        const { data } = await client.auth.getSession();
+        if (data.session?.user.is_anonymous) {
+          const linked = await client.auth.linkIdentity({ provider: 'kakao', options: { redirectTo } });
+          if (!linked.error) return true;
+        }
         const { error } = await client.auth.signInWithOAuth({ provider: 'kakao', options: { redirectTo } });
+        return !error;
+      } catch {
+        return false;
+      }
+    },
+
+    async signInAsGuest() {
+      try {
+        const client = await getClient();
+        if (!client) return false;
+        const { data } = await client.auth.getSession();
+        if (data.session) return true;
+        const { error } = await client.auth.signInAnonymously();
         return !error;
       } catch {
         return false;
