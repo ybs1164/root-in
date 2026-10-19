@@ -34,7 +34,7 @@ TourAPI 분류 코드      ┘
 ```
 
 - **PlaceKind** — 앱이 정한 장소 종류 코드, 60~80개 정도. 아이콘보다 조금 잘게: `cafe`·`bakery`·`dessert`·`korean`·`chinese`·`japanese`·`western`·`chicken`·`pizza`·`burger`·`noodle`·`bar`·`pub`·`convenience`·`mart`·`clothing`·`bookstore`·`hotel`·`motel`·`camping`·`park`·`mountain`·`beach`·`museum`·`gallery`·`theater`·`cinema`·`amusement`·`hospital`·`pharmacy`·`bank`·`post`·`school`·`church`·`temple`·`gas`·`parking`·`restroom`·`station`·`bus_stop`·`airport`·`port`·`gym`·`swim`·`golf`·`bowling`·`salon`·`laundry`·`pet` …. 공유 링크·저장에 실리는 건 이 코드라, 아이콘을 다시 그려도 데이터는 그대로다.
-- **KIND_ICON** — `PlaceKind → PinIcon` 한 장짜리 표. 지금 있는 89개 아이콘(`PIN_ICON_GROUPS`)으로 모두 덮는다. 예: `bakery→bread`, `dessert→cake`, `korean→food`, `chinese→noodles`, `japanese→sushi`, `pub→beer`, `motel→stay`, `temple→building`(전용 아이콘이 없으면 가까운 것), `mountain→mountain`, `bus_stop→bus`.
+- **KIND_ICON** — `PlaceKind → PinIcon` 한 장짜리 표. kind는 잘게, 아이콘은 **넓은 묶음 16개**로(2026-10-19에 62개에서 줄임 — 국수·치킨·초밥·피자 → 식당, 빵·도넛·아이스크림·차 → 카페·디저트 …). 묶음 이름은 `KIND_GROUPS`. 기본 카테고리(카페·맛집·술집·사진 명소·쇼핑)와 아이콘이 겹쳐서 새 핀 카드의 그룹 제안도 더 자주 맞는다.
 - **출처별 매핑 표** — 출처 코드(또는 경로 접두어) → PlaceKind.
   - 카카오: `category_name`의 **경로 접두어**로 맞춘다. 가장 긴 접두어가 이긴다: `'음식점 > 카페 > 베이커리카페'` → `bakery`, `'음식점 > 카페'` → `cafe`, `'음식점'` → `korean`이 아니라 `restaurant`(일반 식당). 카카오 그룹 코드(`CE7` 카페, `FD6` 음식점, `AT4` 관광명소, `CT1` 문화시설, `CS2` 편의점 …)는 경로가 안 맞을 때의 마지막 대체.
   - 상가정보: **소분류 코드**마다 하나(약 250개). 코드 하나도 빠짐없이 표에 있어야 한다 — 모르겠으면 명시적으로 `null`(일반 핀).
@@ -145,6 +145,28 @@ TourAPI 분류 코드      ┘
 ### I7. 표준데이터·TourAPI (선택, 하루씩)
 - 표준데이터(공원·화장실·도서관·박물관)는 I5 스크립트에 출처만 추가.
 - TourAPI는 키가 필요하므로 **빌드 때만** 스크립트에서 받아 파일로 굳힌다(프론트·저장소에 키 없음, `.env.local`의 스크립트 전용 변수).
+
+### 아이콘 묶음 (2026-10-19)
+자동 아이콘이 62개로 너무 많아 16개 묶음으로 줄였다. kind(저장·공유되는 값)는 그대로이고 `KIND_ICON`만 바꿨다.
+
+| 아이콘 | 묶음 | kind |
+|---|---|---|
+| 식당 `food` | 식당 | 일반·한식·고기·해산물·중식·일식·양식·세계음식·국수·분식·뷔페·피자·버거·치킨·샌드위치 |
+| 카페 `cafe` | 카페·디저트 | 카페·찻집·빵집·도넛·디저트·아이스크림 |
+| 술 `bar` | 술집 | 술집·호프·칵테일바·클럽 |
+| 쇼핑 `shop` | 가게 | 상점·편의점·마트·백화점·시장·정육·수산·청과·식료품·주류·음료·꽃집·서점·선물·귀금속·악기·자전거·반려동물 가게 |
+| 숙소 `stay` | 숙소 | 호텔·모텔·펜션·캠핑 |
+| 운동 `dumbbell` | 운동·레저 | 헬스·수영장·볼링·당구·골프·라켓 스포츠·낚시·수상레저 |
+| 공연 `theater` | 공연·놀거리 | 공연장·영화관·놀이공원·노래방·만화카페·축제 |
+| 사진 `photo` | 명소 | 관광명소·전망대·랜드마크·유적·박물관·미술관·동물원·아쿠아리움 |
+| 나무 `tree` | 자연 | 공원·정원·산·해변·등산로 |
+| 병원 `hospital` | 병원·약국 | 병원·의원·약국·동물병원 |
+| 미용실 `salon` | 미용 | 미용실·네일·피부관리 |
+| 건물 `building` | 생활 서비스·기관 | 세탁·사진관·예식장·여행사·은행·우체국·교회·절 |
+| 학교 `school` | 공부 | 학교·도서관·스터디카페 |
+| 자동차 `car` | 차 | 주유소·렌터카·정비·세차·주차장 |
+| 버스 `bus` | 교통 | 역·정류장·공항·항구 |
+| 화장실 `restroom` | 화장실 | 화장실 |
 
 ### I8. 측정 (2시간)
 - 평가 세트 정확도 테스트(I1의 5번).

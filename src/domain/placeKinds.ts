@@ -6,120 +6,152 @@ import { PIN_ICONS, type PinIcon } from '../types/pin';
  * tags, 상가정보 업종 codes, TourAPI) maps into these ids, and only these ids
  * are stored and shared — so they must never be renamed, only added. Redrawing
  * or reassigning an icon is a change to this table alone.
+ *
+ * Kinds are fine-grained, icons are not: each icon stands for a broad group
+ * (식당, 카페·디저트, 가게 …) so a map of 미분류 pins reads at a glance and
+ * lines up with the categories people make. `KIND_GROUPS` names the groups.
  */
 export const KIND_ICON = {
-  // Food & drink
-  restaurant: 'food', // generic / 백반·한정식
+  // 식당
+  restaurant: 'food',
   korean: 'food',
   meat: 'food',
-  seafood: 'fish',
-  chinese: 'noodles',
-  japanese: 'sushi',
+  seafood: 'food',
+  chinese: 'food',
+  japanese: 'food',
   western: 'food',
   world: 'food',
-  noodle: 'noodles',
-  snack: 'food', // 김밥·분식
+  noodle: 'food',
+  snack: 'food',
   buffet: 'food',
-  pizza: 'pizza',
-  burger: 'burger',
-  chicken: 'chicken',
-  sandwich: 'sandwich',
-  bakery: 'bread',
-  donut: 'donut',
-  dessert: 'cake',
-  icecream: 'icecream',
+  pizza: 'food',
+  burger: 'food',
+  chicken: 'food',
+  sandwich: 'food',
+  // 카페·디저트
   cafe: 'cafe',
-  tea: 'tea',
+  tea: 'cafe',
+  bakery: 'cafe',
+  donut: 'cafe',
+  dessert: 'cafe',
+  icecream: 'cafe',
+  // 술집
   bar: 'bar',
-  pub: 'beer',
-  cocktail_bar: 'cocktail',
-  club: 'music',
-  // Shops
+  pub: 'bar',
+  cocktail_bar: 'bar',
+  club: 'bar',
+  // 가게
   shop: 'shop',
-  convenience: 'store',
+  convenience: 'shop',
   mart: 'shop',
   department_store: 'shop',
-  market: 'shop', // 전통시장
+  market: 'shop',
   butcher: 'shop',
-  fishmonger: 'fish',
-  greengrocer: 'apple',
+  fishmonger: 'shop',
+  greengrocer: 'shop',
   grocery: 'shop',
-  liquor: 'beer',
-  drink: 'drink',
-  florist: 'flower',
-  bookstore: 'book',
-  gift_shop: 'gift',
-  jewelry: 'gift',
-  music_store: 'music',
-  bike_shop: 'bike',
-  pet_shop: 'paw',
-  pharmacy: 'hospital',
-  gas: 'gas',
-  // Stay
+  liquor: 'shop',
+  drink: 'shop',
+  florist: 'shop',
+  bookstore: 'shop',
+  gift_shop: 'shop',
+  jewelry: 'shop',
+  music_store: 'shop',
+  bike_shop: 'shop',
+  pet_shop: 'shop',
+  // 숙소
   hotel: 'stay',
   motel: 'stay',
   pension: 'stay',
-  camping: 'tent',
-  // Sports & leisure
+  camping: 'stay',
+  // 운동·레저
   gym: 'dumbbell',
-  pool: 'swim',
-  bowling: 'bowling',
-  billiards: 'ball',
-  golf: 'golf',
-  racket: 'tennis',
-  hiking: 'hiking',
-  karaoke: 'music',
-  comic_cafe: 'book',
-  study_cafe: 'book',
-  fishing: 'fish',
-  water_sports: 'ship',
-  // Services
-  salon: 'salon',
-  laundry: 'laundry',
-  wedding: 'heart',
-  photo_studio: 'photo',
-  vet: 'paw',
-  travel_agency: 'plane',
-  car_rental: 'car',
-  car_service: 'car',
-  hospital: 'hospital',
-  clinic: 'hospital',
-  bank: 'bank',
-  post: 'post',
-  // Culture & sights (not in 상가정보 — Kakao, OSM, TourAPI, 표준데이터)
+  pool: 'dumbbell',
+  bowling: 'dumbbell',
+  billiards: 'dumbbell',
+  golf: 'dumbbell',
+  racket: 'dumbbell',
+  fishing: 'dumbbell',
+  water_sports: 'dumbbell',
+  // 공연·놀거리
+  theater: 'theater',
+  cinema: 'theater',
+  amusement: 'theater',
+  karaoke: 'theater',
+  comic_cafe: 'theater',
+  festival: 'theater',
+  // 명소
   attraction: 'photo',
   viewpoint: 'photo',
-  landmark: 'flag',
-  heritage: 'building',
-  museum: 'building',
+  landmark: 'photo',
+  heritage: 'photo',
+  museum: 'photo',
   gallery: 'photo',
-  theater: 'theater',
-  cinema: 'cinema',
-  amusement: 'amusement',
-  zoo: 'paw',
-  aquarium: 'fish',
-  library: 'book',
-  school: 'school',
-  church: 'church',
-  temple: 'building',
-  festival: 'star',
-  // Nature
+  zoo: 'photo',
+  aquarium: 'photo',
+  // 자연
   park: 'tree',
-  garden: 'flower',
-  mountain: 'mountain',
-  beach: 'palm',
-  // Getting around
-  station: 'train',
+  garden: 'tree',
+  mountain: 'tree',
+  beach: 'tree',
+  hiking: 'tree',
+  // 병원·약국
+  hospital: 'hospital',
+  clinic: 'hospital',
+  pharmacy: 'hospital',
+  vet: 'hospital',
+  // 미용
+  salon: 'salon',
+  // 생활 서비스·기관
+  laundry: 'building',
+  photo_studio: 'building',
+  wedding: 'building',
+  travel_agency: 'building',
+  bank: 'building',
+  post: 'building',
+  church: 'building',
+  temple: 'building',
+  // 공부
+  school: 'school',
+  library: 'school',
+  study_cafe: 'school',
+  // 차
+  gas: 'car',
+  car_rental: 'car',
+  car_service: 'car',
+  parking: 'car',
+  // 교통
+  station: 'bus',
   bus_stop: 'bus',
-  airport: 'plane',
-  port: 'ship',
-  parking: 'parking',
+  airport: 'bus',
+  port: 'bus',
+  // 화장실
   restroom: 'restroom',
 } as const satisfies Record<string, PinIcon>;
 
 export type PlaceKind = keyof typeof KIND_ICON;
 
 export const PLACE_KINDS = Object.keys(KIND_ICON) as PlaceKind[];
+
+/** The icon groups, in the order above, with a name for each. */
+export const KIND_GROUPS: readonly { icon: PinIcon; label: string }[] = [
+  { icon: 'food', label: '식당' },
+  { icon: 'cafe', label: '카페·디저트' },
+  { icon: 'bar', label: '술집' },
+  { icon: 'shop', label: '가게' },
+  { icon: 'stay', label: '숙소' },
+  { icon: 'dumbbell', label: '운동·레저' },
+  { icon: 'theater', label: '공연·놀거리' },
+  { icon: 'photo', label: '명소' },
+  { icon: 'tree', label: '자연' },
+  { icon: 'hospital', label: '병원·약국' },
+  { icon: 'salon', label: '미용' },
+  { icon: 'building', label: '생활 서비스·기관' },
+  { icon: 'school', label: '공부' },
+  { icon: 'car', label: '차' },
+  { icon: 'bus', label: '교통' },
+  { icon: 'restroom', label: '화장실' },
+];
 
 /** For untrusted input (share links, storage): only known ids pass. */
 export const isPlaceKind = (value: unknown): value is PlaceKind =>

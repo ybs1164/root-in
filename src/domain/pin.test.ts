@@ -158,8 +158,8 @@ describe('pins', () => {
 describe('kind icons for 미분류 pins', () => {
   const cats: PinCategory[] = [
     { id: 'c1', name: '카페', icon: 'cafe', color: 2, order: 0 },
-    { id: 'c2', name: '빵1', icon: 'bread', color: 3, order: 1 },
-    { id: 'c3', name: '빵2', icon: 'bread', color: 4, order: 2 },
+    { id: 'c2', name: '한식', icon: 'food', color: 3, order: 1 },
+    { id: 'c3', name: '양식', icon: 'food', color: 4, order: 2 },
   ];
 
   it('draws a 미분류 pin with its kind icon, in 미분류 colour', () => {
@@ -175,7 +175,8 @@ describe('kind icons for 미분류 pins', () => {
 
   it('suggests the one category with the same icon, else 미분류', () => {
     expect(suggestCategory(cats, 'cafe')).toBe('c1');
-    expect(suggestCategory(cats, 'bakery')).toBe('none'); // two bread categories
+    expect(suggestCategory(cats, 'bakery')).toBe('c1'); // 빵집 draws as 카페·디저트
+    expect(suggestCategory(cats, 'chicken')).toBe('none'); // two 식당 categories
     expect(suggestCategory(cats, 'park')).toBe('none');
     expect(suggestCategory(cats, undefined)).toBe('none');
   });
