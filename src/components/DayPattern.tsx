@@ -12,6 +12,8 @@ export default function DayPattern({
   className = '',
   scale = 1,
   accent,
+  shift,
+  marginAt,
 }: {
   pattern: PatternId;
   className?: string;
@@ -19,6 +21,10 @@ export default function DayPattern({
   scale?: number;
   /** Draws in another theme's accent (a day's own pattern under the share screen's theme). */
   accent?: string;
+  /** Starts the tile this far in (tile units), so a small preview shows its best part. */
+  shift?: [number, number];
+  /** Where a notebook's margin rule stands instead (a CSS length, e.g. a preview's '25%'). */
+  marginAt?: string;
 }) {
   const id = `pattern-${useId().replace(/:/g, '')}`;
   if (pattern === 'none') return null;
@@ -33,7 +39,9 @@ export default function DayPattern({
           width={tile.size}
           height={tile.size}
           patternUnits="userSpaceOnUse"
-          patternTransform={scale === 1 ? undefined : `scale(${scale})`}
+          patternTransform={
+            [scale === 1 ? '' : `scale(${scale})`, shift ? `translate(${-shift[0]} ${-shift[1]})` : ''].filter(Boolean).join(' ') || undefined
+          }
         >
           {tile.marks.map((m, i) => {
             const stroke = m.stroke ?? tile.stroke;
@@ -79,7 +87,7 @@ export default function DayPattern({
       )}
       {tile.margin && (
         <svg className="day-pattern__sheet" aria-hidden>
-          <rect x={tile.margin.x * scale} y="0" width={tile.margin.width * scale} height="100%" className="day-pattern__mark" />
+          <rect x={marginAt ?? tile.margin.x * scale} y="0" width={tile.margin.width * scale} height="100%" className="day-pattern__mark" />
         </svg>
       )}
     </div>

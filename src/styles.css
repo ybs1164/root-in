@@ -1952,13 +1952,25 @@ button:disabled {
   );
 }
 
-/* Undo, redo and clear-all end the colour row. Eight buttons share it, so
-   like the top row they give a little on narrow phones (still ≥ 36px). */
+/* Colour and undo rows give a little on narrow phones (still 44px tall). */
 .decor-tray__row .decor-tray__color,
 .decor-tray__row .decor-tray__palette,
 .decor-tray__row .decor-tray__undo {
   flex: 0 1 44px;
   min-width: 36px;
+}
+
+/* The pen's colour row: eight colours, the rainbow and maybe a palette pick
+   (2026-10-20) — up to ten across a phone, so a little narrower and smaller dots. */
+.decor-tray__row--colors .decor-tray__color,
+.decor-tray__row--colors .decor-tray__palette {
+  min-width: 32px;
+}
+
+.decor-tray__row--colors .decor-tray__color span,
+.decor-tray__row--colors .decor-tray__palette span {
+  width: 24px;
+  height: 24px;
 }
 
 .decor-tray__undo {
@@ -2160,6 +2172,35 @@ button:disabled {
   /* Room for the selected card's ring, which the scroller would clip. */
   padding: 6px 6px 8px;
   margin: -6px -6px 0;
+}
+
+/* 테마: its tall cards, four to a row (2026-10-21). */
+.decor-tray__themes--four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* 꾸미기 (2026-10-20): small squares, five to a row; the polaroid layouts
+   keep three tall cards (each is a picture of the card itself). */
+.decor-tray__themes--squares {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.decor-tray__themes--squares .theme-card {
+  aspect-ratio: 1;
+  border-radius: 12px;
+}
+
+.decor-tray__themes--squares .theme-card__pin {
+  top: 16%;
+  width: 30%;
+}
+
+.decor-tray__themes--squares .theme-card i {
+  bottom: 16%;
+  height: 5px;
+  border-radius: 3px;
 }
 
 .decor-tray__themes::-webkit-scrollbar,

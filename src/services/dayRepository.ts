@@ -1,6 +1,6 @@
 import { isPolaroidLayout } from '../domain/polaroid';
 import {
-  BASE_COLORS,
+  isNamedInk,
   clamp01,
   getSticker,
   isCustomColor,
@@ -54,7 +54,7 @@ const MAX_TEXTS = 60;
 const isDate = (k: string) => /^\d{4}-\d{2}-\d{2}$/.test(k);
 const num = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 const isColor = (c: unknown): c is string =>
-  typeof c === 'string' && (isCustomColor(c) || BASE_COLORS.some((b) => b.color === c));
+  typeof c === 'string' && (isCustomColor(c) || isNamedInk(c));
 
 const readOrder = (v: unknown): { order?: number } =>
   typeof v === 'number' && Number.isSafeInteger(v) && v >= 0 && v < Number.MAX_SAFE_INTEGER ? { order: v } : {};

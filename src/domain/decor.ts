@@ -366,7 +366,24 @@ export const BASE_COLORS: { color: InkColor; label: string }[] = [
   { color: 'accent', label: '테마 색' },
 ];
 
+/**
+ * The pen's colours: black and the theme's (no white since 2026-10-21 — text
+ * keeps it), then five of the pin category palette (2026-10-20, 핑크 · 빨강 ·
+ * 노랑 · 보라 · 초록 — `--pin-5/2/7/3/6`).
+ */
+export const PEN_COLORS: { color: InkColor; label: string }[] = [
+  ...BASE_COLORS.filter((c) => c.color !== 'ink-white'),
+  { color: 'pin-5', label: '핑크' },
+  { color: 'pin-2', label: '빨강' },
+  { color: 'pin-7', label: '노랑' },
+  { color: 'pin-3', label: '보라' },
+  { color: 'pin-6', label: '초록' },
+];
+
 export const DEFAULT_PEN: PenSettings = { tool: 'pen', color: 'ink-black', width: 'medium' };
+
+/** Every named colour a stroke or a text box may carry (old white strokes too). */
+export const isNamedInk = (color: InkColor): boolean => BASE_COLORS.some((c) => c.color === color) || PEN_COLORS.some((c) => c.color === color);
 
 export const isCustomColor = (color: InkColor): boolean => /^#[0-9a-f]{6}$/i.test(color);
 

@@ -125,4 +125,11 @@ describe('calendar days', () => {
     saveDays({ decor: d, shapes: {}, edges: {} });
     expect(Object.keys(loadDays().decor)).toEqual(['2026-10-01']);
   });
+
+  it("keeps the pen's palette colours and drops unknown tokens", () => {
+    const stroke = (color: string) => ({ tool: 'pen', color, width: 'thin', points: [[0.1, 0.2]] });
+    // White left the pen's palette, but strokes drawn in it before still load.
+    const decor = readDecor({ stickers: [], strokes: ['pin-5', 'pin-2', 'pin-7', 'pin-3', 'pin-6', 'ink-white', 'pin-9', 'red'].map(stroke) });
+    expect(decor?.strokes.map((s) => s.color)).toEqual(['pin-5', 'pin-2', 'pin-7', 'pin-3', 'pin-6', 'ink-white']);
+  });
 });

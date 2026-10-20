@@ -29,6 +29,7 @@ import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointer
 import ColorPicker from './ColorPicker';
 import {
   BASE_COLORS,
+  PEN_COLORS,
   inkCss,
   isCustomColor,
   PEN_TOOLS,
@@ -320,8 +321,13 @@ const PEN_ICONS: Record<PenTool, typeof PenLine> = {
 // Previews shrink some patterns to fit a small card: the grid reads as zoomed
 // in at full size, and the scattered ones would show only a mark or two.
 const PREVIEW_SCALE: Partial<Record<PatternId, number>> = {
-  grid: 0.7, check: 0.7, checker: 0.7, hearts: 0.55, stars: 0.55, snow: 0.55, drops: 0.55, night: 0.55, clouds: 0.55, flowers: 0.55,
+  grid: 0.7, check: 0.7, checker: 0.7, hearts: 0.55, stars: 0.55, snow: 0.55, drops: 0.55, night: 0.48, clouds: 0.3, flowers: 0.55,
 };
+// The small square previews (2026-10-21): 밤하늘 starts where its ringed
+// planet sits among the most stars and sparkles, 구름 is shrunk to show a few clouds, and the
+// notebook's margin rule stands a quarter of the way in.
+const PREVIEW_SHIFT: Partial<Record<PatternId, [number, number]>> = { night: [164, 284] };
+const PREVIEW_MARGIN: Partial<Record<PatternId, string>> = { notes: '25%' };
 
 const WIDTH_LABELS: Record<PenWidth, string> = { thin: '가늘게', medium: '보통', thick: '굵게' };
 
@@ -346,7 +352,8 @@ export function DecorTray(p: DecorTrayProps) {
     isText ? p.onTextStyle({ color }) : p.onPen({ ...p.pen, color, tool: p.pen.tool === 'eraser' ? 'pen' : p.pen.tool });
   const colorButtons = (
     <>
-      {BASE_COLORS.map(({ color, label: name }) => (
+      {/* The pen has more of them than text does. */}
+      {(isText ? BASE_COLORS : PEN_COLORS).map(({ color, label: name }) => (
         <button
           key={color}
           className={`decor-tray__color ${inkColor === color ? 'is-on' : ''}`}
@@ -453,8 +460,8 @@ export function DecorTray(p: DecorTrayProps) {
               </button>
             ))}
           </div>
+          <div className="decor-tray__row decor-tray__row--colors">{colorButtons}</div>
           <div className="decor-tray__row">
-            {colorButtons}
             <button className="decor-tray__undo" aria-label="되돌리기" disabled={!p.canUndo} onClick={p.onUndo}>
               <Undo2 size={22} aria-hidden />
             </button>
@@ -524,7 +531,7 @@ export function DecorTray(p: DecorTrayProps) {
       )}
 
       {p.tool === 'theme' && (
-        <div className="decor-tray__themes">
+        <div className="decor-tray__themes decor-tray__themes--four">
           {THEMES.map(({ id, label: name }) => (
             <button
               key={id}
@@ -564,7 +571,7 @@ export function DecorTray(p: DecorTrayProps) {
       )}
 
       {p.tool === 'pattern' && (
-        <div className="decor-tray__themes">
+        <div className="decor-tray__themes decor-tray__themes--squares">
           {PATTERNS.map(({ id, label: name }) => (
             <button
               key={id}
@@ -574,7 +581,13 @@ export function DecorTray(p: DecorTrayProps) {
               onClick={() => p.onPattern(id)}
             >
               <span className="theme-card pattern-card" aria-hidden>
-                <DayPattern pattern={id} className="day-pattern--preview" scale={PREVIEW_SCALE[id] ?? 1} />
+                <DayPattern
+                  pattern={id}
+                  className="day-pattern--preview"
+                  scale={PREVIEW_SCALE[id] ?? 1}
+                  shift={PREVIEW_SHIFT[id]}
+                  marginAt={PREVIEW_MARGIN[id]}
+                />
               </span>
             </button>
           ))}
