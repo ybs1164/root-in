@@ -79,8 +79,12 @@ describe('styles.css', () => {
   it('on the main map, water, parks and roads stand apart from the land, and area names stay readable', () => {
     const checked: string[] = [];
     for (const { selector, get } of palettes()) {
-      const [land, water, park, road, tint, text, route] = ['--map-land', '--map-water', '--map-park', '--map-road', '--map-tint', '--text', '--route'].map((n) => get(n));
-      if (!land || !water || !park || !road || !tint || !text || !route) continue;
+      const [land, water, park, road, accent, text, route] = ['--map-land', '--map-water', '--map-park', '--map-road', '--accent', '--text', '--route'].map((n) => get(n));
+      if (!land || !water || !park || !road || !accent || !text || !route) continue;
+      // The tint is see-through (accent over transparent): over land it is a mix of the two.
+      const tintShare = /^color-mix\(in srgb, var\(--accent\) (\d+)%, transparent\)$/.exec(root['--map-tint']);
+      expect(tintShare, '--map-tint').not.toBeNull();
+      const tint = accent.map((v, i) => v * (Number(tintShare![1]) / 100) + land[i] * (1 - Number(tintShare![1]) / 100));
       // Rivers are a step deeper than the land, roads a step lighter (Imhof's few, quiet layers).
       expect(contrast(water, land), `${selector} water`).toBeGreaterThanOrEqual(1.1);
       expect(contrast(road, land), `${selector} road`).toBeGreaterThanOrEqual(1.08);

@@ -118,8 +118,9 @@
   /* Roads are cut out lighter than the land; the widest get a darker edge. */
   --map-road: var(--surface);
   --map-road-edge: color-mix(in srgb, var(--accent) 34%, var(--surface));
-  /* The 읍면동 in the middle of the screen: a faint tint over the land. */
-  --map-tint: color-mix(in srgb, var(--accent) 12%, var(--map-land));
+  /* The 읍면동 in the middle of the screen: a faint see-through tint, so a
+     river through it still shows as water. */
+  --map-tint: color-mix(in srgb, var(--accent) 12%, transparent);
   /* A raised slab: its side under the top, its shadow further down. */
   --map-side: color-mix(in srgb, var(--map-land) 88%, var(--ink-black));
   --map-shadow: color-mix(in srgb, var(--accent) 70%, var(--ink-black));
