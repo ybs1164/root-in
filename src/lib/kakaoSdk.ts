@@ -43,7 +43,11 @@ export interface KakaoMapsNamespace {
     strokeStyle: string;
     zIndex?: number;
     map?: KakaoMapInstance;
-  }) => { setMap(map: KakaoMapInstance | null): void };
+  }) => {
+    setMap(map: KakaoMapInstance | null): void;
+    setPath(path: KakaoLatLng[]): void;
+    setOptions(options: { strokeWeight?: number; strokeColor?: string }): void;
+  };
   Polygon: new (options: {
     /** Several paths = outer ring followed by holes. */
     path: KakaoLatLng[] | KakaoLatLng[][];

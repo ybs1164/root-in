@@ -103,3 +103,62 @@ export function roadWidthExpression(extra = 0, tiers: RoadTier[] = ROAD_TIERS): 
   });
   return ['interpolate', ['exponential', 2], ['zoom'], ...stops];
 }
+
+/**
+ * How many base map objects the Kakao map gets at most: there, every polygon
+ * and road is an SDK object (SVG), and their number is what panning costs
+ * (docs/plan-mainmap-style.md M5). MapLibre draws everything.
+ */
+export const KAKAO_LIMITS = { land: 200, parks: 150, roads: 400 };
+
+export interface KakaoRoad {
+  tier: RoadTier;
+  path: [number, number][];
+  /** Screen px at the scale it was picked for. */
+  width: number;
+}
+
+export interface KakaoBase {
+  land: PolygonRings[];
+  parks: PolygonRings[];
+  /** Narrow first, so the wide roads lie over them where they meet. */
+  roads: KakaoRoad[];
+}
+
+/** How much of the map a polygon covers (its outer ring's box, in degrees²): enough to rank them. */
+function boxArea(rings: PolygonRings): number {
+  let west = Infinity, east = -Infinity, south = Infinity, north = -Infinity;
+  for (const [x, y] of rings[0] ?? []) {
+    west = Math.min(west, x); east = Math.max(east, x);
+    south = Math.min(south, y); north = Math.max(north, y);
+  }
+  return Math.max(0, east - west) * Math.max(0, north - south);
+}
+
+/** How far a road runs (degrees, enough to rank them). */
+function pathLength(path: [number, number][]): number {
+  let length = 0;
+  for (let i = 1; i < path.length; i++) length += Math.hypot(path[i][0] - path[i - 1][0], path[i][1] - path[i - 1][1]);
+  return length;
+}
+
+const biggest = (list: PolygonRings[], limit: number) =>
+  list.length <= limit ? list : list.map((rings) => ({ rings, area: boxArea(rings) })).sort((a, b) => b.area - a.area).slice(0, limit).map((p) => p.rings);
+
+/**
+ * The base map as the Kakao map draws it at `mpp` (meters per screen px):
+ * the biggest land and parks, and the roads that matter most — wide tiers
+ * first, then the longest — within `KAKAO_LIMITS`. What is left out is small
+ * or a short side street; the land under it still shows.
+ */
+export function pickKakaoBase(base: AreaShapes['base'], mpp: number, limits = KAKAO_LIMITS): KakaoBase {
+  if (!base) return { land: [], parks: [], roads: [] };
+  const roads = base.roads
+    .map((road) => ({ tier: road.tier, path: road.path, width: roadWidthPx(road.tier, mpp), length: pathLength(road.path) }))
+    .filter((road) => road.width > 0)
+    .sort((a, b) => a.tier - b.tier || b.length - a.length)
+    .slice(0, limits.roads)
+    .sort((a, b) => b.tier - a.tier)
+    .map(({ tier, path, width }) => ({ tier, path, width: +width.toFixed(1) }));
+  return { land: biggest(base.land, limits.land), parks: biggest(base.parks, limits.parks), roads };
+}

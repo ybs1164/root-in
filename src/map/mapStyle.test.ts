@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AreaShapes } from '../domain/adminAreas';
 import { metersPerPixelAtZoom, roadWidthPx } from '../domain/baseMap';
 import type { Ring } from '../domain/districtMap';
-import { AREA_SOURCES, BASE_SOURCES, MAP_LAYERS, mapSourceData, roadWidthExpression } from './mapStyle';
+import { AREA_SOURCES, BASE_SOURCES, MAP_LAYERS, mapSourceData, pickKakaoBase, roadWidthExpression } from './mapStyle';
 
 const ring: Ring = [[127, 37], [127.01, 37], [127.01, 37.01], [127, 37.01], [127, 37]];
 const areas: AreaShapes = { parts: [[ring]], others: [[ring], [ring]] };
@@ -61,5 +61,34 @@ describe('main map style', () => {
     const edge = roadWidthExpression(2, [1]);
     expect(widthAt(edge, 14, 1)).toBeCloseTo(widthAt(roadWidthExpression(), 14, 1) + 2, 1);
     expect(widthAt(edge, 14, 2)).toBe(0);
+  });
+});
+
+describe('the base map on Kakao', () => {
+  const square = (x: number, size: number): Ring => [[x, 37], [x + size, 37], [x + size, 37 + size], [x, 37 + size], [x, 37]];
+  const road = (tier: 1 | 2 | 3 | 4 | 5, length: number) => ({ tier, path: [[127, 37], [127 + length, 37]] as [number, number][] });
+
+  it('keeps the biggest land and parks within the limits', () => {
+    const land = [square(127, 0.001), square(127.1, 0.05), square(127.2, 0.01)].map((r) => [r]);
+    const picked = pickKakaoBase({ land, parks: land, roads: [] }, 10, { land: 2, parks: 1, roads: 10 });
+    expect(picked.land.map((p) => p[0][0][0])).toEqual([127.1, 127.2]);
+    expect(picked.parks.map((p) => p[0][0][0])).toEqual([127.1]);
+  });
+
+  it('keeps the widest tiers, then the longest roads, and draws the narrow ones first', () => {
+    const roads = [road(3, 0.01), road(1, 0.001), road(3, 0.05), road(2, 0.02)];
+    const picked = pickKakaoBase({ land: [], parks: [], roads }, 10, { land: 10, parks: 10, roads: 3 });
+    expect(picked.roads.map((r) => [r.tier, r.path[1][0] - 127])).toEqual([[3, expect.closeTo(0.05)], [2, expect.closeTo(0.02)], [1, expect.closeTo(0.001)]]);
+    // Widths in px at that scale, as on MapLibre.
+    expect(picked.roads.find((r) => r.tier === 1)!.width).toBeCloseTo(roadWidthPx(1, 10), 1);
+  });
+
+  it('leaves out tiers too fine for the scale', () => {
+    const picked = pickKakaoBase({ land: [], parks: [], roads: [road(5, 0.1), road(1, 0.1)] }, 50);
+    expect(picked.roads.map((r) => r.tier)).toEqual([1]);
+  });
+
+  it('is empty without a base map', () => {
+    expect(pickKakaoBase(undefined, 10)).toEqual({ land: [], parks: [], roads: [] });
   });
 });
