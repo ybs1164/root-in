@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AdminArea, AreaMap } from '../domain/adminAreas';
 import type { MapViewport, Ring } from '../domain/districtMap';
+import type { BaseMap } from '../domain/baseMap';
 import type { AdminAreaService } from './adminAreaService';
-import { AreaRenderer } from './areaRenderer';
+import { AreaRenderer as Renderer } from './areaRenderer';
+import type { KoreaMapService } from './koreaMapService';
 
 const square = (code: string, west: number, south: number, size: number): AdminArea => {
   const ring: Ring = [[west, south], [west + size, south], [west + size, south + size], [west, south + size], [west, south]];
@@ -17,6 +19,20 @@ const fakeService = (focus = { code: 'f' }) => {
   const service: AdminAreaService = { fetchAreaMap: vi.fn(async () => map(focus.code)) };
   return service;
 };
+// Land over the whole region with a river (hole) through it, and a trunk road.
+const land: BaseMap = {
+  land: [[[[126.9, 36.9], [127.2, 36.9], [127.2, 37.2], [126.9, 37.2], [126.9, 36.9]],
+    [[127.0, 37.0], [127.01, 37.0], [127.01, 37.1], [127.0, 37.1], [127.0, 37.0]]]],
+  parks: [],
+  roads: [{ tier: 1, path: [[126.95, 37.02], [127.15, 37.02]] }],
+};
+const fakeBase = (base: BaseMap | null = land): KoreaMapService => ({ fetchBaseMap: vi.fn(async () => base) });
+/** The renderer with fake area and base map services (no network in tests). */
+class AreaRenderer extends Renderer {
+  constructor(service: AdminAreaService, base: KoreaMapService = fakeBase()) {
+    super(service, base);
+  }
+}
 const at = (west: number, south: number, span = 0.04): MapViewport =>
   ({ bounds: { west, south, east: west + span, north: south + span }, widthPx: 400 });
 
@@ -79,5 +95,35 @@ describe('area renderer', () => {
     // The map shows that draft, so the same screen must not count as drawn.
     const next = await renderer.render(at(127.003, 37.002));
     expect(next && 'shapes' in next).toBe(true);
+  });
+
+  it('sends the base map (water, land, roads) with the shapes, the draft included', async () => {
+    const renderer = new AreaRenderer(fakeService());
+    const onDraft = vi.fn();
+    const done = await renderer.render(at(127, 37), {}, () => true, onDraft);
+    const draftBase = onDraft.mock.calls[0][0].shapes.base;
+    expect(draftBase.land).toHaveLength(1);
+    // The river is far wider than a pond: it stays a hole, so water shows there.
+    expect(draftBase.land[0]).toHaveLength(2);
+    expect(done && 'shapes' in done && done.shapes.base?.roads.map((r) => r.tier)).toEqual([1]);
+  });
+
+  it('fetches the base map for the whole drawn region, wider than the screen', async () => {
+    const base = fakeBase();
+    const renderer = new AreaRenderer(fakeService(), base);
+    await renderer.render(at(127, 37));
+    const [asked] = vi.mocked(base.fetchBaseMap).mock.calls[0];
+    expect(asked.bounds.west).toBeLessThan(127);
+    expect(asked.bounds.east).toBeGreaterThan(127.04);
+    // Same pixel scale as the screen.
+    expect((asked.bounds.east - asked.bounds.west) / asked.widthPx).toBeCloseTo(0.04 / 400, 8);
+  });
+
+  it('draws the areas without a base map when it does not load', async () => {
+    for (const base of [fakeBase(null), { fetchBaseMap: vi.fn(async () => { throw new Error('offline'); }) }]) {
+      const done = await new AreaRenderer(fakeService(), base).render(at(127, 37));
+      expect(done && 'shapes' in done && done.shapes.parts).toHaveLength(2);
+      expect(done && 'shapes' in done && done.shapes.base).toBeUndefined();
+    }
   });
 });

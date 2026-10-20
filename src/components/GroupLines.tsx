@@ -22,14 +22,16 @@ function pingCentre(member: string, seq: number): string | null {
  */
 export default function GroupLines({ lines }: { lines: GroupLine[] }) {
   const refs = useRef<(SVGPolylineElement | null)[]>([]);
+  /** Each member's casing: the same line, wider, in a light colour under it. */
+  const cases = useRef<(SVGPolylineElement | null)[]>([]);
   useEffect(() => {
     let frame = 0;
     const draw = () => {
       lines.forEach((line, i) => {
-        const el = refs.current[i];
-        if (!el) return;
         const points = Array.from({ length: line.count }, (_, k) => pingCentre(line.member, k)).filter(Boolean).join(' ');
-        if (el.getAttribute('points') !== points) el.setAttribute('points', points);
+        for (const el of [refs.current[i], cases.current[i]]) {
+          if (el && el.getAttribute('points') !== points) el.setAttribute('points', points);
+        }
       });
       frame = requestAnimationFrame(draw);
     };
@@ -39,6 +41,16 @@ export default function GroupLines({ lines }: { lines: GroupLine[] }) {
 
   return (
     <svg className="group-lines" aria-hidden>
+      {/* The casings first, so no member's line is covered by another's casing. */}
+      {lines.map((line, i) => (
+        <polyline
+          key={`case-${line.member}`}
+          ref={(el) => {
+            cases.current[i] = el;
+          }}
+          className={`group-lines__case${line.faded ? ' is-faded' : ''}`}
+        />
+      ))}
       {lines.map((line, i) => (
         <polyline
           key={line.member}

@@ -9,6 +9,7 @@ export interface KakaoPlaceResult {
   id: string;
   place_name: string;
   category_name: string;
+  category_group_code?: string;
   category_group_name: string;
   road_address_name: string;
   address_name: string;
@@ -42,7 +43,11 @@ export interface KakaoMapsNamespace {
     strokeStyle: string;
     zIndex?: number;
     map?: KakaoMapInstance;
-  }) => { setMap(map: KakaoMapInstance | null): void };
+  }) => {
+    setMap(map: KakaoMapInstance | null): void;
+    setPath(path: KakaoLatLng[]): void;
+    setOptions(options: { strokeWeight?: number; strokeColor?: string }): void;
+  };
   Polygon: new (options: {
     /** Several paths = outer ring followed by holes. */
     path: KakaoLatLng[] | KakaoLatLng[][];
@@ -55,7 +60,7 @@ export interface KakaoMapsNamespace {
   }) => {
     setMap(map: KakaoMapInstance | null): void;
     setPath(path: KakaoLatLng[] | KakaoLatLng[][]): void;
-    setOptions(options: { fillColor?: string }): void;
+    setOptions(options: { fillColor?: string; fillOpacity?: number }): void;
   };
   event: {
     addListener(target: unknown, type: string, handler: (...args: unknown[]) => void): void;

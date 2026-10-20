@@ -1,0 +1,1172 @@
+{
+  "generator": "built-in image_gen",
+  "adoptedOn": "2026-10-19",
+  "selectionSnapshots": [
+    {
+      "batch": "doodle-stationery-200-2026-10-17",
+      "selected": [
+        1,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        69,
+        70,
+        73,
+        75,
+        79,
+        98,
+        100,
+        101,
+        118,
+        121,
+        122,
+        124,
+        132,
+        138,
+        142,
+        145,
+        147,
+        148,
+        150,
+        154,
+        168,
+        173,
+        175,
+        178,
+        180,
+        187,
+        194,
+        195
+      ],
+      "count": 47
+    },
+    {
+      "batch": "pastel-stationery-200-2026-10-18",
+      "selected": [
+        4,
+        11,
+        12,
+        14,
+        15,
+        26,
+        31,
+        49,
+        51,
+        62,
+        64,
+        65,
+        81,
+        98,
+        103,
+        111,
+        112,
+        115,
+        131,
+        154,
+        162,
+        164,
+        165,
+        181,
+        200
+      ],
+      "count": 25
+    }
+  ],
+  "items": [
+    {
+      "id": "doodle-20261017-001",
+      "label": "두들 잔잔한 미소",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-001.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 1,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/001.png",
+      "sha256": "d756bfc310518bb04ab0587af272d529d3194edccb9f49e8b7038c79f19c4e85",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: quiet smiling face. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-003",
+      "label": "두들 윙크",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-003.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 3,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/003.png",
+      "sha256": "b9bac3e3fd0b2bb0d4e0d831ece68b483f45bcba69aa0f4d9ccf30c5cae1517e",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: winking face. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-004",
+      "label": "두들 졸린 얼굴",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-004.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 4,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/004.png",
+      "sha256": "aee5b89bd33d23d204259f3e12b254c258fa3c7fef3c27e4e8dbbaf50ca54436",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: sleepy face. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-005",
+      "label": "두들 하품",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-005.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 5,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/005.png",
+      "sha256": "3c48e17885958a216ebbe7f668ea6ecac8820665eeb3d9f3517b3d93c54fbfa4",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: yawning face. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-006",
+      "label": "두들 수줍음",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-006.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 6,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/006.png",
+      "sha256": "16106aea54eeba9e7e27364a2a505d48efe4e1951f4b278a92575d243218b763",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: shy blushing face. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-007",
+      "label": "두들 깜짝",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-007.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 7,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/007.png",
+      "sha256": "c6e5f6d820763854b98481b21884c787a394a2f9f6c147990bf7ad43d4836376",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: surprised face. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-008",
+      "label": "두들 신난 얼굴",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-008.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 8,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/008.png",
+      "sha256": "1628604df532a2e58f9dbcbd5014f2e8d36ffcfa3ca0c0a13d4bcd0203818ea5",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: excited face. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-009",
+      "label": "두들 생각 중",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-009.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 9,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/009.png",
+      "sha256": "50e26141fa6bc866e48ef1afeba40e0e37b22556fe7c78eecde47464463093b4",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: thinking face. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-010",
+      "label": "두들 평온한 얼굴",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-010.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 10,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/010.png",
+      "sha256": "36a830d6ff9dd75b31f09ac1245e944bea08f78753637bab0e4b56e5881c774e",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: content peaceful face. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-011",
+      "label": "두들 시무룩",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-011.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 11,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/011.png",
+      "sha256": "c333ce64c5b1a8b44787c3e05b637d7a775f08d04016f57f2db485f2a6f9f4e9",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: sad face. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-012",
+      "label": "두들 눈물 한 방울",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-012.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 12,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/012.png",
+      "sha256": "f00ef11f9ecd65eb4a7867ed30c2e29d12734ca83116981efcd5502137b6e95b",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: crying face with one tear. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-013",
+      "label": "두들 삐죽",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-013.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 13,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/013.png",
+      "sha256": "15d4d97fded88906d2d7ed1274697a7651a986d465242b22d19861084999ada3",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: pouting face. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-014",
+      "label": "두들 뾰로통",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-014.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 14,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/014.png",
+      "sha256": "8ca0d7708edf0c1a7602fcd2f956844552b25e37b63fd6c94beb416168f68490",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: annoyed face. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-015",
+      "label": "두들 장난꾸러기",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-015.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 15,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/015.png",
+      "sha256": "2a50f140406965a4257b8faa8d608bc959cdaa7fd64089cf4f92f623220a6e8b",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: mischievous smiling face. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-016",
+      "label": "두들 안도",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-016.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 16,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/016.png",
+      "sha256": "75e699f1031809aeb085762c163a1de239c8419b9a4a0e04ff1e1c7cfc52fe13",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: relieved face. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-017",
+      "label": "두들 빙글빙글",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-017.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 17,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/017.png",
+      "sha256": "b733f3fecfd384c01c3df0f4c0707428ec42cb969119d569fd4776784c9432fc",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: dizzy face with two spiral eyes. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-018",
+      "label": "두들 궁금",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-018.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 18,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/018.png",
+      "sha256": "9b9b66b72ed0162abdb4724faa66b5286669c2c3ace87ef1d203bcacb2070272",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: curious face with one raised eyebrow. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-019",
+      "label": "두들 결심",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-019.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 19,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/019.png",
+      "sha256": "2b7e5d9a4cd054ab72794d416f64379eeb09f8cfa85837272f0faab420e622d5",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: determined face. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-020",
+      "label": "두들 하트 얼굴",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-020.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 20,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/020.png",
+      "sha256": "ae8347c0542d1d0d47728ce70b989635fa992f150df07086659bcd3152d07256",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: heart-shaped face with two dot eyes and a smile. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-069",
+      "label": "두들 팬케이크",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-069.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 69,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/069.png",
+      "sha256": "a72855faf1d0740407f24beb5c1c9bb6d6072fa7dab773304d577c0aef2dd5b6",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: two pancakes with a single butter square. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-070",
+      "label": "두들 도넛",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-070.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 70,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/070.png",
+      "sha256": "6949f24f14ef55fd1ffb66944b21b28429c483fc37d808bc4b3080a51adbea4d",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: donut. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-073",
+      "label": "두들 주먹밥",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-073.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 73,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/073.png",
+      "sha256": "80cbc66503a1bc90e5254362b28058ca0d514b4b65259f51aea4ed727b7a820a",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: rice ball. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-075",
+      "label": "두들 쿠키",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-075.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 75,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/075.png",
+      "sha256": "3643bbd14aede3f1a5a08e36c1bd7aee08583e3921b2e5d47e4077399f72e449",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: cookie with three chocolate dots. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-079",
+      "label": "두들 우유팩",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-079.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 79,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/079.png",
+      "sha256": "e730fd7b3d5bb4ed6fec62f894dfcd3a39cf4124241488a44bf95fa195d0d31e",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: blank milk carton. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-098",
+      "label": "두들 연필",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-098.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 98,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/098.png",
+      "sha256": "513d56c5e3812de31c3ef3a352188a219551cd8e6d8b6e037a49804eaf52843e",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: pencil. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "doodle-20261017-100",
+      "label": "두들 말풍선",
+      "style": "두들",
+      "file": "public/stickers/doodle-20261017-100.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 100,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/100.png",
+      "sha256": "37d5105b95f527edce8b303941d1015188105ecec5b1ea095d189419c7e4cf09",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: speech bubble. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' simple friendly doodle language: one thick slightly wobbly near-black rounded outline, one or two soft pastel fills, bold rounded silhouette. For a face use just eyes and one expressive mouth. For objects use at most three large identifying interior lines. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-121.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-136.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-101",
+      "label": "리본 문구 클래식 리본",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-101.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 101,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/101.png",
+      "sha256": "cd19faf87eb9213b1b707c7aa0b2974ce687853fad79a0b8767ed749def2a63e",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: classic two-loop ribbon bow. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-118",
+      "label": "리본 문구 리본 책갈피",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-118.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 118,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/118.png",
+      "sha256": "c2dd2bdec487ba9f8fa3a6570ff55e7e1a83930bf525c2fae2629a4d041015d6",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: flat ribbon bookmark strip. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-121",
+      "label": "리본 문구 사선 마스킹 테이프",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-121.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 121,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/121.png",
+      "sha256": "18c217a5342961aed0f78c4e4594096c83efbf124099553a2908ebd65a939124",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: short washi tape with two broad diagonal stripes. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-122",
+      "label": "리본 문구 체크 마스킹 테이프",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-122.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 122,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/122.png",
+      "sha256": "8cfb2afbf945d6916ff11d2ffd1b56b5a9a0ae946c33f80a112edc7292ba4916",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: short washi tape with four large checker squares. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-124",
+      "label": "리본 문구 무지 마스킹 테이프",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-124.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 124,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/124.png",
+      "sha256": "6ad95edc72ec2991dc6259276f1fe211b4c749f931cb22681bfe9385eac7bada",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: plain torn washi tape strip. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-132",
+      "label": "리본 문구 네모 포스트잇",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-132.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 132,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/132.png",
+      "sha256": "7daa6785f9a33a118c111c45a112d9408d19ceaadf4d61787a3d5abe96f664fa",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: blank square sticky note with one folded corner. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-138",
+      "label": "리본 문구 두 칸 티켓",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-138.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 138,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/138.png",
+      "sha256": "d738505e15cff8bd257a311dcae7b71686b848693bae872ace449d72ebf83eda",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: blank two-part ticket with one divider. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-142",
+      "label": "리본 문구 리본 태그",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-142.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 142,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/142.png",
+      "sha256": "5c17b8564b60466c9dce66b5c50d1699c94f1751908746b5b7b2eb4488810ab1",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: blank rectangular tag with a small ribbon tied through its hole. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-145",
+      "label": "리본 문구 여행 태그",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-145.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 145,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/145.png",
+      "sha256": "553f727730f4d9f0383b6741fd5f17e2a6344e57ace2a58f195a97383e48a3db",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: blank luggage tag. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-147",
+      "label": "리본 문구 인덱스 카드",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-147.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 147,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/147.png",
+      "sha256": "9ddf7616fab2395d5832a69f180f696e75bb5e9f4114adadf0ae2bf1e1b6f8f2",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: blank index card with rounded corners. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-148",
+      "label": "리본 문구 엽서",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-148.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 148,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/148.png",
+      "sha256": "130fc0832357cc19510c96b60f6c8a90580f9a468b3a53ee721dd6f0ecc70bd1",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: blank postcard. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-150",
+      "label": "리본 문구 하트 우표",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-150.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 150,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/150.png",
+      "sha256": "c6a763b97294b48b55ab7839ee33f838b0c519aa4a4fb96bd3277963fccdd251",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: scalloped postage stamp with a simple heart only. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-154",
+      "label": "리본 문구 하트 실",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-154.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 154,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/154.png",
+      "sha256": "cafc029a118ef3d48148562b008bb890a45a2fc3684403ee2be7f9cc21ee094d",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: round paper seal with a simple heart. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-168",
+      "label": "리본 문구 스프링 노트",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-168.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 168,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/168.png",
+      "sha256": "cac8044488649318443f652911e38f0494f2f32f13993ddba3220bb8e38401dc",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: blank spiral notebook with only two large rings. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-173",
+      "label": "리본 문구 연필",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-173.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 173,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/173.png",
+      "sha256": "e0c19271ebd53992b1fe7cc5f143ffbe9ac4f505d0582877a22efcf39ea7ec92",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: short pencil. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-175",
+      "label": "리본 문구 크레용",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-175.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 175,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/175.png",
+      "sha256": "43c1d86d1cebb5b6c4e3745cf7161861779ac263c75c5c269afacb1e416f88fc",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: single crayon. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-178",
+      "label": "리본 문구 마커",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-178.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 178,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/178.png",
+      "sha256": "fd33ca940e00c77d0ccf030ea91adf481e5c0b5ff91db9d9e906f48b78699518",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: single marker. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-180",
+      "label": "리본 문구 붓",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-180.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 180,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/180.png",
+      "sha256": "253f38b4bbf63d953e6b83ef5d0d53061f8630dcf7ec4ba3a9d7deb76572a369",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: single paint brush. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-187",
+      "label": "리본 문구 압정",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-187.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 187,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/187.png",
+      "sha256": "6cf9b710ebfc21603ed4cb8b7776e5dc31cf994b631afefeef2e41b4cc263762",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: one pushpin. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-194",
+      "label": "리본 문구 잉크병",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-194.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 194,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/194.png",
+      "sha256": "7ddc54e14f8c9c12142731ab93665c2fd6a3a0a522b024434fc172fa293bcf7b",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: small plain ink bottle. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "stationery-20261017-195",
+      "label": "리본 문구 하트 도장",
+      "style": "리본 문구",
+      "file": "public/stickers/stationery-20261017-195.png",
+      "previewBatch": "doodle-stationery-200-2026-10-17",
+      "previewNumber": 195,
+      "previewFile": "output/sticker-drafts-2026-10-17-doodle-stationery-200/images/195.png",
+      "sha256": "1c3e6d64c0a07f772f4e5a150f6cc0cc46580a02bd9207e671439aabe72a3592",
+      "prompt": "Use case: stylized-concept. Create exactly ONE NEW standalone sticker: small wooden rubber stamp with a tiny heart on top. Input images are STYLE REFERENCES ONLY; do not reproduce their subject unless it is the requested subject. Match the references' soft ribbon-and-stationery illustration language: clean flat cutout silhouette, blush pink, cream, lavender or soft blue, one or two large color blocks. Little or no outline, at most two fold or seam lines. Restrained elegant stationery, never intricate. Keep detail minimal and clearly readable at 48 pixels. Simple draft, no tiny lines or intricate surface details. Square composition; full subject centered with 15% clear padding on genuine transparent background. No glow, no external shadow, no texture, no smudges, no shine, no text, no letters, no watermark. No secondary decorative motifs. Never include planets or Saturn, butterflies, mushrooms, umbrellas, rockets, standalone fruit or nuts, horseshoes, crowns, or frogs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-004",
+      "label": "리본 문구 연한 하늘색 슬림 리본",
+      "style": "연한 하늘색",
+      "file": "public/stickers/pastel-stationery-20261018-004.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 4,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/004.png",
+      "sha256": "f39c5481eade7a689e6993ba1a893bb6762e73d3203362d2782af10cfbdccda4",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a narrow bow with long thin tails. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 연한 하늘색, primary #C8E7F5, one darker same-hue accent #9ECBDC, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-011",
+      "label": "리본 문구 연한 하늘색 사선 테이프",
+      "style": "연한 하늘색",
+      "file": "public/stickers/pastel-stationery-20261018-011.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 11,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/011.png",
+      "sha256": "45ce1cc29607482440596457b07e656ebd5ad2b48e5c896f97491f76448c0aba",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a short strip of washi tape with two broad diagonal stripes. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 연한 하늘색, primary #C8E7F5, one darker same-hue accent #9ECBDC, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-012",
+      "label": "리본 문구 연한 하늘색 가로줄 테이프",
+      "style": "연한 하늘색",
+      "file": "public/stickers/pastel-stationery-20261018-012.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 12,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/012.png",
+      "sha256": "1eb2a45bfc7562b90bff5d4fe7a5b93d624a30061b3e477fd3fe6541d65f963d",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a short washi tape strip with two horizontal stripes. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 연한 하늘색, primary #C8E7F5, one darker same-hue accent #9ECBDC, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-014",
+      "label": "리본 문구 연한 하늘색 무지 테이프",
+      "style": "연한 하늘색",
+      "file": "public/stickers/pastel-stationery-20261018-014.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 14,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/014.png",
+      "sha256": "980dfdeadddff58464b26fc998b62e2b776a73f7beff041f6ce61ad098683d28",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a plain torn-end washi tape strip. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 연한 하늘색, primary #C8E7F5, one darker same-hue accent #9ECBDC, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-015",
+      "label": "리본 문구 연한 하늘색 격자 테이프",
+      "style": "연한 하늘색",
+      "file": "public/stickers/pastel-stationery-20261018-015.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 15,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/015.png",
+      "sha256": "a9aa79f9b99be1e03a0e7e8b0e7837ba53f4e91a8db2a9333419a079e8708f29",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a washi tape strip with a sparse broad check pattern. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 연한 하늘색, primary #C8E7F5, one darker same-hue accent #9ECBDC, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-026",
+      "label": "리본 문구 연한 하늘색 모서리 종이",
+      "style": "연한 하늘색",
+      "file": "public/stickers/pastel-stationery-20261018-026.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 26,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/026.png",
+      "sha256": "753a6f27f9042099a2b677e1f936eb3739f98318c4ad171b9f6e5f295f3de0c2",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a blank square memo with one folded corner. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 연한 하늘색, primary #C8E7F5, one darker same-hue accent #9ECBDC, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-031",
+      "label": "리본 문구 연한 하늘색 폴라로이드 틀",
+      "style": "연한 하늘색",
+      "file": "public/stickers/pastel-stationery-20261018-031.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 31,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/031.png",
+      "sha256": "7c7ec9b0d73bfc11ec986048f5d132d3f7f2066861c6b922b7974e1e1259ee01",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: one empty instant-photo frame with a transparent center. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 연한 하늘색, primary #C8E7F5, one darker same-hue accent #9ECBDC, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-049",
+      "label": "리본 문구 연한 하늘색 선물 상자",
+      "style": "연한 하늘색",
+      "file": "public/stickers/pastel-stationery-20261018-049.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 49,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/049.png",
+      "sha256": "3d567253ae733690c7418811347bc900b9f3c50409c6f24e04fe92a77e3d6dda",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: one small closed gift box with a simple bow. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 연한 하늘색, primary #C8E7F5, one darker same-hue accent #9ECBDC, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-051",
+      "label": "리본 문구 민트 기본 리본",
+      "style": "민트",
+      "file": "public/stickers/pastel-stationery-20261018-051.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 51,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/051.png",
+      "sha256": "1580de3ff0a12a718ef6eec20e7b97559dd5624caa0a2815c684ee337a5282b9",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a classic tied bow with two short tails. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 민트, primary #CDEBDD, one darker same-hue accent #A5CFBA, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-062",
+      "label": "리본 문구 민트 가로줄 테이프",
+      "style": "민트",
+      "file": "public/stickers/pastel-stationery-20261018-062.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 62,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/062.png",
+      "sha256": "f556495ca8dc6dd51c6081ab0c4ccdb8af796903d58f76b28d67ef3e840bff36",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a short washi tape strip with two horizontal stripes. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 민트, primary #CDEBDD, one darker same-hue accent #A5CFBA, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-064",
+      "label": "리본 문구 민트 무지 테이프",
+      "style": "민트",
+      "file": "public/stickers/pastel-stationery-20261018-064.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 64,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/064.png",
+      "sha256": "efca604bf3ad571e238952c8a69d8ee4486065544af573c4bf3a8bdafa49ffbc",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a plain torn-end washi tape strip. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 민트, primary #CDEBDD, one darker same-hue accent #A5CFBA, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-065",
+      "label": "리본 문구 민트 격자 테이프",
+      "style": "민트",
+      "file": "public/stickers/pastel-stationery-20261018-065.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 65,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/065.png",
+      "sha256": "177070185a1219711169639121e10de796c1c7e59eef3c70e3c36177d2cfc3d0",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a washi tape strip with a sparse broad check pattern. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 민트, primary #CDEBDD, one darker same-hue accent #A5CFBA, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-081",
+      "label": "리본 문구 민트 폴라로이드 틀",
+      "style": "민트",
+      "file": "public/stickers/pastel-stationery-20261018-081.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 81,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/081.png",
+      "sha256": "b9862605d67fae5749205be2e6d0a1a45f63c1c53eb55b7592912fe242c93960",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: one empty instant-photo frame with a transparent center. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 민트, primary #CDEBDD, one darker same-hue accent #A5CFBA, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-098",
+      "label": "리본 문구 민트 편지지",
+      "style": "민트",
+      "file": "public/stickers/pastel-stationery-20261018-098.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 98,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/098.png",
+      "sha256": "8b533b80caf93088c86373f455ffcb60f9d1ab2e53aaabe706dd993a76d79703",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: one blank letter sheet with a simple broad border. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 민트, primary #CDEBDD, one darker same-hue accent #A5CFBA, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-103",
+      "label": "리본 문구 라벤더 둥근 리본",
+      "style": "라벤더",
+      "file": "public/stickers/pastel-stationery-20261018-103.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 103,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/103.png",
+      "sha256": "b201d8d8399528c5b8ea3ebfa395014ad5384b66989ffbbb7c8516edda8ebce2",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a bow with two round loops and short tails. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 라벤더, primary #DED5F1, one darker same-hue accent #BBB0D9, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-111",
+      "label": "리본 문구 라벤더 사선 테이프",
+      "style": "라벤더",
+      "file": "public/stickers/pastel-stationery-20261018-111.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 111,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/111.png",
+      "sha256": "f26461208ed76909c08a526c4c60efa6c726cf6241edaac8ad34782a6aabc5f3",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a short strip of washi tape with two broad diagonal stripes. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 라벤더, primary #DED5F1, one darker same-hue accent #BBB0D9, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-112",
+      "label": "리본 문구 라벤더 가로줄 테이프",
+      "style": "라벤더",
+      "file": "public/stickers/pastel-stationery-20261018-112.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 112,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/112.png",
+      "sha256": "5ed3ba65437b4552c41fdfd39c744f434feebc6fc99ce5675d1458f38c39bd0e",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a short washi tape strip with two horizontal stripes. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 라벤더, primary #DED5F1, one darker same-hue accent #BBB0D9, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-115",
+      "label": "리본 문구 라벤더 격자 테이프",
+      "style": "라벤더",
+      "file": "public/stickers/pastel-stationery-20261018-115.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 115,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/115.png",
+      "sha256": "f66917cdf7b1e6a017fd27378a2574feb00032a348b3fa1114bd9f6ad13ebdea",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a washi tape strip with a sparse broad check pattern. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 라벤더, primary #DED5F1, one darker same-hue accent #BBB0D9, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-131",
+      "label": "리본 문구 라벤더 폴라로이드 틀",
+      "style": "라벤더",
+      "file": "public/stickers/pastel-stationery-20261018-131.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 131,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/131.png",
+      "sha256": "2d300362476c8a1180886425067a2dcfa2a565e4925aae65128536f7c1b2e129",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: one empty instant-photo frame with a transparent center. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 라벤더, primary #DED5F1, one darker same-hue accent #BBB0D9, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-154",
+      "label": "리본 문구 버터 옐로 슬림 리본",
+      "style": "버터 옐로",
+      "file": "public/stickers/pastel-stationery-20261018-154.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 154,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/154.png",
+      "sha256": "1344cf55406337cbedeba163ca038789629f1cc41b662d6ae389851d6bd14826",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a narrow bow with long thin tails. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 버터 옐로, primary #F6E9B9, one darker same-hue accent #DDCA88, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-162",
+      "label": "리본 문구 버터 옐로 가로줄 테이프",
+      "style": "버터 옐로",
+      "file": "public/stickers/pastel-stationery-20261018-162.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 162,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/162.png",
+      "sha256": "e3c543ba2d16cf4231c8c504ac26f8af5b26ee65b0a2a2e866286af7c80c83cc",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a short washi tape strip with two horizontal stripes. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 버터 옐로, primary #F6E9B9, one darker same-hue accent #DDCA88, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-164",
+      "label": "리본 문구 버터 옐로 무지 테이프",
+      "style": "버터 옐로",
+      "file": "public/stickers/pastel-stationery-20261018-164.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 164,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/164.png",
+      "sha256": "b9c6d3037e0fc3d7b5b6736c100bba113c7cedcaea77ef9a532f4d64f75c361d",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a plain torn-end washi tape strip. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 버터 옐로, primary #F6E9B9, one darker same-hue accent #DDCA88, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-165",
+      "label": "리본 문구 버터 옐로 격자 테이프",
+      "style": "버터 옐로",
+      "file": "public/stickers/pastel-stationery-20261018-165.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 165,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/165.png",
+      "sha256": "aeba217963be33d6b1349bd24d305dc49ce57c9902ed8ef73c47dc19c4653743",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: a washi tape strip with a sparse broad check pattern. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 버터 옐로, primary #F6E9B9, one darker same-hue accent #DDCA88, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-181",
+      "label": "리본 문구 버터 옐로 폴라로이드 틀",
+      "style": "버터 옐로",
+      "file": "public/stickers/pastel-stationery-20261018-181.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 181,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/181.png",
+      "sha256": "b047d5a4c288a61090ab05481d58183990eaaa94801a116225cd8d3642ecd1f1",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: one empty instant-photo frame with a transparent center. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 버터 옐로, primary #F6E9B9, one darker same-hue accent #DDCA88, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    },
+    {
+      "id": "pastel-stationery-20261018-200",
+      "label": "리본 문구 버터 옐로 스티커 조각",
+      "style": "버터 옐로",
+      "file": "public/stickers/pastel-stationery-20261018-200.png",
+      "previewBatch": "pastel-stationery-200-2026-10-18",
+      "previewNumber": 200,
+      "previewFile": "output/sticker-drafts-2026-10-18-pastel-stationery-200/images/200.png",
+      "sha256": "08fe2cd1d75a1b821abe3d68215c9a162f3398a7d49bf9ac30fe22d43508a310",
+      "prompt": "Use case: stylized-concept. Asset type: preview-only decoration sticker. Create exactly ONE sticker: one round blank sticker with a single peeled-up corner. Match the reference images' minimal ribbon-and-stationery design language ONLY; completely replace their pink palette. Color palette: 버터 옐로, primary #F6E9B9, one darker same-hue accent #DDCA88, optional cream #FFFDF5. No pink, rose, coral or salmon anywhere. Flat clean cut-paper silhouette, broad simple shapes, minimal detail readable at 48px, at most two seams/folds. No text or letters, no tiny pattern, texture, smudges, glow, external shadow, intricate details or added motifs. Center full subject in square composition with 15% empty padding on a genuinely transparent background. Never include Saturn or other planets, butterflies, mushrooms, umbrellas, rockets, standalone fruit, nuts, horseshoes, crowns or frogs, even as secondary motifs.",
+      "references": [
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-185.png",
+        "/Users/leeyeeun/Documents/GitHub/root-in/public/stickers/minimal-20261017-200.png"
+      ]
+    }
+  ]
+}

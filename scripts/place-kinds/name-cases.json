@@ -1,0 +1,15 @@
+[
+  { "name": "스타벅스 성수점", "branch": "", "expect": "스타벅스" },
+  { "name": "메가MGC커피 성수역점", "branch": "", "expect": "메가mgc커피" },
+  { "name": "파리바게뜨 동탄시범점", "branch": "", "expect": "파리바게뜨" },
+  { "name": "비비큐서", "branch": "판교점", "expect": "비비큐서" },
+  { "name": "교촌치킨판교점", "branch": "판교점", "expect": "교촌치킨" },
+  { "name": "홍콩반점", "branch": "", "expect": "홍콩반점" },
+  { "name": "(주)어니언 성수", "branch": "", "expect": "어니언성수" },
+  { "name": "㈜대림 베이커리", "branch": "", "expect": "대림베이커리" },
+  { "name": "카페 ＡＢＣ", "branch": "", "expect": "카페abc" },
+  { "name": "Cafe Onion [2F]", "branch": "", "expect": "cafeonion" },
+  { "name": "본점", "branch": "", "expect": "본점" },
+  { "name": "  ", "branch": "", "expect": "" },
+  { "name": "아주아주아주아주아주아주긴가게이름입니다요", "branch": "", "expect": "아주아주아주아주아주아주긴가게이름입니다" }
+]

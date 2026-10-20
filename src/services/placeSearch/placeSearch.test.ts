@@ -39,7 +39,7 @@ const fakeKakao = (respond: (query: string) => [KakaoPlaceResult[], string]) => 
 };
 
 describe('KakaoPlaceSearch', () => {
-  it('maps results to PlaceRef with kakao ids, short category and road address', async () => {
+  it('maps results to PlaceRef with kakao ids, short category, kind and road address', async () => {
     const { maps } = fakeKakao(() => [[kakaoResult()], 'OK']);
     expect(await new KakaoPlaceSearch(maps).search('성수 카페')).toEqual([
       {
@@ -47,6 +47,7 @@ describe('KakaoPlaceSearch', () => {
         name: '어니언 성수',
         center: [127.0582, 37.5447],
         category: '베이커리카페',
+        kind: 'bakery',
         address: '서울 성동구 아차산로9길 8',
       },
     ]);
@@ -71,7 +72,7 @@ describe('KakaoPlaceSearch', () => {
 describe('PhotonPlaceSearch', () => {
   const feature = {
     geometry: { coordinates: [127.0374, 37.5444] },
-    properties: { osm_type: 'W', osm_id: 42, name: '서울숲', osm_value: 'park', city: '서울', district: '성동구' },
+    properties: { osm_type: 'W', osm_id: 42, name: '서울숲', osm_key: 'leisure', osm_value: 'park', city: '서울', district: '성동구' },
   };
 
   it('maps features and sends the location bias', async () => {
@@ -79,7 +80,7 @@ describe('PhotonPlaceSearch', () => {
     vi.stubGlobal('fetch', fetchMock);
     const results = await new PhotonPlaceSearch().search('서울숲', { near: [127, 37.5] });
     expect(results).toEqual([
-      { id: 'osm:W42', name: '서울숲', center: [127.0374, 37.5444], category: 'park', address: '서울 성동구' },
+      { id: 'osm:W42', name: '서울숲', center: [127.0374, 37.5444], category: 'park', kind: 'park', address: '서울 성동구' },
     ]);
     const url = new URL(String((fetchMock.mock.calls[0] as unknown[])[0]));
     expect(url.searchParams.get('lat')).toBe('37.5');

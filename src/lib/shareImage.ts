@@ -7,7 +7,10 @@ import { CLOTHESLINE, clotheslineY, DEFAULT_LAYOUT, DRAWING_BOX, LAYOUT_CARDS, P
 import type { CardStamp, StopMark } from '../domain/shareSubject';
 import { paintPattern } from './dayPatterns';
 import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
-import { labelSide } from '../domain/stopLabels';
+import { fitPingLabels } from '../domain/stopLabels';
+import { MAP_ROLES, dayMap, type MapFill, type MapRole, type MapPart, type TerrainShapes } from '../domain/miniMap';
+import { terrainService } from '../services/terrainService';
+import { resolvedColour } from './cssColour';
 
 export interface ShareImageInput {
   pings: DayPing[];
@@ -64,8 +67,12 @@ function tokens() {
     peg: get('--clothespin'),
     pegShade: get('--clothespin-shade'),
     font: getComputedStyle(document.body).fontFamily,
+    mini: Object.fromEntries(MAP_ROLES.map((role) => [role, resolvedColour(`--mini-${role}`)])) as Record<MapRole, string>,
   };
 }
+
+/** How much wider a line's casing is than the line on a 미니맵 (card px: about 2px a side on the day screen). */
+const CASING = 10;
 
 const DASHES: Record<EdgeStyle, { width: number; dash: number[]; cap: CanvasLineCap }> = {
   solid: { width: 9, dash: [], cap: 'round' },
@@ -96,6 +103,9 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
     document.fonts?.load(`40px ${textFamily('pen')}`, '2026. 성수').catch(() => undefined),
   ]);
   const layout: PolaroidLayout = decor?.layout ?? DEFAULT_LAYOUT;
+  // A day's photo is its day screen: the real map behind the stops, fetched first (no data: the stops on the page alone).
+  // A route's card keeps the usual layout with no map.
+  const terrain = photo ? await terrainService.fetch(pings.map((p) => p.center)) : null;
   const cards = LAYOUT_CARDS[layout];
   const c = tokens();
   const pinImages = await Promise.all(marks.map(async (mark, i) => {
@@ -168,7 +178,7 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
         paintPattern(ctx, photo.pattern, { w: PHOTO.w, h: PHOTO.h }, BOX.size / 360, p.accent);
         ctx.restore();
       }
-      drawStops(ctx, p, bg, pings, marks, edges, pinImages, { names: !photo?.hideNames, times: !photo?.hideTimes });
+      drawStops(ctx, p, bg, pings, marks, edges, pinImages, { names: !photo?.hideNames, times: !photo?.hideTimes, day: !!photo, terrain });
       if (photo) drawDecor(ctx, photo, BOX_FRAME, stickerImages);
     });
     ctx.restore();
@@ -474,6 +484,102 @@ function drawPaper(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>) 
   ctx.restore();
 }
 
+/**
+ * 미니맵: its parts (domain/miniMap) painted in order behind the stops, in
+ * solid colours (the theme's 미니맵 tokens); the shadow is blurred and faded.
+ * Drawn in the unit square the stops are laid out in. A part with an alpha
+ * (the shadow) is drawn flat on a canvas of its own and faded as a whole.
+ */
+function drawMiniMap(ctx: CanvasRenderingContext2D, c: Tokens, parts: MapPart[]) {
+  const colour = ({ role }: MapFill) => c.mini[role];
+
+  const paintPart = (g: CanvasRenderingContext2D, part: MapPart, fill: string) => {
+    g.save();
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    g.fillStyle = fill;
+    g.strokeStyle = fill;
+    const dy = part.dy ?? 0;
+    // The real map's features are kept to the lump.
+    if (part.clip) {
+      g.beginPath();
+      for (const ring of part.clip) {
+        ring.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)));
+        g.closePath();
+      }
+      g.clip('evenodd');
+    }
+    // Areas with holes are one path (even-odd); the abstract land is one shape per polygon.
+    const trace = (rings: { x: number; y: number }[][]) => {
+      g.beginPath();
+      for (const poly of rings) {
+        poly.forEach((p, i) => (i ? g.lineTo(p.x, p.y + dy) : g.moveTo(p.x, p.y + dy)));
+        g.closePath();
+      }
+    };
+    if (part.evenodd) {
+      trace(part.polys);
+      g.fill('evenodd');
+      // Over the hairline seams where pieces of one fill meet.
+      if (part.seal) {
+        g.lineWidth = part.seal;
+        g.stroke();
+      }
+    } else {
+      for (const poly of part.polys) {
+        trace([poly]);
+        g.fill();
+      }
+    }
+    for (const { path, w } of part.ways ?? []) {
+      g.lineWidth = w;
+      g.beginPath();
+      path.forEach((p, i) => (i ? g.lineTo(p.x, p.y + dy) : g.moveTo(p.x, p.y + dy)));
+      g.stroke();
+    }
+    g.restore();
+  };
+
+  ctx.save();
+  ctx.translate(BOX.x, BOX.y);
+  ctx.scale(BOX.size, BOX.size);
+  for (const part of parts) {
+    const faded = (part.fill.alpha !== undefined && part.fill.alpha < 1) || !!part.haze;
+    if (!faded) {
+      paintPart(ctx, part, colour(part.fill));
+      continue;
+    }
+    // On its own canvas (the unit square mapped to the box), then blurred and faded as one.
+    const layer = document.createElement('canvas');
+    layer.width = POLAROID.w;
+    layer.height = POLAROID.h;
+    const g = layer.getContext('2d')!;
+    g.translate(BOX.x, BOX.y);
+    g.scale(BOX.size, BOX.size);
+    paintPart(g, part, colour(part.fill));
+    if (part.haze) {
+      // Haze: kept only as much as a gradient from its far (top) edge to its near one says.
+      const ys = part.polys.flat().map((p) => p.y);
+      const fade = g.createLinearGradient(0, Math.min(...ys), 0, Math.max(...ys));
+      fade.addColorStop(0, `rgba(0, 0, 0, ${part.haze})`);
+      fade.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      g.globalCompositeOperation = 'destination-in';
+      g.fillStyle = fade;
+      g.fillRect(-1, -1, 3, 3);
+    }
+    // Back to the card's own pixels (the layer is drawn in them), so it turns and scales with the card.
+    ctx.save();
+    ctx.scale(1 / BOX.size, 1 / BOX.size);
+    ctx.translate(-BOX.x, -BOX.y);
+    ctx.globalAlpha = part.fill.alpha ?? 1;
+    // Not every browser can blur a canvas draw: the shadow is then just crisp.
+    if (part.blur) ctx.filter = `blur(${Math.round(part.blur * BOX.size * 0.6)}px)`;
+    ctx.drawImage(layer, 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
 /** Lines first, then the stops over them, laid out in the drawing box. */
 function drawStops(
   ctx: CanvasRenderingContext2D,
@@ -484,31 +590,50 @@ function drawStops(
   edges: RouteEdgeStyle[],
   pinImages: (HTMLImageElement | null)[],
   // A day's 텍스트 / 시간 switches, as on its screen.
-  show: { names: boolean; times: boolean } = { names: true, times: true },
+  // A day's photo (`day`) is laid out as its day screen, over the real map when there is one.
+  show: { names: boolean; times: boolean; day?: boolean; terrain?: TerrainShapes | null } = { names: true, times: true },
 ) {
-  const points = layoutPings(pings.map((p) => p.center)).map((p) => ({
+  // A route's card keeps the usual layout.
+  const centers = pings.map((p) => p.center);
+  // A day's photo is its day screen: the same pins (the latest bigger, spread apart) on the same map.
+  const day = show.day ? dayMap(show.terrain ?? null, centers, pings.some((p) => p.time) ? latestPingIndex(pings) : -1) : null;
+  const points = (day ? day.points : layoutPings(centers)).map((p) => ({
     x: BOX.x + p.x * BOX.size,
     y: BOX.y + p.y * BOX.size,
   }));
 
-  ctx.strokeStyle = c.route;
+  const parts = day?.parts ?? [];
+  if (parts.length) drawMiniMap(ctx, c, parts);
+
+  // On a 미니맵 every line gets a casing in the page colour first, as on the day screen (pings__case).
+  const mapped = parts.length > 0;
   for (let i = 0; i + 1 < points.length; i++) {
     const edge = edges[i] ?? 'solid';
     if (edge === 'transparent') continue;
     const style = DASHES[edge];
-    ctx.lineWidth = style.width;
-    ctx.lineCap = style.cap;
-    ctx.setLineDash(style.dash);
-    ctx.beginPath();
-    ctx.moveTo(points[i].x, points[i].y);
-    ctx.lineTo(points[i + 1].x, points[i + 1].y);
-    ctx.stroke();
+    const stroke = (colour: string, width: number, dash: number[], cap: CanvasLineCap) => {
+      ctx.strokeStyle = colour;
+      ctx.lineWidth = width;
+      ctx.lineCap = cap;
+      ctx.setLineDash(dash);
+      ctx.beginPath();
+      ctx.moveTo(points[i].x, points[i].y);
+      ctx.lineTo(points[i + 1].x, points[i + 1].y);
+      ctx.stroke();
+    };
+    if (mapped) stroke(c.page, style.width + CASING, [], 'round');
+    stroke(c.route, style.width, style.dash, style.cap);
   }
   ctx.setLineDash([]);
 
   // Only a day's pings have times, and the latest of them is drawn bigger.
   const timed = pings.some((p) => p.time);
   const latest = timed ? latestPingIndex(pings) : -1;
+  // Each ping's info goes to a side where it covers nothing (judged at the day screen's size: the box is about 330px there).
+  const labels = fitPingLabels(
+    points.map((p) => ({ x: ((p.x - BOX.x) / BOX.size) * 330, y: ((p.y - BOX.y) / BOX.size) * 330 })),
+    pings.map((p, i) => ({ name: show.names ? p.name : '', time: show.times ? p.time : undefined, latest: i === latest })),
+  );
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   pings.forEach((ping, i) => {
@@ -562,14 +687,11 @@ function drawStops(
       bottom = mark === 'pin' ? y : y + h / 2;
     }
 
-    // The name (and time) below the mark, unless one of its lines leaves that
-    // way: then above, right or left of it, as on the day screen.
-    const side = labelSide({ x, y }, [points[i - 1], points[i + 1]].filter((p): p is { x: number; y: number } => !!p));
+    // The name (and time) where the day screen puts it (fitPingLabels), crowded ones written shorter.
+    const { side, name, time } = labels[i];
     const top = mark === 'number' ? y - 34 : bottom - (mark === 'pin' ? (118 * k) : (84 * k));
     const half = mark === 'number' ? 34 : (mark === 'pin' ? (shapeBox('pin').w * (118 * k)) / shapeBox('pin').h : 84 * k) / 2;
     const mid = (top + bottom) / 2;
-    const name = show.names ? ping.name : '';
-    const time = show.times ? ping.time : undefined;
     if (!name && !time) return;
     const lines = name && time ? 2 : 1;
     let tx = x;
@@ -579,16 +701,38 @@ function drawStops(
       tx = side === 'right' ? x + half + 18 : x - half - 18;
       nameY = mid + (lines === 2 ? -6 : 12);
     }
-    ctx.textAlign = side === 'right' ? 'left' : side === 'left' ? 'right' : 'center';
+    // The corners (as .ping--label-below-right …): below ones start at the point, above ones sit off the pin's head.
+    if (side === 'below-right' || side === 'below-left') tx = side === 'below-right' ? x - 16 : x + 16;
+    if (side === 'above-right' || side === 'above-left') {
+      tx = side === 'above-right' ? x + half - 10 : x - half + 10;
+      nameY = top + (lines === 2 ? -32 : 8);
+    }
+    const toRight = side === 'right' || side === 'below-right' || side === 'above-right';
+    const toLeft = side === 'left' || side === 'below-left' || side === 'above-left';
+    ctx.textAlign = toRight ? 'left' : toLeft ? 'right' : 'center';
+    // On a 미니맵 the words sit on land: a page-coloured glow first (as .pings--mapped .ping__label).
+    const write = (text: string, y: number) => {
+      if (mapped) {
+        ctx.save();
+        ctx.strokeStyle = c.page;
+        ctx.lineWidth = 10;
+        ctx.lineJoin = 'round';
+        ctx.shadowColor = c.page;
+        ctx.shadowBlur = 12;
+        ctx.strokeText(text, tx, y);
+        ctx.restore();
+      }
+      ctx.fillText(text, tx, y);
+    };
     if (name) {
       ctx.fillStyle = c.text;
       ctx.font = `700 ${Math.round(36 * (k > 1 ? 1.15 : 1))}px ${c.font}`;
-      ctx.fillText(name, tx, nameY);
+      write(name, nameY);
     }
     if (time) {
       ctx.fillStyle = c.muted;
       ctx.font = `600 32px ${c.font}`;
-      ctx.fillText(time, tx, name ? nameY + 42 : nameY);
+      write(time, name ? nameY + 42 : nameY);
     }
     ctx.textAlign = 'center';
   });

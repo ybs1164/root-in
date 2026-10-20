@@ -1,4 +1,5 @@
 import type { PlaceRef } from '../types/course';
+import { kindIcon } from './placeKinds';
 import {
   PIN_ICONS,
   type Pin,
@@ -83,6 +84,27 @@ export function categoryStyle(categories: PinCategory[], id: string): { icon: Pi
   if (isUncategorized(categories, id)) return { icon: 'pin', color: 0 };
   const category = findCategory(categories, id);
   return { icon: category.icon, color: category.color };
+}
+
+/**
+ * A pin's look on the map and its card: its category's, except that a 미분류
+ * pin shows what kind of place it is (still in 미분류's colour), so unsorted
+ * pins don't all look the same. The user's own categories always win.
+ */
+export function pinStyle(categories: PinCategory[], categoryId: string, place?: Pick<PlaceRef, 'kind'>): { icon: PinIcon; color: PinTint } {
+  const style = categoryStyle(categories, categoryId);
+  if (style.color !== 0) return style;
+  return { icon: kindIcon(place?.kind) ?? style.icon, color: 0 };
+}
+
+/**
+ * The group a new pin starts in: the one category drawn with this kind's
+ * icon. None, or several to choose between, leaves it in 미분류.
+ */
+export function suggestCategory(categories: PinCategory[], kind: PlaceRef['kind']): string {
+  const icon = kindIcon(kind);
+  const matches = icon ? categories.filter((c) => c.icon === icon) : [];
+  return matches.length === 1 ? matches[0].id : UNCATEGORIZED.id;
 }
 
 /** In order: the shape every list renders. */

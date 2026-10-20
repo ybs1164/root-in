@@ -94,17 +94,40 @@
   --pin-8: #9ea6ad;
   /* 미분류: the plain pin in whatever the accent is (a day theme included). */
   --pin-0: var(--accent);
-  /* Area map: the focus's sub-areas over whole neighbors, gaps show the
-     background — in the travel theme's soft blues on cream. */
-  --map-bg: #f9f6ef;
-  --map-area: #d5dff3;
-  --map-area-other: #ebe8e0;
-  /* Base map: land on water, parks on land, roads on top (tier 1 darker). */
-  --map-land: #f7f4ec;
-  --map-water: #94d9ef;
-  --map-park: #c4efd5;
-  --map-road: #d8e0e7;
-  --map-road-major: #8ca6c3;
+  /* Map colour roles (docs/plan-mainmap-style.md M1), shared by the main map
+     and TODAY's 미니맵 (MiniMap, share image) and made from the theme's own
+     colours, so every 꾸미기 theme and the dark scheme fit without their own
+     values: wide areas stay quiet (a little accent over the page, Imhof's
+     rule) and the full accent is left to the pins and the line on top.
+     Canvases and map SDKs cannot read color-mix as written: resolve them
+     with lib/cssColour.ts. The main map reads them once, in the 기본 theme. */
+  --map-land: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  /* Water a step deeper than land, so rivers read as the edges they are —
+     also darkened a little, or a light accent (노랑) leaves it level with the land. */
+  --map-water-hue: color-mix(in srgb, var(--accent) 30%, var(--surface));
+  --map-water: color-mix(in srgb, var(--map-water-hue) 95%, var(--ink-black));
+  /* Parks: the one hue that is not the theme's (a park should read as a park). */
+  --park-green: #c4efd5;
+  --map-park: color-mix(in srgb, var(--park-green) 75%, var(--map-land));
+  /* Roads are cut out lighter than the land; the widest get a darker edge. */
+  --map-road: var(--surface);
+  --map-road-edge: color-mix(in srgb, var(--accent) 34%, var(--surface));
+  /* The 읍면동 in the middle of the screen: a faint see-through tint, so a
+     river through it still shows as water. */
+  --map-tint: color-mix(in srgb, var(--accent) 12%, transparent);
+  /* A raised slab: its side under the top, its shadow further down. */
+  --map-side: color-mix(in srgb, var(--map-land) 88%, var(--ink-black));
+  --map-shadow: color-mix(in srgb, var(--accent) 70%, var(--ink-black));
+  /* The air over the land's far side (aerial perspective): the page itself, faded out toward the near side. */
+  --map-haze: var(--surface);
+  /* TODAY's 미니맵 roles (domain/miniMap.ts MapRole) are the same colours. */
+  --mini-land: var(--map-land);
+  --mini-side: var(--map-side);
+  --mini-water: var(--map-water);
+  --mini-park: var(--map-park);
+  --mini-road: var(--map-road);
+  --mini-shadow: var(--map-shadow);
+  --mini-haze: var(--map-haze);
 }
 
 /* Dark: the phone's setting, unless 디스플레이 및 언어 → 디스플레이 picked one (<html data-scheme>). */
@@ -137,14 +160,7 @@
     --perforation: rgba(232, 237, 247, 0.22);
     --ticket-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
     --dialog-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
-    --map-bg: #141c2e;
-    --map-area: #2b3c5c;
-    --map-area-other: #212b42;
-    --map-land: #1f2225;
-    --map-water: #1d4656;
-    --map-park: #22402f;
-    --map-road: #3a434d;
-    --map-road-major: #5f7894;
+    --park-green: #22402f;
     --round-icon: var(--ink-white);
   }
 }
@@ -177,14 +193,7 @@
   --perforation: rgba(232, 237, 247, 0.22);
   --ticket-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
   --dialog-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
-  --map-bg: #141c2e;
-  --map-area: #2b3c5c;
-  --map-area-other: #212b42;
-  --map-land: #1f2225;
-  --map-water: #1d4656;
-  --map-park: #22402f;
-  --map-road: #3a434d;
-  --map-road-major: #5f7894;
+  --park-green: #22402f;
   --round-icon: var(--ink-white);
 }
 
@@ -306,6 +315,8 @@
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
   --backdrop: rgba(0, 0, 0, 0.4);
   --round-icon: var(--ink-black);
+  /* Themes stay light: the light park green, even under a dark phone. */
+  --park-green: #c4efd5;
 }
 
 :root[data-theme='mint'],
@@ -873,23 +884,25 @@ button:disabled {
   font-size: 13px;
   line-height: 20px;
   white-space: nowrap;
-  opacity: 0.62;
+  /* !important: MapLibre writes an inline opacity on every marker (as for the stops). */
+  opacity: 0.62 !important;
   pointer-events: none;
   user-select: none;
+  /* Haloed in the land's colour: readable over roads, parks and water. */
   text-shadow:
-    0 0 3px var(--map-bg),
-    0 0 1px var(--map-bg);
+    0 0 3px var(--map-land),
+    0 0 1px var(--map-land);
   transition: opacity 0.25s ease-out;
 }
 
 .map-area-label--other {
   color: var(--muted);
-  opacity: 0.9;
+  opacity: 0.9 !important;
 }
 
 /* A route on show: its stop names take over. */
 .app--pins-away .map-area-label {
-  opacity: 0;
+  opacity: 0 !important;
 }
 
 /* ---------- Place preview card ---------- */
@@ -3167,6 +3180,27 @@ button:disabled {
   stroke-width: 4;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+/* Under each line: a light casing a little wider on each side, so the line
+   stands off the map under it (Brewer's casing, as on the 미니맵 —
+   docs/plan-mainmap-style.md M6). Solid under dashes and dots too. */
+.stop-lines .stop-lines__case {
+  stroke: var(--map-road);
+  stroke-width: 7;
+  stroke-dasharray: none;
+}
+
+.stop-lines .stop-lines__case--dotted {
+  stroke-width: 8;
+}
+
+.stop-lines .stop-lines__case--bold {
+  stroke-width: 11;
+}
+
+.stop-lines .stop-lines__case--transparent {
+  stroke: transparent;
 }
 
 /* A saved route's line styles (long-press a line), in screen px. */
@@ -6517,6 +6551,29 @@ button:disabled {
   z-index: 16;
 }
 
+/* 미니맵 under the line and the pins: solid colours, set on each shape. */
+/* 상세: the pins wait for the real map, then stand on it. */
+.pings--wait .ping,
+.pings--wait .pings__line {
+  visibility: hidden;
+}
+
+.pings__map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  animation: map-in 0.5s ease both;
+}
+
+@keyframes map-in {
+  from {
+    opacity: 0;
+  }
+}
+
 .pings__line {
   position: absolute;
   inset: 0;
@@ -6553,8 +6610,32 @@ button:disabled {
   stroke: none;
 }
 
-.pings__seg.is-pressed {
+.is-pressed > .pings__seg {
   opacity: 0.55;
+}
+
+/* Under a line on a 미니맵: the page colour, a little wider on each side (Brewer's casing). */
+.pings__case {
+  fill: none;
+  stroke: var(--surface);
+  stroke-width: 2.1;
+  stroke-linecap: round;
+}
+
+.pings__case--dotted {
+  stroke-width: 2.4;
+}
+
+.pings__case--bold {
+  stroke-width: 3.1;
+}
+
+/* On a 미니맵 the names sit on land: a page-coloured glow keeps them readable (as a route's stop names). */
+.pings--mapped .ping__label {
+  text-shadow:
+    0 0 4px var(--surface),
+    0 0 2px var(--surface),
+    0 0 1px var(--surface);
 }
 
 /* Draws every line in visiting order, whatever their dash patterns. */
@@ -6803,9 +6884,45 @@ button:disabled {
    icon keeps its place on the point; only the name moves. */
 .ping--label-above .ping__label,
 .ping--label-right .ping__label,
-.ping--label-left .ping__label {
+.ping--label-left .ping__label,
+.ping--label-below-right .ping__label,
+.ping--label-below-left .ping__label,
+.ping--label-above-right .ping__label,
+.ping--label-above-left .ping__label {
   position: absolute;
   margin: 0;
+}
+
+/* The corners (stopLabels infoRect): below ones start at the point and run off
+   to one side; above ones sit off the pin's head. */
+.ping--label-below-right .ping__label,
+.ping--label-below-left .ping__label {
+  top: calc(var(--h) * var(--k) + 5px);
+}
+
+.ping--label-below-right .ping__label {
+  left: calc(50% - 6px);
+  align-items: flex-start;
+}
+
+.ping--label-below-left .ping__label {
+  right: calc(50% - 6px);
+  align-items: flex-end;
+}
+
+.ping--label-above-right .ping__label,
+.ping--label-above-left .ping__label {
+  bottom: calc(100% - 4px);
+}
+
+.ping--label-above-right .ping__label {
+  left: calc(50% + var(--w) * var(--k) / 2 - 4px);
+  align-items: flex-start;
+}
+
+.ping--label-above-left .ping__label {
+  right: calc(50% + var(--w) * var(--k) / 2 - 4px);
+  align-items: flex-end;
 }
 
 .ping--label-above .ping__label {
@@ -7302,15 +7419,16 @@ button:disabled {
   display: block;
   width: 100%;
   aspect-ratio: 1;
-  background: var(--map-bg);
+  background: var(--map-land);
 }
 
+/* The covers' little maps in the main map's roles. */
 .group-cover__area {
-  fill: var(--map-area);
+  fill: var(--map-road-edge);
 }
 
 .group-cover__other {
-  fill: var(--map-area-other);
+  fill: var(--map-road);
 }
 
 .group-cover__water {
@@ -7726,6 +7844,12 @@ button:disabled {
   opacity: 0.22;
 }
 
+/* Each member's line on a light casing (as a route's). */
+.group-lines .group-lines__case {
+  stroke: var(--map-road);
+  stroke-width: 6.5;
+}
+
 /* 새 그룹 / 그룹 설정: a boarding pass (ticket-dialog). */
 .group-form {
   width: min(340px, calc(100vw - 32px));
@@ -7790,7 +7914,7 @@ button:disabled {
   overflow: hidden;
   border: 0;
   border-radius: 12px;
-  background: var(--map-bg);
+  background: var(--map-land);
 }
 
 .group-form__covers button svg {

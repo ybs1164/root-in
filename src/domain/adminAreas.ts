@@ -1,5 +1,6 @@
 import * as clipperNs from 'clipper-lib';
 import type { PolygonRings } from './baseMap';
+import type { BaseShapes } from './baseShapes';
 import { metersPerPixel, type Bbox, type LonLat, type MapViewport, type Ring } from './districtMap';
 import { screenProjection } from './districtRendering';
 
@@ -54,6 +55,8 @@ export interface AreaShapes {
   partTags?: AreaTag[];
   otherTags?: AreaTag[];
   labels?: AreaLabel[];
+  /** Water, land, parks and roads for the same region (docs/plan-mainmap-style.md M2); missing where the base map didn't load. */
+  base?: BaseShapes;
 }
 
 /**

@@ -15,6 +15,13 @@ export interface MapStack {
  * same provider so search results can legally be shown on that map.
  */
 export async function createMapStack(container: HTMLElement, options: CourseMapOptions): Promise<MapStack> {
+  const stack = await pickMapStack(container, options);
+  // Dev only: lets scripts/ui-shots.mjs put the map on a fixed place and scale.
+  if (import.meta.env.DEV) (globalThis as { __courseMap?: CourseMap }).__courseMap = stack.map;
+  return stack;
+}
+
+async function pickMapStack(container: HTMLElement, options: CourseMapOptions): Promise<MapStack> {
   const kakao = await loadKakaoMaps();
   if (kakao) {
     try {

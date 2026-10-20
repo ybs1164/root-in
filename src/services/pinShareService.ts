@@ -1,3 +1,4 @@
+import { isPlaceKind } from '../domain/placeKinds';
 import { isPinColor, isPinIcon, PIN_LIMITS, PIN_SET_LIMITS } from '../domain/pin';
 import { fromBase64Url, toBase64Url } from '../lib/base64url';
 import type { PlaceRef } from '../types/course';
@@ -25,6 +26,7 @@ interface WirePin {
   c: [number, number];
   k: number; // category index
   a?: string; // address
+  y?: string; // PlaceKind (added later; older links have none)
   m?: string; // memo
 }
 interface WirePayload {
@@ -82,6 +84,7 @@ export function encodeSharedPinSet(set: SharedPinSet): PinsEncodeResult {
         const address = withAddress ? clampText(pin.place.address, 80) : undefined;
         const memo = withMemo ? clampText(pin.memo, PIN_LIMITS.memo) : undefined;
         if (address) wire.a = address;
+        if (pin.place.kind) wire.y = pin.place.kind;
         if (memo) wire.m = memo;
         return wire;
       }),
@@ -113,7 +116,7 @@ const parseCategory = (raw: unknown): SharedPinCategory | null => {
 
 const parsePin = (raw: unknown, categoryCount: number): SharedPin | null => {
   if (!raw || typeof raw !== 'object') return null;
-  const { i, n, c, k, a, m } = raw as Partial<WirePin>;
+  const { i, n, c, k, a, y, m } = raw as Partial<WirePin>;
   const id = clampText(i, 64);
   const name = clampText(n, 80);
   if (!id || !name || !Array.isArray(c) || c.length !== 2) return null;
@@ -123,6 +126,7 @@ const parsePin = (raw: unknown, categoryCount: number): SharedPin | null => {
   const place: PlaceRef = { id, name, center: [lon, lat] };
   const address = clampText(a, 80);
   if (address) place.address = address;
+  if (isPlaceKind(y)) place.kind = y;
   const pin: SharedPin = { place, category: k as number };
   const memo = clampText(m, PIN_LIMITS.memo);
   if (memo) pin.memo = memo;

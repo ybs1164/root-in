@@ -83,12 +83,16 @@ const overlaps = (a: Bbox, b: Bbox) => a.west < b.east && a.east > b.west && a.s
 export class StaticKoreaMapService implements KoreaMapService {
   private manifest: Manifest | null = null;
   private cache = new Map<string, BaseMap>();
+
+  /** `base` is where the tiles are: a worker passes the page's absolute URL (see StaticAdminAreaService). */
+  constructor(private readonly base: string = BASE) {}
+
   async fetchBaseMap(viewport: MapViewport, signal?: AbortSignal): Promise<BaseMap | null> {
     const b = viewport.bounds;
     if (![b.west, b.south, b.east, b.north, viewport.widthPx].every(Number.isFinite) || b.east <= b.west || b.north <= b.south || viewport.widthPx <= 0 || signal?.aborted) return null;
     try {
       if (!this.manifest) {
-        const response = await fetch(`${BASE}manifest.json`, { signal });
+        const response = await fetch(`${this.base}manifest.json`, { signal });
         if (!response.ok) return null;
         const value = await response.json() as Manifest;
         if (value.version !== 1 || !Array.isArray(value.levels) || value.levels.length !== 4 ||
@@ -116,7 +120,7 @@ export class StaticKoreaMapService implements KoreaMapService {
           const key = `${level.name}/${keys[cursor++]}.json`;
           let tile = this.cache.get(key);
           if (!tile) {
-            const response = await fetch(`${BASE}${key}`, { signal });
+            const response = await fetch(`${this.base}${key}`, { signal });
             if (!response.ok) { failed = true; continue; }
             tile = parseBaseTile(await response.json()) ?? undefined;
             if (!tile) { failed = true; continue; }

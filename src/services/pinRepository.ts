@@ -1,3 +1,4 @@
+import { cleanPlaceKind } from '../domain/placeKinds';
 import { DEFAULT_CATEGORIES, flattenLegacyCategories, isPinColor, isPinIcon } from '../domain/pin';
 import type { Pin, PinCategory } from '../types/pin';
 import { localWrote } from './syncBus';
@@ -60,8 +61,7 @@ export const isCategory = (value: unknown): value is PinCategory => {
 
 export class LocalPinRepository implements PinRepository {
   async listByUser(userId: string): Promise<Pin[]> {
-    const raw = readJson(PINS_KEY);
-    return (Array.isArray(raw) ? raw : []).filter(isPin).filter((p) => p.userId === userId);
+    return readStoredPins().filter((p) => p.userId === userId);
   }
 
   async saveAll(userId: string, pins: Pin[]): Promise<void> {
@@ -98,7 +98,7 @@ export class LocalPinCategoryRepository implements PinCategoryRepository {
 /** Every pin on this device and its categories as stored (cloud sync reads and replaces them whole). */
 export function readStoredPins(): Pin[] {
   const raw = readJson(PINS_KEY);
-  return (Array.isArray(raw) ? raw : []).filter(isPin);
+  return (Array.isArray(raw) ? raw : []).filter(isPin).map((p) => ({ ...p, place: cleanPlaceKind(p.place) }));
 }
 
 export function writeStoredPins(pins: Pin[]): void {

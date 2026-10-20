@@ -2,6 +2,7 @@ import maplibregl, { type Map as MapLibreMap, type Marker } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { AreaLabel, AreaShapes } from '../domain/adminAreas';
 import type { PlaceRef } from '../types/course';
+import { colourToken, resolvedColour } from '../lib/cssColour';
 import {
   attachLongPress,
   createAreaLabelElement,
@@ -17,6 +18,7 @@ import {
   createGroupPingElement,
   type GroupPingMark,
 } from './courseMap';
+import { AREA_SOURCES, BASE_SOURCES, MAP_LAYERS, WATER_TOKEN, mapSourceData, roadWidthExpression } from './mapStyle';
 
 /** A route's glide into view (App waits for its end before playing the route in). */
 const GLIDE_MS = 1000;
@@ -28,14 +30,8 @@ function easeInOutSine(t: number): number {
 }
 
 const GUIDE_SOURCE = 'guide-line';
-const AREA_COVER = 'area-cover';
-const AREA_OTHERS = 'area-others';
-const AREA_PARTS = 'area-parts';
-// The cover hides the background outside Korea too, like the Kakao cover.
-const WORLD: GeoJSON.Polygon = {
-  type: 'Polygon',
-  coordinates: [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]]],
-};
+/** Matches the area names' fade (.map-area-label transition). */
+const TINT_FADE_MS = 250;
 const FOCUS_ZOOM = 15;
 export class MapLibreCourseMap implements CourseMap {
   readonly provider = 'maplibre' as const;
@@ -52,6 +48,7 @@ export class MapLibreCourseMap implements CourseMap {
   private readonly detachLongPress: () => void;
   /** Set once the style has loaded: the map renders from then on. */
   private ready = false;
+  private tintShown = true;
 
   constructor(container: HTMLElement, private readonly options: CourseMapOptions) {
     this.map = new maplibregl.Map({
@@ -59,7 +56,7 @@ export class MapLibreCourseMap implements CourseMap {
       style: {
         version: 8, sources: {},
         layers: [{ id: 'background', type: 'background', paint: {
-          'background-color': getComputedStyle(document.documentElement).getPropertyValue('--map-bg').trim() || '#f7f9fc',
+          'background-color': colourToken(WATER_TOKEN.token, WATER_TOKEN.fallback),
         } }],
       },
       center: options.center,
@@ -94,19 +91,36 @@ export class MapLibreCourseMap implements CourseMap {
       options.onMove([c.lng, c.lat]);
     });
     this.map.on('load', () => {
-      const token = (name: string, fallback: string) =>
-        getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-      // Added first so the guide/course lines draw above the areas.
-      const fill = (id: string, color: string) => {
-        this.map.addSource(id, {
-          type: 'geojson', data: this.areaData(id),
-          ...(id === AREA_PARTS ? { attribution: ADMIN_ATTRIBUTION } : {}),
-        });
-        this.map.addLayer({ id, type: 'fill', source: id, paint: { 'fill-color': color } });
-      };
-      fill(AREA_COVER, token('--map-bg', '#f7f9fc'));
-      fill(AREA_OTHERS, token('--map-area-other', '#e1e7f1'));
-      fill(AREA_PARTS, token('--map-area', '#c9d7ee'));
+      const token = colourToken;
+      // The map's own layers (water, land, the 동 tint, parks, roads — mapStyle.ts),
+      // added first so the guide/course lines draw above them.
+      for (const layer of MAP_LAYERS) {
+        if (!this.map.getSource(layer.source)) {
+          this.map.addSource(layer.source, {
+            type: 'geojson', data: mapSourceData(layer.source, this.areas),
+            ...(layer.source === 'area-parts' ? { attribution: ADMIN_ATTRIBUTION } : {}),
+          });
+        }
+        const color = token(layer.token, layer.fallback);
+        if (layer.type === 'fill') {
+          this.map.addLayer({
+            id: layer.id, type: 'fill', source: layer.source,
+            paint: {
+              'fill-color': color,
+              // The 동 tint fades with the area names when a route is shown.
+              ...(layer.id === 'area-parts' ? { 'fill-opacity': this.tintShown ? 1 : 0, 'fill-opacity-transition': { duration: TINT_FADE_MS } } : {}),
+            },
+          });
+        } else {
+          // Only trunk roads (tier 1) get the darker edge under them.
+          const width = layer.id === 'base-road-edge' ? roadWidthExpression(2, [1]) : roadWidthExpression();
+          this.map.addLayer({
+            id: layer.id, type: 'line', source: layer.source,
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: { 'line-color': color, 'line-width': width as maplibregl.ExpressionSpecification },
+          });
+        }
+      }
       this.map.addSource(GUIDE_SOURCE, { type: 'geojson', data: this.guideData() });
       this.map.addLayer({
         id: GUIDE_SOURCE,
@@ -120,14 +134,14 @@ export class MapLibreCourseMap implements CourseMap {
 
   refreshColors(): void {
     if (!this.ready) return; // the layers take the tokens when they're added
-    const token = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    const token = resolvedColour;
     const paint = (id: string, prop: 'fill-color' | 'line-color', name: string) => {
       const color = token(name);
       if (color && this.map.getLayer(id)) this.map.setPaintProperty(id, prop, color);
     };
-    paint(AREA_COVER, 'fill-color', '--map-bg');
-    paint(AREA_OTHERS, 'fill-color', '--map-area-other');
-    paint(AREA_PARTS, 'fill-color', '--map-area');
+    const water = token(WATER_TOKEN.token);
+    if (water) this.map.setPaintProperty('background', 'background-color', water);
+    for (const layer of MAP_LAYERS) paint(layer.id, layer.type === 'fill' ? 'fill-color' : 'line-color', layer.token);
     paint(GUIDE_SOURCE, 'line-color', '--muted');
   }
 
@@ -139,26 +153,25 @@ export class MapLibreCourseMap implements CourseMap {
     };
   }
 
-  private areaData(id: string): GeoJSON.FeatureCollection {
-    const areas = this.areas;
-    const polygons = (list: AreaShapes['parts']): GeoJSON.Feature[] =>
-      list.map((rings) => ({ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: rings } }));
-    let features: GeoJSON.Feature[] = [];
-    if (areas && id === AREA_COVER) features = [{ type: 'Feature', properties: {}, geometry: WORLD }];
-    if (areas && id === AREA_OTHERS) features = polygons(areas.others);
-    if (areas && id === AREA_PARTS) features = polygons(areas.parts);
-    return { type: 'FeatureCollection', features };
+  setAreaTint(shown: boolean): void {
+    if (shown === this.tintShown) return;
+    this.tintShown = shown;
+    if (this.ready && this.map.getLayer('area-parts')) this.map.setPaintProperty('area-parts', 'fill-opacity', shown ? 1 : 0);
   }
 
   setAreaMap(shapes: AreaShapes | null): void {
     const before = this.areas;
     this.areas = shapes;
-    // A labels-only update keeps the same polygon arrays: no re-upload.
-    if (!before || !shapes || before.parts !== shapes.parts || before.others !== shapes.others) {
-      for (const id of [AREA_COVER, AREA_OTHERS, AREA_PARTS]) {
-        (this.map.getSource(id) as maplibregl.GeoJSONSource | undefined)?.setData(this.areaData(id));
-      }
+    // A labels-only update keeps the same arrays: no re-upload.
+    const areasChanged = !before || !shapes || before.parts !== shapes.parts || before.others !== shapes.others;
+    const baseChanged = before?.base !== shapes?.base;
+    const sources = new Set([...(areasChanged ? AREA_SOURCES : []), ...(baseChanged ? BASE_SOURCES : [])]);
+    for (const id of sources) {
+      (this.map.getSource(id) as maplibregl.GeoJSONSource | undefined)?.setData(mapSourceData(id, shapes));
     }
+    // New data with the map standing still was sometimes left unpainted until
+    // the next move (docs/plan-mainmap-style.md M0): ask for a frame.
+    if (sources.size && this.ready) this.map.triggerRepaint();
     syncAreaLabels(this.areaLabels, shapes?.labels ?? [], {
       create: (label) => {
         const marker = new maplibregl.Marker({ element: createAreaLabelElement(label) }).setLngLat(label.at).addTo(this.map);

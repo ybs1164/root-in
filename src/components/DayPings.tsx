@@ -1,9 +1,8 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import {
   classifyPress,
   EDGE_STYLES,
   latestPingIndex,
-  layoutPings,
   PING_SHAPES,
   PRESS,
   type DayPing,
@@ -14,8 +13,11 @@ import {
 } from '../domain/dayPings';
 import { pinColorCss } from '../domain/pin';
 import { HEART_PATH, PIN_PATH, STAR_PATH } from '../lib/pingPaths';
-import { labelSide } from '../domain/stopLabels';
+import { fitPingLabels } from '../domain/stopLabels';
+import { dayMap } from '../domain/miniMap';
+import { useTerrain } from '../hooks/useTerrain';
 import type { PinIcon, PinTint } from '../types/pin';
+import MiniMap from './MiniMap';
 import PinGlyph from './PinGlyph';
 
 export function PingIcon({ shape, className }: { shape: PingShape; className?: string }) {
@@ -105,9 +107,20 @@ function EdgeSample({ style }: { style: EdgeStyle }) {
  */
 export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, pinLookOf, onDelete, onPickedChange, dropZone, onDropHover, pressable, children, showNames = true, showTimes = true, ghost = null, onGhost }: DayPingsProps) {
   const latest = latestPingIndex(pings);
-  const laid = layoutPings([...pings.map((p) => p.center), ...(ghost ? [ghost] : [])]);
-  const points = laid.slice(0, pings.length);
-  const ghostAt = ghost ? laid[pings.length] : null;
+  // The real map behind the pings; the stops are fitted with its areas.
+  const centers = pings.map((p) => p.center);
+  const { shapes: terrain, ready } = useTerrain(centers, true);
+  // While it is being fetched nothing of it (and no pin) shows: the stops are laid out on it once it is here.
+  // No data for these stops: the pings stand on the page with no map.
+  // The 후보군 ghost is laid out with the day's pings (as the latest, drawn as it), so it lands on the same spot once added.
+  const stops = ghost ? [...centers, ghost] : centers;
+  const stopsKey = `${stops.map((c) => c.join(',')).join(' ')}|${latest}`;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const day = useMemo(() => dayMap(terrain, stops, ghost ? pings.length : latest), [stopsKey, terrain]);
+  const mapParts = day.parts;
+  const mapped = mapParts.length > 0;
+  const points = day.points.slice(0, pings.length);
+  const ghostAt = ghost ? day.points[pings.length] : null;
   // Pings there when this drawing mounted play the visit's intro together;
   // ones added after (a 후보군 picked) drop on their own and draw their line.
   const atMount = useRef(pings.length);
@@ -241,21 +254,27 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
     },
   });
 
+  // Each ping's name / time goes to a side where it covers nothing, crowded ones written shorter (the day screen's drawing is about this many px across).
+  const labels = fitPingLabels(
+    points.map((p) => ({ x: p.x * 330, y: p.y * 330 })),
+    pings.map((p, i) => ({ name: showNames ? p.name : '', time: showTimes ? p.time : undefined, latest: i === latest })),
+  );
   const segments = points.slice(1).map((to, i) => ({ from: points[i], to, i }));
   const pointsAttr = points
     .slice(0, settled)
     .map((p) => `${p.x * 100},${p.y * 100}`)
     .join(' ');
-  const lineOf = (i: number) => (
-    <line
-      key={i}
-      className={`pings__seg pings__seg--${edgeStyleOf(pings[i], pings[i + 1])} ${same(pressed, { kind: 'edge', index: i }) ? 'is-pressed' : ''}`}
-      x1={points[i].x * 100}
-      y1={points[i].y * 100}
-      x2={points[i + 1].x * 100}
-      y2={points[i + 1].y * 100}
-    />
-  );
+  const lineOf = (i: number) => {
+    const style = edgeStyleOf(pings[i], pings[i + 1]);
+    const ends = { x1: points[i].x * 100, y1: points[i].y * 100, x2: points[i + 1].x * 100, y2: points[i + 1].y * 100 };
+    return (
+      <g key={i} className={same(pressed, { kind: 'edge', index: i }) ? 'is-pressed' : undefined}>
+        {/* On a 미니맵 the line gets a casing in the page colour, so it stands off the land under it. */}
+        {mapped && style !== 'transparent' && <line className={`pings__case pings__case--${style}`} {...ends} />}
+        <line className={`pings__seg pings__seg--${style}`} {...ends} />
+      </g>
+    );
+  };
 
   // Where the open picker sits: above its ping, or above the middle of its line.
   let pickerAt: { x: number; y: number } | null = null;
@@ -282,7 +301,8 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
   }, [pickedAt, idsKey]);
 
   return (
-    <div className={`pings ${picking || drag ? 'is-picking' : ''}`} role="list" aria-label={pings.length ? `${pings.length}곳` : '기록 없음'}>
+    <div className={`pings ${picking || drag ? 'is-picking' : ''} ${!ready ? 'pings--wait' : ''} ${mapped ? 'pings--mapped' : ''}`} role="list" aria-label={pings.length ? `${pings.length}곳` : '기록 없음'}>
+      {mapped && <MiniMap parts={mapParts} />}
       {points.length > 1 && (
         <svg className="pings__line" viewBox="0 0 100 100" preserveAspectRatio="none">
           <defs>
@@ -324,8 +344,7 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
       {pings.map((ping, i) => {
         const shape = shapeOf(ping);
         const own = shape === 'transparent' ? (pinLookOf?.(ping) ?? { icon: 'pin' as PinIcon, color: 0 as PinTint }) : null;
-        // Its name goes below it unless one of its lines leaves that way (as a route's stops do).
-        const side = labelSide(points[i], [points[i - 1], points[i + 1]].filter((p): p is { x: number; y: number } => !!p));
+        const { side, name, time } = labels[i];
         return (
           <div
             key={`${ping.time}-${ping.name}`}
@@ -362,8 +381,8 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
             </button>
             {(showNames || showTimes) && (
               <span className="ping__label" aria-hidden>
-                {showNames && ping.name}
-                {showTimes && <small>{ping.time}</small>}
+                {name}
+                {time && <small>{time}</small>}
               </span>
             )}
           </div>

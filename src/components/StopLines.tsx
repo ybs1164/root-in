@@ -51,6 +51,8 @@ export default function StopLines({ count, edgeStyles, stopShapes, play, names, 
   }, [play?.key]);
 
   const segs = useRef<(SVGLineElement | null)[]>([]);
+  /** Each line's casing: the same line, wider, in a light colour under it. */
+  const cases = useRef<(SVGLineElement | null)[]>([]);
   const shapes = useRef<(HTMLDivElement | null)[]>([]);
   const labels = useRef<(HTMLSpanElement | null)[]>([]);
   // The names' sizes, measured once they're laid out (they're kept laid out, only faded out, so they can be).
@@ -80,12 +82,15 @@ export default function StopLines({ count, edgeStyles, stopShapes, play, names, 
         if (!seg) continue;
         // Line i draws once stop i has landed, reaching stop i + 1 as it drops.
         const t = Math.max(0, Math.min(1, (elapsed - (i * STOP_STEP_MS + DROP_MS * 0.6)) / LINE_MS));
-        seg.style.display = a && b && t > 0 ? '' : 'none';
-        if (a && b) {
-          seg.setAttribute('x1', String(a.x));
-          seg.setAttribute('y1', String(a.y));
-          seg.setAttribute('x2', String(a.x + (b.x - a.x) * t));
-          seg.setAttribute('y2', String(a.y + (b.y - a.y) * t));
+        for (const line of [seg, cases.current[i]]) {
+          if (!line) continue;
+          line.style.display = a && b && t > 0 ? '' : 'none';
+          if (a && b) {
+            line.setAttribute('x1', String(a.x));
+            line.setAttribute('y1', String(a.y));
+            line.setAttribute('x2', String(a.x + (b.x - a.x) * t));
+            line.setAttribute('y2', String(a.y + (b.y - a.y) * t));
+          }
         }
       }
       for (let i = 0; i < count; i += 1) {
@@ -151,6 +156,16 @@ export default function StopLines({ count, edgeStyles, stopShapes, play, names, 
   return (
     <>
       <svg className="stop-lines" aria-hidden>
+        {/* The casings first, so no line is covered by another's (Brewer's casing, as on the 미니맵). */}
+        {Array.from({ length: Math.max(0, count - 1) }, (_, i) => (
+          <line
+            key={`case${i}`}
+            ref={(el) => {
+              cases.current[i] = el;
+            }}
+            className={`stop-lines__case stop-lines__case--${edgeStyles?.[i] ?? 'solid'}`}
+          />
+        ))}
         {Array.from({ length: Math.max(0, count - 1) }, (_, i) => (
           <line
             key={i}
