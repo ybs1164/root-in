@@ -40,6 +40,8 @@ export interface CourseMap {
   setAreaMap(shapes: AreaShapes | null): void;
   /** Repaints the areas from the colour tokens (after the 기본/다크 switch). */
   refreshColors(): void;
+  /** Shows or fades out the faint tint over the 읍면동 in the middle (out while a route is on show, as its names are). */
+  setAreaTint(shown: boolean): void;
   /**
    * Resolves once the map has finished moving there (never rejects).
    * `glideMs` overrides how long the glide takes (e.g. to keep pace with the

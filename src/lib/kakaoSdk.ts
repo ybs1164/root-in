@@ -56,7 +56,7 @@ export interface KakaoMapsNamespace {
   }) => {
     setMap(map: KakaoMapInstance | null): void;
     setPath(path: KakaoLatLng[] | KakaoLatLng[][]): void;
-    setOptions(options: { fillColor?: string }): void;
+    setOptions(options: { fillColor?: string; fillOpacity?: number }): void;
   };
   event: {
     addListener(target: unknown, type: string, handler: (...args: unknown[]) => void): void;

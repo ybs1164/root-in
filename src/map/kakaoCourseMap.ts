@@ -1,7 +1,7 @@
 import type { AreaLabel, AreaShapes } from '../domain/adminAreas';
 import type { KakaoMapInstance, KakaoMapsNamespace } from '../lib/kakaoSdk';
 import type { PlaceRef } from '../types/course';
-import { colourToken } from '../lib/cssColour';
+import { colourAlpha, colourToken } from '../lib/cssColour';
 import {
   attachLongPress,
   createAreaLabelElement,
@@ -36,8 +36,8 @@ export class KakaoCourseMap implements CourseMap {
   private guide: Overlay | null = null;
   private areas: AreaShapes | null = null;
   private areaCover: KakaoPolygon | null = null;
-  private otherPolygons: KakaoPolygon[] = [];
   private partPolygons: KakaoPolygon[] = [];
+  private tintShown = true;
   private areaLabels = new Map<string, { label: AreaLabel; marker: KakaoOverlay }>();
   private readonly container: HTMLElement;
   private attribution: HTMLElement | null = null;
@@ -77,30 +77,42 @@ export class KakaoCourseMap implements CourseMap {
     return colourToken(token, fallback);
   }
 
+  /** The 동 tint: see-through (Kakao takes the colour and its opacity apart), none while a route is shown. */
+  private tint() {
+    const { colour, alpha } = colourAlpha('--map-tint', '#6c90d8', 0.12);
+    return { fillColor: colour, fillOpacity: this.tintShown ? alpha : 0 };
+  }
+
   refreshColors(): void {
-    this.areaCover?.setOptions({ fillColor: this.routeColor('--map-bg', '#f7f9fc') });
-    this.otherPolygons.forEach((o) => o.setOptions({ fillColor: this.routeColor('--map-area-other', '#e1e7f1') }));
-    this.partPolygons.forEach((o) => o.setOptions({ fillColor: this.routeColor('--map-area', '#c9d7ee') }));
+    this.areaCover?.setOptions({ fillColor: this.routeColor('--map-land', '#e7ecf3') });
+    const tint = this.tint();
+    this.partPolygons.forEach((o) => o.setOptions(tint));
+  }
+
+  setAreaTint(shown: boolean): void {
+    if (shown === this.tintShown) return;
+    this.tintShown = shown;
+    const tint = this.tint();
+    this.partPolygons.forEach((o) => o.setOptions(tint));
   }
 
   setAreaMap(shapes: AreaShapes | null): void {
     const before = this.areas;
     this.areas = shapes;
     if (!shapes) {
-      [this.areaCover, ...this.otherPolygons, ...this.partPolygons].forEach((o) => o?.setMap(null));
+      [this.areaCover, ...this.partPolygons].forEach((o) => o?.setMap(null));
       this.areaCover = null;
-      this.otherPolygons = [];
       this.partPolygons = [];
       this.attribution?.remove();
       this.attribution = null;
-    } else if (!before || before.parts !== shapes.parts || before.others !== shapes.others) {
-      // Kakao tiles can't be restyled, so a Korea-sized polygon hides them;
-      // the areas sit on top of it and the gaps between them show through.
-      this.areaCover ??= this.polygon([[[120, 30], [135, 30], [135, 45], [120, 45]]], this.routeColor('--map-bg', '#f7f9fc'), 0);
+    } else if (!before || before.parts !== shapes.parts) {
+      // Kakao tiles can't be restyled, so a Korea-sized polygon of land hides
+      // them; the 동 in the middle get a faint tint on it. The neighbouring
+      // areas are just land (docs/plan-mainmap-style.md §6-1).
+      this.areaCover ??= this.polygon([[[120, 30], [135, 30], [135, 45], [120, 45]]], { fillColor: this.routeColor('--map-land', '#e7ecf3'), fillOpacity: 1 }, 0);
       // Existing polygons take the new outlines: building hundreds of SDK
       // objects per pan was much of the wait.
-      this.otherPolygons = this.reshape(this.otherPolygons, shapes.others, this.routeColor('--map-area-other', '#e1e7f1'), 1);
-      this.partPolygons = this.reshape(this.partPolygons, shapes.parts, this.routeColor('--map-area', '#c9d7ee'), 2);
+      this.partPolygons = this.reshape(this.partPolygons, shapes.parts, this.tint(), 2);
       if (!this.attribution) {
         // Boundaries come from Statistics Korea (KOGL Type 1: credit required).
         this.attribution = document.createElement('div');
@@ -122,22 +134,20 @@ export class KakaoCourseMap implements CourseMap {
     });
   }
 
-  private polygon(rings: [number, number][][], color: string, zIndex: number): KakaoPolygon {
+  private polygon(rings: [number, number][][], fill: { fillColor: string; fillOpacity: number }, zIndex: number): KakaoPolygon {
     return new this.maps.Polygon({
       path: rings.map((ring) => ring.map((p) => this.latLng(p))),
       strokeWeight: 0,
       strokeOpacity: 0,
-      fillColor: color,
-      fillOpacity: 1,
+      ...fill,
       zIndex,
       map: this.map,
     });
   }
-
-  private reshape(existing: KakaoPolygon[], list: [number, number][][][], color: string, zIndex: number): KakaoPolygon[] {
+  private reshape(existing: KakaoPolygon[], list: [number, number][][][], fill: { fillColor: string; fillOpacity: number }, zIndex: number): KakaoPolygon[] {
     list.forEach((rings, i) => existing[i]?.setPath(rings.map((ring) => ring.map((p) => this.latLng(p)))));
     existing.slice(list.length).forEach((o) => o.setMap(null));
-    return [...existing.slice(0, list.length), ...list.slice(existing.length).map((rings) => this.polygon(rings, color, zIndex))];
+    return [...existing.slice(0, list.length), ...list.slice(existing.length).map((rings) => this.polygon(rings, fill, zIndex))];
   }
 
   setPins(pins: PinMarker[]): void {

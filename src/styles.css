@@ -94,12 +94,6 @@
   --pin-8: #9ea6ad;
   /* 미분류: the plain pin in whatever the accent is (a day theme included). */
   --pin-0: var(--accent);
-  /* Area map: the focus's sub-areas over whole neighbors, gaps show the
-     background — in the travel theme's soft blues on cream. (To be replaced
-     by the roles below: docs/plan-mainmap-style.md M3·M4.) */
-  --map-bg: #f9f6ef;
-  --map-area: #d5dff3;
-  --map-area-other: #ebe8e0;
   /* Map colour roles (docs/plan-mainmap-style.md M1), shared by the main map
      and TODAY's 미니맵 (MiniMap, share image) and made from the theme's own
      colours, so every 꾸미기 theme and the dark scheme fit without their own
@@ -166,9 +160,6 @@
     --perforation: rgba(232, 237, 247, 0.22);
     --ticket-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
     --dialog-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
-    --map-bg: #141c2e;
-    --map-area: #2b3c5c;
-    --map-area-other: #212b42;
     --park-green: #22402f;
     --round-icon: var(--ink-white);
   }
@@ -202,9 +193,6 @@
   --perforation: rgba(232, 237, 247, 0.22);
   --ticket-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
   --dialog-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
-  --map-bg: #141c2e;
-  --map-area: #2b3c5c;
-  --map-area-other: #212b42;
   --park-green: #22402f;
   --round-icon: var(--ink-white);
 }
@@ -863,9 +851,10 @@ button:disabled {
   opacity: 0.62;
   pointer-events: none;
   user-select: none;
+  /* Haloed in the land's colour: readable over roads, parks and water. */
   text-shadow:
-    0 0 3px var(--map-bg),
-    0 0 1px var(--map-bg);
+    0 0 3px var(--map-land),
+    0 0 1px var(--map-land);
   transition: opacity 0.25s ease-out;
 }
 
@@ -7273,15 +7262,16 @@ button:disabled {
   display: block;
   width: 100%;
   aspect-ratio: 1;
-  background: var(--map-bg);
+  background: var(--map-land);
 }
 
+/* The covers' little maps in the main map's roles. */
 .group-cover__area {
-  fill: var(--map-area);
+  fill: var(--map-road-edge);
 }
 
 .group-cover__other {
-  fill: var(--map-area-other);
+  fill: var(--map-road);
 }
 
 .group-cover__water {
@@ -7766,7 +7756,7 @@ button:disabled {
   overflow: hidden;
   border: 0;
   border-radius: 12px;
-  background: var(--map-bg);
+  background: var(--map-land);
 }
 
 .group-form__covers button svg {

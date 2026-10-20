@@ -30,6 +30,8 @@ function easeInOutSine(t: number): number {
 }
 
 const GUIDE_SOURCE = 'guide-line';
+/** Matches the area names' fade (.map-area-label transition). */
+const TINT_FADE_MS = 250;
 const FOCUS_ZOOM = 15;
 export class MapLibreCourseMap implements CourseMap {
   readonly provider = 'maplibre' as const;
@@ -46,6 +48,7 @@ export class MapLibreCourseMap implements CourseMap {
   private readonly detachLongPress: () => void;
   /** Set once the style has loaded: the map renders from then on. */
   private ready = false;
+  private tintShown = true;
 
   constructor(container: HTMLElement, private readonly options: CourseMapOptions) {
     this.map = new maplibregl.Map({
@@ -100,7 +103,14 @@ export class MapLibreCourseMap implements CourseMap {
         }
         const color = token(layer.token, layer.fallback);
         if (layer.type === 'fill') {
-          this.map.addLayer({ id: layer.id, type: 'fill', source: layer.source, paint: { 'fill-color': color } });
+          this.map.addLayer({
+            id: layer.id, type: 'fill', source: layer.source,
+            paint: {
+              'fill-color': color,
+              // The 동 tint fades with the area names when a route is shown.
+              ...(layer.id === 'area-parts' ? { 'fill-opacity': this.tintShown ? 1 : 0, 'fill-opacity-transition': { duration: TINT_FADE_MS } } : {}),
+            },
+          });
         } else {
           // Only trunk roads (tier 1) get the darker edge under them.
           const width = layer.id === 'base-road-edge' ? roadWidthExpression(2, [1]) : roadWidthExpression();
@@ -141,6 +151,12 @@ export class MapLibreCourseMap implements CourseMap {
       properties: {},
       geometry: { type: 'LineString', coordinates: this.guide.length >= 2 ? this.guide : [] },
     };
+  }
+
+  setAreaTint(shown: boolean): void {
+    if (shown === this.tintShown) return;
+    this.tintShown = shown;
+    if (this.ready && this.map.getLayer('area-parts')) this.map.setPaintProperty('area-parts', 'fill-opacity', shown ? 1 : 0);
   }
 
   setAreaMap(shapes: AreaShapes | null): void {

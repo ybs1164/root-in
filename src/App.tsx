@@ -498,6 +498,11 @@ export default function App() {
   useEffect(() => {
     mapRef.current?.setAreaMap(areaMap);
   }, [areaMap, mapProvider]);
+  // A route on show: the 동 tint steps back with the area names (.app--pins-away).
+  const areaTint = !(shownRoute && !editRoute && pinsAway !== 'no');
+  useEffect(() => {
+    mapRef.current?.setAreaTint(areaTint);
+  }, [areaTint, mapProvider]);
   // 내 위치: a dot on the map, and the first fix after opening centers the
   // map there. TODAY offers the pins within 50m of it (CalendarZoom).
   const me = useMyLocation();

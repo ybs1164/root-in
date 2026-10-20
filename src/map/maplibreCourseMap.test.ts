@@ -61,3 +61,14 @@ describe('route fit completion', () => {
     expect(map.handlers.size).toBe(0);
   });
 });
+
+describe('the 동 tint', () => {
+  it('fades out while a route is shown and back after, once per change', () => {
+    const map = { getLayer: vi.fn(() => ({})), setPaintProperty: vi.fn() };
+    const adapter = Object.assign(Object.create(MapLibreCourseMap.prototype), { map, ready: true, tintShown: true }) as MapLibreCourseMap;
+    adapter.setAreaTint(false);
+    adapter.setAreaTint(false);
+    adapter.setAreaTint(true);
+    expect(map.setPaintProperty.mock.calls).toEqual([['area-parts', 'fill-opacity', 0], ['area-parts', 'fill-opacity', 1]]);
+  });
+});
