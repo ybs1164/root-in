@@ -676,14 +676,15 @@ button:disabled {
   align-items: center;
   gap: 6px;
   min-height: 52px;
-  padding: 4px 6px 4px 14px;
+  /* A full pill (2026-10-21): the ends round right off, so a little more room inside them. */
+  padding: 4px 8px 4px 20px;
   background: var(--surface);
-  border-radius: 16px;
+  border-radius: 999px;
   box-shadow: var(--shadow);
 }
 
 .search--open .search__bar {
-  padding-left: 4px;
+  padding-left: 8px;
 }
 
 .search__logo {
