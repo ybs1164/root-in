@@ -1,7 +1,9 @@
 import { AreaShapeCache, areaFocusKey, areaRenderWindow, renderAreaDraft, renderAreaMap, type AreaLabel, type AreaMap, type AreaShapes } from '../domain/adminAreas';
 import { placeAreaLabels, sameLabels, type LabelCover } from '../domain/areaLabels';
+import { shapeBaseMap, type BaseShapes } from '../domain/baseShapes';
 import type { Bbox, MapViewport } from '../domain/districtMap';
 import { StaticAdminAreaService, type AdminAreaService } from './adminAreaService';
+import { StaticKoreaMapService, type KoreaMapService } from './koreaMapService';
 
 /** What changed on the map: new shapes (with their labels), or only the labels. */
 export type AreaUpdate = { shapes: AreaShapes } | { labels: AreaLabel[] };
@@ -17,6 +19,13 @@ const RESCALE_LOG2 = 0.25;
  * draft whenever the screen shows parts nothing was drawn for yet.
  */
 const DRAFT_AFTER_MS = 120;
+
+/** The region a drawing covers (wider than the screen), at the screen's pixel scale. */
+function drawWindow(viewport: MapViewport): MapViewport {
+  const bounds = areaRenderWindow(viewport);
+  const widthPx = viewport.widthPx * ((bounds.east - bounds.west) / (viewport.bounds.east - viewport.bounds.west));
+  return { bounds, widthPx };
+}
 
 /** Lets a newer screen's message in before the slow part starts. */
 const yieldToMessages = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -49,7 +58,10 @@ export class AreaRenderer {
    */
   private drawMs = new Map<number, number>();
 
-  constructor(private readonly service: AdminAreaService = new StaticAdminAreaService()) {}
+  constructor(
+    private readonly service: AdminAreaService = new StaticAdminAreaService(),
+    private readonly baseMaps: KoreaMapService = new StaticKoreaMapService(),
+  ) {}
 
   /**
    * null: nothing to change (no data, or a newer request took over).
@@ -63,6 +75,9 @@ export class AreaRenderer {
     isCurrent: () => boolean = () => true,
     onDraft?: (update: AreaUpdate) => void,
   ): Promise<AreaUpdate | null> {
+    // The base map loads alongside the areas (its tiles are cached by the service).
+    const window = drawWindow(viewport);
+    const baseMap = this.baseMaps.fetchBaseMap(window).catch(() => null);
     const map = await this.service.fetchAreaMap(viewport, at.focusRange);
     if (!map || !isCurrent()) return null;
     const last = this.drawn;
@@ -76,32 +91,38 @@ export class AreaRenderer {
     // Zooming in or a new focus keeps the old shapes up meanwhile; only a
     // screen reaching past them (first load, zooming out, a long pan) shows
     // empty map, and gets the draft.
+    // The base map covers the same window the shapes are drawn for, so a pan
+    // that reuses the drawing (above) still has water and roads under it.
+    // Missing (no tiles, a failed load): the areas are drawn anyway.
+    const loaded = await baseMap;
+    if (!isCurrent()) return null;
+    const base = loaded ? shapeBaseMap(loaded, window) : undefined;
     let draftLabels: AreaLabel[] = [];
     if (onDraft && (!last || !inside(viewport.bounds, last.window)) && (this.drawMs.get(map.focus.code.length) ?? Infinity) > DRAFT_AFTER_MS) {
       const draft = renderAreaDraft(map, viewport, this.cache);
       draftLabels = placeAreaLabels(draft, viewport, [], at.cover);
-      onDraft(this.update(draft, draftLabels));
+      onDraft(this.update(draft, draftLabels, base));
       // The map now shows the draft, not the last drawing.
       this.drawn = null;
     }
     await yieldToMessages();
     if (!isCurrent()) return null;
-    return this.draw(map, viewport, at.cover, draftLabels);
+    return this.draw(map, viewport, at.cover, draftLabels, base);
   }
 
-  private draw(map: AreaMap, viewport: MapViewport, cover: LabelCover | undefined, previous: AreaLabel[]): AreaUpdate {
+  private draw(map: AreaMap, viewport: MapViewport, cover: LabelCover | undefined, previous: AreaLabel[], base?: BaseShapes): AreaUpdate {
     const started = performance.now();
     const shapes = renderAreaMap(map, viewport, this.cache);
     this.drawMs.set(map.focus.code.length, performance.now() - started);
     // Names stay where the draft put them if they still fit.
     const labels = placeAreaLabels(shapes, viewport, previous, cover);
     this.drawn = { focusCode: areaFocusKey(map), degPerPx: degPerPx(viewport), window: areaRenderWindow(viewport), shapes, labels };
-    return this.update(shapes, labels);
+    return this.update(shapes, labels, base);
   }
 
-  private update(shapes: AreaShapes, labels: AreaLabel[]): AreaUpdate {
+  private update(shapes: AreaShapes, labels: AreaLabel[], base?: BaseShapes): AreaUpdate {
     // The tags only serve label placement, which stays here.
     const { partTags: _p, otherTags: _o, ...drawnShapes } = shapes;
-    return { shapes: { ...drawnShapes, labels } };
+    return { shapes: { ...drawnShapes, labels, ...(base ? { base } : {}) } };
   }
 }

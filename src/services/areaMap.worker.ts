@@ -2,6 +2,7 @@ import type { LabelCover } from '../domain/areaLabels';
 import type { Bbox, MapViewport } from '../domain/districtMap';
 import { StaticAdminAreaService } from './adminAreaService';
 import { AreaRenderer } from './areaRenderer';
+import { StaticKoreaMapService } from './koreaMapService';
 
 /**
  * One long-lived worker: the area files it fetched, the clipper module and
@@ -12,12 +13,12 @@ import { AreaRenderer } from './areaRenderer';
 let renderer: AreaRenderer | null = null;
 let latest = 0;
 
-type Message = { base: string } | { id: number; viewport: MapViewport; focusRange?: Bbox; cover?: LabelCover };
+type Message = { base: string; mapBase: string } | { id: number; viewport: MapViewport; focusRange?: Bbox; cover?: LabelCover };
 
 self.onmessage = async (event: MessageEvent<Message>) => {
-  // First the page says where the area files are (an absolute URL).
+  // First the page says where the area files and base map tiles are (absolute URLs).
   if ('base' in event.data) {
-    renderer = new AreaRenderer(new StaticAdminAreaService(event.data.base));
+    renderer = new AreaRenderer(new StaticAdminAreaService(event.data.base), new StaticKoreaMapService(event.data.mapBase));
     return;
   }
   renderer ??= new AreaRenderer();
