@@ -227,6 +227,12 @@ const STATES = {
     await settle(page, 3000);
   },
   'rail-route': async (page) => { await click(page, '경로'); },
+  // A saved route on the map: its stops, lines (on their casings) and names.
+  'route-shown': async (page) => {
+    await click(page, '경로');
+    await page.getByText('성수 데이트 코스').first().click({ timeout: 3000 });
+    await settle(page, 4000);
+  },
   'rail-pins': async (page) => {
     await page.getByRole('button', { name: '핀', exact: true }).click({ timeout: 3000 });
     await page.getByRole('button', { name: /^카페 / }).first().click({ timeout: 3000 });
@@ -277,6 +283,8 @@ for (const [vpName, vp] of Object.entries(VIEWPORTS)) {
       // The main map states place the map themselves: no location, so the app never moves it to "me".
       geolocation: { latitude: 37.5447, longitude: 127.0582 }, permissions: state.startsWith('mainmap') ? [] : ['geolocation'] });
     const page = await ctx.newPage();
+    // The dev server can take a while to serve the first page on a busy machine.
+    page.setDefaultNavigationTimeout(90000);
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     try {

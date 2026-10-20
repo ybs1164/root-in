@@ -848,7 +848,8 @@ button:disabled {
   font-size: 13px;
   line-height: 20px;
   white-space: nowrap;
-  opacity: 0.62;
+  /* !important: MapLibre writes an inline opacity on every marker (as for the stops). */
+  opacity: 0.62 !important;
   pointer-events: none;
   user-select: none;
   /* Haloed in the land's colour: readable over roads, parks and water. */
@@ -860,12 +861,12 @@ button:disabled {
 
 .map-area-label--other {
   color: var(--muted);
-  opacity: 0.9;
+  opacity: 0.9 !important;
 }
 
 /* A route on show: its stop names take over. */
 .app--pins-away .map-area-label {
-  opacity: 0;
+  opacity: 0 !important;
 }
 
 /* ---------- Place preview card ---------- */
@@ -3102,6 +3103,27 @@ button:disabled {
   stroke-width: 4;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+/* Under each line: a light casing a little wider on each side, so the line
+   stands off the map under it (Brewer's casing, as on the 미니맵 —
+   docs/plan-mainmap-style.md M6). Solid under dashes and dots too. */
+.stop-lines .stop-lines__case {
+  stroke: var(--map-road);
+  stroke-width: 7;
+  stroke-dasharray: none;
+}
+
+.stop-lines .stop-lines__case--dotted {
+  stroke-width: 8;
+}
+
+.stop-lines .stop-lines__case--bold {
+  stroke-width: 11;
+}
+
+.stop-lines .stop-lines__case--transparent {
+  stroke: transparent;
 }
 
 /* A saved route's line styles (long-press a line), in screen px. */
@@ -7690,6 +7712,12 @@ button:disabled {
 
 .group-lines polyline.is-faded {
   opacity: 0.22;
+}
+
+/* Each member's line on a light casing (as a route's). */
+.group-lines .group-lines__case {
+  stroke: var(--map-road);
+  stroke-width: 6.5;
 }
 
 /* 새 그룹 / 그룹 설정: a boarding pass (ticket-dialog). */
