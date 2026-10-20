@@ -5,12 +5,15 @@
 //   npm run shots -- minimap       -> TODAY's 미니맵 on six example days
 //   npm run shots -- mainmap       -> the main map: 4 places × 3 scales, with drag frame timing (docs/plan-mainmap-style.md M0)
 //   npm run shots -- silhouettes   -> 미니맵 outlines, before | after, filled in one colour (the silhouette test)
+//   SHOTS_SCHEME=dark npm run shots -- mainmap -> the same in the phone's dark mode (…-dark.png)
 // Output: ui-shots/<width>-<state>.png (git-ignored).
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const BASE = process.env.SHOTS_URL ?? 'http://localhost:5188';
 const OUT = 'ui-shots';
+// SHOTS_SCHEME=dark: the phone in dark mode (files get a -dark suffix).
+const DARK = process.env.SHOTS_SCHEME === 'dark';
 const filters = process.argv.slice(2);
 
 const VIEWPORTS = {
@@ -281,7 +284,8 @@ for (const [vpName, vp] of Object.entries(VIEWPORTS)) {
     if (filters.length && !filters.some((f) => state.includes(f) || vpName.includes(f))) continue;
     const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, ...vp, locale: 'ko-KR',
       // The main map states place the map themselves: no location, so the app never moves it to "me".
-      geolocation: { latitude: 37.5447, longitude: 127.0582 }, permissions: state.startsWith('mainmap') ? [] : ['geolocation'] });
+      geolocation: { latitude: 37.5447, longitude: 127.0582 }, permissions: state.startsWith('mainmap') ? [] : ['geolocation'],
+      colorScheme: DARK ? 'dark' : 'light' });
     const page = await ctx.newPage();
     // The dev server can take a while to serve the first page on a busy machine.
     page.setDefaultNavigationTimeout(90000);
@@ -293,7 +297,7 @@ for (const [vpName, vp] of Object.entries(VIEWPORTS)) {
       await page.reload({ waitUntil: 'domcontentloaded' });
       await settle(page);
       const reload = async (hash) => { await page.goto(`${BASE}/${hash}`); await page.reload(); await settle(page); };
-      const file = `${OUT}/${vpName}-${state}.png`;
+      const file = `${OUT}/${vpName}-${state}${DARK ? '-dark' : ''}.png`;
       // Headless Edge sometimes hands back an old composited frame of the WebGL
       // map: a throwaway capture first makes it composite a fresh one.
       const shoot = async () => {
