@@ -2,6 +2,7 @@ import maplibregl, { type Map as MapLibreMap, type Marker } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { AreaLabel, AreaShapes } from '../domain/adminAreas';
 import type { PlaceRef } from '../types/course';
+import { colourToken, resolvedColour } from '../lib/cssColour';
 import {
   attachLongPress,
   createAreaLabelElement,
@@ -59,7 +60,7 @@ export class MapLibreCourseMap implements CourseMap {
       style: {
         version: 8, sources: {},
         layers: [{ id: 'background', type: 'background', paint: {
-          'background-color': getComputedStyle(document.documentElement).getPropertyValue('--map-bg').trim() || '#f7f9fc',
+          'background-color': colourToken('--map-bg', '#f7f9fc'),
         } }],
       },
       center: options.center,
@@ -94,8 +95,7 @@ export class MapLibreCourseMap implements CourseMap {
       options.onMove([c.lng, c.lat]);
     });
     this.map.on('load', () => {
-      const token = (name: string, fallback: string) =>
-        getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+      const token = colourToken;
       // Added first so the guide/course lines draw above the areas.
       const fill = (id: string, color: string) => {
         this.map.addSource(id, {
@@ -120,7 +120,7 @@ export class MapLibreCourseMap implements CourseMap {
 
   refreshColors(): void {
     if (!this.ready) return; // the layers take the tokens when they're added
-    const token = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    const token = resolvedColour;
     const paint = (id: string, prop: 'fill-color' | 'line-color', name: string) => {
       const color = token(name);
       if (color && this.map.getLayer(id)) this.map.setPaintProperty(id, prop, color);

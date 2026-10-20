@@ -95,27 +95,44 @@
   /* 미분류: the plain pin in whatever the accent is (a day theme included). */
   --pin-0: var(--accent);
   /* Area map: the focus's sub-areas over whole neighbors, gaps show the
-     background — in the travel theme's soft blues on cream. */
+     background — in the travel theme's soft blues on cream. (To be replaced
+     by the roles below: docs/plan-mainmap-style.md M3·M4.) */
   --map-bg: #f9f6ef;
   --map-area: #d5dff3;
   --map-area-other: #ebe8e0;
-  /* Base map: land on water, parks on land, roads on top (tier 1 darker). */
-  --map-land: #f7f4ec;
-  --map-water: #94d9ef;
-  --map-park: #c4efd5;
-  --map-road: #d8e0e7;
-  --map-road-major: #8ca6c3;
-  /* TODAY's 미니맵 (MiniMap, share image), made from the theme's own colours
-     so every 꾸미기 theme fits: wide areas stay quiet (a little accent over
-     the page) and the full accent is left to the pins and the line on top. */
-  --mini-land: color-mix(in srgb, var(--accent) 16%, var(--surface));
-  --mini-side: color-mix(in srgb, var(--mini-land) 88%, var(--ink-black));
-  --mini-water: color-mix(in srgb, var(--accent) 30%, var(--surface));
-  --mini-park: color-mix(in srgb, var(--map-park) 75%, var(--mini-land));
-  --mini-road: var(--surface);
-  --mini-shadow: color-mix(in srgb, var(--accent) 70%, var(--ink-black));
+  /* Map colour roles (docs/plan-mainmap-style.md M1), shared by the main map
+     and TODAY's 미니맵 (MiniMap, share image) and made from the theme's own
+     colours, so every 꾸미기 theme and the dark scheme fit without their own
+     values: wide areas stay quiet (a little accent over the page, Imhof's
+     rule) and the full accent is left to the pins and the line on top.
+     Canvases and map SDKs cannot read color-mix as written: resolve them
+     with lib/cssColour.ts. The main map reads them once, in the 기본 theme. */
+  --map-land: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  /* Water a step deeper than land, so rivers read as the edges they are —
+     also darkened a little, or a light accent (노랑) leaves it level with the land. */
+  --map-water-hue: color-mix(in srgb, var(--accent) 30%, var(--surface));
+  --map-water: color-mix(in srgb, var(--map-water-hue) 95%, var(--ink-black));
+  /* Parks: the one hue that is not the theme's (a park should read as a park). */
+  --park-green: #c4efd5;
+  --map-park: color-mix(in srgb, var(--park-green) 75%, var(--map-land));
+  /* Roads are cut out lighter than the land; the widest get a darker edge. */
+  --map-road: var(--surface);
+  --map-road-edge: color-mix(in srgb, var(--accent) 34%, var(--surface));
+  /* The 읍면동 in the middle of the screen: a faint tint over the land. */
+  --map-tint: color-mix(in srgb, var(--accent) 12%, var(--map-land));
+  /* A raised slab: its side under the top, its shadow further down. */
+  --map-side: color-mix(in srgb, var(--map-land) 88%, var(--ink-black));
+  --map-shadow: color-mix(in srgb, var(--accent) 70%, var(--ink-black));
   /* The air over the land's far side (aerial perspective): the page itself, faded out toward the near side. */
-  --mini-haze: var(--surface);
+  --map-haze: var(--surface);
+  /* TODAY's 미니맵 roles (domain/miniMap.ts MapRole) are the same colours. */
+  --mini-land: var(--map-land);
+  --mini-side: var(--map-side);
+  --mini-water: var(--map-water);
+  --mini-park: var(--map-park);
+  --mini-road: var(--map-road);
+  --mini-shadow: var(--map-shadow);
+  --mini-haze: var(--map-haze);
 }
 
 /* Dark: the phone's setting, unless 디스플레이 및 언어 → 디스플레이 picked one (<html data-scheme>). */
@@ -151,11 +168,7 @@
     --map-bg: #141c2e;
     --map-area: #2b3c5c;
     --map-area-other: #212b42;
-    --map-land: #1f2225;
-    --map-water: #1d4656;
-    --map-park: #22402f;
-    --map-road: #3a434d;
-    --map-road-major: #5f7894;
+    --park-green: #22402f;
     --round-icon: var(--ink-white);
   }
 }
@@ -191,11 +204,7 @@
   --map-bg: #141c2e;
   --map-area: #2b3c5c;
   --map-area-other: #212b42;
-  --map-land: #1f2225;
-  --map-water: #1d4656;
-  --map-park: #22402f;
-  --map-road: #3a434d;
-  --map-road-major: #5f7894;
+  --park-green: #22402f;
   --round-icon: var(--ink-white);
 }
 
@@ -299,6 +308,8 @@
   --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
   --backdrop: rgba(0, 0, 0, 0.4);
   --round-icon: var(--ink-black);
+  /* Themes stay light: the light park green, even under a dark phone. */
+  --park-green: #c4efd5;
 }
 
 :root[data-theme='mint'] {

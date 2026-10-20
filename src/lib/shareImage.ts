@@ -10,6 +10,7 @@ import { HEART_PATH, PIN_PATH, shapeBox, STAR_PATH } from './pingPaths';
 import { fitPingLabels } from '../domain/stopLabels';
 import { MAP_ROLES, dayMap, type MapFill, type MapRole, type MapPart, type TerrainShapes } from '../domain/miniMap';
 import { terrainService } from '../services/terrainService';
+import { resolvedColour } from './cssColour';
 
 export interface ShareImageInput {
   pings: DayPing[];
@@ -68,19 +69,6 @@ function tokens() {
     font: getComputedStyle(document.body).fontFamily,
     mini: Object.fromEntries(MAP_ROLES.map((role) => [role, resolvedColour(`--mini-${role}`)])) as Record<MapRole, string>,
   };
-}
-
-/**
- * A colour token as the browser resolves it: the 미니맵 tokens are mixes of
- * other tokens (color-mix over var()), which a canvas cannot read as written.
- */
-function resolvedColour(name: string): string {
-  const probe = document.createElement('span');
-  probe.style.color = `var(${name})`;
-  document.body.appendChild(probe);
-  const colour = getComputedStyle(probe).color;
-  probe.remove();
-  return colour;
 }
 
 /** How much wider a line's casing is than the line on a 미니맵 (card px: about 2px a side on the day screen). */

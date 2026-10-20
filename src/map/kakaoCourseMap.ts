@@ -1,6 +1,7 @@
 import type { AreaLabel, AreaShapes } from '../domain/adminAreas';
 import type { KakaoMapInstance, KakaoMapsNamespace } from '../lib/kakaoSdk';
 import type { PlaceRef } from '../types/course';
+import { colourToken } from '../lib/cssColour';
 import {
   attachLongPress,
   createAreaLabelElement,
@@ -73,7 +74,7 @@ export class KakaoCourseMap implements CourseMap {
   }
 
   private routeColor(token: string, fallback: string): string {
-    return getComputedStyle(document.documentElement).getPropertyValue(token).trim() || fallback;
+    return colourToken(token, fallback);
   }
 
   refreshColors(): void {
