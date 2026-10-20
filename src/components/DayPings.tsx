@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import {
   classifyPress,
   EDGE_STYLES,
@@ -83,6 +83,9 @@ interface Press {
 }
 
 const stop = (e: { stopPropagation: () => void }) => e.stopPropagation();
+
+/** The least room left between an open picker and the screen's side. */
+const PICKER_EDGE_PX = 8;
 
 const same = (a: Target | null, b: Target) => a !== null && a.kind === b.kind && a.index === b.index;
 
@@ -281,6 +284,22 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
     pickerAt = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
   }
 
+  // Centred over its ping the picker can run off a narrow screen's edge (a
+  // ping near the side): it's nudged back in, staying as close as it can.
+  const pickerEl = useRef<HTMLDivElement>(null);
+  const [nudge, setNudge] = useState(0);
+  const pickedAt = picking ? `${picking.kind}-${picking.index}` : null;
+  useLayoutEffect(() => {
+    const el = pickerEl.current;
+    if (!el) return setNudge(0);
+    // Where it would be without the nudge it has now.
+    const r = el.getBoundingClientRect();
+    const [left, right] = [r.left - nudge, r.right - nudge];
+    const room = PICKER_EDGE_PX;
+    const edge = window.innerWidth - room;
+    setNudge(left < room ? room - left : right > edge ? Math.max(room - left, edge - right) : 0);
+  }, [pickedAt, idsKey]);
+
   return (
     <div className={`pings ${picking || drag ? 'is-picking' : ''} ${!ready ? 'pings--wait' : ''} ${mapped ? 'pings--mapped' : ''}`} role="list" aria-label={pings.length ? `${pings.length}곳` : '기록 없음'}>
       {mapped && <MiniMap parts={mapParts} />}
@@ -401,6 +420,7 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
             </button>
           )}
           <div
+            ref={pickerEl}
             className={`ping-picker ${picking.kind === 'edge' ? 'ping-picker--edge' : ''}`}
             role="dialog"
             aria-label={
@@ -414,6 +434,7 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
               {
                 left: `${pickerAt.x * 100}%`,
                 top: `${pickerAt.y * 100}%`,
+                '--nudge': `${nudge}px`,
                 '--rise':
                   picking.kind === 'ping'
                     ? `${(shapeOf(pings[picking.index]) === 'pin' ? 44 : 15) * (picking.index === latest ? 1.4 : 1)}px`

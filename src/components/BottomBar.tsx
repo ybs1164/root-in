@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef } from 'react';
 import { barSlot, barTurn, type AppTab, type BarButton } from '../domain/appTabs';
 import { CalendarToday } from './icons';
 
-const BUTTONS: BarButton[] = ['calendar', 'pins', 'people'];
+const BUTTONS: BarButton[] = ['pins', 'people'];
 /** One turn of the row. */
 const TURN_MS = 300;
 /** The small buttons' size, and how far past the row's ends (from the middle) a wrapping one goes. */
@@ -12,9 +12,14 @@ const OFF_PX = 122;
 
 interface BottomBarProps {
   tab: AppTab;
+  /**
+   * TODAY opened from We Now: the row is only the big calendar button (day ⇄
+   * month) and 공유; the pin and people buttons step out.
+   */
+  today?: boolean;
   /** Day screen or month: what the big calendar button does next. */
   calendarMode: 'day' | 'month';
-  /** The calendar button: to the calendar, or (already there, big) on to the month / back to TODAY. */
+  /** The calendar button on TODAY: on to the month, or back to TODAY. */
   onCalendar: () => void;
   /** The pin, small on the other screens: back to the map. */
   onMap: () => void;
@@ -22,7 +27,7 @@ interface BottomBarProps {
   onPin: () => void;
   /** The two-people button: to the people screen. */
   onPeople: () => void;
-  /** A day on the calendar: 공유 at the row's right end. */
+  /** A day on TODAY: 공유 at the row's right end. */
   onShare?: () => void;
   /** A ping is picked on the day screen: the calendar button is ✕ and deletes it. */
   onDeletePing?: () => void;
@@ -31,16 +36,16 @@ interface BottomBarProps {
 }
 
 /**
- * The row along the bottom of every screen: three round buttons, the current
- * screen's big in the dead centre, the other two small at its lower left and
- * right — map 달력 핑 사람, calendar 사람 달력 핑, people 핑 사람 달력
- * (`barSlot`). Pressing a side button turns the row like a wheel toward it:
- * it grows into the centre, the centre one shrinks to the other side, and
- * the far one slides off, fading, and comes back in on the near side.
- * The buttons stay mounted so the swap is animated.
+ * The row along the bottom of every screen: the current screen's button big
+ * in the dead centre, the other small beside it — map 핑 사람, people 핑 사람
+ * (`barSlot`; the calendar button is gone from it, test build 2026-10-19).
+ * Pressing the side button slides the row toward it: it grows into the
+ * centre and the centre one shrinks to the other side. The buttons stay
+ * mounted so the swap is animated. On TODAY (`today`) the row is the big
+ * calendar button and 공유 instead.
  */
-export default function BottomBar({ tab, calendarMode, onCalendar, onMap, onPin, onPeople, onShare, onDeletePing, deleteHot = false }: BottomBarProps) {
-  const cal = tab === 'calendar';
+export default function BottomBar({ tab, today = false, calendarMode, onCalendar, onMap, onPin, onPeople, onShare, onDeletePing, deleteHot = false }: BottomBarProps) {
+  const cal = today;
   const map = tab === 'pins';
   // Every move is played from where each button is on screen right now
   // (FLIP): its box is read before the new places land, so a press in the
@@ -121,34 +126,32 @@ export default function BottomBar({ tab, calendarMode, onCalendar, onMap, onPin,
   const cls = (button: BarButton) => `bar-btn bar-slot-${barSlot(button, tab)}`;
   return (
     <nav ref={nav} className={`bottom-bar ${map ? '' : 'bottom-bar--page'} ${cal ? 'bottom-bar--cal' : ''}`} aria-label="메뉴">
-      <button ref={(el) => void (els.current.pins = el)} className={`${cls('pins')} bar-pin`} aria-label={map ? '지도에 핀 꽂기' : '지도'} onClick={map ? onPin : onMap}>
-        <MapPin strokeWidth={2.2} aria-hidden />
-      </button>
-      <button
-        ref={(el) => void (els.current.calendar = el)}
-        className={`${cls('calendar')} bar-cal ${onDeletePing ? 'is-delete' : ''} ${onDeletePing && deleteHot ? 'is-hot' : ''}`}
-        aria-label={onDeletePing ? '핑 삭제' : cal ? (calendarMode === 'day' ? '월 달력' : '오늘') : '달력'}
-        onClick={onDeletePing ?? onCalendar}
-      >
-        {/* Shows where you are: today's date on the day screens, the month grid on
-            the month; ✕ while a ping is picked (tap it or drop the ping on it). */}
-        {onDeletePing ? (
-          <X strokeWidth={2.4} aria-hidden />
-        ) : cal && calendarMode === 'month' ? (
-          <CalendarDays strokeWidth={2.2} aria-hidden />
-        ) : (
-          <CalendarToday />
-        )}
-      </button>
-      <button
-        ref={(el) => void (els.current.people = el)}
-        className={`${cls('people')} bar-people`}
-        aria-label="We Now"
-        aria-current={tab === 'people' ? 'page' : undefined}
-        onClick={tab === 'people' ? undefined : onPeople}
-      >
-        <Users strokeWidth={2.2} aria-hidden />
-      </button>
+      {cal ? (
+        <button
+          className={`bar-btn bar-slot-c bar-cal ${onDeletePing ? 'is-delete' : ''} ${onDeletePing && deleteHot ? 'is-hot' : ''}`}
+          aria-label={onDeletePing ? '핑 삭제' : calendarMode === 'day' ? '월 달력' : '오늘'}
+          onClick={onDeletePing ?? onCalendar}
+        >
+          {/* Shows where the press goes: the month grid from a day, today's date
+              from the month; ✕ while a ping is picked (tap it or drop the ping on it). */}
+          {onDeletePing ? <X strokeWidth={2.4} aria-hidden /> : calendarMode === 'day' ? <CalendarDays strokeWidth={2.2} aria-hidden /> : <CalendarToday />}
+        </button>
+      ) : (
+        <>
+          <button ref={(el) => void (els.current.pins = el)} className={`${cls('pins')} bar-pin`} aria-label={map ? '지도에 핀 꽂기' : '지도'} onClick={map ? onPin : onMap}>
+            <MapPin strokeWidth={2.2} aria-hidden />
+          </button>
+          <button
+            ref={(el) => void (els.current.people = el)}
+            className={`${cls('people')} bar-people`}
+            aria-label="We Now"
+            aria-current={tab === 'people' ? 'page' : undefined}
+            onClick={tab === 'people' ? undefined : onPeople}
+          >
+            <Users strokeWidth={2.2} aria-hidden />
+          </button>
+        </>
+      )}
       {onShare && (
         <button className="bar-share" aria-label="공유" onClick={onShare}>
           <Share size={24} strokeWidth={2.2} aria-hidden />

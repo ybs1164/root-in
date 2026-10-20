@@ -1,31 +1,28 @@
-/** The three screens: the map (핀), the calendar page and the people page (사람). */
-export type AppTab = 'calendar' | 'pins' | 'people';
+/**
+ * The two screens: the map (핀) and the people page (We Now). The calendar
+ * page is gone (test build, 2026-10-19): TODAY opens from We Now's TODAY tile.
+ */
+export type AppTab = 'pins' | 'people';
 
-/** The bottom row's three round buttons, one per screen. */
-export type BarButton = 'calendar' | 'pins' | 'people';
+/** The bottom row's round buttons, one per screen. */
+export type BarButton = 'pins' | 'people';
 
 /** Where a button sits in the row: left, the big one in the centre, or right. */
 export type BarSlot = 'l' | 'c' | 'r';
 
-// The row turns like a wheel: map = 달력 핑 사람, calendar = 사람 달력 핑,
-// people = 핑 사람 달력. Each step to the next screen moves every button one
-// place right, the right one wrapping round to the left.
-const WHEEL: BarButton[] = ['calendar', 'pins', 'people'];
-const SLOTS: BarSlot[] = ['l', 'c', 'r'];
-const turnOf = (tab: AppTab) => ['pins', 'calendar', 'people'].indexOf(tab);
-
-/** The slot `button` takes on `tab`'s screen. */
+/** The slot `button` takes on `tab`'s screen: map = 핑(big) 사람, people = 핑 사람(big). */
 export function barSlot(button: BarButton, tab: AppTab): BarSlot {
-  return SLOTS[(WHEEL.indexOf(button) + turnOf(tab)) % 3];
+  if (button === tab) return 'c';
+  return tab === 'pins' ? 'r' : 'l';
 }
 
 /**
  * Which way the row turns going `from` → `to`: 1 = every button one place
- * right (the right one wraps to the left), -1 = left, 0 = no change.
+ * right, -1 = left, 0 = no change. With two buttons nothing wraps round.
  */
 export function barTurn(from: AppTab, to: AppTab): -1 | 0 | 1 {
-  const d = (turnOf(to) - turnOf(from) + 3) % 3;
-  return d === 0 ? 0 : d === 1 ? 1 : -1;
+  if (from === to) return 0;
+  return to === 'people' ? -1 : 1;
 }
 
 /**
@@ -38,10 +35,10 @@ export function calendarAgain(mode: 'day' | 'month'): 'today' | 'month' {
 }
 
 /** Titles of the tabs that are their own full screens (not a sheet over the map). */
-export const PAGE_TITLES: Partial<Record<AppTab, string>> = { calendar: '달력', people: 'We Now' };
+export const PAGE_TITLES: Partial<Record<AppTab, string>> = { people: 'We Now' };
 
 /**
- * 달력 is a separate screen, like Instagram's or KakaoTalk's tabs; only
+ * We Now is a separate screen, like Instagram's or KakaoTalk's tabs; only
  * 핀 is the map. A tab page steps aside while the map itself is
  * needed: a search, or a place being added.
  */
@@ -51,12 +48,11 @@ export function showsPage(tab: AppTab, mapNeeded: boolean): boolean {
 
 /**
  * Where a sideways swipe on a page goes: `left` for a right-to-left swipe
- * (the page slides off to the left), `right` for left-to-right. 달력 ←
- * 핀(map), → We Now; We Now ← 달력, → 핀. The map itself has no swipe.
+ * (the page slides off to the left), `right` for left-to-right. We Now →
+ * 핀(map). The map itself has no swipe.
  */
 export function pageSwipes(tab: AppTab): { left: AppTab | null; right: AppTab | null } {
-  if (tab === 'calendar') return { left: 'pins', right: 'people' };
-  if (tab === 'people') return { left: 'calendar', right: 'pins' };
+  if (tab === 'people') return { left: null, right: 'pins' };
   return { left: null, right: null };
 }
 
@@ -83,6 +79,7 @@ export type IncomingKind = 'course' | 'day' | 'pins';
  * Where an opened link lands: where that kind of thing lives.
  */
 export function tabForIncoming(kind: IncomingKind): AppTab {
-  if (kind === 'day') return 'calendar';
+  // TODAY lives on We Now now.
+  if (kind === 'day') return 'people';
   return 'pins';
 }

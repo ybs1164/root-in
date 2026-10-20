@@ -261,24 +261,42 @@
 }
 
 /* Themes (꾸미기 → 테마), set on <html data-theme>. They win over the
-   system dark mode: every theme stays light. */
+   system dark mode: every theme stays light. A .theme-scope element wears one
+   just for itself (We Now's TODAY tile shows the day's theme, 2026-10-19). */
 :root[data-theme='matcha'],
+.theme-scope[data-theme='matcha'],
 :root[data-theme='custard'],
+.theme-scope[data-theme='custard'],
 :root[data-theme='yellow'],
+.theme-scope[data-theme='yellow'],
 :root[data-theme='y2k'],
+.theme-scope[data-theme='y2k'],
 :root[data-theme='mint'],
+.theme-scope[data-theme='mint'],
 :root[data-theme='lovely'],
+.theme-scope[data-theme='lovely'],
 :root[data-theme='love'],
+.theme-scope[data-theme='love'],
 :root[data-theme='lavender'],
+.theme-scope[data-theme='lavender'],
 :root[data-theme='tangerine'],
+.theme-scope[data-theme='tangerine'],
 :root[data-theme='ocean'],
+.theme-scope[data-theme='ocean'],
 :root[data-theme='midnight'],
+.theme-scope[data-theme='midnight'],
 :root[data-theme='plum'],
+.theme-scope[data-theme='plum'],
 :root[data-theme='wine'],
+.theme-scope[data-theme='wine'],
 :root[data-theme='cocoa'],
+.theme-scope[data-theme='cocoa'],
 :root[data-theme='sage'],
+.theme-scope[data-theme='sage'],
 :root[data-theme='sky'],
-:root[data-theme='mono'] {
+.theme-scope[data-theme='sky'],
+:root[data-theme='mono'],
+.theme-scope[data-theme='mono'] {
   color-scheme: light;
   --text: #2f2622;
   --muted: #8b7d74;
@@ -301,7 +319,8 @@
   --park-green: #c4efd5;
 }
 
-:root[data-theme='mint'] {
+:root[data-theme='mint'],
+.theme-scope[data-theme='mint'] {
   --bg: #eef7f3;
   --surface: #f8fcfa;
   --surface-2: #e2f1ea;
@@ -311,7 +330,8 @@
   --route: #2f9e7a;
 }
 
-:root[data-theme='lavender'] {
+:root[data-theme='lavender'],
+.theme-scope[data-theme='lavender'] {
   --bg: #f4f1fb;
   --surface: #fbfaff;
   --surface-2: #ebe5f7;
@@ -321,7 +341,8 @@
   --route: #7c5cc4;
 }
 
-:root[data-theme='lovely'] {
+:root[data-theme='lovely'],
+.theme-scope[data-theme='lovely'] {
   --bg: #fdf1f6;
   --surface: #fff9fb;
   --surface-2: #fbe3ee;
@@ -331,7 +352,8 @@
   --route: #e8609a;
 }
 
-:root[data-theme='love'] {
+:root[data-theme='love'],
+.theme-scope[data-theme='love'] {
   --bg: #fdf0f0;
   --surface: #fffafa;
   --surface-2: #fbe1e1;
@@ -341,7 +363,8 @@
   --route: #d7263d;
 }
 
-:root[data-theme='sky'] {
+:root[data-theme='sky'],
+.theme-scope[data-theme='sky'] {
   --bg: #eef5fc;
   --surface: #f8fbff;
   --surface-2: #e1edf9;
@@ -352,7 +375,8 @@
   --sky: #2f67a6;
 }
 
-:root[data-theme='mono'] {
+:root[data-theme='mono'],
+.theme-scope[data-theme='mono'] {
   --bg: #f5f5f4;
   --surface: #ffffff;
   --surface-2: #ebebea;
@@ -364,7 +388,8 @@
   --route: #2b2b2b;
 }
 
-:root[data-theme='matcha'] {
+:root[data-theme='matcha'],
+.theme-scope[data-theme='matcha'] {
   --bg: #f3f5ec;
   --surface: #fbfcf7;
   --surface-2: #e7ecd9;
@@ -375,7 +400,8 @@
 }
 
 /* 커스터드: pudding yellow with caramel brown. */
-:root[data-theme='custard'] {
+:root[data-theme='custard'],
+.theme-scope[data-theme='custard'] {
   --bg: #fdf7e6;
   --surface: #fffcf2;
   --surface-2: #f9ecc6;
@@ -388,7 +414,8 @@
 }
 
 /* 노랑: a bright lemon yellow; dark ink on it, as white would not read. */
-:root[data-theme='yellow'] {
+:root[data-theme='yellow'],
+.theme-scope[data-theme='yellow'] {
   --bg: #fffbea;
   --surface: #fffef6;
   --surface-2: #fff4c4;
@@ -400,7 +427,8 @@
 }
 
 /* 귤: a bright tangerine orange. */
-:root[data-theme='tangerine'] {
+:root[data-theme='tangerine'],
+.theme-scope[data-theme='tangerine'] {
   --bg: #fff4ea;
   --surface: #fffaf5;
   --surface-2: #ffe6d0;
@@ -411,7 +439,8 @@
 }
 
 /* 오션: deep sea teal, between 민트 and 하늘. */
-:root[data-theme='ocean'] {
+:root[data-theme='ocean'],
+.theme-scope[data-theme='ocean'] {
   --bg: #ecf7f8;
   --surface: #f7fcfd;
   --surface-2: #d9eff2;
@@ -422,7 +451,8 @@
 }
 
 /* 미드나잇: a deep night navy. */
-:root[data-theme='midnight'] {
+:root[data-theme='midnight'],
+.theme-scope[data-theme='midnight'] {
   --bg: #eef0f7;
   --surface: #f8f9fc;
   --surface-2: #dfe3f0;
@@ -433,7 +463,8 @@
 }
 
 /* 플럼: a ripe plum, between 라벤더 and 러블리. */
-:root[data-theme='plum'] {
+:root[data-theme='plum'],
+.theme-scope[data-theme='plum'] {
   --bg: #f8eff6;
   --surface: #fdf8fc;
   --surface-2: #efdcea;
@@ -444,7 +475,8 @@
 }
 
 /* 와인: a dark wine red. */
-:root[data-theme='wine'] {
+:root[data-theme='wine'],
+.theme-scope[data-theme='wine'] {
   --bg: #f8eef0;
   --surface: #fdf8f9;
   --surface-2: #efdbe0;
@@ -455,7 +487,8 @@
 }
 
 /* 코코아: a warm cocoa brown. */
-:root[data-theme='cocoa'] {
+:root[data-theme='cocoa'],
+.theme-scope[data-theme='cocoa'] {
   --bg: #f6f0eb;
   --surface: #fcf9f6;
   --surface-2: #ebe0d6;
@@ -468,7 +501,8 @@
 }
 
 /* 세이지: a soft grey green. */
-:root[data-theme='sage'] {
+:root[data-theme='sage'],
+.theme-scope[data-theme='sage'] {
   --bg: #f1f4f1;
   --surface: #fafcfa;
   --surface-2: #e2e9e3;
@@ -479,7 +513,8 @@
 }
 
 /* Y2K: silver ground, bubblegum pink, sky blue lines. */
-:root[data-theme='y2k'] {
+:root[data-theme='y2k'],
+.theme-scope[data-theme='y2k'] {
   --bg: #eef1f6;
   --surface: #fafbfd;
   --surface-2: #e2e6ee;
@@ -652,14 +687,15 @@ button:disabled {
   align-items: center;
   gap: 6px;
   min-height: 52px;
-  padding: 4px 6px 4px 14px;
+  /* A full pill (2026-10-21): the ends round right off, so a little more room inside them. */
+  padding: 4px 8px 4px 20px;
   background: var(--surface);
-  border-radius: 16px;
+  border-radius: 999px;
   box-shadow: var(--shadow);
 }
 
 .search--open .search__bar {
-  padding-left: 4px;
+  padding-left: 8px;
 }
 
 .search__logo {
@@ -1930,13 +1966,25 @@ button:disabled {
   );
 }
 
-/* Undo, redo and clear-all end the colour row. Eight buttons share it, so
-   like the top row they give a little on narrow phones (still ≥ 36px). */
+/* Colour and undo rows give a little on narrow phones (still 44px tall). */
 .decor-tray__row .decor-tray__color,
 .decor-tray__row .decor-tray__palette,
 .decor-tray__row .decor-tray__undo {
   flex: 0 1 44px;
   min-width: 36px;
+}
+
+/* The pen's colour row: eight colours, the rainbow and maybe a palette pick
+   (2026-10-20) — up to ten across a phone, so a little narrower and smaller dots. */
+.decor-tray__row--colors .decor-tray__color,
+.decor-tray__row--colors .decor-tray__palette {
+  min-width: 32px;
+}
+
+.decor-tray__row--colors .decor-tray__color span,
+.decor-tray__row--colors .decor-tray__palette span {
+  width: 24px;
+  height: 24px;
 }
 
 .decor-tray__undo {
@@ -2138,6 +2186,35 @@ button:disabled {
   /* Room for the selected card's ring, which the scroller would clip. */
   padding: 6px 6px 8px;
   margin: -6px -6px 0;
+}
+
+/* 테마: its tall cards, four to a row (2026-10-21). */
+.decor-tray__themes--four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* 꾸미기 (2026-10-20): small squares, five to a row; the polaroid layouts
+   keep three tall cards (each is a picture of the card itself). */
+.decor-tray__themes--squares {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.decor-tray__themes--squares .theme-card {
+  aspect-ratio: 1;
+  border-radius: 12px;
+}
+
+.decor-tray__themes--squares .theme-card__pin {
+  top: 16%;
+  width: 30%;
+}
+
+.decor-tray__themes--squares .theme-card i {
+  bottom: 16%;
+  height: 5px;
+  border-radius: 3px;
 }
 
 .decor-tray__themes::-webkit-scrollbar,
@@ -6250,33 +6327,6 @@ button:disabled {
   touch-action: pan-y;
 }
 
-.page__head {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 56px;
-  margin: 0 auto;
-  padding: 4px 8px 0 16px;
-}
-
-.page__head .icon-btn {
-  margin-left: auto;
-}
-
-.page__head h1 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 800;
-}
-
-.page__head,
-.page .sheet__content {
-  width: 100%;
-  max-width: 640px;
-  margin: 0 auto;
-}
-
 /* The map's own controls belong to the map screen. */
 .app--page:not(.app--page-moving) .search,
 .app--page:not(.app--page-moving) .corner-btn {
@@ -6924,6 +6974,8 @@ button:disabled {
   /* Centred right over the ping, just above its icon and its ✕ (DayPings sets
      left / top on the ping's point and --rise to the icon's height above it). */
   transform: translate(-50%, calc(-100% - var(--rise, 44px) - 16px));
+  /* Nudged sideways to stay on screen near an edge (DayPings measures it). */
+  margin-left: var(--nudge, 0px);
   animation: rise-in 0.18s ease both;
 }
 
@@ -7243,15 +7295,98 @@ button:disabled {
   padding: 0 14px 132px;
 }
 
-.we-now__title {
-  margin: 0;
-  padding-top: 108px;
+/* Test build (2026-10-19): no WE NOW title — a full-width TODAY tile, about
+   half the screen, sits over the groups, clear of the profile button. */
+.we-now__today {
+  max-width: 560px;
+  margin: 0 auto;
+  padding-top: 76px;
+}
+
+.today-tile {
+  position: relative;
+  width: 100%;
+  height: min(50dvh, 420px);
+  min-height: 280px;
+  /* No cover: dressed as TODAY is (2026-10-19) — the day's theme page colour
+     (it wears the theme itself, .theme-scope), its pattern and its 꾸미기.
+     Open, so a ping's picker can rise over the top edge. */
+  overflow: visible;
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* Tokens worked out from others on :root follow a theme worn by one element. */
+.theme-scope {
+  --pin-0: var(--accent);
+}
+
+/* The pattern, clipped to the card's corners (the card itself stays open). */
+.today-tile__ground {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+/* The day's real drawing (DayPings) in the space under TODAY. */
+.today-tile__pings {
+  position: absolute;
+  top: 92px;
+  right: 0;
+  bottom: 24px;
+  left: 0;
+  display: grid;
+  place-items: center;
+}
+
+.today-tile__pings .pings {
+  width: min(100%, max(160px, calc(min(50dvh, 420px) - 120px)));
+  translate: none;
+}
+
+.today-tile__title {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  right: 0;
   color: var(--text);
   font-family: "Bebas Neue", "Oswald", sans-serif;
   font-size: 56px;
-  font-weight: 400;
   line-height: 1;
   text-align: center;
+  pointer-events: none;
+}
+
+.today-tile__empty {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* TODAY opened from We Now: full screen, a ‹ back to the groups. */
+.today-back {
+  position: absolute;
+  top: calc(12px + var(--safe-top));
+  left: 12px;
+  z-index: 18;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
 }
 
 .we-now__grid {
@@ -7259,7 +7394,7 @@ button:disabled {
   grid-template-columns: 1fr 1fr;
   gap: 14px;
   max-width: 560px;
-  margin: 26px auto 0;
+  margin: 28px auto 0;
 }
 
 .group-tile {
@@ -7359,24 +7494,19 @@ button:disabled {
   font-size: 10px;
 }
 
-.group-tile__count {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--muted);
-}
-
-.group-tile__count.is-live {
-  color: var(--accent-strong);
-}
-
-.group-tile__count.is-live::before {
-  content: "";
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+/* 새 핑: a small accent badge at the tile's lower right, until the group is opened. */
+.group-tile__new {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
   background: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  color: var(--on-accent);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .group-tile--new {
@@ -7980,7 +8110,7 @@ button:disabled {
   height: 100dvh;
   max-height: none;
   margin: 0;
-  padding: var(--safe-top) 0 var(--safe-bottom);
+  padding: 0;
   border: 0;
   background: var(--bg);
   color: var(--text);
@@ -7988,13 +8118,17 @@ button:disabled {
 }
 
 .settings[open] {
+  /* Up and down scroll as usual; a sideways move is the swipe back. */
+  touch-action: pan-y;
   display: flex;
   flex-direction: column;
   animation: settings-in 0.26s var(--slide-ease) both;
 }
 
+/* No grey of its own: it slides in over the profile's (which goes once it's
+   covered), and sliding off it uncovers the screen as it was. */
 .settings::backdrop {
-  background: var(--backdrop);
+  background: transparent;
 }
 
 .settings__head {
@@ -8033,14 +8167,32 @@ button:disabled {
   margin: 0 auto;
 }
 
-/* A page comes in from the side it's going: a detail page from the right, the list back from the left. */
-.settings__page.is-forward {
-  animation: settings-page-in 0.26s var(--slide-ease) both;
+/* The list's screen, and a detail screen over it: that one comes in from
+   the right and, going back, slides out to the right again (2026-10-19). */
+.settings__screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--safe-top) 0 var(--safe-bottom);
+  background: var(--bg);
 }
 
-.settings__page.is-back {
-  --from: -24%;
-  animation: settings-page-in 0.26s var(--slide-ease) both;
+.settings__screen--detail {
+  z-index: 1;
+  box-shadow: var(--shadow);
+  /* One layer, painted whole before it moves: it starts off screen, and
+     without this its contents were painted in only as they slid into view,
+     trailing the page's own background. */
+  will-change: translate;
+  backface-visibility: hidden;
+  contain: layout paint;
+  animation: settings-in 0.26s var(--slide-ease) both;
+}
+
+/* Sliding back out (SettingsScreen plays it, from wherever a swipe let go). */
+.settings__screen--detail.is-leaving {
+  pointer-events: none;
 }
 
 .settings__list {
@@ -8126,6 +8278,19 @@ button:disabled {
   margin-bottom: 0;
 }
 
+/* A whole screen here, not a popup: the addresses run on down the page (it scrolls). */
+.settings__page .privacy__list {
+  max-height: none;
+  overflow-y: visible;
+}
+
+/* The page sliding in is the only motion: its sections don't also unfold
+   the way they do opening on the profile (2026-10-19). */
+.settings__page .privacy,
+.settings__page .profile__actions {
+  animation: none;
+}
+
 .settings__account {
   display: grid;
   gap: 12px;
@@ -8137,17 +8302,9 @@ button:disabled {
   }
 }
 
-@keyframes settings-page-in {
-  from {
-    opacity: 0;
-    translate: var(--from, 24%) 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .settings[open],
-  .settings__page.is-forward,
-  .settings__page.is-back {
+  .settings__screen--detail {
     animation: none;
   }
 }

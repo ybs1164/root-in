@@ -7,7 +7,6 @@ import type { Profile } from '../services/profileRepository';
 import type { Account } from '../hooks/useAccount';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import PrivacySection from './PrivacySection';
-import SettingsScreen from './SettingsScreen';
 
 interface ProfileSheetProps {
   profile: Profile;
@@ -20,6 +19,8 @@ interface ProfileSheetProps {
   privacy: Omit<Parameters<typeof PrivacySection>[0], 'notice'>;
   /** Opened by 공유 before 집 was set: 제외 주소 설정 starts open, with this line in it. */
   privacyNotice?: string | null;
+  /** ⚙ (top right): 설정, its own screen — the profile closes as it opens. */
+  onSettings: () => void;
   onClose: () => void;
 }
 
@@ -36,15 +37,13 @@ export function ProfileAvatar({ photo, size }: { photo: string | null; size: num
  * 프로필 팝업: centred, no close button — a tap on the empty space around it closes it.
  * Photo, nickname and @id each change in place behind their own small pen.
  */
-export default function ProfileSheet({ profile, onChange, onNickname, account, privacy, privacyNotice, onClose }: ProfileSheetProps) {
+export default function ProfileSheet({ profile, onChange, onNickname, account, privacy, privacyNotice, onSettings, onClose }: ProfileSheetProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const backdrop = useBackdropTap(dialogRef);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [nickname, setNickname] = useState(getDisplayName);
   const [note, setNote] = useState<string | null>(null);
   const [privacyOpen, setPrivacyOpen] = useState(!!privacyNotice);
-  // ⚙ (top right): 설정 as its own screen over the profile.
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -87,9 +86,9 @@ export default function ProfileSheet({ profile, onChange, onNickname, account, p
       }}
     >
       <div className="profile ticket-dialog__main">
-        {/* Top right: ⚙ → 설정 (소리, 알림, 디스플레이 및 언어, 계정·약관·정책 moved there). */}
+        {/* Top right: ⚙ → 설정 (소리, 알림, 디스플레이 및 언어, 계정 관리, 약관 및 정책 moved there). */}
         <div className="profile__switches">
-          <button className="profile__switch" aria-label="설정" onClick={() => setSettingsOpen(true)}>
+          <button className="profile__switch" aria-label="설정" onClick={onSettings}>
             <Settings size={20} aria-hidden />
           </button>
         </div>
@@ -149,7 +148,6 @@ export default function ProfileSheet({ profile, onChange, onNickname, account, p
 
       {/* Past the tear line: 제외 주소 설정 (the rest of the settings are behind ⚙). */}
       <div className="ticket-dialog__stub profile__stub">{privacyPart}</div>
-      {settingsOpen && <SettingsScreen profile={profile} onChange={onChange} account={account} privacy={privacy} onClose={() => setSettingsOpen(false)} />}
     </dialog>
   );
 }

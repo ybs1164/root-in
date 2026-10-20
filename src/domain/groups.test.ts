@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, type Group } from './groups';
+import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, groupPingKeys, myGroupPings, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -73,5 +73,45 @@ describe('groups', () => {
     expect(stepMember(g, 'b', 1)).toBeNull();
     expect(stepMember(g, null, -1)).toBe('b');
     expect(stepMember(g, 'gone', 1)).toBe('a');
+  });
+});
+
+
+describe('newPingCount', () => {
+  const group = (pings: Record<string, string[]>): Group => ({
+    id: 'g',
+    name: 'g',
+    cover: 0,
+    inviteSlug: 's',
+    mine: false,
+    members: Object.entries(pings).map(([userId, ats], slot) => ({ userId, slot, nickname: userId, alias: null, photo: null, pings: ats.map((at) => ({ at, center: [127, 37.5] as [number, number] })) })),
+  });
+
+  it('counts other members\' pings that were not there when I opened the group', () => {
+    const before = group({ me: ['a'], ann: ['b'], bo: [] });
+    const seen = groupPingKeys(before);
+    expect(newPingCount(before, 'me', seen)).toBe(0);
+    const after = group({ me: ['a', 'c'], ann: ['b', 'd'], bo: ['e'] });
+    expect(newPingCount(after, 'me', seen)).toBe(2); // mine (c) never counts
+  });
+
+  it('a group never opened counts all of their pings', () => {
+    expect(newPingCount(group({ me: ['a'], ann: ['b', 'c'] }), 'me', undefined)).toBe(2);
+  });
+});
+
+describe('myGroupPings', () => {
+  it("is that day's pings from this phone, oldest first, without 제외 주소 ones", () => {
+    const at = (h: number) => `2026-10-19T0${h}:00:00.000Z`;
+    const stored = [
+      { id: 'b', day: '2026-10-19', at: at(3), name: 'B', center: [127, 37.5] as [number, number] },
+      { id: 'a', day: '2026-10-19', at: at(1), name: 'A', center: [127, 37.6] as [number, number] },
+      { id: 'h', day: '2026-10-19', at: at(2), name: '집 근처', center: [127, 37.7] as [number, number], local: true },
+      { id: 'y', day: '2026-10-18', at: at(4), name: 'Y', center: [127, 37.8] as [number, number] },
+    ];
+    expect(myGroupPings(stored, '2026-10-19')).toEqual([
+      { at: at(1), center: [127, 37.6], name: 'A' },
+      { at: at(3), center: [127, 37.5], name: 'B' },
+    ]);
   });
 });

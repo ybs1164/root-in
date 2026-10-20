@@ -1,4 +1,4 @@
-import { MapPin, Pencil, Share } from 'lucide-react';
+import { ChevronLeft, MapPin, Pencil, Share } from 'lucide-react';
 import type { PatternId, ThemeId } from './domain/decor';
 import DayPattern from './components/DayPattern';
 import ShareStudio from './components/ShareStudio';
@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import { useBackButton } from './hooks/useBackButton';
 import { closeTopDialog } from './lib/native';
 import BottomBar from './components/BottomBar';
+import SettingsScreen from './components/SettingsScreen';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
 import NewPinCard, { type NewPinInput } from './components/NewPinCard';
 import PinCard from './components/PinCard';
@@ -30,7 +31,7 @@ import type { MapViewport } from './domain/districtMap';
 import { filterPinsByCategories, isUncategorized, pinStyle, UNCATEGORIZED } from './domain/pin';
 import { placeKindService } from './services/placeKindService';
 import { pinRailNext, tapAll, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
-import { PRESS } from './domain/dayPings';
+import { pingsForDate, PRESS } from './domain/dayPings';
 import { buildRouteLook, EMPTY_BUILD_LOOK, nextRouteName, ROUTE_NOTE_MAX, toggleBuildStop, withBuildEdge, withBuildShape, type BuildLook } from './domain/routeBuild';
 import { addEditStop, moveStop, toggleEditStop, withEditStops, type RouteEdit } from './domain/routeEdit';
 import { cleanRouteLook, withEdgeStyle, withStopShape } from './domain/routeStyle';
@@ -45,8 +46,11 @@ import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
 import { useGroups } from './hooks/useGroups';
 import { groupsNeedLogin, inviteUrl } from './services/groupService';
-import { focusPoints, memberColor, type GroupMember } from './domain/groups';
+import { focusPoints, groupPingKeys, memberColor, myGroupPings, newPingCount, type GroupMember } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
+import { loadGroupSeen, saveGroupSeen, type GroupSeen } from './services/groupSeenRepository';
+import { useStoredPings } from './hooks/useStoredPings';
+import { dateKey } from './domain/diary';
 import GroupMapView from './components/GroupMapView';
 import GroupFormDialog from './components/GroupFormDialog';
 import GroupSettingsDialog from './components/GroupSettingsDialog';
@@ -134,6 +138,7 @@ export default function App() {
 
   const [tab, setTab] = useState<AppTab>('pins');
   const [profileOpen, setProfileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [profile, setProfile] = useState(loadProfile);
   // 로그인: the account's profile replaces this one on sign-in, and changes go up after.
   const account = useAccount(profile, (next) => {
@@ -262,6 +267,10 @@ export default function App() {
   const activePin = pins.find((p) => p.id === activePinId) ?? null;
   // We Now: the groups (signed in), and the one opened from its grid — the map shows for it.
   const [openGroupId, setOpenGroupId] = useState<string | null>(null);
+  // Test build: We Now's TODAY tile opens TODAY itself, full screen, without the bottom row.
+  const [todayOpen, setTodayOpen] = useState(false);
+  const storedPings = useStoredPings();
+  const todayPings = useMemo(() => pingsForDate(dateKey(), storedPings), [storedPings]);
   const [groupPicked, setGroupPicked] = useState<string | null>(null);
   const [groupFormOpen, setGroupFormOpen] = useState(false);
   const [groupSettingsOpen, setGroupSettingsOpen] = useState(false);
@@ -289,16 +298,28 @@ export default function App() {
     },
     onJoinFailed: () => notify('그룹 초대 링크를 열 수 없어요.'),
   });
-  // My own place in each group wears this phone's photo and nickname (the server's copy may lag behind).
+  // My own place in each group wears this phone's photo, nickname and today's
+  // pings (the server's copy lags behind: a ping taken out of TODAY would
+  // linger there until the next push and the next read).
   const myId = account.user?.id ?? null;
+  const myPings = useMemo(() => myGroupPings(storedPings, dateKey()), [storedPings]);
   const groupList = useMemo(
     () =>
       groups.groups.map((g) => ({
         ...g,
-        members: g.members.map((m) => (m.userId === myId ? { ...m, photo: profile.photo ?? m.photo, nickname: m.alias ?? (getDisplayName().trim() || m.nickname) } : m)),
+        members: g.members.map((m) =>
+          m.userId === myId ? { ...m, photo: profile.photo ?? m.photo, nickname: m.alias ?? (getDisplayName().trim() || m.nickname), pings: myPings } : m,
+        ),
       })),
-    [groups.groups, myId, profile.photo],
+    [groups.groups, myId, profile.photo, myPings],
   );
+  // Back from TODAY to the group list: read the groups again rather than wait
+  // for the minute's refresh (the others' pings may have moved on meanwhile).
+  const wasTodayOpen = useRef(todayOpen);
+  useEffect(() => {
+    if (wasTodayOpen.current && !todayOpen && tab === 'people') groups.refresh();
+    wasTodayOpen.current = todayOpen;
+  }, [todayOpen]);
   const [kicking, setKicking] = useState<GroupMember | null>(null);
   const openGroup = tab === 'people' && openGroupId ? (groupList.find((g) => g.id === openGroupId) ?? null) : null;
   // A group I've left (or that's gone) closes; a member who left can't stay picked.
@@ -306,16 +327,31 @@ export default function App() {
     if (openGroupId && groups.status === 'ready' && !groups.groups.some((g) => g.id === openGroupId)) setOpenGroupId(null);
   }, [openGroupId, groups.status, groups.groups]);
   useEffect(() => {
-    if (tab !== 'people') setOpenGroupId(null);
+    if (tab !== 'people') {
+      setOpenGroupId(null);
+      setTodayOpen(false);
+    }
   }, [tab]);
   useEffect(() => setGroupPicked(null), [openGroupId]);
+  // A group's 새 핑 badge: pings that weren't on its map when I last had it
+  // open. Whatever is on the open group's map counts as seen, new arrivals too.
+  const [groupSeen, setGroupSeen] = useState<GroupSeen>(loadGroupSeen);
+  const openGroupKeys = openGroup ? groupPingKeys(openGroup).join(',') : null;
+  useEffect(() => {
+    if (!openGroup) return;
+    setGroupSeen((seen) => {
+      const next = { ...seen, [openGroup.id]: groupPingKeys(openGroup) };
+      saveGroupSeen(next);
+      return next;
+    });
+  }, [openGroup?.id, openGroupKeys]);
   useEffect(() => {
     if (!needLogin && tab === 'people' && account.available && !account.user && guest === 'idle') startGuest();
   }, [needLogin, tab, account.available, account.user, guest, startGuest]);
   const onPage = showsPage(tab, Boolean(searchOpen || preview || openGroup));
   // Swiping a page sideways slides it off toward another screen: 달력 ← 핀,
   // → We Now; We Now ← 달력, → 핀 (pageSwipes).
-  const swipeTo = onPage && !decorating && !studio ? pageSwipes(tab) : { left: null, right: null };
+  const swipeTo = onPage && !decorating && !studio && !todayOpen ? pageSwipes(tab) : { left: null, right: null };
   const swipe = usePageSwipe(
     swipeTo.left ? () => changeTab(swipeTo.left!) : null,
     swipeTo.right ? () => changeTab(swipeTo.right!) : null,
@@ -410,6 +446,15 @@ export default function App() {
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
   // 제외 주소 are located with the same place search (search failing just leaves the address text to match).
   const privacy = usePrivacy(async (address) => (await searchService?.search(address))?.[0]?.center ?? null);
+  // 제외 주소 설정 as the profile and 설정 both show it.
+  const privacyProps = {
+    places: privacy.excluded,
+    resolving: privacy.resolving,
+    onAddress: privacy.setAddress,
+    onName: privacy.setName,
+    onAdd: privacy.add,
+    onRemove: privacy.remove,
+  };
 
   // The trays and the bottom bar cover part of the map; fit and focus around them.
   const mapPadding = useCallback((extraBottom = 0): MapPadding => {
@@ -1065,6 +1110,7 @@ export default function App() {
     if (closeTopDialog()) return true;
     if (studio) return setStudio(null), true;
     if (openGroupId) return setOpenGroupId(null), true;
+    if (todayOpen) return setTodayOpen(false), true;
     if (searchOpen) return setSearchOpen(false), setQuery(''), searchInput.current?.blur(), true;
     if (preview) return setPreview(null), true;
     if (activePinId) return setActivePinId(null), true;
@@ -1178,29 +1224,29 @@ export default function App() {
     };
   }, [aimable, searchService]);
 
-  // The calendar and people screens are pages on top of the map: the phone's
-  // back button goes back to the map. Opening one pushes a history entry
-  // (going page to page keeps it); leaving some other way takes that entry
-  // back off, so back on the map leaves the app as before.
-  const calendarEntry = useRef(false);
+  // We Now is a page on top of the map: the phone's back button goes back to
+  // the map. Opening it pushes a history entry; leaving some other way takes
+  // that entry back off, so back on the map leaves the app as before.
+  const pageEntry = useRef(false);
   useEffect(() => {
-    if (tab !== 'pins' && !calendarEntry.current) {
-      calendarEntry.current = true;
+    if (tab !== 'pins' && !pageEntry.current) {
+      pageEntry.current = true;
       history.pushState({ rootIn: tab }, '');
-    } else if (tab === 'pins' && calendarEntry.current) {
-      calendarEntry.current = false;
+    } else if (tab === 'pins' && pageEntry.current) {
+      pageEntry.current = false;
       history.back();
     }
   }, [tab]);
   useEffect(() => {
     const pop = () => {
-      if (!calendarEntry.current) return;
-      if (openGroup) {
+      if (!pageEntry.current) return;
+      if (openGroup || todayOpen) {
         setOpenGroupId(null);
+        setTodayOpen(false);
         history.pushState({ rootIn: tab }, '');
         return;
       }
-      calendarEntry.current = false;
+      pageEntry.current = false;
       // Back goes to the map, the page sliding off toward the side the map is on.
       if (onPage && (swipeTo.left === 'pins' || swipeTo.right === 'pins')) swipe.leave(swipeTo.left === 'pins' ? -1 : 1);
       else changeTab('pins');
@@ -1223,16 +1269,13 @@ export default function App() {
     return counts;
   }, [pins, categories]);
 
-  const calendarZoom = tab === 'calendar';
+  // TODAY (and its month) now only opens from We Now's TODAY tile.
+  const calendarZoom = tab === 'people' && todayOpen;
 
-  // The bottom row's buttons switch the screens at once. The big calendar
-  // button in the middle of the calendar screen, pressed again, goes to the
-  // month (or from the month back to TODAY).
-  const tagTab = (next: AppTab) => {
-    if (next === 'calendar' && tab === 'calendar' && onPage) {
-      const type = calendarAgain(calendarMode);
-      setCalendarCommand((c) => ({ type, seq: (c?.seq ?? 0) + 1 }));
-    } else changeTab(next);
+  // The big calendar button on TODAY goes to the month, and from the month back to TODAY.
+  const calendarButton = () => {
+    const type = calendarAgain(calendarMode);
+    setCalendarCommand((c) => ({ type, seq: (c?.seq ?? 0) + 1 }));
   };
 
   // The tab buttons step aside for a 꾸미기 tool's tray, for the 경로 폴더, and under the 꾸미기 screen.
@@ -1509,16 +1552,9 @@ export default function App() {
           {...swipe.handlers}
         >
           {calendarZoom && <DayPattern pattern={dayPattern} />}
-          {/* The calendar has no head bar: its own TODAY / DAY n heading takes the
-              stage and the 꾸미기 rail runs up to the top corner. We Now shows no
-              title either (named for screen readers only). */}
-          {calendarZoom || tab === 'people' ? (
-            <h1 className="sr-only">{PAGE_TITLES[tab]}</h1>
-          ) : (
-            <header className="page__head">
-              <h1>{PAGE_TITLES[tab]}</h1>
-            </header>
-          )}
+          {/* No head bar: TODAY's own heading takes the stage, and We Now shows
+              no title (named for screen readers only). */}
+          <h1 className="sr-only">{PAGE_TITLES[tab]}</h1>
           {calendarZoom ? (
             <CalendarZoom
               command={calendarCommand}
@@ -1542,10 +1578,23 @@ export default function App() {
               onMode={setCalendarMode}
             />
           ) : null}
-          {tab === 'people' && (
+          {calendarZoom && tab === 'people' && (
+            <button className="today-back" aria-label="그룹 목록으로" onClick={() => setTodayOpen(false)}>
+              <ChevronLeft size={24} strokeWidth={2.2} />
+            </button>
+          )}
+          {tab === 'people' && !todayOpen && (
             <WeNowPage
+              todayPings={todayPings}
+              // The same look TODAY gives a ping (CalendarZoom's pinLookOf).
+              pinLookOf={(ping) => {
+                const pin = pins.find((p) => p.id === ping.pinId);
+                return pinStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id, pin?.place);
+              }}
+              onToday={() => setTodayOpen(true)}
               status={groups.status === 'signed-out' && !needLogin ? (guest === 'idle' || guest === 'trying' ? 'loading' : 'error') : groups.status}
               groups={groupList}
+              newPings={(g) => newPingCount(g, myId, groupSeen[g.id])}
               photo={profile.photo}
               onProfile={() => setProfileOpen(true)}
               onOpen={setOpenGroupId}
@@ -1672,7 +1721,8 @@ export default function App() {
         <BottomBar
           tab={pageMoving && swipeTarget ? swipeTarget : tab}
           calendarMode={calendarMode}
-          onCalendar={() => tagTab('calendar')}
+          today={calendarZoom}
+          onCalendar={calendarButton}
           onDeletePing={onPage && calendarZoom && calendarMode === 'day' && pingRemove ? pingRemove : undefined}
           deleteHot={pingDropHot}
           onMap={() => changeTab('pins')}
@@ -1763,19 +1813,29 @@ export default function App() {
           onChange={changeProfile}
           onNickname={(nickname) => account.push(profile, nickname)}
           account={account}
-          privacy={{
-            places: privacy.excluded,
-            resolving: privacy.resolving,
-            onAddress: privacy.setAddress,
-            onName: privacy.setName,
-            onAdd: privacy.add,
-            onRemove: privacy.remove,
-          }}
+          privacy={privacyProps}
           privacyNotice={hasHome(privacy.excluded) ? null : privacyNotice}
+          // 설정 slides in over the profile; the profile (and its grey) goes once it's covered.
+          onSettings={() => setSettingsOpen(true)}
           onClose={() => {
             setProfileOpen(false);
             setPrivacyNotice(null);
           }}
+        />
+      )}
+      {/* 설정, opened from the profile's ⚙: the profile closes once 설정 covers the screen,
+          so leaving 설정 goes back to the screen under it, with no grey left over. */}
+      {settingsOpen && (
+        <SettingsScreen
+          profile={profile}
+          onChange={changeProfile}
+          account={account}
+          privacy={privacyProps}
+          onCovered={() => {
+            setProfileOpen(false);
+            setPrivacyNotice(null);
+          }}
+          onClose={() => setSettingsOpen(false)}
         />
       )}
       {categoriesOpen && (

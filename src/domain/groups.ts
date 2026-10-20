@@ -1,3 +1,4 @@
+import type { StoredPing } from './dayPings';
 /** We Now: a group whose members see each other's TODAY pings on one map. */
 export interface GroupPing {
   at: string;
@@ -63,8 +64,14 @@ export function focusPoints(group: Group, memberId: string | null): [number, num
  * latitude here), the whole group fitted in with a margin and centred.
  */
 export function tilePaths(group: Group, size: number, margin = size * 0.16): { color: string; points: [number, number][] }[] {
-  const all = group.members.flatMap((m) => m.pings.map((p) => p.center));
-  if (all.length === 0) return [];
+  const at = tileProjection(group.members.flatMap((m) => m.pings.map((p) => p.center)), size, margin);
+  if (!at) return [];
+  return group.members.filter((m) => m.pings.length).map((m) => ({ color: memberColor(m.slot), points: m.pings.map((p) => at(p.center)) }));
+}
+
+/** Lng/lat → tile coordinates fitting every point in, north up; null without points. */
+function tileProjection(all: readonly [number, number][], size: number, margin: number): ((c: [number, number]) => [number, number]) | null {
+  if (all.length === 0) return null;
   const lat0 = all.reduce((s, c) => s + c[1], 0) / all.length;
   const kx = Math.cos((lat0 * Math.PI) / 180);
   const xs = all.map((c) => c[0] * kx);
@@ -74,12 +81,11 @@ export function tilePaths(group: Group, size: number, margin = size * 0.16): { c
   const scale = span > 0 ? (size - margin * 2) / span : 0;
   const cx = (minX + maxX) / 2;
   const cy = (minY + maxY) / 2;
-  const at = (c: [number, number]): [number, number] => [
+  return (c) => [
     Math.round((size / 2 + (c[0] * kx - cx) * scale) * 10) / 10,
     // North is up: latitude grows the other way from SVG's y.
     Math.round((size / 2 - (c[1] - cy) * scale) * 10) / 10,
   ];
-  return group.members.filter((m) => m.pings.length).map((m) => ({ color: memberColor(m.slot), points: m.pings.map((p) => at(p.center)) }));
 }
 
 /** How many members the rail shows folded (after ALL); ↓ opens the rest. */
@@ -93,4 +99,32 @@ export function stepMember(group: Group, picked: string | null, dir: -1 | 1): st
   const order: (string | null)[] = [null, ...group.members.map((m) => m.userId)];
   const i = Math.max(0, order.indexOf(picked));
   return order[(i + dir + order.length) % order.length];
+}
+
+/** One member's ping, told apart from the rest of the day's (the server sends no id). */
+export const groupPingKey = (member: GroupMember, ping: GroupPing): string => `${member.userId}|${ping.at}`;
+
+/** Every ping on the group's map right now: what opening it has seen. */
+export const groupPingKeys = (group: Group): string[] => group.members.flatMap((m) => m.pings.map((p) => groupPingKey(m, p)));
+
+/**
+ * The tile's 새 핑 badge: other members' pings that weren't on the map when I
+ * last opened this group (`seen`; never opened = all of theirs). Mine never count.
+ */
+export function newPingCount(group: Group, me: string | null, seen: readonly string[] | undefined): number {
+  const known = new Set(seen ?? []);
+  return group.members.filter((m) => m.userId !== me).reduce((n, m) => n + m.pings.filter((p) => !known.has(groupPingKey(m, p))).length, 0);
+}
+
+/**
+ * My own pings on a group's map, from this phone's storage rather than the
+ * server's copy, so adding or taking one out of TODAY shows at once (the
+ * server only catches up after the next push and the next read). 제외 주소
+ * pings (`local`) stay off it, as they never reach the server either.
+ */
+export function myGroupPings(stored: readonly StoredPing[], day: string): GroupPing[] {
+  return stored
+    .filter((p) => p.day === day && !p.local)
+    .sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0))
+    .map((p) => ({ at: p.at, center: p.center, name: p.name }));
 }

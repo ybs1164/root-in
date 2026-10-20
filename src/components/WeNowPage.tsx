@@ -1,6 +1,17 @@
 import { Plus, UserRound, Users } from 'lucide-react';
-import type { CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import type { PinIcon, PinTint } from '../types/pin';
 import { groupPingCount, memberColor, tilePaths, type Group, type GroupMember } from '../domain/groups';
+import { edgeKey, pingKey, pingsLandedMs, type DayPing } from '../domain/dayPings';
+import { dateKey } from '../domain/diary';
+import { loadDays, saveDays, type DayStore } from '../services/dayRepository';
+import { onPulled } from '../services/syncBus';
+import ConfirmDialog from './ConfirmDialog';
+import DayPattern from './DayPattern';
+import DayPings from './DayPings';
+import DecorLayer from './DecorLayer';
+import { DEFAULT_PEN, EMPTY_DECOR } from '../domain/decor';
+import { removePing } from '../services/pingRepository';
 import { ProfileAvatar } from './ProfileSheet';
 import type { GroupsStatus } from '../hooks/useGroups';
 
@@ -40,13 +51,13 @@ export function GroupCover({ cover }: { cover: number }) {
   }
 }
 
-function GroupTile({ group, onOpen }: { group: Group; onOpen: () => void }) {
+function GroupTile({ group, fresh, onOpen }: { group: Group; fresh: number; onOpen: () => void }) {
   const paths = tilePaths(group, TILE);
   const pings = groupPingCount(group);
   const shown = group.members.slice(0, 3);
   const more = group.members.length - shown.length;
   return (
-    <button className="group-tile" onClick={onOpen} aria-label={`${group.name}, ${group.members.length}명, 오늘 핑 ${pings}`}>
+    <button className="group-tile" onClick={onOpen} aria-label={`${group.name}, ${group.members.length}명, 오늘 핑 ${pings}${fresh ? `, 새 핑 ${fresh}` : ''}`}>
       <svg className="group-tile__map" viewBox={`0 0 ${TILE} ${TILE}`} aria-hidden>
         <GroupCover cover={group.cover} />
         {paths.length === 0 && (
@@ -72,16 +83,122 @@ function GroupTile({ group, onOpen }: { group: Group; onOpen: () => void }) {
             ))}
             {more > 0 && <span className="group-tile__more">+{more}</span>}
           </span>
-          <span className={`group-tile__count ${pings ? 'is-live' : ''}`}>{pings}</span>
+          {/* Others' pings since I last opened the group; gone once I look. */}
+          {fresh > 0 && (
+            <span className="group-tile__new" aria-hidden>
+              {fresh > 99 ? '99+' : fresh}
+            </span>
+          )}
         </span>
       </span>
     </button>
   );
 }
 
+/**
+ * The TODAY tile over the groups (test build, 2026-10-19): a full-width card,
+ * about half the screen, with today's real pings on it — the same drawing as
+ * TODAY, and tapping a ping or a line changes its shape or style there and
+ * then (saved to the day, as on TODAY); a tapped ping's ✕ takes it out of the day. Not a group: a tap anywhere else on
+ * the card opens TODAY itself, full screen.
+ */
+function TodayTile({ pings, pinLookOf, onOpen }: { pings: DayPing[]; pinLookOf: (ping: DayPing) => { icon: PinIcon; color: PinTint }; onOpen: () => void }) {
+  const today = dateKey();
+  const [days, setDays] = useState<DayStore>(loadDays);
+  // A change goes onto what's stored right now, not this card's copy: another
+  // phone's decorations may have come in since it was read.
+  const change = (next: (d: DayStore) => DayStore) => {
+    const after = next(loadDays());
+    saveDays(after);
+    setDays(after);
+  };
+  // …and when they do, the card shows them.
+  useEffect(
+    () =>
+      onPulled((changed) => {
+        if (changed.has('days')) setDays(loadDays());
+      }),
+    [],
+  );
+  const decor = days.decor[today] ?? EMPTY_DECOR;
+  const theme = decor.theme ?? 'default';
+  // A press on a ping, a line or an open picker (its backdrop too) is the drawing's, not the card's.
+  const own = useRef(false);
+  // A ping's ✕ (or one dragged off and let go) asks first, as on TODAY.
+  const [deleting, setDeleting] = useState<DayPing | null>(null);
+  return (
+    <>
+      {/* Dressed as TODAY is: the day's theme on just this card (.theme-scope), its
+          background pattern, and its stickers, ink and text over the drawing. */}
+      <div
+        className="today-tile theme-scope"
+        data-theme={theme === 'default' ? undefined : theme}
+        role="button"
+        tabIndex={0}
+        aria-label={`TODAY 열기, 오늘 핑 ${pings.length}`}
+        onPointerDownCapture={(e) => {
+          own.current = !!(e.target as Element).closest('.ping, .pings__hitline, .ping-picker, .ping-picker__backdrop, .ping__delete');
+        }}
+        onClick={() => {
+          if (own.current) return void (own.current = false);
+          onOpen();
+        }}
+        onKeyDown={(e) => {
+          if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+            e.preventDefault();
+            onOpen();
+          }
+        }}
+      >
+        <div className="today-tile__ground" aria-hidden>
+          <DayPattern pattern={decor.pattern ?? 'none'} />
+        </div>
+        <span className="today-tile__title" aria-hidden>
+          TODAY
+        </span>
+        {pings.length === 0 && <span className="today-tile__empty">아직 오늘 핑 없음</span>}
+        <div className="today-tile__pings">
+          <DayPings
+            pings={pings}
+            shapeOf={(ping) => days.shapes[pingKey(today, ping)] ?? 'pin'}
+            onShape={(ping, shape) => change((d) => ({ ...d, shapes: { ...d.shapes, [pingKey(today, ping)]: shape } }))}
+            edgeStyleOf={(from, to) => days.edges[edgeKey(today, from, to)] ?? 'solid'}
+            onEdgeStyle={(from, to, style) => change((d) => ({ ...d, edges: { ...d.edges, [edgeKey(today, from, to)]: style } }))}
+            pinLookOf={pinLookOf}
+            onDelete={(ping) => ping.id && setDeleting(ping)}
+            pressable={() => true}
+            showNames={!decor.hideNames}
+            showTimes={!decor.hideTimes}
+          >
+            {/* Read-only here (no tool out): changed on TODAY itself. Settles in once the pins have landed, as on TODAY. */}
+            <DecorLayer decor={decor} tool={null} armed={null} pen={DEFAULT_PEN} onChange={() => {}} enterDelayMs={pingsLandedMs(pings.length)} />
+          </DayPings>
+        </div>
+      </div>
+      {/* Beside the card, not in it: the dialog's clicks mustn't reach the card and open TODAY. */}
+      {deleting?.id && (
+        <ConfirmDialog
+          label="장소 삭제"
+          message={`'${deleting.name}' 장소를 삭제합니다.`}
+          detail="삭제한 장소는 복구할 수 없어요."
+          onConfirm={() => deleting.id && removePing(deleting.id)}
+          onClose={() => setDeleting(null)}
+        />
+      )}
+    </>
+  );
+}
+
 interface WeNowPageProps {
   status: GroupsStatus;
+  /** My pings today, for the TODAY tile. */
+  todayPings: DayPing[];
+  /** A ping's own pin icon and colour (its 투명 look). */
+  pinLookOf(ping: DayPing): { icon: PinIcon; color: PinTint };
+  onToday(): void;
   groups: Group[];
+  /** The 새 핑 badge: members' pings since I last opened that group. */
+  newPings(group: Group): number;
   /** My profile photo, for the profile button top right (as on the map). */
   photo: string | null;
   onProfile(): void;
@@ -98,7 +215,7 @@ interface WeNowPageProps {
  * tile for a new one. Signed out it asks for a Kakao login — reached only
  * when VITE_GROUPS_NEED_LOGIN is on; otherwise App signs in as a guest first.
  */
-export default function WeNowPage({ status, groups, photo, onProfile, onOpen, onCreate, onSignIn, onRetry }: WeNowPageProps) {
+export default function WeNowPage({ status, todayPings, pinLookOf, onToday, groups, newPings, photo, onProfile, onOpen, onCreate, onSignIn, onRetry }: WeNowPageProps) {
   const empty = (title: string, body: string, action?: { label: string; run: () => void }) => (
     <div className="we-now__empty">
       <span className="we-now__badge" aria-hidden>
@@ -126,7 +243,7 @@ export default function WeNowPage({ status, groups, photo, onProfile, onOpen, on
     content = (
       <div className="we-now__grid">
         {groups.map((g) => (
-          <GroupTile key={g.id} group={g} onOpen={() => onOpen(g.id)} />
+          <GroupTile key={g.id} group={g} fresh={newPings(g)} onOpen={() => onOpen(g.id)} />
         ))}
         <button className="group-tile group-tile--new" onClick={onCreate}>
           <span className="group-tile__plus" aria-hidden>
@@ -143,9 +260,9 @@ export default function WeNowPage({ status, groups, photo, onProfile, onOpen, on
         <ProfileAvatar photo={photo} size={52} />
       </button>
       <div className="we-now">
-        <h2 className="we-now__title" aria-hidden>
-          WE NOW
-        </h2>
+        <div className="we-now__today">
+          <TodayTile pings={todayPings} pinLookOf={pinLookOf} onOpen={onToday} />
+        </div>
         {content}
       </div>
     </>
