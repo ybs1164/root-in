@@ -1,7 +1,6 @@
 import { forwardRef, useId } from 'react';
 import { Search } from 'lucide-react';
 import type { PlaceRef } from '../types/course';
-import Logo from './Logo';
 
 interface SearchBarProps {
   query: string;
@@ -24,14 +23,10 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(function SearchBa
   return (
     <div className={`search ${open ? 'search--open' : ''}`}>
       <div className="search__bar">
-        {open ? (
+        {open && (
           <button className="icon-btn" aria-label="검색 닫기" onClick={() => onOpenChange(false)}>
             ←
           </button>
-        ) : (
-          <span className="search__logo">
-            <Logo />
-          </span>
         )}
         <input
           ref={inputRef}

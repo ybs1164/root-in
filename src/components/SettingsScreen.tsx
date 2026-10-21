@@ -7,7 +7,7 @@ import type { ColorScheme, Profile } from '../services/profileRepository';
 import { clearAppData } from '../services/settingsRepository';
 import { SWIPE, swipeCommits } from '../domain/appTabs';
 import AlertBoard from './AlertBoard';
-import PinGlyph from './PinGlyph';
+import Logo from './Logo';
 import PrivacySection from './PrivacySection';
 
 /** 알림 설정's two boards: 투데이 알림 by hour, 공유수 알림 by share count. */
@@ -197,10 +197,9 @@ export default function SettingsScreen({ profile, onChange, account, privacy, on
           <div className="display__schemes" role="group" aria-label="디스플레이">
             {SCHEMES.map(({ id, label }) => (
               <button key={id} className={`display__scheme ${scheme === id ? 'is-on' : ''}`} aria-pressed={scheme === id} onClick={() => onChange({ ...profile, scheme: id })}>
-                {/* A small sample of that mode: its page colour, a pin and a bar in its accent. */}
+                {/* That mode's app icon (tile + mark) in its own logo colours. */}
                 <span className={`display__swatch display__swatch--${id}`} aria-hidden>
-                  <PinGlyph icon="pin" />
-                  <i />
+                  <Logo />
                 </span>
                 {label}
               </button>
