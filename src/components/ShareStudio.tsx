@@ -22,6 +22,7 @@ import type { ShareSubject } from '../domain/shareSubject';
 import type { ShareMethod } from '../services/analytics';
 import { canShareImage, dayGround, downloadDataUrl, renderShareImage, shareImage } from '../lib/shareImage';
 import DayPattern from './DayPattern';
+import type { StickerDrop } from '../domain/stickerSheets';
 import DecorLayer, { type TextFocus } from './DecorLayer';
 import { DecorRail, DecorTray } from './DecorTools';
 
@@ -69,7 +70,8 @@ export default function ShareStudio({ subject, onTheme, onCopyLink, onShared, on
   const [tool, setTool] = useState<DecorTool | null>(null);
   const toolRef = useRef(tool);
   toolRef.current = tool;
-  const [armed, setArmed] = useState<string | null>(null);
+  // The drawing's way in for a sticker peeled off the sheet.
+  const placeSticker = useRef<((drop: StickerDrop) => void) | null>(null);
   const [pen, setPen] = useState<PenSettings>(DEFAULT_PEN);
   // Text tool: the box picked or being typed in, and how the next new box looks.
   const [textFocus, setTextFocus] = useState<TextFocus>(null);
@@ -235,7 +237,6 @@ export default function ShareStudio({ subject, onTheme, onCopyLink, onShared, on
         tool={tool}
         onTool={(next) => {
           setTool(next);
-          setArmed(null);
           setTextFocus(null);
         }}
       />
@@ -252,7 +253,7 @@ export default function ShareStudio({ subject, onTheme, onCopyLink, onShared, on
               aspect={SCENE.h / SCENE.w}
               decor={decor}
               tool={tool}
-              armed={armed}
+              placeRef={placeSticker}
               pen={pen}
               onChange={changeDecor}
               textFocus={textFocus}
@@ -334,8 +335,7 @@ export default function ShareStudio({ subject, onTheme, onCopyLink, onShared, on
           leaving={trayLeaving}
           away={draggingPiece}
           tool={trayTool}
-          armed={armed}
-          onArm={setArmed}
+          onPlace={(drop) => placeSticker.current?.(drop)}
           pen={pen}
           onPen={setPen}
           canUndo={canUndo(history, decor)}
