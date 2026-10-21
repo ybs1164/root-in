@@ -1,0 +1,390 @@
+/* The sticker pack editor (dev tool, desktop). The packs themselves use the
+   app's classes from styles.css; this lays out the tool around them. */
+
+body {
+  overflow: auto;
+}
+
+.spe {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 340px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'head head head'
+    'packs stage side'
+    'foot foot foot';
+  height: 100vh;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.spe button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.spe button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.spe button.is-primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.spe button.is-danger {
+  color: var(--danger);
+}
+
+.spe button.is-on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.spe input:not([type]),
+.spe input[type='text'] {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  font-size: 15px;
+}
+
+.spe h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.spe h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.spe small {
+  font-weight: normal;
+  color: var(--muted);
+}
+
+.spe__head {
+  grid-area: head;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.spe__note {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+}
+
+.spe__saved {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.spe__saved.is-failed {
+  color: var(--danger);
+}
+
+.spe__actions,
+.spe__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.spe__row + .spe__row,
+.spe__panel > .spe__row {
+  margin-top: 8px;
+}
+
+/* ----- Packs list ----- */
+
+.spe__packs {
+  grid-area: packs;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  padding: 12px;
+  border-right: 1px solid var(--border);
+}
+
+.spe__packs ol {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.spe .spe__pack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 6px;
+  text-align: left;
+}
+
+.spe .spe__pack.is-on {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.spe__pack-band {
+  padding: 6px 8px 4px;
+  border-radius: 5px;
+  font-family: 'Bebas Neue', 'Pretendard', sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spe__pack-count {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ----- The pack ----- */
+
+.spe__stage {
+  grid-area: stage;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  min-height: 0;
+  padding: 16px;
+  overflow: auto;
+}
+
+.spe__zoom {
+  display: flex;
+  gap: 6px;
+}
+
+.spe__canvas {
+  padding: 24px;
+}
+
+.spe__canvas .sticker-sheet {
+  width: var(--sheet-w);
+}
+
+.spe .sticker-sheet__slot {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+}
+
+.spe__slot.is-picked {
+  outline: 2px dashed var(--accent);
+  outline-offset: 2px;
+}
+
+/* Spilling off the white area: told, not stopped. */
+.spe__slot.is-spilling {
+  box-shadow: 0 0 0 2px var(--danger);
+}
+
+.spe__empty,
+.spe__hint {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.sticker-sheet__body .spe__empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.spe__panel {
+  width: 100%;
+  max-width: 560px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.spe__panel label,
+.spe__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.spe__picked label {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.spe__picked input[type='range'] {
+  flex: 1;
+}
+
+.spe__picked output {
+  min-width: 44px;
+  color: var(--muted);
+}
+
+/* ----- Pack settings and library ----- */
+
+.spe__side {
+  grid-area: side;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 12px;
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.spe__colors {
+  display: flex;
+  gap: 16px;
+}
+
+.spe__color {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spe__color input {
+  width: 40px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: none;
+}
+
+.spe__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.spe .spe__presets button {
+  width: 36px;
+  padding: 0;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px;
+}
+
+.spe__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.spe__library {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+}
+
+.spe .spe__check {
+  flex-direction: row;
+  align-items: center;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.spe__library .spe__row {
+  flex-wrap: nowrap;
+  margin-bottom: 8px;
+}
+
+.spe__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 6px;
+  height: max(320px, 60vh);
+  overflow-y: auto;
+}
+
+.spe .spe__thumb {
+  position: relative;
+  height: 64px;
+  padding: 4px;
+  cursor: grab;
+}
+
+.spe__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* How many packs use it already. */
+.spe__uses {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.spe__foot {
+  grid-area: foot;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.spe__foot ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  max-height: 120px;
+  overflow-y: auto;
+}

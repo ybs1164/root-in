@@ -30,6 +30,7 @@ import { loadDays, saveDays, type DayStore } from '../services/dayRepository';
 import { onPulled } from '../services/syncBus';
 import { dateKey } from '../domain/diary';
 import DayPings from './DayPings';
+import type { StickerDrop } from '../domain/stickerSheets';
 import DecorLayer, { type TextFocus } from './DecorLayer';
 import { DecorRail, DecorTray } from './DecorTools';
 import MonthCalendar from './MonthCalendar';
@@ -156,7 +157,8 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
   // 꾸미기: which tool is out.
   // and which tool is out.
   const [tool, setTool] = useState<DecorTool | null>(null);
-  const [armed, setArmed] = useState<string | null>(null);
+  // The drawing's way in for a sticker peeled off the sheet.
+  const placeSticker = useRef<((drop: StickerDrop) => void) | null>(null);
   const [pen, setPen] = useState<PenSettings>(DEFAULT_PEN);
   // Text tool: the box picked or being typed in, and how the next new box looks.
   const [textFocus, setTextFocus] = useState<TextFocus>(null);
@@ -654,7 +656,6 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
           tool={tool}
           onTool={(next) => {
             setTool(next);
-            setArmed(null);
             setTextFocus(null);
           }}
           labels={{
@@ -705,7 +706,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
                 <DecorLayer
                   decor={dayDecor}
                   tool={tool}
-                  armed={armed}
+                  placeRef={placeSticker}
                   pen={pen}
                   onChange={changeDecor}
                   enterDelayMs={pingsLandedMs(pings.length)}
@@ -751,8 +752,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
           leaving={trayLeaving}
           away={draggingPiece}
           tool={trayTool}
-          armed={armed}
-          onArm={setArmed}
+          onPlace={(drop) => placeSticker.current?.(drop)}
           pen={pen}
           onPen={setPen}
           canUndo={canUndo(dayHistory, dayDecor)}

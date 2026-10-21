@@ -44,6 +44,13 @@
   /* The share polaroid's card: white paper in every theme. */
   --polaroid: #ffffff;
   --polaroid-shadow: rgba(27, 36, 64, 0.22);
+  /* Sticker sheets (StickerSheets): the printed paper, each sticker's white
+     die-cut edge, its paper back while it peels, the bend's shade. */
+  --sticker-sheet: #ffffff;
+  --sticker-edge: #ffffff;
+  --sticker-back: #efeee9;
+  --sticker-fold: rgba(27, 36, 64, 0.2);
+  --sticker-shadow: rgba(27, 36, 64, 0.3);
   /* 빨랫줄 layout: the wooden clothespins (not themed, like the card's paper). */
   --clothespin: #e3c690;
   --clothespin-shade: #c9a467;
@@ -1601,8 +1608,7 @@ button:disabled {
   outline-offset: 6px;
 }
 
-.decor--pen,
-.decor--sticker.is-armed {
+.decor--pen {
   cursor: crosshair;
 }
 
@@ -1861,32 +1867,6 @@ button:disabled {
 .decor-rail__btn {
   touch-action: manipulation;
 }
-
-/* Stickers: a grid that scrolls up and down. */
-.decor-tray__stickers {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-  gap: 8px;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: none;
-}
-
-.decor-tray__sticker {
-  display: grid;
-  place-items: center;
-  height: 72px;
-  padding: 6px;
-  border-radius: 12px;
-  line-height: 1;
-}
-
-.decor-tray__sticker.is-on {
-  background: var(--tray-hi);
-}
-
-
 
 /* Pen: two rows, no scrolling. Tools and width on top, colours below. */
 .decor-tray__pen {
@@ -2233,10 +2213,6 @@ button:disabled {
 }
 
 .decor-tray__themes::-webkit-scrollbar,
-.decor-tray__stickers::-webkit-scrollbar {
-  display: none;
-}
-
 .decor-tray__theme {
   min-width: 0;
   display: flex;
@@ -2377,6 +2353,328 @@ button:disabled {
 @media (prefers-reduced-motion: reduce) {
   .decor-tray,
   .decor-tray.is-leaving {
+    animation: none;
+  }
+}
+
+/* ---------- Sticker sheets (StickerSheets) ---------- */
+
+/* The sticker tool isn't a dark strip: the whole screen, see-through, with
+   a printed sheet a little below the middle (only the sheet takes touches). */
+.decor-tray--sticker {
+  top: 0;
+  max-height: none;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  pointer-events: none;
+  animation: none;
+}
+
+.sticker-sheets {
+  /* The sheet: its width, its height (band + sticker area), and its top —
+     a little past the middle, but never so low it leaves the screen. */
+  --sheet-w: min(calc(100vw - 104px), 320px);
+  --sheet-h: calc(var(--sheet-w) * 1.15);
+  --sheet-top: min(57dvh, calc(100dvh - var(--sheet-h) - 20px - var(--safe-bottom)));
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--sheet-top);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  animation: settle 0.3s var(--settle-ease) both;
+  transition:
+    opacity 0.2s ease,
+    transform 0.3s var(--slide-ease);
+}
+
+/* Tucked down, the band's surroundings bring it back up: edge to edge,
+   from 40px above the band to the bottom of the screen (an invisible button
+   over it, outside the sheet's moving box so it stays put). */
+.sticker-sheets__catch {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  height: calc(min(calc(100vw - 104px), 320px) * 0.25 + 6px + var(--safe-bottom) + 40px);
+  padding: 0;
+  border: 0;
+  background: none;
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* Tucked down: only the pack's band shows at the bottom of the screen. */
+.sticker-sheets.is-peek {
+  transform: translateY(calc(100dvh - var(--sheet-top) - var(--sheet-w) * 0.25 - 6px - var(--safe-bottom)));
+}
+
+.sticker-sheets.is-peek .sticker-sheet {
+  cursor: pointer;
+}
+
+.sticker-sheets.is-peek .sticker-sheet__slot:not(.is-lifted),
+.sticker-sheets.is-peek .sticker-sheets__step {
+  pointer-events: none;
+}
+
+.sticker-sheets__row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.sticker-sheets__step {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 88px;
+  pointer-events: auto;
+  color: var(--muted);
+  touch-action: manipulation;
+}
+
+.sticker-sheet {
+  position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  width: var(--sheet-w);
+  border-radius: 10px;
+  box-shadow: 0 10px 28px var(--polaroid-shadow);
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Paging: the next sheet slides in from the side of the arrow pressed. */
+.sticker-sheet.is-from-next {
+  animation: sheet-in 0.26s var(--slide-ease) both;
+  --sheet-from: 40%;
+}
+
+.sticker-sheet.is-from-prev {
+  animation: sheet-in 0.26s var(--slide-ease) both;
+  --sheet-from: -40%;
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    translate: var(--sheet-from) 0;
+  }
+}
+
+.sticker-sheet__body {
+  position: relative;
+  aspect-ratio: 1 / 0.9;
+  border-radius: 0 0 10px 10px;
+  background: var(--sticker-sheet);
+}
+
+/* The pack's band across the top (like a sticker pack's printed header):
+   its own colour, the name, a pattern and a STICKER PACK tag. */
+.sticker-pack__band {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: calc(var(--sheet-w) * 0.25);
+  padding: 8px 14px;
+  border-radius: 10px 10px 0 0;
+  background: var(--pack);
+  color: var(--pack-ink);
+}
+
+.sticker-pack__name {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  min-width: 0;
+  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: calc(var(--sheet-w) * 0.105);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* In an outlined box, like the pink pack's logo. */
+.sticker-pack__name--box {
+  padding: 4px 7px 2px;
+  border: 2px solid var(--pack-ink);
+  border-radius: 3px;
+}
+
+/* Heavy and leaning, like a single's logo. */
+.sticker-pack__name--slant {
+  font-size: calc(var(--sheet-w) * 0.13);
+  font-style: italic;
+  transform: skewX(-10deg);
+  -webkit-text-stroke: 0.6px currentColor;
+}
+
+.sticker-pack__side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex: none;
+}
+
+.sticker-pack__motif {
+  display: block;
+  width: calc(var(--sheet-w) * 0.2);
+  height: calc(var(--sheet-w) * 0.065);
+}
+
+.sticker-pack__motif--stripes {
+  background: repeating-linear-gradient(135deg, var(--pack-ink) 0 3px, transparent 3px 7px);
+}
+
+.sticker-pack__motif--checker {
+  background: repeating-conic-gradient(var(--pack-ink) 0 25%, transparent 0 50%) 0 0 / 8px 8px;
+}
+
+.sticker-pack__motif--dots {
+  background: radial-gradient(circle, var(--pack-ink) 1.6px, transparent 2px) 0 0 / 7px 7px;
+}
+
+.sticker-pack__motif--grid {
+  background:
+    linear-gradient(var(--pack-ink) 1px, transparent 1px) 0 0 / 6px 6px,
+    linear-gradient(90deg, var(--pack-ink) 1px, transparent 1px) 0 0 / 6px 6px;
+  opacity: 0.6;
+}
+
+.sticker-pack__motif--lines {
+  background: repeating-linear-gradient(0deg, var(--pack-ink) 0 2px, transparent 2px 5px);
+}
+
+/* Hearts and sparkles: a row of little marks. */
+.sticker-pack__motif--hearts,
+.sticker-pack__motif--sparkles {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: 2px;
+}
+
+.sticker-pack__motif--hearts::before {
+  content: '♥♥♥♥';
+}
+
+.sticker-pack__motif--sparkles::before {
+  content: '✦✧✦✧';
+}
+
+.sticker-pack__tag {
+  padding: 2px 6px 1px;
+  border-radius: 999px;
+  background: var(--pack-ink);
+  color: var(--pack);
+  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 10px;
+  line-height: 1.1;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.sticker-sheet__slot {
+  position: absolute;
+  aspect-ratio: 1;
+  padding: 0;
+  translate: -50% -50%;
+  touch-action: none;
+  cursor: grab;
+}
+
+/* Each sticker with its white die-cut edge and a hair of shadow, as printed. */
+.sticker-sheet__slot img,
+.sticker-free {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(1.5px 0 0 var(--sticker-edge)) drop-shadow(-1.5px 0 0 var(--sticker-edge))
+    drop-shadow(0 1.5px 0 var(--sticker-edge)) drop-shadow(0 -1.5px 0 var(--sticker-edge))
+    drop-shadow(0 1px 1.5px var(--sticker-shadow));
+}
+
+/* Peeled off: a faint mark of its shape stays on the backing paper — from
+   the moment it lifts (the page-turn canvas draws the sticker over it). */
+.sticker-sheet__slot.is-used {
+  cursor: default;
+}
+
+.sticker-sheet__slot.is-lifted img,
+.sticker-sheet__slot.is-used img {
+  filter: brightness(0);
+  opacity: 0.07;
+}
+
+/* The page-turn while a sticker peels, over everything. */
+.sticker-peel {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 90;
+  pointer-events: none;
+}
+
+/* Off the sheet: lifted whole, a little bigger, following the finger. */
+.sticker-free {
+  position: fixed;
+  z-index: 90;
+  translate: -50% -50%;
+  scale: 1.08;
+  filter: drop-shadow(1.5px 0 0 var(--sticker-edge)) drop-shadow(-1.5px 0 0 var(--sticker-edge))
+    drop-shadow(0 1.5px 0 var(--sticker-edge)) drop-shadow(0 -1.5px 0 var(--sticker-edge))
+    drop-shadow(0 8px 10px var(--sticker-shadow));
+  animation: sticker-pop 0.22s var(--pop-ease) both;
+  transition: rotate 0.12s ease-out;
+}
+
+@keyframes sticker-pop {
+  0% {
+    scale: 0.96;
+  }
+  60% {
+    scale: 1.14;
+  }
+}
+
+/* Just stuck on the drawing: pressed down flat. */
+.decor__sticker.is-fresh {
+  animation: sticker-stick 0.36s var(--settle-ease);
+}
+
+@keyframes sticker-stick {
+  from {
+    scale: 1.08;
+    filter: drop-shadow(0 8px 10px var(--sticker-shadow));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sticker-sheets,
+  .sticker-sheet.is-from-next,
+  .sticker-sheet.is-from-prev,
+  .sticker-free,
+  .decor__sticker.is-fresh {
     animation: none;
   }
 }
@@ -7216,13 +7514,11 @@ button:disabled {
   aspect-ratio: 1;
   object-fit: contain;
   pointer-events: none;
-}
-
-.decor-tray__sticker img {
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
-  pointer-events: none;
+  /* The white die-cut edge, as on the sheet (--edge grows with the sticker;
+     the share image draws the same, lib/stickerEdge.ts). */
+  filter: drop-shadow(var(--edge) 0 0 var(--sticker-edge)) drop-shadow(calc(var(--edge) * -1) 0 0 var(--sticker-edge))
+    drop-shadow(0 var(--edge) 0 var(--sticker-edge)) drop-shadow(0 calc(var(--edge) * -1) 0 var(--sticker-edge))
+    drop-shadow(0 calc(var(--edge) * 0.7) var(--edge) var(--sticker-shadow));
 }
 
 /* Category buttons drop out of the 핀 button above them, growing as they come. */

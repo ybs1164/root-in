@@ -11,6 +11,7 @@ import { fitPingLabels } from '../domain/stopLabels';
 import { MAP_ROLES, dayMap, type MapFill, type MapRole, type MapPart, type TerrainShapes } from '../domain/miniMap';
 import { terrainService } from '../services/terrainService';
 import { resolvedColour } from './cssColour';
+import { outlinedSticker, STICKER_EDGE } from './stickerEdge';
 
 export interface ShareImageInput {
   pings: DayPing[];
@@ -867,7 +868,14 @@ function drawDecor(ctx: CanvasRenderingContext2D, decor: DayDecor, frame: PieceF
     ctx.rotate(((s.rotate ?? 0) * Math.PI) / 180);
     const img = stickerImages.get(s.stickerId);
     const size = px(s.size * 0.78);
-    if (img) ctx.drawImage(img, -size / 2, -size / 2, size, size);
+    if (img) {
+      // With its white die-cut edge and a hair of shadow, as on screen.
+      const { canvas, pad } = outlinedSticker(img, size, size * STICKER_EDGE, css.getPropertyValue('--sticker-edge').trim());
+      ctx.shadowColor = css.getPropertyValue('--sticker-shadow').trim();
+      ctx.shadowBlur = size * 0.022;
+      ctx.shadowOffsetY = size * 0.015;
+      ctx.drawImage(canvas, -size / 2 - pad, -size / 2 - pad);
+    }
     ctx.restore();
   };
   const drawText = (t: PlacedText) => {

@@ -34,7 +34,6 @@ import {
   isCustomColor,
   PEN_TOOLS,
   PEN_WIDTHS,
-  STICKERS,
   PATTERNS,
   TEXT_ALIGNS,
   TEXT_EFFECTS,
@@ -54,6 +53,8 @@ import {
 import { POLAROID_LAYOUTS, type PolaroidLayout } from '../domain/polaroid';
 import { PIN_BOX, PIN_PATH } from '../lib/pingPaths';
 import DayPattern from './DayPattern';
+import StickerSheets from './StickerSheets';
+import type { StickerDrop } from '../domain/stickerSheets';
 
 const RAIL: { tool: DecorTool; label: string; Icon: typeof Sticker }[] = [
   { tool: 'sticker', label: '스티커', Icon: Sticker },
@@ -180,8 +181,8 @@ interface DecorTrayProps {
   leaving?: boolean;
   /** Out of the way below the screen for now (a piece is being dragged). */
   away?: boolean;
-  armed: string | null;
-  onArm: (stickerId: string | null) => void;
+  /** A sticker peeled off the sheet (or tapped) to stick on the drawing. */
+  onPlace: (drop: StickerDrop) => void;
   pen: PenSettings;
   onPen: (pen: PenSettings) => void;
   /** Takes back the day's last stroke (eraser passes included). */
@@ -209,8 +210,8 @@ interface DecorTrayProps {
   onClose?: () => void;
 }
 
-/** The sheets of cards (stickers, themes, patterns, layouts) can be pulled up to nearly full screen, or down shut. */
-const PULLABLE: DecorTool[] = ['sticker', 'theme', 'pattern', 'polaroid'];
+/** The sheets of cards (themes, patterns, layouts) can be pulled up to nearly full screen, or down shut. */
+const PULLABLE: DecorTool[] = ['theme', 'pattern', 'polaroid'];
 /** How far a pull has to go before it counts (px). */
 const PULL_STEP = 40;
 /** Less movement than this is a tap on the top edge, not a pull (px). */
@@ -288,23 +289,8 @@ function useSheetPull(onClose?: () => void) {
       el.style.height = '';
     }, SETTLE_MS);
   };
-  /** Back to the usual height (gliding, as a release does); no-op if it's there already. */
-  const collapse = () => {
-    const el = sheet.current;
-    if (!expanded || !el) return;
-    window.clearTimeout(settle.current);
-    el.style.height = `${el.offsetHeight}px`;
-    el.dataset.settling = '';
-    void el.offsetHeight;
-    el.style.height = `${normalHeight.current || el.offsetHeight}px`;
-    setExpanded(false);
-    settle.current = window.setTimeout(() => {
-      delete el.dataset.settling;
-      el.style.height = '';
-    }, SETTLE_MS);
-  };
   const handle = { onPointerDown, onPointerMove, onPointerUp: onPointerEnd, onPointerCancel: onPointerEnd };
-  return { sheet, expanded, closing, handle, collapse };
+  return { sheet, expanded, closing, handle };
 }
 
 const EFFECT_ICONS = { bold: Bold, italic: Italic, underline: Underline, strike: Strikethrough };
@@ -383,6 +369,20 @@ export function DecorTray(p: DecorTrayProps) {
   );
   const picker = picking && <ColorPicker color={custom ?? '#ff4d6d'} onPick={setColor} onClose={() => setPicking(false)} />;
 
+  // Stickers aren't a dark strip but a printed sheet a little below the
+  // middle of the screen, peeled from (StickerSheets).
+  if (p.tool === 'sticker') {
+    return (
+      <div
+        className={`decor-tray decor-tray--sticker ${p.leaving ? 'is-leaving' : ''} ${p.away ? 'is-away' : ''}`}
+        role="toolbar"
+        aria-label={label}
+      >
+        <StickerSheets onPlace={p.onPlace} />
+      </div>
+    );
+  }
+
   return (
     <div
       ref={pull.sheet}
@@ -397,37 +397,6 @@ export function DecorTray(p: DecorTrayProps) {
         </div>
       ) : (
         <div className="decor-tray__grip" aria-hidden />
-      )}
-
-      {p.tool === 'sticker' && (
-        <div className="decor-tray__stickers">
-          {STICKERS.map((sticker) => (
-            <button
-              key={sticker.id}
-              className={`decor-tray__sticker ${p.armed === sticker.id ? 'is-on' : ''}`}
-              aria-label={`스티커 ${sticker.label}`}
-              aria-pressed={p.armed === sticker.id}
-              onClick={(e) => {
-                const picking = p.armed !== sticker.id;
-                p.onArm(picking ? sticker.id : null);
-                if (!picking) return;
-                // Picked: the sheet goes back to its usual height and the
-                // sticker's row scrolls to the top of the grid, once the height has settled.
-                const btn = e.currentTarget;
-                const wasExpanded = pull.expanded;
-                pull.collapse();
-                window.setTimeout(() => {
-                  const grid = btn.parentElement;
-                  if (!grid) return;
-                  const top = grid.scrollTop + btn.getBoundingClientRect().top - grid.getBoundingClientRect().top;
-                  grid.scrollTo({ top, behavior: 'smooth' });
-                }, wasExpanded ? SETTLE_MS : 0);
-              }}
-            >
-              <img src={sticker.src} alt="" draggable={false} />
-            </button>
-          ))}
-        </div>
       )}
 
       {p.tool === 'pen' && (

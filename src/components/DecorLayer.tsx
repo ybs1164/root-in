@@ -1,5 +1,5 @@
 import { Trash2 } from 'lucide-react';
-import { useEffect, useId, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type MutableRefObject, type PointerEvent, type ReactNode } from 'react';
 import {
   CRAYON_SCALE,
   bringDecorToFront,
@@ -34,6 +34,8 @@ import {
   type Stroke,
   type TextStyle,
 } from '../domain/decor';
+import type { StickerDrop } from '../domain/stickerSheets';
+import { STICKER_EDGE } from '../lib/stickerEdge';
 
 /** The text box picked with the text tool, and whether it's being typed in. */
 export type TextFocus = { id: string; editing: boolean } | null;
@@ -42,8 +44,8 @@ interface DecorLayerProps {
   decor: DayDecor;
   /** Which tool is out; stickers and strokes only take touches with theirs. */
   tool: DecorTool | null;
-  /** Sticker picked in the tray, placed where the box is tapped. */
-  armed: string | null;
+  /** Filled in with a way to stick a sticker peeled off the sheet onto the drawing. */
+  placeRef?: MutableRefObject<((drop: StickerDrop) => void) | null>;
   pen: PenSettings;
   onChange: (decor: DayDecor) => void;
   /** Stickers and ink settle in from above once the pins have landed (it mounts with the day). */
@@ -64,6 +66,8 @@ interface DecorLayerProps {
 
 /** How far a finger may wander and still count as a tap on a box (px). */
 const TAP_SLOP = 6;
+/** A sticker just stuck down presses flat this long (matches `.decor__sticker.is-fresh`). */
+const STUCK_MS = 360;
 
 /** CSS for a text box's looks (the share image draws the same in lib/shareImage.ts). */
 const textCss = (t: PlacedText) => ({
@@ -141,19 +145,28 @@ function inkLayers(strokes: Stroke[], glowId: string, maskId: string, aspect: nu
   return layers;
 }
 
+/** Pointer capture, when the browser grants it (it can refuse, e.g. for a pointer already gone); the window still hears the let-go. */
+const capture = (el: Element | null, pointerId: number) => {
+  try {
+    el?.setPointerCapture(pointerId);
+  } catch {
+    // Not captured: moves still arrive while over the layer.
+  }
+};
+
 const newId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `s-${Date.now()}-${Math.random()}`;
 
 /**
  * Stickers and pen strokes over the ping drawing (the `.pings` box; all
- * positions are box fractions). With the sticker tool, tapping the box
- * places the picked sticker and placed ones can be dragged or removed;
+ * positions are box fractions). With the sticker tool, stickers peeled off
+ * the sheet land here (`placeRef`) and placed ones can be dragged or removed;
  * with the pen, a finger draws. Otherwise the layer is just a picture.
  */
 export default function DecorLayer({
   decor: savedDecor,
   tool,
-  armed,
+  placeRef,
   pen,
   onChange,
   enterDelayMs = 0,
@@ -219,7 +232,7 @@ export default function DecorLayer({
   const onPenDown = (e: PointerEvent) => {
     // A second finger means a pinch or a palm, not drawing: drop the stroke in progress.
     if (!e.isPrimary) return setDrawing(null);
-    e.currentTarget.setPointerCapture(e.pointerId);
+    capture(e.currentTarget, e.pointerId);
     const [x, y] = at(e);
     setDrawing({ order: nextDecorOrder(decor), tool: pen.tool, color: pen.color, width: pen.width, points: extendStroke([], x, y) });
   };
@@ -256,7 +269,7 @@ export default function DecorLayer({
   const grab = (kind: 'sticker' | 'text', id: string, e: PointerEvent, picked = false) => {
     // Captured by the layer, so the box's fingers and a second finger
     // elsewhere in the box all report to the same handlers.
-    layer.current!.setPointerCapture(e.pointerId);
+    capture(layer.current, e.pointerId);
     fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const first = !gesture.current;
     restart(kind, id);
@@ -266,20 +279,53 @@ export default function DecorLayer({
 
   const onBoxDown = (e: PointerEvent) => {
     if (e.target !== e.currentTarget) return; // a sticker handles its own press
+    dropStale(e);
     // A second finger while one holds a sticker: pinch and twist it.
     if (gesture.current && fingers.current.size === 1) return grab(gesture.current.kind, gesture.current.id, e);
     if (!e.isPrimary) return;
     setSelected(null);
-    if (!armed) return;
-    const [x, y] = at(e);
-    const sticker = { order: nextDecorOrder(decor), id: newId(), stickerId: armed, x: clamp01(x), y: clamp01(y), size: STICKER_SIZE };
-    changeDecor({ ...decor, stickers: [...decor.stickers, sticker] });
-    setSelected(sticker.id);
   };
+
+  // A sticker off the sheet lands where it was let go (the nearest spot on
+  // the box if that's off it), as big and as turned as it was carried, and
+  // is picked so it can be moved or pinched straight away.
+  const [fresh, setFresh] = useState<string | null>(null);
+  useEffect(() => {
+    if (!placeRef) return;
+    placeRef.current = (drop) => {
+      const box = layer.current?.getBoundingClientRect();
+      if (!box?.width) return;
+      const now = decorRef.current;
+      const [x, y] = drop.at ? [(drop.at.x - box.left) / box.width, (drop.at.y - box.top) / box.height] : [0.5, 0.5];
+      // A sticker's width on the drawing is 0.78 of its size in box widths (`.decor__sticker`).
+      const size = drop.width ? Math.min(STICKER_MAX, Math.max(STICKER_MIN, drop.width / (box.width * 0.78))) : STICKER_SIZE;
+      const sticker = {
+        order: nextDecorOrder(now),
+        id: newId(),
+        stickerId: drop.stickerId,
+        x: clamp01(x),
+        y: clamp01(y),
+        size,
+        ...(drop.rotate ? { rotate: drop.rotate } : {}),
+      };
+      changeDecor({ ...now, stickers: [...now.stickers, sticker] });
+      setSelected(sticker.id);
+      setFresh(sticker.id);
+    };
+    return () => {
+      placeRef.current = null;
+    };
+  });
+  useEffect(() => {
+    if (!fresh) return;
+    const t = window.setTimeout(() => setFresh(null), STUCK_MS);
+    return () => window.clearTimeout(t);
+  }, [fresh]);
 
   const onStickerDown = (id: string) => (e: PointerEvent) => {
     if (tool !== 'sticker') return;
     e.stopPropagation();
+    dropStale(e);
     if (gesture.current && gesture.current.id !== id) {
       // Second finger landed on another sticker: still the first one's pinch.
       if (fingers.current.size === 1) grab(gesture.current.kind, gesture.current.id, e);
@@ -361,6 +407,34 @@ export default function DecorLayer({
     else changeDecor({ ...decor, texts: (decor.texts ?? []).map((t) => (t.id === id ? { ...t, ...pose } : t)) });
   };
 
+  // A let-go that never reached the layer (its pointer capture was dropped,
+  // or the finger lifted somewhere the layer doesn't hear) would leave the
+  // piece held: the next touch would be taken for a second finger and pinch
+  // it. So the window listens for let-gos too, and a first finger landing
+  // while another still seems down settles that one where it was last seen.
+  const upRef = useRef(onStickerUp);
+  upRef.current = onStickerUp;
+  useEffect(() => {
+    if (tool !== 'sticker' && tool !== 'text') return;
+    const up = (e: globalThis.PointerEvent) => {
+      if (fingers.current.has(e.pointerId) || pendingPinch.current?.pointerId === e.pointerId) upRef.current(e as unknown as PointerEvent);
+    };
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    return () => {
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    };
+  }, [tool]);
+  const dropStale = (e: PointerEvent) => {
+    if (!e.isPrimary) return;
+    if (pendingPinch.current && pendingPinch.current.pointerId !== e.pointerId) pendingPinch.current = null;
+    for (const [pointerId, at] of [...fingers.current]) {
+      if (pointerId === e.pointerId) continue;
+      onStickerUp({ pointerId, type: 'pointerup', clientX: at.x, clientY: at.y } as unknown as PointerEvent);
+    }
+  };
+
   // ----- Text -----
 
   // The box being typed in: a copy until it's done (a new one isn't on the
@@ -416,7 +490,7 @@ export default function DecorLayer({
   const startPinch = (e: PointerEvent) => {
     const p = pendingPinch.current!;
     pendingPinch.current = null;
-    layer.current!.setPointerCapture(e.pointerId);
+    capture(layer.current, e.pointerId);
     fingers.current.clear();
     fingers.current.set(p.pointerId, { x: p.x, y: p.y });
     fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -425,6 +499,7 @@ export default function DecorLayer({
 
   const onTextBoxDown = (e: PointerEvent) => {
     if (e.target !== e.currentTarget) return; // a box handles its own press
+    dropStale(e);
     if (gesture.current && fingers.current.size === 1) return grab(gesture.current.kind, gesture.current.id, e);
     if (pendingPinch.current && e.pointerId !== pendingPinch.current.pointerId) return startPinch(e);
     if (!e.isPrimary) return;
@@ -433,7 +508,7 @@ export default function DecorLayer({
     // A tap away from the box being typed in or picked lets go of it first.
     if (draftRef.current) return finishTyping();
     if (textFocus && !textFocus.editing) {
-      e.currentTarget.setPointerCapture(e.pointerId);
+      capture(e.currentTarget, e.pointerId);
       pendingPinch.current = { pointerId: e.pointerId, id: textFocus.id, x: e.clientX, y: e.clientY };
       return;
     }
@@ -449,6 +524,7 @@ export default function DecorLayer({
     e.stopPropagation();
     if (draftRef.current?.id === id) return; // typing in it: the finger moves the caret
     e.preventDefault();
+    dropStale(e);
     if (pendingPinch.current) return startPinch(e); // the second finger of a pinch on the picked box
     if (draftRef.current) finishTyping();
     if (gesture.current && gesture.current.id !== id) {
@@ -477,7 +553,7 @@ export default function DecorLayer({
   return (
     <div
       ref={layer}
-      className={`decor ${active ? `decor--${tool}` : ''} ${tool === 'sticker' && armed ? 'is-armed' : ''} ${tool === 'pen' && pen.tool === 'eraser' ? 'is-erasing' : ''}`}
+      className={`decor ${active ? `decor--${tool}` : ''} ${tool === 'pen' && pen.tool === 'eraser' ? 'is-erasing' : ''}`}
       onPointerDown={tool === 'pen' ? onPenDown : tool === 'sticker' ? onBoxDown : tool === 'text' ? onTextBoxDown : undefined}
       onPointerMove={tool === 'pen' ? onPenMove : tool === 'sticker' || tool === 'text' ? onStickerMove : undefined}
       onPointerUp={tool === 'pen' ? onPenUp : tool === 'sticker' || tool === 'text' ? onStickerUp : undefined}
@@ -529,14 +605,16 @@ export default function DecorLayer({
         return (
           <span
             key={s.id}
-            className={`decor__sticker ${isSelected ? 'is-selected' : ''} ${live?.id === s.id ? `is-lifted ${overTrash ? 'is-doomed' : ''}` : ''}`}
+            className={`decor__sticker ${isSelected ? 'is-selected' : ''} ${fresh === s.id ? 'is-fresh' : ''} ${live?.id === s.id ? `is-lifted ${overTrash ? 'is-doomed' : ''}` : ''}`}
             style={{
               left: `${pos.x * 100}%`,
               top: `${pos.y * 100}%`,
               width: `${pos.size * 78}cqw`,
+              // The die-cut edge grows with the sticker (STICKER_EDGE of its width).
+              '--edge': `${pos.size * 78 * STICKER_EDGE}cqw`,
               zIndex: zIndex.get(`sticker:${i}`),
               rotate: `${pos.rotate ?? 0}deg`,
-            }}
+            } as CSSProperties}
             onPointerDown={onStickerDown(s.id)}
           >
             <img src={sticker.src} alt={sticker.label} draggable={false} />
