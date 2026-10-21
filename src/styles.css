@@ -8,6 +8,17 @@
   --muted: #979bab;
   --border: rgba(42, 51, 84, 0.09);
   --accent: #6c90d8;
+  /* Logo (Logo.tsx, public/brand/): light version — navy pin, blue route (cream tile when shown).
+     Follows the light/dark scheme only; decoration themes leave it alone. */
+  --logo-light-tile: #fbf8f1;
+  --logo-light-pin: #2a3354;
+  --logo-light-ink: #6c90d8;
+  --logo-dark-tile: #2a3354;
+  --logo-dark-pin: #ffffff;
+  --logo-dark-ink: #6c90d8;
+  --logo-tile: var(--logo-light-tile);
+  --logo-pin: var(--logo-light-pin);
+  --logo-ink: var(--logo-light-ink);
   --accent-strong: #5576c2;
   --accent-soft: #e5edfa;
   --on-accent: #ffffff;
@@ -162,6 +173,10 @@
     --dialog-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
     --park-green: #22402f;
     --round-icon: var(--ink-white);
+    /* Logo, dark version: white pin, blue route (navy tile when shown). */
+    --logo-tile: var(--logo-dark-tile);
+    --logo-pin: var(--logo-dark-pin);
+    --logo-ink: var(--logo-dark-ink);
   }
 }
 
@@ -195,6 +210,9 @@
   --dialog-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
   --park-green: #22402f;
   --round-icon: var(--ink-white);
+  --logo-tile: var(--logo-dark-tile);
+  --logo-pin: var(--logo-dark-pin);
+  --logo-ink: var(--logo-dark-ink);
 }
 
 :root {
@@ -217,11 +235,6 @@
   /* The eraser's ring while rubbing (DecorLayer): reads on light and dark ink alike. */
   --eraser-fill: rgba(255, 255, 255, 0.35);
   --eraser-ring: rgba(40, 40, 40, 0.55);
-  /* 디스플레이 및 언어 → 디스플레이: samples of the light and dark pages (fixed, whatever is showing). */
-  --scheme-light-bg: #fbf8f1;
-  --scheme-light-accent: #6c90d8;
-  --scheme-dark-bg: #0f1626;
-  --scheme-dark-accent: #6688cc;
   --swatch-default-bg: #fbf8f1;
   --swatch-default-accent: #6c90d8;
   --swatch-matcha-bg: #eef1e3;
@@ -698,36 +711,38 @@ button:disabled {
   padding-left: 8px;
 }
 
-.search__logo {
-  font-size: 17px;
-  white-space: nowrap;
-}
-
-/* root-in wordmark (components/Logo.tsx) */
+/* root-in logo (components/Logo.tsx): the app-icon tile (디스플레이 settings), or the mark alone. */
 .logo {
-  display: inline-flex;
-  align-items: baseline;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--text);
+  display: block;
+  width: 32px;
+  height: 32px;
+  /* Inline SVG isn't clipped by border-radius; the route runs off the tile's edge. */
+  clip-path: inset(0 round 22.5%);
 }
 
-.logo__in {
-  margin-left: 0.07em;
-  color: var(--accent);
+/* Mark only (no tile): the route just stops at the square's edge, no rounded corner. */
+.logo--mark {
+  clip-path: none;
 }
 
-/* The pin i: bigger than the letters on purpose; tip on the baseline. */
-.logo__i {
-  width: 0.72em;
-  height: 0.95em;
-  margin: 0 0.01em;
-  fill: currentColor;
-  overflow: visible;
+.logo__tile {
+  fill: var(--logo-tile);
 }
 
-.logo__hole {
-  fill: var(--surface);
+.logo__pin {
+  fill: var(--logo-pin);
+}
+
+.logo__drop {
+  fill: var(--logo-ink);
+}
+
+.logo__route {
+  fill: none;
+  stroke: var(--logo-ink);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .search__bar input {
@@ -5493,7 +5508,7 @@ button:disabled {
 /* 알림 설정 → 투데이 알림·공유수 알림: each a 출발 안내판 — one navy board of flip cells, one
    per hour. A thin line across each cell's middle reads as a split-flap
    board; only the lit cells turn blue. */
-/* 디스플레이: a small square sample of each mode with its name under it;
+/* 디스플레이: each mode's app icon with its name under it;
    the one in use has an accent ring round its square. */
 .display__schemes {
   display: flex;
@@ -5525,7 +5540,7 @@ button:disabled {
   width: 52px;
   height: 52px;
   border-radius: 12px;
-  box-shadow: inset 0 0 0 1px var(--border);
+  box-shadow: 0 0 0 1px var(--border);
   outline: 2px solid transparent;
   outline-offset: 3px;
 }
@@ -5534,34 +5549,24 @@ button:disabled {
   outline-color: var(--accent);
 }
 
+/* Each mode's sample is its app-icon tile (Logo), in that mode's logo colours whatever the
+   app is showing now. */
+.display__swatch .logo {
+  width: 100%;
+  height: 100%;
+  clip-path: inset(0 round 12px);
+}
+
 .display__swatch--light {
-  background: var(--scheme-light-bg);
-  --swatch-accent: var(--scheme-light-accent);
+  --logo-tile: var(--logo-light-tile);
+  --logo-pin: var(--logo-light-pin);
+  --logo-ink: var(--logo-light-ink);
 }
 
 .display__swatch--dark {
-  background: var(--scheme-dark-bg);
-  --swatch-accent: var(--scheme-dark-accent);
-}
-
-/* The accent: a pin and a bar under it, like the theme cards. */
-.display__swatch .pin-glyph {
-  position: absolute;
-  left: 6px;
-  top: 6px;
-  width: 22px;
-  height: 22px;
-  color: var(--swatch-accent);
-}
-
-.display__swatch i {
-  position: absolute;
-  left: 9px;
-  right: 9px;
-  bottom: 10px;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--swatch-accent);
+  --logo-tile: var(--logo-dark-tile);
+  --logo-pin: var(--logo-dark-pin);
+  --logo-ink: var(--logo-dark-ink);
 }
 
 /* 언어 with its (only) choice on the same line, at its right. */
