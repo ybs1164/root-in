@@ -2,6 +2,7 @@ import * as clipperNs from 'clipper-lib';
 import type { PolygonRings } from './baseMap';
 import type { BaseShapes } from './baseShapes';
 import { metersPerPixel, type Bbox, type LonLat, type MapViewport, type Ring } from './districtMap';
+import { smoothClosed } from './curves';
 import { screenProjection } from './districtRendering';
 
 const ClipperLib = ((clipperNs as unknown as { default?: typeof clipperNs }).default ?? clipperNs) as typeof clipperNs;
@@ -55,6 +56,10 @@ export interface AreaShapes {
   partTags?: AreaTag[];
   otherTags?: AreaTag[];
   labels?: AreaLabel[];
+  /** Index-aligned with `parts`: which of `PART_TONES` tones each is drawn in (neighbours differ, M11). */
+  partTones?: number[];
+  /** The parts as one silhouette, gaps closed: where the soft shadow goes (M11). */
+  partsOutline?: PolygonRings[];
   /** Water, land, parks and roads for the same region (docs/plan-mainmap-style.md M2); missing where the base map didn't load. */
   base?: BaseShapes;
 }
@@ -66,34 +71,14 @@ export interface AreaShapes {
  */
 export const SIDO_FOCUS_MIN_MPP = 120;
 /**
- * Below this the focus is one 읍면동 split into sections (구획). 8 m/px is a
- * phone screen 3km wide: a city 읍면동 fills about half of it.
+ * Above `SIDO_FOCUS_MIN_MPP` a 시도 is split into its 시군구; closer in, the
+ * 시군구 are split into 읍면동, and that is as fine as the map gets at any
+ * zoom (docs/plan-mainmap-style.md M9 — the finer road-cut pieces were too
+ * many layers for a map that is only a stage for the pins).
  */
-export const DONG_FOCUS_MAX_MPP = 8;
-/**
- * Below this a section is split into blocks (local and service roads). 2 m/px
- * is a phone screen 750m wide, where a city section is a few big blobs.
- */
-export const SECTION_FOCUS_MAX_MPP = 2;
-/**
- * Below this a block is split by footways, where any do (260m wide). Most
- * city blocks aren't, and keep the section-level drawing.
- */
-export const BLOCK_FOCUS_MAX_MPP = 0.7;
-/**
- * Below this every road shows (95m wide): the pieces left after each road
- * inside is cut out as a thin seam, dead ends and footways included.
- */
-export const ROAD_FOCUS_MAX_MPP = 0.3;
-
-export type FocusLevel = 'sido' | 'sgg' | 'dong' | 'section' | 'block' | 'road';
+export type FocusLevel = 'sido' | 'sgg';
 export function focusLevel(viewport: MapViewport): FocusLevel {
-  const mpp = metersPerPixel(viewport);
-  if (mpp >= SIDO_FOCUS_MIN_MPP) return 'sido';
-  if (mpp >= DONG_FOCUS_MAX_MPP) return 'sgg';
-  if (mpp >= SECTION_FOCUS_MAX_MPP) return 'dong';
-  if (mpp >= BLOCK_FOCUS_MAX_MPP) return 'section';
-  return mpp >= ROAD_FOCUS_MAX_MPP ? 'block' : 'road';
+  return metersPerPixel(viewport) >= SIDO_FOCUS_MIN_MPP ? 'sido' : 'sgg';
 }
 
 /** All focused areas of a map as one key (also tells two maps with different foci apart). */
@@ -214,8 +199,8 @@ export function areaAt(areas: AdminArea[], point: LonLat): AdminArea | null {
   return best;
 }
 
-/** Gap on each side of an area edge, so neighbors sit 2×GAP apart. */
-const GAP_PX = 2;
+/** Gap on each side of an area edge, so neighbors sit 2×GAP apart (thin: the four tones tell them apart too, M11). */
+const GAP_PX = 1.5;
 // Clipper works on integers: hundredths of a pixel.
 const SCALE = 100;
 /**
@@ -223,7 +208,7 @@ const SCALE = 100;
  * is cut small, the shapes can still come close; each
  * one then gives way along its neighbor's outline grown by this.
  */
-const MIN_GAP_PX = 3;
+const MIN_GAP_PX = 2.5;
 // Sharp corners: a miter join keeps a corner pointed after shrinking and
 // growing back. The limit (× offset) only blunts needle-thin spikes.
 const MITER_LIMIT = 4;
@@ -236,9 +221,21 @@ const ARC_TOLERANCE_PX = 0.5;
 /**
  * Source outlines are far more detailed than the screen when zoomed out;
  * detail below this (px) is dropped before any shaping. Small next to the
- * smoothing window, so both sides of a shared border still end up alike.
+ * smoothing below, so both sides of a shared border still end up alike.
  */
-const INPUT_TOLERANCE_PX = 0.5;
+const INPUT_TOLERANCE_PX = 1.5;
+/**
+ * Each area is closed and opened by this much (px) before its gap is cut
+ * (docs/plan-mainmap-style.md M10): notches and teeth from a border that
+ * follows every street, and spikes thinner than twice this, smooth away, and
+ * the corners come out round — calm, blobby districts as on simplified and
+ * illustrated city maps, instead of a jagged mosaic.
+ */
+const SMOOTH_PX = 4;
+/** Before the curve is drawn through it, the outline keeps only detail above this (px). */
+const CURVE_SIMPLIFY_PX = 2.5;
+/** The curve is sampled about this often (px). */
+const CURVE_STEP_PX = 3;
 
 type Pt = clipperNs.IntPoint;
 
@@ -339,9 +336,8 @@ export function rectangleBearing(polygons: PolygonRings[]): number {
 }
 
 /**
- * Each area is drawn as its own outline (corners and edges as in the source,
- * only cleaned of sub-pixel detail) inset by the gap, the same width on every
- * side. Neighbors share their border; outside areas are first cut along the
+ * Each area is drawn as its own outline, smoothed (`SMOOTH_PX`) and inset by
+ * the gap, the same width on every side. Neighbors share their border; outside areas are first cut along the
  * focus's outline, since the two come from different boundary files. Done in
  * screen pixels so the look holds at every zoom.
  */
@@ -500,18 +496,20 @@ function screenTools(map: AreaMap, viewport: MapViewport, cache?: AreaShapeCache
     ...map.parts.map((a) => ({ part: true, tag: areaTag(a), paths: shape(a, true) })),
     ...map.others.map((a) => ({ part: false, tag: areaTag(a), paths: shape(a, false) })),
   ].filter((s) => s.paths.length);
-  const finish = (shaped: Shaped[]): AreaShapes => {
+  const finish = (shaped: Shaped[], extra: { tones?: number[]; outline?: clipperNs.Paths } = {}): AreaShapes => {
     const collect = (part: boolean) => {
       const polygons: PolygonRings[] = [];
       const tags: AreaTag[] = [];
-      for (const s of shaped) {
-        if (s.part !== part) continue;
+      const tones: number[] = [];
+      shaped.forEach((s, i) => {
+        if (s.part !== part) return;
         for (const polygon of rings(s.paths)) {
           polygons.push(polygon);
           tags.push(s.tag);
+          tones.push(extra.tones?.[i] ?? 0);
         }
-      }
-      return { polygons, tags };
+      });
+      return { polygons, tags, tones };
     };
     const parts = collect(true);
     const others = collect(false);
@@ -520,11 +518,59 @@ function screenTools(map: AreaMap, viewport: MapViewport, cache?: AreaShapeCache
       others: others.polygons,
       partTags: parts.tags,
       otherTags: others.tags,
+      partTones: parts.tones,
+      ...(extra.outline ? { partsOutline: rings(extra.outline) } : {}),
       // From the source outlines, so it doesn't depend on the current zoom.
       focus: { code: map.focus.code, bearing: rectangleBearing(map.parts.flatMap((a) => a.polygons)) },
     };
   };
   return { offset, project, boolean, visibleOf, cached, remember, shapeAll, finish };
+}
+
+/** A split area smaller than a square this wide (px) joins its neighbour (amalgamation). */
+const MERGE_BELOW_PX = 22;
+
+/**
+ * Which small parts join which neighbour: each part under `MERGE_BELOW_PX`²
+ * goes to the part its outline touches most (a bigger one if any touches),
+ * measured by how much of the neighbour lies within a few pixels of it. A
+ * small part that touches none stays on its own.
+ */
+function amalgamate(
+  parts: AdminArea[],
+  visibleOf: (area: AdminArea) => { paths: clipperNs.Paths },
+  offset: (paths: clipperNs.Paths, delta: number) => clipperNs.Paths,
+  boolean: (type: number, subject: clipperNs.Paths, against: clipperNs.Paths) => clipperNs.Paths,
+) {
+  const absorbs = new Map<AdminArea, AdminArea[]>();
+  const absorbed = new Set<AdminArea>();
+  if (parts.length < 2) return { absorbs, absorbed };
+  const areaOf = (paths: clipperNs.Paths) => Math.abs(paths.reduce((sum, path) => sum + ClipperLib.Clipper.Area(path), 0)) / (SCALE * SCALE);
+  const visible = new Map(parts.map((a) => [a, visibleOf(a).paths]));
+  const size = new Map(parts.map((a) => [a, areaOf(visible.get(a)!)]));
+  const limit = MERGE_BELOW_PX * MERGE_BELOW_PX;
+  const small = parts.filter((a) => size.get(a)! > 0 && size.get(a)! < limit);
+  const boxes = new Map(parts.map((a) => [a, boxOf(visible.get(a)!)]));
+  for (const area of small.sort((a, b) => size.get(a)! - size.get(b)!)) {
+    const near = offset(visible.get(area)!, 3);
+    const nearBox = boxOf(near);
+    let best: AdminArea | null = null;
+    let bestScore = 0;
+    for (const other of parts) {
+      if (other === area || absorbed.has(other) || !touches(boxes.get(other)!, nearBox)) continue;
+      const contact = areaOf(boolean(ClipperLib.ClipType.ctIntersection, near, visible.get(other)!));
+      // Prefer a part big enough to stay; among those, the longest contact.
+      const score = contact + (size.get(other)! >= limit ? limit * 4 : 0);
+      if (contact > 0 && score > bestScore) { best = other; bestScore = score; }
+    }
+    if (!best) continue;
+    // A small part that already took others in hands them on with itself.
+    const own = absorbs.get(area) ?? [];
+    absorbs.delete(area);
+    absorbs.set(best, [...(absorbs.get(best) ?? []), area, ...own]);
+    absorbed.add(area);
+  }
+  return { absorbs, absorbed };
 }
 
 export function renderAreaMap(map: AreaMap, viewport: MapViewport, cache?: AreaShapeCache): AreaShapes {
@@ -552,11 +598,31 @@ export function renderAreaMap(map: AreaMap, viewport: MapViewport, cache?: AreaS
       if (cut.length) visible = boolean(ClipperLib.ClipType.ctDifference, visible, cut);
     }
     if (visible.length === 0) return [];
-    // The area's own outline, only inset by the gap (cut last so it is the
-    // same width all round).
-    return offset(visible, -GAP_PX, true);
+    // Smoothed (close, then open: notches fill, spikes go, corners round),
+    // then inset by the gap, cut last so it is the same width all round. An
+    // area too small to survive the opening keeps its closed shape: a tiny
+    // 동 is still a place on the map.
+    const closed = offset(offset(visible, SMOOTH_PX), -SMOOTH_PX);
+    const opened = offset(offset(closed, -SMOOTH_PX), SMOOTH_PX);
+    const inset = offset(opened.length ? opened : closed, -GAP_PX);
+    const shape = inset.length ? inset : opened.length ? opened : closed;
+    // One continuous curve through the simplified outline (M11), cleaned of
+    // any tiny self-crossing the curve makes at a tight bend.
+    const curved = shape.map((path) => smoothClosed(simplifyClosed(path, CURVE_SIMPLIFY_PX), CURVE_STEP_PX * SCALE));
+    return ClipperLib.Clipper.SimplifyPolygons(curved, ClipperLib.PolyFillType.pftNonZero);
   };
+  // Amalgamation (M11): a split area too small to read on this screen joins
+  // the neighbour it touches most, so the mosaic is of like-sized pieces.
+  const { absorbs, absorbed } = amalgamate(map.parts, visibleOf, offset, boolean);
   const shaped = shapeAll((area, part) => {
+    if (part && absorbed.has(area)) return [];
+    const extra = part ? absorbs.get(area) : undefined;
+    if (extra) {
+      const own = visibleOf(area).paths;
+      const joined = boolean(ClipperLib.ClipType.ctUnion, [...own, ...extra.flatMap((a) => visibleOf(a).paths)], []);
+      // Grown together across their shared border before the gap is cut.
+      return shapeVisible(offset(offset(joined, GAP_PX + 1), -(GAP_PX + 1)), part);
+    }
     const hit = cached(area, part);
     if (hit) return hit;
     const { paths, whole } = visibleOf(area);
@@ -578,7 +644,43 @@ export function renderAreaMap(map: AreaMap, viewport: MapViewport, cache?: AreaS
     const keepOff = near.flatMap((j) => (grown[j] ??= offset(shaped[j].paths, MIN_GAP_PX)));
     shaped[i].paths = boolean(ClipperLib.ClipType.ctDifference, shaped[i].paths, keepOff);
   }
-  return finish(shaped);
+  const partIndexes = shaped.flatMap((s, i) => (s.part ? [i] : []));
+  // Neighbouring parts: within a little more than the gap of each other.
+  const near = (i: number, j: number) =>
+    touches(boxes[i], boxes[j], (2 * GAP_PX + 1) * SCALE) &&
+    boolean(ClipperLib.ClipType.ctIntersection, offset(shaped[i].paths, 2 * GAP_PX + 1), shaped[j].paths).length > 0;
+  const tones = toneParts(partIndexes, near);
+  // The split parts as one silhouette (their gaps closed), for the soft shadow under them.
+  const bridge = 2 * GAP_PX;
+  // Small holes left where three gaps meet would each cast a ring of shadow
+  // (dark dots at the junctions): only holes a real place could be are kept.
+  const outline = offset(offset(partIndexes.flatMap((i) => shaped[i].paths), bridge), -bridge)
+    .filter((path) => ClipperLib.Clipper.Orientation(path) || Math.abs(ClipperLib.Clipper.Area(path)) > (OUTLINE_HOLE_PX * SCALE) ** 2);
+  return finish(shaped, { tones, outline });
+}
+
+/** Holes in the shadow's outline smaller than a square this wide (px) are filled. */
+const OUTLINE_HOLE_PX = 30;
+
+/** How many tones the split parts take turns in (the four-colour map's four). */
+export const PART_TONES = 4;
+
+/**
+ * A tone for each part so that no two neighbours share one (M11): greedy
+ * colouring, most-connected parts first, as in a four-colour map; with
+ * more neighbours than tones, the tone fewest of them use. Indexed like
+ * `indexes`' values (other entries left undefined).
+ */
+function toneParts(indexes: number[], near: (i: number, j: number) => boolean): number[] {
+  const neighbours = new Map(indexes.map((i) => [i, indexes.filter((j) => j !== i && near(i, j))]));
+  const tones: number[] = [];
+  const order = [...indexes].sort((a, b) => neighbours.get(b)!.length - neighbours.get(a)!.length || a - b);
+  for (const i of order) {
+    const used = neighbours.get(i)!.map((j) => tones[j]).filter((t) => t !== undefined);
+    const free = Array.from({ length: PART_TONES }, (_, t) => t).find((t) => !used.includes(t));
+    tones[i] = free ?? Array.from({ length: PART_TONES }, (_, t) => t).sort((a, b) => used.filter((u) => u === a).length - used.filter((u) => u === b).length)[0];
+  }
+  return tones;
 }
 
 /**

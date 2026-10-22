@@ -97,7 +97,7 @@ describe('area renderer', () => {
     expect(next && 'shapes' in next).toBe(true);
   });
 
-  it('sends the base map (water, land, roads) with the shapes, the draft included', async () => {
+  it('sends the base map (its land: water is where there is none) with the shapes, the draft included', async () => {
     const renderer = new AreaRenderer(fakeService());
     const onDraft = vi.fn();
     const done = await renderer.render(at(127, 37), {}, () => true, onDraft);
@@ -105,7 +105,7 @@ describe('area renderer', () => {
     expect(draftBase.land).toHaveLength(1);
     // The river is far wider than a pond: it stays a hole, so water shows there.
     expect(draftBase.land[0]).toHaveLength(2);
-    expect(done && 'shapes' in done && done.shapes.base?.roads.map((r) => r.tier)).toEqual([1]);
+    expect(done && 'shapes' in done && done.shapes.base?.land).toHaveLength(1);
   });
 
   it('fetches the base map for the whole drawn region, wider than the screen', async () => {
