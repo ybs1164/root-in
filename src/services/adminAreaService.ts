@@ -14,12 +14,9 @@ const centerRange = (b: Bbox): Bbox => {
 /**
  * Administrative areas for the screen (see scripts/korea-data/build_admin.py):
  * sido.json has every 시도, sgg/<시도>.json its 시군구, dong/<시군구>.json its
- * 읍면동, section/<시군구>.json the road-cut sections (구획) of each 읍면동,
- * block/<시군구>/<읍면동>.json their blocks, walk/<시군구>/<읍면동>.json
- * the pieces of blocks that footways and area borders split (only where any
- * are) and road/<시군구>/<읍면동>.json what is left of each of those once every
- * road inside is cut out.
- * Only the parents around the screen are fetched.
+ * 읍면동. Only the parents around the screen are fetched. (The road-cut
+ * files below 읍면동 — section/, block/, walk/, road/ — are no longer read:
+ * docs/plan-mainmap-style.md M9.)
  */
 export interface AdminAreaService {
   /** The areas reaching into `focusRange` are split (the middle one is the main); defaults to the screen's middle. */
@@ -30,7 +27,6 @@ const BASE = `${mapDataRoot()}admin/`;
 /** Neighboring 시도 whose 시군구 are loaded; more only on a very wide screen. */
 const MAX_SIDO_FILES = 4;
 /** 시군구 whose 읍면동 are loaded around a focused 읍면동. */
-const MAX_SGG_FILES = 6;
 
 const MAX_NAME = 40;
 const validPoint = (p: unknown): p is LonLat => Array.isArray(p) && p.length === 2 &&
@@ -141,94 +137,11 @@ export class StaticAdminAreaService implements AdminAreaService {
       const focus = areaAt(sggLists[0], center) ?? sggFoci[0];
       if (!focus) return null;
       const sggNear = near(allSgg);
-      if (focusLevel(viewport) === 'sgg') {
-        const lists = await Promise.all(sggFoci.map((f) => this.load(`dong/${f.code}.json`, signal)));
-        if (signal?.aborted || !lists[0]) return null;
-        return mapOf(sggFoci, lists.flatMap((list) => list ?? []), sggNear);
-      }
-
-      // Zoomed into 읍면동: their sections, and the 읍면동 around them whole.
-      const sggWithDongs = [focus, ...sggNear.filter((a) => a.code !== focus.code)].slice(0, MAX_SGG_FILES);
-      const [firstSections, ...dongLists] = await Promise.all([
-        this.load(`section/${focus.code}.json`, signal),
-        ...sggWithDongs.map((s) => this.load(`dong/${s.code}.json`, signal)),
-      ]);
-      if (signal?.aborted || !dongLists[0]) return null;
-      const dongFoci = areasInRange(dongLists.flatMap((list) => list ?? []), range);
-      if (!dongFoci.length) return null;
-      // A focused 읍면동 across a 시군구 line needs that 시군구's sections too.
-      const sectionsOf = new Map<string, AdminArea[] | null>([[focus.code, firstSections]]);
-      await Promise.all(dongFoci.map(async (dong) => {
-        const owner = sggWithDongs.find((_, i) => dongLists[i]?.includes(dong));
-        if (!owner || sectionsOf.has(owner.code)) return;
-        sectionsOf.set(owner.code, await this.load(`section/${owner.code}.json`, signal));
-      }));
-      if (signal?.aborted) return null;
-      // No section file (it wasn't built or deployed): the 읍면동 stands whole as its one section.
-      const sections = dongFoci.flatMap((dong) => {
-        const owner = sggWithDongs.find((_, i) => dongLists[i]?.includes(dong));
-        const list = owner && sectionsOf.get(owner.code);
-        return list ? list.filter((a) => a.code.startsWith(`${dong.code}-`)) : [{ ...dong, code: `${dong.code}-0` }];
-      });
-      const others = [
-        ...near(dongLists.flatMap((list) => list ?? [])),
-        // 시군구 whose 읍면동 weren't loaded stay whole.
-        ...sggNear.filter((s) => !sggWithDongs.some((w, i) => w.code === s.code && dongLists[i])),
-      ];
-      const under = (area: AdminArea, parents: AdminArea[]) => parents.some((p) => area.code.startsWith(`${p.code}-`));
-      const parts = sections;
-      const level = focusLevel(viewport);
-      if (level === 'dong') return mapOf(dongFoci, parts, others);
-
-      // Closer in, each step splits the areas reaching into the range one
-      // level further; the rest of their parent stays whole at the level
-      // above. A part without finer pieces (no file, or no road cuts it) is
-      // drawn whole, so missing files only make the map coarser.
-      const sggOf = (dong: AdminArea) => sggWithDongs.find((_, i) => dongLists[i]?.includes(dong))?.code;
-      const filesOf = (folder: string, dongs: AdminArea[]) => Promise.all(dongs.map((d) => {
-        const sgg = sggOf(d);
-        return sgg ? this.load(`${folder}/${sgg}/${d.code}.json`, signal) : Promise.resolve(null);
-      }));
-      const splitInto = (foci: AdminArea[], pieces: AdminArea[]) =>
-        foci.flatMap((f) => { const own = pieces.filter((p) => under(p, [f])); return own.length ? own : [f]; });
-      const otherDongs = others.filter((a) => !dongFoci.includes(a));
-
-      const sectionFoci = areasInRange(parts, range);
-      if (!sectionFoci.length) return mapOf(dongFoci, parts, others);
-      const blocks = (await filesOf('block', dongFoci)).flatMap((list) => list ?? []);
-      if (signal?.aborted) return null;
-      const sectionMap = mapOf(sectionFoci, splitInto(sectionFoci, blocks), [
-        ...near(parts.filter((s) => !sectionFoci.includes(s))), ...otherDongs,
-      ]);
-      if (level === 'section') return sectionMap;
-
-      // Footways split only some blocks; when none of the focused ones is,
-      // the drawing stays as it was a step out.
-      const blockFoci = areasInRange(blocks, range);
-      const walkDongs = dongFoci.filter((d) => blockFoci.some((b) => b.code.startsWith(`${d.code}-`)));
-      const pieces = (await filesOf('walk', walkDongs)).flatMap((list) => list ?? []).filter((p) => under(p, blockFoci));
-      if (signal?.aborted) return null;
-      const parentCode = (a: AdminArea) => a.code.slice(0, a.code.lastIndexOf('-'));
-      const blockSections = new Set(blockFoci.map(parentCode));
-      // The walk drawing: a split block's pieces, any other block whole.
-      const walkParts = splitInto(blockFoci, pieces);
-      const walkOthers = [
-        ...near(blocks.filter((b) => !blockFoci.includes(b) && blockSections.has(parentCode(b)))),
-        ...near(parts.filter((s) => !blockSections.has(s.code))),
-        ...otherDongs,
-      ];
-      const walkMap = pieces.length ? mapOf(blockFoci, walkParts, walkOthers) : sectionMap;
-      if (level === 'block') return walkMap;
-
-      // Closest: each piece the focus reaches is cut by the roads inside it.
-      const leafFoci = areasInRange(walkParts, range);
-      const roadDongs = dongFoci.filter((d) => leafFoci.some((l) => l.code.startsWith(`${d.code}-`)));
-      const roadPieces = (await filesOf('road', roadDongs)).flatMap((list) => list ?? []).filter((p) => under(p, leafFoci));
-      if (signal?.aborted) return null;
-      if (!roadPieces.length) return walkMap;
-      return mapOf(leafFoci, splitInto(leafFoci, roadPieces), [
-        ...near(walkParts.filter((p) => !leafFoci.includes(p))), ...walkOthers.filter((a) => !walkParts.includes(a)),
-      ]);
+      // From here in the map stays at 읍면동, the smallest shape it draws
+      // (docs/plan-mainmap-style.md M9): no finer pieces cut by roads.
+      const lists = await Promise.all(sggFoci.map((f) => this.load(`dong/${f.code}.json`, signal)));
+      if (signal?.aborted || !lists[0]) return null;
+      return mapOf(sggFoci, lists.flatMap((list) => list ?? []), sggNear);
     } catch (error) {
       if (import.meta.env.DEV && !signal?.aborted) console.warn('Admin areas loading failed', error);
       return null;

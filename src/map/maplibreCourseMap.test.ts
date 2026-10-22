@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MapLibreCourseMap } from './maplibreCourseMap';
+import { SHADOW } from './mapStyle';
 
 // Exercise fitting without a WebGL canvas; the map decides when movement ends.
 function fittingMap(animated = true) {
@@ -69,6 +70,10 @@ describe('the 동 tint', () => {
     adapter.setAreaTint(false);
     adapter.setAreaTint(false);
     adapter.setAreaTint(true);
-    expect(map.setPaintProperty.mock.calls).toEqual([['area-parts', 'fill-opacity', 0], ['area-parts', 'fill-opacity', 1]]);
+    // The tint and the shadow under it go together.
+    expect(map.setPaintProperty.mock.calls).toEqual([
+      ['area-parts', 'fill-opacity', 0], ['area-shadow', 'line-opacity', 0],
+      ['area-parts', 'fill-opacity', 1], ['area-shadow', 'line-opacity', SHADOW.opacity],
+    ]);
   });
 });

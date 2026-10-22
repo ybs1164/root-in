@@ -18,7 +18,7 @@ import {
   createGroupPingElement,
   type GroupPingMark,
 } from './courseMap';
-import { AREA_SOURCES, BASE_SOURCES, MAP_LAYERS, WATER_TOKEN, mapSourceData, roadWidthExpression } from './mapStyle';
+import { AREA_SOURCES, BASE_SOURCES, MAP_LAYERS, SHADOW, WATER_TOKEN, mapSourceData, type MapLayerSpec } from './mapStyle';
 
 /** A route's glide into view (App waits for its end before playing the route in). */
 const GLIDE_MS = 1000;
@@ -30,6 +30,16 @@ function easeInOutSine(t: number): number {
 }
 
 const GUIDE_SOURCE = 'guide-line';
+/**
+ * A layer's colour as MapLibre takes it: one token, or for the 동 tint a
+ * `match` on each feature's tone (neighbours differ, M11).
+ */
+function layerColour(layer: MapLayerSpec): string | maplibregl.ExpressionSpecification {
+  if (!layer.tones) return colourToken(layer.token, layer.fallback);
+  const byTone = layer.tones.flatMap((token, tone) => [tone, colourToken(token, layer.fallback)]);
+  return ['match', ['get', 'tone'], ...byTone, colourToken(layer.token, layer.fallback)] as unknown as maplibregl.ExpressionSpecification;
+}
+
 /** Matches the area names' fade (.map-area-label transition). */
 const TINT_FADE_MS = 250;
 const FOCUS_ZOOM = 15;
@@ -92,8 +102,8 @@ export class MapLibreCourseMap implements CourseMap {
     });
     this.map.on('load', () => {
       const token = colourToken;
-      // The map's own layers (water, land, the 동 tint, parks, roads — mapStyle.ts),
-      // added first so the guide/course lines draw above them.
+      // The map's own layers (water, land, the shadow and the 동 tint —
+      // mapStyle.ts), added first so the guide/course lines draw above them.
       for (const layer of MAP_LAYERS) {
         if (!this.map.getSource(layer.source)) {
           this.map.addSource(layer.source, {
@@ -101,25 +111,30 @@ export class MapLibreCourseMap implements CourseMap {
             ...(layer.source === 'area-parts' ? { attribution: ADMIN_ATTRIBUTION } : {}),
           });
         }
-        const color = token(layer.token, layer.fallback);
-        if (layer.type === 'fill') {
-          this.map.addLayer({
-            id: layer.id, type: 'fill', source: layer.source,
-            paint: {
-              'fill-color': color,
-              // The 동 tint fades with the area names when a route is shown.
-              ...(layer.id === 'area-parts' ? { 'fill-opacity': this.tintShown ? 1 : 0, 'fill-opacity-transition': { duration: TINT_FADE_MS } } : {}),
-            },
-          });
-        } else {
-          // Only trunk roads (tier 1) get the darker edge under them.
-          const width = layer.id === 'base-road-edge' ? roadWidthExpression(2, [1]) : roadWidthExpression();
+        // The shadow and the tint fade with the area names when a route is shown.
+        const fade = { duration: TINT_FADE_MS };
+        if (layer.type === 'line') {
           this.map.addLayer({
             id: layer.id, type: 'line', source: layer.source,
-            layout: { 'line-cap': 'round', 'line-join': 'round' },
-            paint: { 'line-color': color, 'line-width': width as maplibregl.ExpressionSpecification },
+            layout: { 'line-join': 'round' },
+            paint: {
+              'line-color': layerColour(layer),
+              'line-width': SHADOW.width,
+              'line-blur': SHADOW.blur,
+              'line-translate': [0, SHADOW.dy],
+              'line-opacity': this.tintShown ? SHADOW.opacity : 0,
+              'line-opacity-transition': fade,
+            },
           });
+          continue;
         }
+        this.map.addLayer({
+          id: layer.id, type: 'fill', source: layer.source,
+          paint: {
+            'fill-color': layerColour(layer),
+            ...(layer.id === 'area-parts' ? { 'fill-opacity': this.tintShown ? 1 : 0, 'fill-opacity-transition': fade } : {}),
+          },
+        });
       }
       this.map.addSource(GUIDE_SOURCE, { type: 'geojson', data: this.guideData() });
       this.map.addLayer({
@@ -141,7 +156,9 @@ export class MapLibreCourseMap implements CourseMap {
     };
     const water = token(WATER_TOKEN.token);
     if (water) this.map.setPaintProperty('background', 'background-color', water);
-    for (const layer of MAP_LAYERS) paint(layer.id, layer.type === 'fill' ? 'fill-color' : 'line-color', layer.token);
+    for (const layer of MAP_LAYERS) {
+      if (this.map.getLayer(layer.id)) this.map.setPaintProperty(layer.id, layer.type === 'line' ? 'line-color' : 'fill-color', layerColour(layer));
+    }
     paint(GUIDE_SOURCE, 'line-color', '--muted');
   }
 
@@ -157,6 +174,7 @@ export class MapLibreCourseMap implements CourseMap {
     if (shown === this.tintShown) return;
     this.tintShown = shown;
     if (this.ready && this.map.getLayer('area-parts')) this.map.setPaintProperty('area-parts', 'fill-opacity', shown ? 1 : 0);
+    if (this.ready && this.map.getLayer('area-shadow')) this.map.setPaintProperty('area-shadow', 'line-opacity', shown ? SHADOW.opacity : 0);
   }
 
   setAreaMap(shapes: AreaShapes | null): void {

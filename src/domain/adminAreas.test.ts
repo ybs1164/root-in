@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { areaAt, areasInRange, BLOCK_FOCUS_MAX_MPP, ROAD_FOCUS_MAX_MPP, SECTION_FOCUS_MAX_MPP, AreaShapeCache, DONG_FOCUS_MAX_MPP, focusLevel, rectangleBearing, renderAreaDraft, renderAreaMap, SIDO_FOCUS_MIN_MPP, visibleCenter, visibleRange, type AdminArea } from './adminAreas';
+import { areaAt, areasInRange, AreaShapeCache, focusLevel, rectangleBearing, renderAreaDraft, renderAreaMap, SIDO_FOCUS_MIN_MPP, visibleCenter, visibleRange, type AdminArea } from './adminAreas';
 import type { MapViewport, Ring } from './districtMap';
 import { screenProjection } from './districtRendering';
 
@@ -10,18 +10,12 @@ const square = (code: string, west: number, south: number, size: number): AdminA
 const viewport: MapViewport = { bounds: { west: 127, south: 37, east: 127.04, north: 37.04 }, widthPx: 400 };
 
 describe('administrative area map', () => {
-  it('focuses a 시도 zoomed out, a 시군구 in between and a 읍면동 close up', () => {
+  it('focuses a 시도 zoomed out and a 시군구 (split into 읍면동) at every closer zoom', () => {
     const atScale = (mpp: number): MapViewport => ({ bounds: { west: 127, south: 37, east: 127 + (mpp * 375) / 88_900, north: 37.1 }, widthPx: 375 });
-    expect(focusLevel(atScale(SIDO_FOCUS_MIN_MPP * 0.9))).toBe('sgg');
     expect(focusLevel(atScale(SIDO_FOCUS_MIN_MPP * 1.1))).toBe('sido');
-    expect(focusLevel(atScale(DONG_FOCUS_MAX_MPP * 1.1))).toBe('sgg');
-    expect(focusLevel(atScale(DONG_FOCUS_MAX_MPP * 0.9))).toBe('dong');
-    expect(focusLevel(atScale(SECTION_FOCUS_MAX_MPP * 1.1))).toBe('dong');
-    expect(focusLevel(atScale(SECTION_FOCUS_MAX_MPP * 0.9))).toBe('section');
-    expect(focusLevel(atScale(BLOCK_FOCUS_MAX_MPP * 1.1))).toBe('section');
-    expect(focusLevel(atScale(BLOCK_FOCUS_MAX_MPP * 0.9))).toBe('block');
-    expect(focusLevel(atScale(ROAD_FOCUS_MAX_MPP * 1.1))).toBe('block');
-    expect(focusLevel(atScale(ROAD_FOCUS_MAX_MPP * 0.9))).toBe('road');
+    expect(focusLevel(atScale(SIDO_FOCUS_MIN_MPP * 0.9))).toBe('sgg');
+    // 읍면동 is the finest shape, however close in.
+    for (const mpp of [8, 2, 0.7, 0.3, 0.1]) expect(focusLevel(atScale(mpp))).toBe('sgg');
   });
 
   it('picks the area under the center, or the nearest one over water', () => {
@@ -57,7 +51,7 @@ describe('administrative area map', () => {
     expect(areasInRange([], range)).toEqual([]);
   });
 
-  it('keeps a polygon area straight along its edges, keeps its corners sharp and opens a gap', () => {
+  it('keeps a polygon area straight along its edges, rounds its corners and opens a thin gap', () => {
     const p = screenProjection(viewport);
     const shapes = renderAreaMap({
       focus: { code: 'f', name: 'f' },
@@ -69,15 +63,43 @@ describe('administrative area map', () => {
     const [a, b] = shapes.parts.map(([outer]) => outer.map(p.project));
     const minX = Math.min(...a.map((q) => q.X)), maxX = Math.max(...a.map((q) => q.X));
     const minY = Math.min(...a.map((q) => q.Y));
-    // The corner stays sharp: a vertex sits at the bounding box corner.
-    expect(a.some((q) => Math.abs(q.X - minX) < 200 && Math.abs(q.Y - minY) < 200)).toBe(true);
-    // But the edges stay straight: the whole left side sits on one line.
-    const left = a.filter((q) => q.X - minX < 50);
+    // The corner is a curve (M10, M11): nothing right at the bounding box corner, but the outline comes near it.
+    expect(a.some((q) => Math.abs(q.X - minX) < 50 && Math.abs(q.Y - minY) < 50)).toBe(false);
+    expect(Math.min(...a.map((q) => Math.hypot(q.X - minX, q.Y - minY))) / 100).toBeLessThan(6);
+    // But the edges stay straight: the whole left side sits on one line (within the curve's fraction of a pixel).
+    const left = a.filter((q) => q.X - minX < 150);
     const span = Math.max(...left.map((q) => q.Y)) - Math.min(...left.map((q) => q.Y));
     expect(span / 100).toBeGreaterThan(100);
-    // The shared edge became a gap of 2×2px.
-    const gap = Math.min(...b.map((q) => q.X)) - maxX;
-    expect(gap / 100).toBeCloseTo(4, 0);
+    // The shared edge became a gap of 2 x 1.5px, never under the 2.5px minimum.
+    const gap = (Math.min(...b.map((q) => q.X)) - maxX) / 100;
+    expect(gap).toBeGreaterThanOrEqual(2.45);
+    expect(gap).toBeLessThanOrEqual(3.2);
+  });
+
+  it('gives neighbouring parts different tones and casts one outline around them all', () => {
+    // A row of four touching squares and one apart.
+    const parts = [0, 1, 2, 3].map((k) => square(`p${k}`, 127.005 + k * 0.006, 37.01, 0.006));
+    const shapes = renderAreaMap({ focus: { code: 'f', name: 'f' }, parts: [...parts, square('far', 127.005, 37.03, 0.006)], others: [] }, viewport);
+    const tones = shapes.partTones!;
+    expect(tones).toHaveLength(5);
+    for (let k = 0; k < 3; k++) expect(tones[k], `p${k}/p${k + 1}`).not.toBe(tones[k + 1]);
+    expect(tones.every((t) => t >= 0 && t < 4)).toBe(true);
+    // The touching four make one silhouette (gaps closed, no little holes where gaps meet); the far one its own.
+    expect(shapes.partsOutline).toHaveLength(2);
+    expect(shapes.partsOutline!.every((polygon) => polygon.length === 1)).toBe(true);
+  });
+
+  it('merges a part too small for the screen into the neighbour it touches most', () => {
+    // A 100px square and a 12px one against its right side (1px = 0.0001 deg here).
+    const big = square('big', 127.01, 37.01, 0.01);
+    const small = square('small', 127.02, 37.014, 0.0012);
+    const shapes = renderAreaMap({ focus: { code: 'f', name: 'f' }, parts: [big, small], others: [] }, viewport);
+    expect(shapes.parts).toHaveLength(1);
+    expect(shapes.partTags?.map((t) => t.key)).toEqual(['big']);
+    // The big one now reaches over where the small one was.
+    const p = screenProjection(viewport);
+    const maxX = Math.max(...shapes.parts[0][0].map((c) => p.project(c).X)) / 100;
+    expect(maxX).toBeGreaterThan(p.project([127.0205, 37.014]).X / 100);
   });
 
   it('turns the map so an area looks most like a rectangle', () => {
@@ -97,6 +119,25 @@ describe('administrative area map', () => {
     const shapes = renderAreaMap({ focus: { code: 'f', name: 'f' }, parts: [rect(30)], others: [] }, viewport);
     expect(shapes.focus?.code).toBe('f');
     expect(shapes.focus?.bearing).toBeCloseTo(-30, 0);
+  });
+
+  it('smooths a 동 outline: a narrow notch along a street fills in and corners come out round', () => {
+    // 100px square (1px = 0.0001° here) with a 4px-wide, 40px-deep notch cut down from the top middle.
+    const [x0, y0, px] = [127.01, 37.01, 0.0001];
+    const ring: Ring = [
+      [x0, y0], [x0 + 100 * px, y0], [x0 + 100 * px, y0 + 100 * px],
+      [x0 + 52 * px, y0 + 100 * px], [x0 + 52 * px, y0 + 60 * px], [x0 + 48 * px, y0 + 60 * px], [x0 + 48 * px, y0 + 100 * px],
+      [x0, y0 + 100 * px], [x0, y0],
+    ];
+    const area: AdminArea = { code: 'n', name: 'n', bbox: { west: x0, south: y0, east: x0 + 100 * px, north: y0 + 100 * px }, polygons: [[ring]] };
+    const shaped = renderAreaMap({ focus: { code: 'n', name: 'n' }, parts: [area], others: [] }, viewport);
+    expect(shaped.parts).toHaveLength(1);
+    const [outer] = shaped.parts[0];
+    // No point of the outline reaches down into the notch.
+    const inNotch = outer.filter(([x, y]) => x > x0 + 46 * px && x < x0 + 54 * px && y < y0 + 90 * px && y > y0 + 50 * px);
+    expect(inNotch).toEqual([]);
+    // The corner is round: nothing sits right at it (inside the 2px gap).
+    expect(outer.some(([x, y]) => Math.abs(x - (x0 + 98 * px)) < 0.3 * px && Math.abs(y - (y0 + 2 * px)) < 0.3 * px)).toBe(false);
   });
 
   it('keeps even a tiny area', () => {
@@ -151,6 +192,6 @@ describe('administrative area map', () => {
     const minY = Math.min(...a.map((q) => q.Y));
     // A vertex right at the corner, unlike the full drawing.
     expect(a.some((q) => Math.abs(q.X - minX) < 2 && Math.abs(q.Y - minY) < 2)).toBe(true);
-    expect((Math.min(...b.map((q) => q.X)) - maxX) / 100).toBeCloseTo(4, 0);
+    expect((Math.min(...b.map((q) => q.X)) - maxX) / 100).toBeCloseTo(3, 0);
   });
 });
