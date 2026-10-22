@@ -1,6 +1,7 @@
 import { areaAt, areasInRange, bboxCenter, bboxOverlaps, FOCUS_RANGE_RATIO, focusLevel, type AdminArea, type AreaMap } from '../domain/adminAreas';
 import type { PolygonRings } from '../domain/baseMap';
 import type { Bbox, LonLat, MapViewport, Ring } from '../domain/districtMap';
+import { mapDataRoot } from '../lib/mapData';
 
 /** The middle of the whole screen, when the caller knows no better range. */
 const centerRange = (b: Bbox): Bbox => {
@@ -25,7 +26,7 @@ export interface AdminAreaService {
   fetchAreaMap(viewport: MapViewport, focusRange?: Bbox, signal?: AbortSignal): Promise<AreaMap | null>;
 }
 
-const BASE = `${import.meta.env.BASE_URL}korea/admin/`;
+const BASE = `${mapDataRoot()}admin/`;
 /** Neighboring 시도 whose 시군구 are loaded; more only on a very wide screen. */
 const MAX_SIDO_FILES = 4;
 /** 시군구 whose 읍면동 are loaded around a focused 읍면동. */
@@ -76,7 +77,7 @@ export class StaticAdminAreaService implements AdminAreaService {
             // Without the top file the map stays an empty background: say why.
             if (path === 'sido.json' && response.status === 404 && !warnedMissing) {
               warnedMissing = true;
-              console.warn(`[root-in] 행정구역 지도 데이터(${this.base}sido.json)가 없어 빈 지도로 보입니다. public/korea/admin을 함께 배포하세요 (scripts/korea-data/README.md).`);
+              console.warn(`[root-in] 행정구역 지도 데이터(${this.base}sido.json)가 없어 빈 지도로 보입니다. 지도 데이터 주소(VITE_MAP_DATA_URL)를 확인하거나 public/korea/admin을 함께 배포하세요 (docs/plan-data-hosting.md).`);
             }
             return null;
           }

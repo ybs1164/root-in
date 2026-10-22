@@ -3,6 +3,7 @@ import type { AreaShapes } from '../domain/adminAreas';
 import type { LabelCover } from '../domain/areaLabels';
 import type { Bbox, MapViewport } from '../domain/districtMap';
 import { AreaRenderer, type AreaUpdate } from '../services/areaRenderer';
+import { mapDataRoot } from '../lib/mapData';
 
 interface AreaRequest {
   viewport: MapViewport;
@@ -40,8 +41,8 @@ function createAreaClient(apply: (update: AreaUpdate) => void): AreaClient {
     try {
       worker = new Worker(new URL('../services/areaMap.worker.ts', import.meta.url), { type: 'module' });
       // Where the area files and base map tiles are, resolved against the page (see StaticAdminAreaService).
-      const at = (path: string) => new URL(`${import.meta.env.BASE_URL}${path}`, document.baseURI).href;
-      worker.postMessage({ base: at('korea/admin/'), mapBase: at('korea/base/') });
+      const at = (folder: string) => new URL(`${mapDataRoot()}${folder}`, document.baseURI).href;
+      worker.postMessage({ base: at('admin/'), mapBase: at('base/') });
       worker.onmessage = (event: MessageEvent<{ update?: AreaUpdate; error?: string }>) => {
         if (event.data.update && !disposed) apply(event.data.update);
         else if (event.data.error && import.meta.env.DEV) console.warn('Admin areas rendering failed', event.data.error);

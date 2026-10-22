@@ -4,6 +4,7 @@ import { matchKind, type KindShop } from '../domain/placeMatch';
 import type { PlaceRef } from '../types/course';
 import { StaticAdminAreaService } from './adminAreaService';
 import { UNNAMED_SPOT } from './placeSearch/placeSearchService';
+import { mapDataRoot } from '../lib/mapData';
 
 /**
  * Fills in what kind of place a pin is when its source didn't say (a long
@@ -15,7 +16,7 @@ export interface PlaceKindService {
   lookup(place: PlaceRef, signal?: AbortSignal): Promise<PlaceKind | null>;
 }
 
-const BASE = `${import.meta.env.BASE_URL}korea/places/`;
+const BASE = `${mapDataRoot()}places/`;
 const FORMAT_VERSION = 1;
 const MAX_NAME = 40;
 

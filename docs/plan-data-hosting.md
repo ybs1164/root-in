@@ -1,6 +1,8 @@
 # 계획: 다른 테스트 클라이언트에서도 지도 데이터를 불러오기 (원격 호스팅)
 
 > 2026-10-06 작성. 작업 번호 H0, H1 … 한 번에 하나씩.
+>
+> **2026-10-22 진행**: H1·H2·H5 끝 — 남은 건 H3(Cloudflare 계정에 올리기), H4(웹 배포·시험), H6. 지도 데이터는 이제 앱과 따로인 버전 폴더 묶음이고 다른 앱도 같은 파일을 읽을 수 있다(형식은 묶음 안 `README.md`). 앱이 읽는 것은 `base/`·`admin/`(시도·시군구·읍면동만 — 도로 단계·블록·보행로는 M9 이후 안 읽어서 묶음에서 뺌)·`places/`.
 
 ## 왜 지금은 안 되나
 
@@ -33,7 +35,9 @@
 - 다른 네트워크: `cloudflared tunnel --url http://localhost:5188` 같은 터널 → 임시 https 주소. PC가 켜져 있는 동안만, 1.3GB를 이 PC 회선으로 보냄(도로 단계 파일은 압축 없이 최대 3.7MB).
 - 한계를 테스터에게 알린다: 느림, PC 꺼지면 끝.
 
-## H1. 앱: 데이터 주소를 설정으로 (약 2시간)
+## H1. 앱: 데이터 주소를 설정으로 (약 2시간) — 끝 (2026-10-22)
+
+> 한 일: `src/lib/mapData.ts` `mapDataRoot()`(파일 이름만 아래 계획과 다름)를 `adminAreaService`·`koreaMapService`·`placeKindService`의 `BASE`와 `useAreaMap`의 워커 주소가 씀. `.env.example`에 `VITE_MAP_DATA_URL`. 404 경고에 주소 확인 안내. 화면 안내 한 줄은 아직 안 함.
 
 - `src/lib/mapDataUrl.ts`(새): `export const MAP_DATA_URL = (import.meta.env.VITE_MAP_DATA_URL ?? \`${import.meta.env.BASE_URL}korea/\`)`를 끝 `/` 하나로 정규화. `adminAreaService.ts`의 `BASE`(`…korea/admin/`)와 `koreaMapService.ts`의 `BASE`(`…korea/base/`)가 이걸 쓴다.
 - `.env.example`에 `VITE_MAP_DATA_URL=` 줄과 설명 추가 (비우면 같은 출처).
@@ -42,7 +46,9 @@
 - CORS: 다른 출처에서 `fetch`하므로 버킷이 `Access-Control-Allow-Origin`을 줘야 한다 (H3). 앱 쪽 코드는 `mode`를 바꿀 필요 없음.
 - 브라우저 CSP가 있다면 `connect-src`에 데이터 주소 추가 (지금은 없음 — 확인만).
 
-## H2. 데이터 묶기 (약 2시간 작업 + 기계 시간 약 10분)
+## H2. 데이터 묶기 (약 2시간 작업 + 기계 시간 약 10분) — 끝 (2026-10-22)
+
+> 한 일: `node scripts/publish-map-data.mjs` → `data/map-data/korea-<날짜>/`(Git 제외). 파일마다 gzip, `files.json`(경로·원본 바이트·압축 바이트·sha256)과 다른 앱용 형식 설명 `README.md`를 같이 씀. `--raw`는 압축 안 한 사본(`…-raw/`, 다른 앱에 직접 넣을 때), `--version`·`--out`·`--src`. 바뀐 것만 올리기는 H3에서 `files.json`의 sha256으로. 첫 묶음 `korea-20261022`: 파일 5,875개, 원본 359MB → gzip 87MB(위 250~300MB 예상은 도로 단계 파일이 있던 때).
 
 `scripts/publish-map-data.mjs`(새, Node):
 1. 대상: `public/korea/admin/**`, `public/korea/base/**`, `LICENSE.md`. 옛 평면 폴더·`manifest.json`(옛)은 제외. `korea/base` 크기·파일 수를 먼저 재서 이 문서에 적는다.
@@ -50,6 +56,15 @@
 3. 파일마다 gzip 압축 → `data/publish/<버전>/<원래 경로>`(Git 제외, `data/`는 이미 제외됨). 같은 내용이면 건너뛰도록 파일별 sha256을 `files.json`에 적고, 이전 버전과 비교해 **바뀐 것만** 올린다.
 4. `files.json`(경로·바이트·sha256·gzip 바이트)을 함께 올려 H5의 검증에 쓴다.
 5. 압축 후 전체 크기를 출력한다 (예상 250~300MB).
+
+## H3-GP. 지금 쓰는 곳: GitHub Pages (2026-10-22)
+
+> 테스트 단계라 R2 대신 GitHub Pages로 올림. 아래 H3(R2)는 사용자가 늘면 옮길 곳으로 남겨 둔다.
+
+- 저장소 [ybs1164/root-in-map-data](https://github.com/ybs1164/root-in-map-data)(공개, main 브랜치 루트를 Pages로) — 주소 `https://ybs1164.github.io/root-in-map-data/korea-20261022/`.
+- Pages는 헤더를 못 정하지만 필요한 게 이미 됨: CORS `Access-Control-Allow-Origin: *`, JSON 자동 gzip. 그래서 **압축 안 한 묶음**(`--raw`)을 올린다. 캐시는 10분(`max-age=600`, 못 바꿈) — 버전 폴더라 내용이 바뀌지 않으니 문제 없음.
+- 한도: 사이트 1GB(지금 359MB — 버전 2개까지는 여유, 그 이상이면 옛 버전 정리 또는 R2로), 월 전송 약 100GB(느슨한 한도), 파일 하나 100MB(가장 큰 파일도 50MB 미만). `.nojekyll`로 Jekyll 처리 끔, `.gitattributes`(`* -text`)로 줄바꿈 변환 끔(체크섬이 그대로 맞게).
+- 새 버전 올리기: 저장소를 `data/map-data/pages`(Git 제외 폴더)에 받아 두고 `node scripts/publish-map-data.mjs --raw --out data/map-data/pages` → 그 저장소 `README.md` 표에 줄 추가 → 커밋·푸시 → 앱의 `VITE_MAP_DATA_URL`을 새 주소로.
 
 ## H3. 올리기와 설정 (처음 한 번 약 1시간, 업로드 약 20~40분)
 
@@ -65,7 +80,9 @@
 - 시험 매트릭스: PC 크롬(처음 열기, 새로고침으로 캐시 확인) · 안드로이드 크롬 · iOS 사파리 · LTE 회선. 각각 (a) 전국 → 서울 → 강남 역삼1동 확대 (b) 0.3m/px 도로 단계 (c) 시골(양평·부안) (d) 오프라인 전환 시 오류 없이 이미 받은 것만 보임.
 - 기준: 첫 화면(전국) 2초 안, 읍면동 → 도로 단계 확대에서 파일 받기 합쳐 1~2초 안, 가장 큰 도로 파일(3.7MB → gzip 약 0.7MB) 포함. 이 숫자를 이 문서에 적는다.
 
-## H5. 안드로이드 테스터 (약 2시간)
+## H5. 안드로이드 테스터 (약 2시간) — 앱 쪽 끝 (2026-10-22)
+
+> 한 일: `scripts/android-sync.mjs`가 `VITE_MAP_DATA_URL`(셸 또는 `.env.local`·`.env`)이 있으면 `dist/korea` 전체를 빼고, 없으면 지금처럼 넣는다고 알림. 기기 시험은 H3 뒤에.
 
 - `scripts/android-sync.mjs`: 빌드 때 `VITE_MAP_DATA_URL`이 설정돼 있으면 `korea/admin`·`korea/base`도 `dist`에서 지운다 → APK 수 MB. 설정이 없으면(로컬 개발) 지금처럼 번들한다고 경고만.
 - WebView 출처가 `https://localhost`라 H3의 CORS에 이미 포함돼 있어야 한다. 안 되면 지도가 빈 채로 콘솔에 CORS 오류 — `chrome://inspect`로 확인(디버그 빌드에서만 켜짐).
