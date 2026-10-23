@@ -42,6 +42,10 @@ React 19 + Vite 7 + TypeScript. 지도는 **카카오맵 JS SDK**(키 없으면 
 - 서버: `supabase/migrations/20261016000000_groups.sql` + `20261017000000_group_kick.sql`(추방) + `20261018000000_group_alias_delete.sql`(별명·그룹 삭제) + `20261019000000_group_alias_default.sql`(들어올 때 프로필 닉네임을 그룹 이름으로) — `groups`·`group_members`(색 자리 `slot` 0~19, 그룹당 20명·사람당 30그룹), 함수 `create_group`·`join_group`·`rename_group`·`leave_group`(마지막 사람이 나가면 그룹 삭제)·`my_groups(day)`(그룹·모임원·그날 핑의 **시각과 좌표만** — 이름·주소는 안 보냄; 제외 주소 핑은 원래 서버에 없음). 클라이언트는 `services/groupService.ts`(받은 값 검증 `readGroups`, reject 안 함) · `hooks/useGroups.ts`(사람 탭이 열린 동안 1분마다·앱이 앞으로 올 때 다시 읽음). 초대 링크 `#g=<slug>`: 열면 로그인돼 있을 때 바로 들어가 그 그룹을 엶, 아니면 프로필(로그인)을 엶.
 - 아직 안 한 것: 사람 색이 8색이라 9명부터 겹침, 다른 날짜 보기, 같은 장소·내 지도 장소 표시(시안 group-map.html 참고).
 
+## TODAY 사진 핑 (2026-10-23)
+- TODAY(오늘 날짜 화면, 꾸미기 도구가 꺼져 있고 핑을 안 골랐을 때) 하단 줄 왼쪽 아래에 흰 카메라 버튼(`bar-camera`, 공유와 대칭) → 폰 카메라(`<input capture>`)로 찍으면 묻지 않고 바로 핑(`photoPingTarget`): 50m 안 오늘 아직 없는 내 핀이 있으면 가장 가까운 그 핀, 없고 오늘 핑이 50m 안에 있으면 그 핑에 사진만 붙임, 둘 다 없으면 그 자리를 주소 찾기 이름으로 새 핑(`recordPlacePing`, 핀 없음). 안내 알약 '…핑을 찍었어요'/'…핑에 사진을 붙였어요', 위치를 모르면 '위치를 몰라서 핑을 찍지 못했어요'.
+- 사진은 240px 정사각형 JPEG로 핑 아이콘 오른쪽 위에 작은 스냅사진처럼(`ping__photo`). **이 폰에만** `goodroot:ping-photos:v1`(`services/pingPhotoRepository.ts`, 120장, 없어진 핑의 사진은 저장할 때 정리) — 서버 동기화·공유 링크·공유 카드에는 안 들어감.
+
 ## 사용 분석 (PostHog)
 - [docs/analytics.md](docs/analytics.md). `VITE_POSTHOG_KEY`가 없으면 아무것도 안 보냄. 컴포넌트는 `services/analytics.ts`의 `analytics.track()`만 부른다.
 - **좌표·주소·장소 이름·메모·닉네임은 이벤트에 넣지 않는다.** 새 이벤트는 `EventProps`에 타입으로 추가하고 문서 표도 고친다.

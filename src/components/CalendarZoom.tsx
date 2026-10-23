@@ -1,10 +1,15 @@
 import { ChevronLeft, ChevronRight, Share } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MutableRefObject, type TouchEvent } from 'react';
-import { dayTitle, edgeKey, PINCH, pinchOutcome, pinchProgress, pingCounts, pingKey, pingsForDate, pingsLandedMs, todayCandidates, type DayPing } from '../domain/dayPings';
+import { dayTitle, edgeKey, photoPingTarget, PINCH, pinchOutcome, pinchProgress, pingCounts, pingKey, pingsForDate, pingsLandedMs, todayCandidates, type DayPing } from '../domain/dayPings';
 import { useStoredPings } from '../hooks/useStoredPings';
-import { recordPing, removePing } from '../services/pingRepository';
+import { loadPings, recordPing, recordPlacePing, removePing, todayPingOfPin } from '../services/pingRepository';
+import { savePingPhoto } from '../services/pingPhotoRepository';
+import { usePingPhotos } from '../hooks/usePingPhotos';
+import { avatarFromFile } from '../lib/avatarImage';
+import { pointPlace } from '../services/placeSearch/placeSearchService';
 import { pinStyle, UNCATEGORIZED } from '../domain/pin';
 import type { Pin, PinCategory } from '../types/pin';
+import type { PlaceRef } from '../types/course';
 import ConfirmDialog from './ConfirmDialog';
 import PlacePickDialog from './PlacePickDialog';
 import { addDays } from '../domain/calendar';
@@ -117,12 +122,24 @@ interface CalendarZoomProps {
   holdIntro?: boolean;
   /** Filled with this calendar's way to share the day on screen (the page head's 공유 calls it). */
   shareRef?: MutableRefObject<(() => void) | null>;
+  /**
+   * Handed the way to take a photo while TODAY's own day screen is up (null
+   * otherwise): the app shows its camera button only then.
+   */
+  onCamera?: (shoot: (() => void) | null) => void;
+  /** The name of a spot (its address lookup), for a photo's ping where there's no pin. */
+  nameAt?: (center: [number, number]) => Promise<PlaceRef | null>;
+  /** A short line at the bottom (the photo's ping, or why there isn't one). */
+  onToast?: (text: string) => void;
 }
+
+/** A photo's thumbnail on its ping: small enough to keep a hundred in localStorage. */
+const PHOTO_PX = 240;
 
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
 
-export default function CalendarZoom({ command, onMode, onDecorating, onPingPicked, pingDropZone, onPingDropHover, onDayTheme, onDayPattern, excluded, here, pins, categories, onNeedHome, onShare, holdIntro = false, shareRef }: CalendarZoomProps) {
+export default function CalendarZoom({ command, onMode, onDecorating, onPingPicked, pingDropZone, onPingDropHover, onDayTheme, onDayPattern, excluded, here, pins, categories, onNeedHome, onShare, holdIntro = false, shareRef, onCamera, nameAt, onToast }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
   const [date, setDate] = useState(today);
@@ -203,6 +220,34 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
   const candidates = todayCandidates(pins, here, stored.filter((p) => p.day === today));
   const [choosing, setChoosing] = useState(false);
   const addToToday = (pin: Pin) => recordPing(pin, excluded);
+  const photos = usePingPhotos();
+  // 카메라: a photo taken on TODAY pings where you are at once — your pin
+  // there if there is one (no 위치 선택 to answer), or the spot itself.
+  const camera = useRef<HTMLInputElement | null>(null);
+  const photoPing = async (file: File) => {
+    const target = photoPingTarget(pins, here, stored.filter((p) => p.day === today));
+    if (!target) return onToast?.('위치를 몰라서 핑을 찍지 못했어요');
+    const photo = await avatarFromFile(file, PHOTO_PX, 0.8);
+    let pingId: string | null;
+    let name: string;
+    if (target.kind === 'pin') {
+      recordPing(target.pin, excluded);
+      pingId = todayPingOfPin(target.pin.id);
+      name = target.pin.place.name;
+    } else if (target.kind === 'same') {
+      pingId = target.pingId;
+      name = stored.find((p) => p.id === pingId)?.name ?? '';
+    } else {
+      const named = await nameAt?.(target.center);
+      const place = named ? { ...named, center: target.center } : pointPlace(target.center);
+      pingId = recordPlacePing(place, excluded);
+      name = place.name;
+    }
+    if (!pingId) return onToast?.('핑을 찍지 못했어요');
+    if (!photo && target.kind === 'same') return onToast?.('사진을 읽지 못했어요');
+    if (photo) savePingPhoto(pingId, photo, new Set(loadPings().map((p) => p.id)));
+    onToast?.(target.kind === 'same' ? `'${name}' 핑에 사진을 붙였어요` : `'${name}' 핑을 찍었어요`);
+  };
   // Taking a ping out of the day (its ✕, the calendar button's ✕, or a drop on
   // it) asks first, like deleting a pin on the map.
   const [deleting, setDeleting] = useState<DayPing | null>(null);
@@ -322,6 +367,13 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
     );
   };
   if (shareRef) shareRef.current = shareDay;
+
+  // The camera is TODAY's alone (a photo is taken now, so it pings today).
+  const canShoot = !!onCamera && shownDate === today && mode === 'day' && !preview && !holdIntro && !tool;
+  useEffect(() => {
+    onCamera?.(canShoot ? () => camera.current?.click() : null);
+  }, [canShoot]);
+  useEffect(() => () => onCamera?.(null), []);
 
   const changeDecor = (next: DayDecor) => {
     setHistory((h) => ({ ...h, [shownDate]: recordChange(dayHistory, dayDecor) }));
@@ -686,6 +738,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
                 setDays((d) => ({ ...d, edges: { ...d.edges, [edgeKey(shownDate, from, to)]: style } }))
               }
               pinLookOf={pinLookOf}
+              photoOf={(ping) => (ping.id ? photos[ping.id] : undefined)}
               onDelete={(ping) => ping.id && setDeleting(ping)}
               onPickedChange={(ping) => onPingPicked?.(ping?.id ? () => setDeleting(ping) : null)}
               dropZone={pingDropZone}
@@ -741,6 +794,22 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
           onClose={() => setDeleting(null)}
         />
       )}
+
+      {/* The phone's camera straight away (a file picker on desktop). */}
+      <input
+        ref={camera}
+        className="sr-only"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          const file = e.currentTarget.files?.[0];
+          e.currentTarget.value = '';
+          if (file) void photoPing(file);
+        }}
+      />
 
       {choosing && candidates.length > 0 && (
         <PlacePickDialog places={candidates} categories={categories} onPick={addToToday} onClose={() => setChoosing(false)} />

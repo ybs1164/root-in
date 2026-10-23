@@ -74,13 +74,31 @@ const newId = () =>
  * null if nothing was added.
  */
 export function recordPing(pin: { id: string; place: PlaceRef }, excluded: ExcludedPlace[], now = new Date()): (() => void) | null {
-  const { place } = pin;
+  const ping = addPing(pin.place, excluded, now, pin.id);
+  return ping && (() => savePings(loadPings().filter((p) => p.id !== ping.id)));
+}
+
+/**
+ * A ping of a spot that isn't one of your pins (a photo taken where there's
+ * none). Returns its id, or null if nothing was added.
+ */
+export function recordPlacePing(place: PlaceRef, excluded: ExcludedPlace[], now = new Date()): string | null {
+  return addPing(place, excluded, now)?.id ?? null;
+}
+
+/** Today's ping recorded from this pin, if any (a photo's pin was just added). */
+export function todayPingOfPin(pinId: string, now = new Date()): string | null {
+  const day = dateKey(now);
+  return loadPings().find((p) => p.day === day && p.pinId === pinId)?.id ?? null;
+}
+
+function addPing(place: PlaceRef, excluded: ExcludedPlace[], now: Date, pinId?: string): StoredPing | null {
   const day = dateKey(now);
   const before = loadPings();
-  if (before.some((p) => p.day === day && p.pinId === pin.id)) return null;
+  if (pinId && before.some((p) => p.day === day && p.pinId === pinId)) return null;
   const ping = parsePing({
     id: newId(),
-    pinId: pin.id,
+    pinId,
     day,
     at: now.toISOString(),
     name: place.name,
@@ -91,7 +109,7 @@ export function recordPing(pin: { id: string; place: PlaceRef }, excluded: Exclu
   });
   if (!ping) return null;
   savePings([...before, ping]);
-  return () => savePings(loadPings().filter((p) => p.id !== ping.id));
+  return ping;
 }
 
 /**

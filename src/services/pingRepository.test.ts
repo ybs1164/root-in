@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { ExcludedPlace } from '../domain/privacy';
-import { loadPings, onPingsChanged, parsePing, recordPing, removePing, removePingsOfPin } from './pingRepository';
+import { loadPings, onPingsChanged, parsePing, recordPing, recordPlacePing, removePing, removePingsOfPin, todayPingOfPin } from './pingRepository';
 import { onLocalWrote } from './syncBus';
 
 const place = { id: 'p1', name: '카페', center: [127.05, 37.54] as [number, number], address: '서울 성동구 성수동 1' };
@@ -31,6 +31,17 @@ describe('pingRepository', () => {
   it('marks a ping at a 제외 주소 as this phone only', () => {
     recordPing({ ...cafe, place: { ...place, center: [127.1001, 37.6] } }, [home], now);
     expect(loadPings()[0].local).toBe(true);
+  });
+
+  it("pings a spot that isn't a pin (a TODAY photo), and finds a pin's ping of today", () => {
+    const id = recordPlacePing({ id: 'spot', name: '성수동 골목', center: [127.06, 37.55] }, [], now);
+    expect(loadPings()).toEqual([expect.objectContaining({ id, day: '2026-10-08', name: '성수동 골목' })]);
+    expect(loadPings()[0]).not.toHaveProperty('pinId');
+    // Spots aren't once-a-day: a second photo elsewhere is a second ping.
+    expect(recordPlacePing({ id: 'spot2', name: '서울숲', center: [127.04, 37.54] }, [], now)).not.toBe(id);
+    recordPing(cafe, [], now);
+    expect(todayPingOfPin('pin-cafe', now)).toBe(loadPings()[2].id);
+    expect(todayPingOfPin('pin-cafe', new Date(2026, 9, 9))).toBeNull();
   });
 
   it('takes a ping out of its day with its ✕', () => {

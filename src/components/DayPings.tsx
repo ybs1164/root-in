@@ -47,6 +47,8 @@ interface DayPingsProps {
   onEdgeStyle: (from: DayPing, to: DayPing, style: LineLook) => void;
   /** The place's own pin icon and colour, shown when its ping is set to 투명. */
   pinLookOf?: (ping: DayPing) => { icon: PinIcon; color: PinTint };
+  /** The photo taken there on TODAY, if any: pinned beside the ping like a snapshot. */
+  photoOf?: (ping: DayPing) => string | undefined;
   /** The ✕ on a ping whose picker is open (or a ping dropped on `dropZone`): takes the place out of the day. */
   onDelete?: (ping: DayPing) => void;
   /** Which ping is picked (its picker open), or null: the app turns its calendar button into ✕. */
@@ -105,7 +107,7 @@ function EdgeSample({ style }: { style: EdgeStyle }) {
  * again. Long-press a ping to change its shape, or a line to change its
  * style; a short tap on a ping is reported through `onTap`.
  */
-export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, pinLookOf, onDelete, onPickedChange, dropZone, onDropHover, pressable, children, showNames = true, showTimes = true, ghost = null, onGhost }: DayPingsProps) {
+export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, pinLookOf, photoOf, onDelete, onPickedChange, dropZone, onDropHover, pressable, children, showNames = true, showTimes = true, ghost = null, onGhost }: DayPingsProps) {
   const latest = latestPingIndex(pings);
   // The real map behind the pings; the stops are fitted with its areas.
   const centers = pings.map((p) => p.center);
@@ -345,6 +347,7 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
         const shape = shapeOf(ping);
         const own = shape === 'transparent' ? (pinLookOf?.(ping) ?? { icon: 'pin' as PinIcon, color: 0 as PinTint }) : null;
         const { side, name, time } = labels[i];
+        const photo = photoOf?.(ping);
         return (
           <div
             key={`${ping.time}-${ping.name}`}
@@ -379,6 +382,7 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
                 <PingIcon shape={shape as PingShape} className="ping__icon" />
               )}
             </button>
+            {photo && <img className="ping__photo" src={photo} alt="" draggable={false} />}
             {(showNames || showTimes) && (
               <span className="ping__label" aria-hidden>
                 {name}

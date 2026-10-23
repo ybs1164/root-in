@@ -200,6 +200,8 @@ export default function App() {
   const [calendarCommand, setCalendarCommand] = useState<CalendarCommand | null>(null);
   // The calendar hands up how to share the day on screen (its 공유 sits in the bottom row).
   const shareDay = useRef<(() => void) | null>(null);
+  // TODAY's camera (set by the calendar only while today's own day is up).
+  const [todayCamera, setTodayCamera] = useState<(() => void) | null>(null);
   const [activePinId, setActivePinId] = useState<string | null>(null);
   // The round buttons under ⚙, and the categories picked in its 핀 list.
   const [railMode, setRailMode] = useState<PinRailMode>('menu');
@@ -1559,6 +1561,9 @@ export default function App() {
             <CalendarZoom
               command={calendarCommand}
               shareRef={shareDay}
+              onCamera={(shoot) => setTodayCamera(() => shoot)}
+              nameAt={async (center) => (await searchService?.reverse(center)) ?? null}
+              onToast={(text) => setToast({ text })}
               excluded={privacy.excluded}
               here={me?.center ?? null}
               pins={pinStore.pins}
@@ -1730,6 +1735,7 @@ export default function App() {
             analytics.track('share_started', { kind: 'day' });
             shareDay.current?.();
           } : undefined}
+          onCamera={onPage && calendarZoom && calendarMode === 'day' && !pingRemove ? (todayCamera ?? undefined) : undefined}
           onPin={startPinning}
           onPeople={() => changeTab('people')}
         />

@@ -1,4 +1,4 @@
-import { CalendarDays, MapPin, Share, Users, X } from 'lucide-react';
+import { CalendarDays, Camera, MapPin, Share, Users, X } from 'lucide-react';
 import { useLayoutEffect, useRef } from 'react';
 import { barSlot, barTurn, type AppTab, type BarButton } from '../domain/appTabs';
 import { CalendarToday } from './icons';
@@ -29,6 +29,8 @@ interface BottomBarProps {
   onPeople: () => void;
   /** A day on TODAY: 공유 at the row's right end. */
   onShare?: () => void;
+  /** TODAY's own day: 카메라 at the row's left end — a photo pings where you are. */
+  onCamera?: () => void;
   /** A ping is picked on the day screen: the calendar button is ✕ and deletes it. */
   onDeletePing?: () => void;
   /** A ping is being dragged over the ✕. */
@@ -44,7 +46,7 @@ interface BottomBarProps {
  * mounted so the swap is animated. On TODAY (`today`) the row is the big
  * calendar button and 공유 instead.
  */
-export default function BottomBar({ tab, today = false, calendarMode, onCalendar, onMap, onPin, onPeople, onShare, onDeletePing, deleteHot = false }: BottomBarProps) {
+export default function BottomBar({ tab, today = false, calendarMode, onCalendar, onMap, onPin, onPeople, onShare, onCamera, onDeletePing, deleteHot = false }: BottomBarProps) {
   const cal = today;
   const map = tab === 'pins';
   // Every move is played from where each button is on screen right now
@@ -151,6 +153,11 @@ export default function BottomBar({ tab, today = false, calendarMode, onCalendar
             <Users strokeWidth={2.2} aria-hidden />
           </button>
         </>
+      )}
+      {onCamera && (
+        <button className="bar-camera" aria-label="사진 찍고 핑" onClick={onCamera}>
+          <Camera size={24} strokeWidth={2.2} aria-hidden />
+        </button>
       )}
       {onShare && (
         <button className="bar-share" aria-label="공유" onClick={onShare}>
