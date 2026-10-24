@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, groupPingKey, groupPingKeys, myGroupPings, type Group } from './groups';
+import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, groupPingKey, groupPingKeys, myGroupPings, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -123,5 +123,30 @@ describe('newMemberPings', () => {
     const seen = ann.pings.slice(0, 2).map((p) => groupPingKey(ann, p));
     expect(newMemberPings(ann, seen)).toBe(1);
     expect(newMemberPings(ann, [...seen, groupPingKey(ann, ann.pings[2])])).toBe(0);
+  });
+});
+
+describe('photoPings', () => {
+  const ann = { ...member('ann', 0, [[126.9, 37.5], [127.0, 37.6], [127.1, 37.6], [127.2, 37.6]]), userId: 'ann' };
+  ann.pings = ann.pings.map((p, i) => (i === 2 ? p : { ...p, photo: `p${i}.jpg` }));
+
+  it('with ALL shows only the latest two with a photo', () => {
+    expect([...photoPings(ann, null)]).toEqual([1, 3]);
+  });
+
+  it('picked shows all of theirs, and nobody else\'s', () => {
+    expect([...photoPings(ann, 'ann')]).toEqual([0, 1, 3]);
+    expect([...photoPings(ann, 'bo')]).toEqual([]);
+  });
+
+  it('none while a photo is open big', () => {
+    expect([...photoPings(ann, 'ann', true)]).toEqual([]);
+  });
+});
+
+describe('passRoute', () => {
+  it('keeps a short day whole and cuts a long one to its first and last places', () => {
+    expect(passRoute(['a', 'b', 'c'])).toEqual(['a', 'b', 'c']);
+    expect(passRoute(['a', 'b', 'c', 'd', 'e', 'f', 'g'])).toEqual(['a', null, 'e', 'f', 'g']);
   });
 });

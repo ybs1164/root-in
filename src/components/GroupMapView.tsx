@@ -1,6 +1,6 @@
-import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
+import { Camera, ChevronLeft, ChevronRight, Settings, X } from 'lucide-react';
 import { useEffect, useRef, type CSSProperties } from 'react';
-import { memberColor, stepMember, type Group, type GroupMember } from '../domain/groups';
+import { memberColor, passRoute, stepMember, type Group, type GroupMember } from '../domain/groups';
 import { MemberFace } from './WeNowPage';
 import CameraButton from './CameraButton';
 
@@ -18,6 +18,9 @@ interface GroupMapViewProps {
   /** A face's badge: their pings since I last picked them (App keeps what was seen). */
   newPings(member: GroupMember): number;
   onPick(memberId: string | null): void;
+  /** The ping tapped on the map (its photo and place in the panel under the title); null = none. */
+  place: { member: string; seq: number } | null;
+  onPlace(place: { member: string; seq: number } | null): void;
   onBack(): void;
   onSettings(): void;
 }
@@ -30,11 +33,14 @@ interface GroupMapViewProps {
  * the camera fixed at the bottom-right, and the member row
  * along the bottom: ALL then every member's face, each its own button with
  * a badge of their new pings since I last picked them, scrolled sideways when they don't fit. The picked
- * member's boarding pass rises over the row: photo, name, the day's first →
- * last place, the last one, and the count large on the stub. Tapping the
- * picked face again lowers it (back to ALL).
+ * member's boarding pass rises over the row: photo, name, the day's places
+ * in order (the last one stronger), and the count large on the stub. Tapping the
+ * picked face again lowers it (back to ALL). A tapped ping (or its photo
+ * head) opens the photo panel under the title: the photo sent from there,
+ * the place, who, n / N with ‹ › through their day, tied to the ping by a
+ * faint thread.
  */
-export default function GroupMapView({ group, picked, me, newPings, onPick, onBack, onSettings }: GroupMapViewProps) {
+export default function GroupMapView({ group, picked, me, newPings, onPick, place, onPlace, onBack, onSettings }: GroupMapViewProps) {
   const pickedMember = group.members.find((m) => m.userId === picked) ?? null;
   // The picked face is scrolled into the middle of the row, however it was picked (row, < >, the map).
   const row = useRef<HTMLDivElement>(null);
@@ -73,6 +79,15 @@ export default function GroupMapView({ group, picked, me, newPings, onPick, onBa
 
       {pickedMember && <MemberPass key={pickedMember.userId} member={pickedMember} mine={pickedMember.userId === me} />}
 
+      {pickedMember && place?.member === pickedMember.userId && pickedMember.pings[place.seq] && (
+        <PhotoPanel
+          member={pickedMember}
+          seq={place.seq}
+          onStep={(dir) => onPlace({ member: pickedMember.userId, seq: (place.seq + dir + pickedMember.pings.length) % pickedMember.pings.length })}
+          onClose={() => onPlace(null)}
+        />
+      )}
+
       <div ref={row} className="group-rail" role="group" aria-label="모임원">
         <button className={`group-rail__all ${picked ? '' : 'is-on'}`} style={stagger(0)} aria-pressed={!picked} onClick={() => onPick(null)}>
           ALL
@@ -101,8 +116,7 @@ export default function GroupMapView({ group, picked, me, newPings, onPick, onBa
 
 /** The picked member's boarding pass over the row. */
 function MemberPass({ member, mine }: { member: GroupMember; mine: boolean }) {
-  const first = member.pings[0];
-  const last = member.pings[member.pings.length - 1];
+  const route = passRoute(member.pings.map((p) => placeName(p.name)));
   return (
     <section className="member-pass" style={{ '--member': memberColor(member.slot) } as CSSProperties} aria-label={`${member.nickname}의 오늘`}>
       <div className="member-pass__ticket">
@@ -114,24 +128,18 @@ function MemberPass({ member, mine }: { member: GroupMember; mine: boolean }) {
               <strong className="member-pass__name">{member.nickname}</strong>
             </div>
           </div>
-          {last ? (
-            <>
-              <p className="member-pass__route">
-                {placeName(first.name)}
-                {member.pings.length > 1 && (
-                  <>
-                    <i aria-hidden>→</i>
-                    {placeName(last.name)}
-                  </>
-                )}
-              </p>
-              <p className="member-pass__last">
-                <small>LAST</small>
-                {placeName(last.name)}
-              </p>
-            </>
+          {route.length > 0 ? (
+            // The day's places in order, the last (where they are now) stronger.
+            <p className="member-pass__route">
+              {route.map((name, i) => (
+                <span key={i} className={i === route.length - 1 ? 'is-last' : undefined}>
+                  {i > 0 && <i aria-hidden>→</i>}
+                  {name ?? '…'}
+                </span>
+              ))}
+            </p>
           ) : (
-            <p className="member-pass__last">아직 오늘 핑이 없어요</p>
+            <p className="member-pass__route">아직 오늘 핑이 없어요</p>
           )}
         </div>
         <div className="member-pass__stub">
@@ -140,5 +148,79 @@ function MemberPass({ member, mine }: { member: GroupMember; mine: boolean }) {
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * Under the title: the tapped ping's photo (an empty frame where none was
+ * sent), the place, who, and n / N with ‹ › through their day. A faint
+ * thread in their colour runs from the panel down to the ping on the map,
+ * redrawn every frame from the marker so it follows pans and zooms.
+ */
+function PhotoPanel({ member, seq, onStep, onClose }: { member: GroupMember; seq: number; onStep(dir: -1 | 1): void; onClose(): void }) {
+  const ping = member.pings[seq];
+  const panel = useRef<HTMLElement>(null);
+  const thread = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    let frame = 0;
+    const draw = () => {
+      const line = thread.current;
+      const box = panel.current?.getBoundingClientRect();
+      const marker = document.querySelector<HTMLElement>('.group-ping.is-selected');
+      if (line && box && marker) {
+        const at = marker.getBoundingClientRect();
+        const head = Math.min(at.top, ...[...marker.children].map((c) => c.getBoundingClientRect().top));
+        const height = Math.max(0, head - box.bottom - 4);
+        line.style.transform = `translate(${Math.round(at.left)}px, ${Math.round(box.bottom)}px)`;
+        line.style.height = `${height}px`;
+      }
+      frame = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => cancelAnimationFrame(frame);
+  }, [member.userId, seq]);
+  return (
+    <>
+      <span ref={thread} className="group-photo-thread" style={{ '--member': memberColor(member.slot) } as CSSProperties} aria-hidden />
+      <section ref={panel} className="group-photo-panel" style={{ '--member': memberColor(member.slot) } as CSSProperties} aria-label={`${placeName(ping.name)} 사진`}>
+        <div key={seq} className={`group-photo-panel__photo ${ping.photo ? '' : 'is-empty'}`}>
+          {ping.photo ? (
+            <img src={ping.photo} alt="" draggable={false} />
+          ) : (
+            <>
+              <Camera size={26} strokeWidth={2} aria-hidden />
+              <span>아직 사진이 없어요</span>
+            </>
+          )}
+        </div>
+        <div className="group-photo-panel__text">
+          <div className="group-photo-panel__top">
+            <span className="group-photo-panel__seq">
+              <b>{seq + 1}</b> / {member.pings.length}
+            </span>
+            <button className="group-photo-panel__close" aria-label="사진 닫기" onClick={onClose}>
+              <X size={18} strokeWidth={2.4} />
+            </button>
+          </div>
+          <strong className="group-photo-panel__name">{placeName(ping.name)}</strong>
+          <div className="group-photo-panel__foot">
+            <span className="group-photo-panel__who">
+              <MemberFace member={member} size={22} />
+              {member.nickname}
+            </span>
+            {member.pings.length > 1 && (
+              <span className="group-photo-panel__nav">
+                <button aria-label="이전 장소" onClick={() => onStep(-1)}>
+                  <ChevronLeft size={22} strokeWidth={2.4} />
+                </button>
+                <button aria-label="다음 장소" onClick={() => onStep(1)}>
+                  <ChevronRight size={22} strokeWidth={2.4} />
+                </button>
+              </span>
+            )}
+          </div>
+        </div>
+      </section>
+    </>
   );
 }

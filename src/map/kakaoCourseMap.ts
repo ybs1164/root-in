@@ -244,8 +244,8 @@ export class KakaoCourseMap implements CourseMap {
           position: this.latLng(mark.center),
           content: createGroupPingElement(mark),
           yAnchor: 0.5,
-          // Faces over the dots, the picked member's over everyone else's, an open card over all.
-          zIndex: (mark.face ? 3 : 2) + (mark.faded ? 0 : 2) + (mark.card ? 4 : 0),
+          // Faces over the dots, photos over those, the picked member's over everyone else's, the tapped one over all.
+          zIndex: (mark.face ? 3 : 2) + (mark.photo ? 2 : 0) + (mark.faded ? 0 : 4) + (mark.selected ? 8 : 0),
           map: this.map,
         }),
     );

@@ -5,7 +5,7 @@ export interface GroupPing {
   center: [number, number];
   /** The place's name (shown while its member is picked); missing from older servers. */
   name?: string;
-  /** The photo sent with it from the camera (not built yet, so never set for now). */
+  /** The photo sent with it from the camera (the server sends none yet; the dev demo members have some). */
   photo?: string;
 }
 
@@ -105,6 +105,30 @@ export const groupPingKey = (member: GroupMember, ping: GroupPing): string => `$
 
 /** Every ping on the group's map right now: what opening it has seen. */
 export const groupPingKeys = (group: Group): string[] => group.members.flatMap((m) => m.pings.map((p) => groupPingKey(m, p)));
+
+/** How many of a member's photos are up at once with ALL (their latest ones), so the map isn't papered over. */
+export const PHOTOS_PER_MEMBER = 2;
+
+/**
+ * Which of a member's pings show their photo on the map: with ALL, their
+ * latest `PHOTOS_PER_MEMBER` with one; picked, every one with a photo;
+ * nobody's while someone else is picked, nor while a photo is open big in
+ * the panel (`open`).
+ */
+export function photoPings(member: GroupMember, picked: string | null, open = false): Set<number> {
+  if (open || (picked && picked !== member.userId)) return new Set();
+  const withPhoto = member.pings.flatMap((p, i) => (p.photo ? [i] : []));
+  return new Set(picked ? withPhoto : withPhoto.slice(-PHOTOS_PER_MEMBER));
+}
+
+/**
+ * The pass's day: every place in order; a long one keeps the first and the
+ * last few (null = the … between).
+ */
+export function passRoute(names: string[], keep = 5): (string | null)[] {
+  if (names.length <= keep) return names;
+  return [names[0], null, ...names.slice(-(keep - 2))];
+}
 
 /** A face's badge on a group's map: the member's pings since I last had them picked (`seen`; never = all of them). */
 export function newMemberPings(member: GroupMember, seen: readonly string[] | undefined): number {
