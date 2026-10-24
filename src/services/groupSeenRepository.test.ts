@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { loadGroupSeen, saveGroupSeen } from './groupSeenRepository';
+import { loadGroupSeen, loadMemberSeen, memberSeenKey, saveGroupSeen, saveMemberSeen } from './groupSeenRepository';
 
 describe('groupSeenRepository', () => {
   beforeEach(() => localStorage.clear());
@@ -14,5 +14,11 @@ describe('groupSeenRepository', () => {
     expect(loadGroupSeen()).toEqual({});
     localStorage.setItem('goodroot:group-seen:v1', JSON.stringify({ g1: 'x', g2: ['a', 3] }));
     expect(loadGroupSeen()).toEqual({ g2: ['a'] });
+  });
+
+  it('keeps what was seen per member, apart from the groups', () => {
+    saveMemberSeen({ [memberSeenKey('g1', 'u1')]: ['u1|2026-10-24T01:00:00.000Z'] });
+    expect(loadMemberSeen()).toEqual({ 'g1|u1': ['u1|2026-10-24T01:00:00.000Z'] });
+    expect(loadGroupSeen()).toEqual({});
   });
 });

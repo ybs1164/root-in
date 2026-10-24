@@ -90,9 +90,6 @@ function tileProjection(all: readonly [number, number][], size: number, margin: 
   ];
 }
 
-/** How many members the rail shows folded (after ALL); ↓ opens the rest. */
-export const RAIL_FOLDED_MEMBERS = 3;
-
 /**
  * The `<` `>` in the middle of a group's map: one member after another in
  * the rail's order, ALL before the first and after the last, going round.
@@ -108,6 +105,12 @@ export const groupPingKey = (member: GroupMember, ping: GroupPing): string => `$
 
 /** Every ping on the group's map right now: what opening it has seen. */
 export const groupPingKeys = (group: Group): string[] => group.members.flatMap((m) => m.pings.map((p) => groupPingKey(m, p)));
+
+/** A face's badge on a group's map: the member's pings since I last had them picked (`seen`; never = all of them). */
+export function newMemberPings(member: GroupMember, seen: readonly string[] | undefined): number {
+  const known = new Set(seen ?? []);
+  return member.pings.filter((p) => !known.has(groupPingKey(member, p))).length;
+}
 
 /**
  * The tile's 새 핑 badge: other members' pings that weren't on the map when I

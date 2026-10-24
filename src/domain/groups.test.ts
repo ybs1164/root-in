@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, groupPingKeys, myGroupPings, type Group } from './groups';
+import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, groupPingKey, groupPingKeys, myGroupPings, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -113,5 +113,15 @@ describe('myGroupPings', () => {
       { at: at(1), center: [127, 37.6], name: 'A' },
       { at: at(3), center: [127, 37.5], name: 'B' },
     ]);
+  });
+});
+
+describe('newMemberPings', () => {
+  it('counts only the pings since I last had that member picked', () => {
+    const ann = member('ann', 0, [[126.9, 37.5], [127.0, 37.6], [127.1, 37.6]]);
+    expect(newMemberPings(ann, undefined)).toBe(3);
+    const seen = ann.pings.slice(0, 2).map((p) => groupPingKey(ann, p));
+    expect(newMemberPings(ann, seen)).toBe(1);
+    expect(newMemberPings(ann, [...seen, groupPingKey(ann, ann.pings[2])])).toBe(0);
   });
 });

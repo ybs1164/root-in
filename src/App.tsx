@@ -46,9 +46,9 @@ import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
 import { useGroups } from './hooks/useGroups';
 import { groupsNeedLogin, inviteUrl } from './services/groupService';
-import { focusPoints, groupPingKeys, memberColor, myGroupPings, newPingCount, type GroupMember } from './domain/groups';
+import { focusPoints, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, newPingCount, type GroupMember } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
-import { loadGroupSeen, saveGroupSeen, type GroupSeen } from './services/groupSeenRepository';
+import { loadGroupSeen, loadMemberSeen, memberSeenKey, saveGroupSeen, saveMemberSeen, type GroupSeen, type MemberSeen } from './services/groupSeenRepository';
 import { useStoredPings } from './hooks/useStoredPings';
 import { dateKey } from './domain/diary';
 import GroupMapView from './components/GroupMapView';
@@ -85,6 +85,8 @@ const AIM_MIN_MOVE_M = 8;
 /** Matches `tray-down` in styles.css: the 경로 폴더 sheet stays mounted while it slides away. */
 const ROUTE_TRAY_OUT_MS = 170;
 /** How much of the folder sheet stays up while a route is on show (matches .route-folders.is-lowered). */
+/** The top of a group's map held by ‹, the name and ⚙: a ping's card is centred below it. */
+const GROUP_TITLE_PX = 120;
 const FOLDER_LOWERED_PX = 324;
 /** Once the map has glided over to a route, the pins fade off (matches .app--pins-away), and only then do its stops drop in. */
 const PINS_FADE_MS = 250;
@@ -353,6 +355,19 @@ export default function App() {
       return next;
     });
   }, [openGroup?.id, openGroupKeys]);
+  // Each face's badge on a group's map: that member's pings since I last had
+  // them picked. Picking someone sees all of theirs, and so do new ones while picked.
+  const [memberSeen, setMemberSeen] = useState<MemberSeen>(loadMemberSeen);
+  const pickedMember = openGroup && groupPicked ? (openGroup.members.find((m) => m.userId === groupPicked) ?? null) : null;
+  const pickedKeys = pickedMember ? pickedMember.pings.map((p) => groupPingKey(pickedMember, p)).join(',') : null;
+  useEffect(() => {
+    if (!openGroup || !pickedMember) return;
+    setMemberSeen((seen) => {
+      const next = { ...seen, [memberSeenKey(openGroup.id, pickedMember.userId)]: pickedMember.pings.map((p) => groupPingKey(pickedMember, p)) };
+      saveMemberSeen(next);
+      return next;
+    });
+  }, [openGroup?.id, pickedMember?.userId, pickedKeys]);
   useEffect(() => {
     if (!needLogin && tab === 'people' && account.available && !account.user && guest === 'idle') startGuest();
   }, [needLogin, tab, account.available, account.user, guest, startGuest]);
@@ -649,9 +664,10 @@ export default function App() {
     if (points.length === 0) return;
     const el = mapEl.current;
     const width = el?.clientWidth ?? window.innerWidth;
-    // Under the title, over the rail along the bottom, clear of the < > at the sides.
+    // Under the title, over the member row along the bottom (and the picked
+    // member's pass over it), clear of the < > at the sides.
     const side = width < 520 ? 76 : 96;
-    const padding = { top: 150, right: side, bottom: 130, left: side };
+    const padding = { top: 150, right: side, bottom: groupPicked ? 270 : 130, left: side };
     // Like a route: the first move onto someone (from ALL, or opening the
     // group) glides at the usual pace; going on from one member to the next
     // is as quick as stepping between routes with < >.
@@ -659,14 +675,18 @@ export default function App() {
     const memberToMember = !!last && last.group === openGroup.id && !!last.picked && !!groupPicked;
     groupFitted.current = { group: openGroup.id, picked: groupPicked };
     const id = requestAnimationFrame(() => {
-      // A tapped ping: it and its card together in the middle of the screen
-      // (from the card's top down to the ping, measured off the marker), not the member's whole day.
+      // A tapped ping: it and its card together in the middle of the room
+      // between the title and the member's pass (from the card's top down to
+      // the ping, measured off the marker), not the member's whole day.
       const ping = groupPing && openGroup.members.find((m) => m.userId === groupPing.member)?.pings[groupPing.seq];
       const marker = ping && document.querySelector<HTMLElement>('.group-ping.has-card');
       const card = marker?.querySelector('.group-card');
       if (ping && marker && card) {
         const span = marker.getBoundingClientRect().top - card.getBoundingClientRect().top;
-        return mapRef.current?.focus(ping.center, { top: Math.max(0, span), right: 0, bottom: 0, left: 0 });
+        const box = el?.getBoundingClientRect();
+        const below = document.querySelector('.member-pass, .group-rail')?.getBoundingClientRect().top;
+        const bottom = box && below ? Math.max(0, box.bottom - below) : 0;
+        return mapRef.current?.focus(ping.center, { top: GROUP_TITLE_PX + Math.max(0, span), right: 0, bottom, left: 0 });
       }
       void mapRef.current?.fitPoints(points, padding, memberToMember ? STEP_GLIDE_MS : undefined);
     });
@@ -1640,6 +1660,9 @@ export default function App() {
           <GroupMapView
             group={openGroup}
             picked={groupPicked}
+            me={myId}
+            // Mine never: my own pings aren't news to me.
+            newPings={(m) => (m.userId === myId ? 0 : newMemberPings(m, memberSeen[memberSeenKey(openGroup.id, m.userId)]))}
             onPick={setGroupPicked}
             onBack={() => setOpenGroupId(null)}
             onSettings={() => setGroupSettingsOpen(true)}

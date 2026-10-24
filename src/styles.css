@@ -8005,56 +8005,81 @@ button:disabled {
   text-shadow: 0 0 5px var(--surface);
 }
 
-/* The < > at the middle of the sides, paging the members (route-step sits at the middle already). */
+/* The < > paging the members, down either side of the pass (level with its
+   middle, ALL or not), in the margins the pass leaves them. */
 .route-step.group-view__step {
-  top: 50%;
+  top: auto;
+  bottom: calc(var(--safe-bottom) + 112px + 64px);
+  width: 48px;
+  translate: 0 50%;
 }
 
-/* ALL then the members' faces, in a row along the bottom centre (where the
-   other screens have their bottom row); scrolls sideways once unfolded wide. */
+/* The member row along the bottom (where the other screens have their
+   bottom row): ALL then every member's face, each its own round, scrolled
+   sideways when they don't all fit, centred when they do. */
 .group-rail {
   position: fixed;
-  left: 50%;
-  bottom: calc(var(--safe-bottom) + 36px);
+  left: 0;
+  /* Ends short of the camera, so faces scrolled along never pass under it. */
+  right: 72px;
+  /* Clear of the map's attribution line along the very bottom. */
+  bottom: calc(var(--safe-bottom) + 34px);
   z-index: 20;
   display: flex;
   align-items: center;
   gap: 10px;
-  max-width: calc(100% - 32px);
-  /* Room for the buttons' shadows and the picked ring inside the scroll box (it clips them). */
-  padding: 10px;
+  /* Room for the shadows, the picked ring and the count badges inside the scroll box (it clips them). */
+  padding: 10px 12px 10px 16px;
   overflow-x: auto;
+  scroll-padding: 0 16px;
   scrollbar-width: none;
-  translate: -50% 10px;
 }
 
-/* A group's camera: bottom-right like the other screens', a row up so the rail has the bottom to itself. */
+.group-rail::-webkit-scrollbar {
+  display: none;
+}
+
+/* Centred while they fit; auto margins (not justify-content) so a wide row still scrolls from its start. */
+.group-rail > :first-child {
+  margin-left: auto;
+}
+
+.group-rail > :last-child {
+  margin-right: auto;
+}
+
+/* A group's camera: fixed at the bottom-right, level with the member row
+   (whose faces stop short of it), whatever is up above. */
 .group-view__camera {
   position: fixed;
   right: 16px;
-  bottom: calc(var(--safe-bottom) + 36px + 48px + 16px);
-  z-index: 20;
+  bottom: calc(var(--safe-bottom) + 44px);
+  z-index: 21;
 }
 
 .group-rail > button {
+  position: relative;
   flex: none;
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   padding: 0;
   border: 0;
   border-radius: 50%;
   background: var(--surface);
   box-shadow: var(--round-btn-shadow);
   color: var(--text);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: scale 0.2s ease;
+  /* Drops in one after another on opening the group — the pin rail's own motion. */
+  animation: pin-rail-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+  animation-delay: calc(var(--i, 0) * 30ms);
 }
 
 .group-rail__all {
   color: var(--muted);
   font-family: "Bebas Neue", "Oswald", sans-serif;
-  font-size: 17px;
+  font-size: 18px;
 }
 
 .group-rail__all.is-on {
@@ -8062,40 +8087,149 @@ button:disabled {
   color: var(--accent);
 }
 
-.group-rail__member .member-face {
-  box-shadow: 0 0 0 2px var(--surface);
-}
-
 .group-rail__member.is-on {
   box-shadow: var(--round-btn-shadow), 0 0 0 3px var(--member);
-  transform: scale(1.08);
+  scale: 1.1;
 }
 
-.group-rail__member.is-off {
-  opacity: 0.4;
-}
-
-/* The rail's buttons drop out one after another (opening the group, or ↓ for
-   the rest), and tuck back up folding — the pin rail's own motion. */
-.group-rail > button {
-  animation: pin-rail-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
-  animation-delay: calc(var(--i, 0) * 30ms);
-}
-
-.group-rail > button.is-leaving {
-  animation: pin-rail-out 0.16s ease-in both;
-  pointer-events: none;
-}
-
-.group-rail__more {
-  color: var(--muted) !important;
+/* Today's place count, a little badge in the member's colour on the face. */
+.group-rail__count {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--member);
+  box-shadow: 0 0 0 2px var(--surface);
+  color: var(--on-accent);
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  font-size: 14px;
+  line-height: 20px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .group-rail > button,
-  .group-rail > button.is-leaving {
+  .group-rail > button {
     animation: none;
   }
+}
+
+/* The picked member's boarding pass, risen over the row: who and the day
+   on the left, the place count large on the stub past the perforation. */
+.member-pass {
+  position: fixed;
+  bottom: calc(var(--safe-bottom) + 112px);
+  z-index: 21;
+  max-width: 420px;
+  /* Clear of the < > either side. */
+  left: 48px;
+  right: 48px;
+  margin: 0 auto;
+  /* On the wrapper: the ticket's notches are cut with a mask, which would cut a box-shadow too. */
+  filter: drop-shadow(var(--ticket-shadow));
+  animation: rise-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --stub: 92px;
+}
+
+.member-pass__ticket {
+  display: flex;
+  min-height: 128px;
+  border-radius: 18px;
+  background: var(--surface);
+  /* The two half-round notches where the perforation meets the edges. */
+  -webkit-mask:
+    radial-gradient(circle 8px at calc(100% - var(--stub)) 0, transparent 98%, var(--mask-show)) top / 100% 51% no-repeat,
+    radial-gradient(circle 8px at calc(100% - var(--stub)) 100%, transparent 98%, var(--mask-show)) bottom / 100% 51% no-repeat;
+  mask:
+    radial-gradient(circle 8px at calc(100% - var(--stub)) 0, transparent 98%, var(--mask-show)) top / 100% 51% no-repeat,
+    radial-gradient(circle 8px at calc(100% - var(--stub)) 100%, transparent 98%, var(--mask-show)) bottom / 100% 51% no-repeat;
+}
+
+.member-pass__main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  padding: 14px 14px 14px 16px;
+}
+
+.member-pass__who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.member-pass__who .member-face {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--member);
+}
+
+.member-pass__tag,
+.member-pass__last small,
+.member-pass__stub small {
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.member-pass__tag {
+  display: block;
+}
+
+.member-pass__name {
+  display: block;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-pass__route,
+.member-pass__last {
+  margin: 0;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-pass__route {
+  color: var(--muted);
+}
+
+.member-pass__route i {
+  margin: 0 4px;
+  color: var(--ticket-arrow);
+  font-style: normal;
+}
+
+.member-pass__last {
+  color: var(--text);
+}
+
+.member-pass__last small {
+  margin-right: 5px;
+}
+
+.member-pass__stub {
+  flex: none;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  width: var(--stub);
+  border-left: 2px dashed var(--perforation);
+}
+
+.member-pass__count {
+  color: var(--member);
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  font-size: 44px;
+  line-height: 0.9;
 }
 
 /* On the map: a member's pings as dots in their colour, their latest as their face. */

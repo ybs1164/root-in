@@ -1,19 +1,22 @@
 import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
-import { useEffect, useState, type CSSProperties } from 'react';
-import { memberColor, RAIL_FOLDED_MEMBERS, stepMember, type Group } from '../domain/groups';
+import { useEffect, useRef, type CSSProperties } from 'react';
+import { memberColor, stepMember, type Group, type GroupMember } from '../domain/groups';
 import { MemberFace } from './WeNowPage';
 import CameraButton from './CameraButton';
 
-/** Matches `pin-rail-out` in styles.css: the unfolded members stay mounted until they've tucked away. */
-const OUT_MS = 160;
-
 /** Per-button delay index, capped as on the pin rail. */
 const stagger = (i: number): CSSProperties => ({ '--i': Math.min(i, 8) }) as CSSProperties;
+
+const placeName = (name: string | undefined) => name || '이름 없는 곳';
 
 interface GroupMapViewProps {
   group: Group;
   /** The member picked on the rail (their pings only, the map on them); null = ALL. */
   picked: string | null;
+  /** My user id: my pass reads ME. */
+  me: string | null;
+  /** A face's badge: their pings since I last picked them (App keeps what was seen). */
+  newPings(member: GroupMember): number;
   onPick(memberId: string | null): void;
   onBack(): void;
   onSettings(): void;
@@ -21,29 +24,29 @@ interface GroupMapViewProps {
 
 /**
  * A group opened from We Now: the map with every member's pings and lines
- * (App draws them), and over it ‹ back, the group's name (and under it who's
- * picked), ⚙ settings, the rail along the bottom centre — ALL and the first
- * three members, › for everyone (‹ folds it again) — the camera at the
- * bottom-right, and `<` `>` at the middle of the screen's sides, one member
- * after another. No place names or times on the map with ALL, and no bottom row.
+ * (App draws them), and over it ‹ back, the group's name (only the name —
+ * the pass says who's picked),
+ * ⚙ settings, `<` `>` either side of the pass, one member after another,
+ * the camera fixed at the bottom-right, and the member row
+ * along the bottom: ALL then every member's face, each its own button with
+ * a badge of their new pings since I last picked them, scrolled sideways when they don't fit. The picked
+ * member's boarding pass rises over the row: photo, name, the day's first →
+ * last place, the last one, and the count large on the stub. Tapping the
+ * picked face again lowers it (back to ALL).
  */
-export default function GroupMapView({ group, picked, onPick, onBack, onSettings }: GroupMapViewProps) {
+export default function GroupMapView({ group, picked, me, newPings, onPick, onBack, onSettings }: GroupMapViewProps) {
   const pickedMember = group.members.find((m) => m.userId === picked) ?? null;
-  const [open, setOpen] = useState(false);
-  // Another group starts folded.
-  useEffect(() => setOpen(false), [group.id]);
-  // The rest trail `open` so they can tuck away (pin-rail-out) before unmounting, as the pin rail's categories do.
-  const [extrasShown, setExtrasShown] = useState(open);
+  // The picked face is scrolled into the middle of the row, however it was picked (row, < >, the map).
+  const row = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (open) return setExtrasShown(true);
-    const t = window.setTimeout(() => setExtrasShown(false), OUT_MS);
-    return () => window.clearTimeout(t);
-  }, [open]);
-  const foldable = group.members.length > RAIL_FOLDED_MEMBERS;
-  const shown = open || extrasShown || !foldable ? group.members : group.members.slice(0, RAIL_FOLDED_MEMBERS);
+    const box = row.current;
+    const el = box?.querySelector<HTMLElement>(picked ? `[data-member="${CSS.escape(picked)}"]` : '.group-rail__all');
+    if (!box || !el) return;
+    box.scrollTo({ left: el.offsetLeft - box.clientWidth / 2 + el.offsetWidth / 2, behavior: 'smooth' });
+  }, [picked]);
 
   return (
-    <div className="group-view">
+    <div className={`group-view ${pickedMember ? 'has-pass' : ''}`}>
       <button className="group-view__btn group-view__btn--back" aria-label="그룹 목록으로" onClick={onBack}>
         <ChevronLeft size={24} strokeWidth={2.2} />
       </button>
@@ -53,8 +56,6 @@ export default function GroupMapView({ group, picked, onPick, onBack, onSettings
 
       <div className="group-view__title">
         <h2 key={group.id}>{group.name}</h2>
-        {/* Only who's picked, under the name; nothing with ALL. */}
-        {pickedMember && <p>{pickedMember.nickname}</p>}
       </div>
 
       {group.members.length > 0 && (
@@ -68,31 +69,76 @@ export default function GroupMapView({ group, picked, onPick, onBack, onSettings
         </>
       )}
 
-      <div className="group-rail" role="group" aria-label="모임원">
+      <CameraButton className="group-view__camera" />
+
+      {pickedMember && <MemberPass key={pickedMember.userId} member={pickedMember} mine={pickedMember.userId === me} />}
+
+      <div ref={row} className="group-rail" role="group" aria-label="모임원">
         <button className={`group-rail__all ${picked ? '' : 'is-on'}`} style={stagger(0)} aria-pressed={!picked} onClick={() => onPick(null)}>
           ALL
         </button>
-        {shown.map((m, i) => (
-          <button
-            key={m.userId}
-            className={`group-rail__member ${picked === m.userId ? 'is-on' : picked ? 'is-off' : ''} ${foldable && i >= RAIL_FOLDED_MEMBERS && !open ? 'is-leaving' : ''}`}
-            aria-pressed={picked === m.userId}
-            // The rest drop out after the first three, one after another.
-            style={{ '--member': memberColor(m.slot), ...stagger(i >= RAIL_FOLDED_MEMBERS && foldable ? i - RAIL_FOLDED_MEMBERS : i + 1) } as CSSProperties}
-            aria-label={m.nickname}
-            onClick={() => onPick(picked === m.userId ? null : m.userId)}
-          >
-            <MemberFace member={m} size={44} />
-          </button>
-        ))}
-        {foldable && (
-          <button className="group-rail__more" style={stagger(RAIL_FOLDED_MEMBERS + 1)} aria-label={open ? '모임원 접기' : '모임원 모두 보기'} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-            {open ? <ChevronLeft size={22} strokeWidth={2.2} /> : <ChevronRight size={22} strokeWidth={2.2} />}
-          </button>
-        )}
+        {group.members.map((m, i) => {
+          const fresh = newPings(m);
+          return (
+            <button
+              key={m.userId}
+              data-member={m.userId}
+              className={`group-rail__member ${picked === m.userId ? 'is-on' : ''}`}
+              aria-pressed={picked === m.userId}
+              style={{ '--member': memberColor(m.slot), ...stagger(i + 1) } as CSSProperties}
+              aria-label={fresh ? `${m.nickname}, 새 핑 ${fresh}개` : m.nickname}
+              onClick={() => onPick(picked === m.userId ? null : m.userId)}
+            >
+              <MemberFace member={m} size={46} />
+              {fresh > 0 && <span className="group-rail__count">{fresh}</span>}
+            </button>
+          );
+        })}
       </div>
-
-      <CameraButton className="group-view__camera" />
     </div>
+  );
+}
+
+/** The picked member's boarding pass over the row. */
+function MemberPass({ member, mine }: { member: GroupMember; mine: boolean }) {
+  const first = member.pings[0];
+  const last = member.pings[member.pings.length - 1];
+  return (
+    <section className="member-pass" style={{ '--member': memberColor(member.slot) } as CSSProperties} aria-label={`${member.nickname}의 오늘`}>
+      <div className="member-pass__ticket">
+        <div className="member-pass__main">
+          <div className="member-pass__who">
+            <MemberFace member={member} size={48} />
+            <div>
+              <span className="member-pass__tag">TODAY · {mine ? 'ME' : 'MEMBER'}</span>
+              <strong className="member-pass__name">{member.nickname}</strong>
+            </div>
+          </div>
+          {last ? (
+            <>
+              <p className="member-pass__route">
+                {placeName(first.name)}
+                {member.pings.length > 1 && (
+                  <>
+                    <i aria-hidden>→</i>
+                    {placeName(last.name)}
+                  </>
+                )}
+              </p>
+              <p className="member-pass__last">
+                <small>LAST</small>
+                {placeName(last.name)}
+              </p>
+            </>
+          ) : (
+            <p className="member-pass__last">아직 오늘 핑이 없어요</p>
+          )}
+        </div>
+        <div className="member-pass__stub">
+          <span className="member-pass__count">{member.pings.length}</span>
+          <small>PLACES</small>
+        </div>
+      </div>
+    </section>
   );
 }
