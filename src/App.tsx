@@ -340,6 +340,11 @@ export default function App() {
   useEffect(() => {
     if (groupPing && groupPing.member !== groupPicked) setGroupPing(null);
   }, [groupPicked, groupPing]);
+  // The panel's photo opened big over everything; it goes when the panel does.
+  const [groupPhotoBig, setGroupPhotoBig] = useState(false);
+  useEffect(() => {
+    if (!groupPing) setGroupPhotoBig(false);
+  }, [groupPing]);
   // A group's 새 핑 badge: pings that weren't on its map when I last had it
   // open. Whatever is on the open group's map counts as seen, new arrivals too.
   const [groupSeen, setGroupSeen] = useState<GroupSeen>(loadGroupSeen);
@@ -1159,6 +1164,7 @@ export default function App() {
   useBackButton(() => {
     if (closeTopDialog()) return true;
     if (studio) return setStudio(null), true;
+    if (groupPhotoBig) return setGroupPhotoBig(false), true;
     if (openGroupId) return setOpenGroupId(null), true;
     if (todayOpen) return setTodayOpen(false), true;
     if (searchOpen) return setSearchOpen(false), setQuery(''), searchInput.current?.blur(), true;
@@ -1668,6 +1674,8 @@ export default function App() {
             onPick={setGroupPicked}
             place={groupPing}
             onPlace={setGroupPing}
+            photoBig={groupPhotoBig}
+            onPhotoBig={setGroupPhotoBig}
             onBack={() => setOpenGroupId(null)}
             onSettings={() => setGroupSettingsOpen(true)}
           />

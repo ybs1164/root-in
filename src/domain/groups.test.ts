@@ -66,13 +66,15 @@ describe('groups', () => {
     expect(tilePaths(group('e', []), 100)).toEqual([]);
   });
 
-  it('steps through the members with ALL at both ends, going round', () => {
+  it('steps through the members only, going round, never to ALL', () => {
     const g = group('g');
     expect(stepMember(g, null, 1)).toBe('a');
     expect(stepMember(g, 'a', 1)).toBe('b');
-    expect(stepMember(g, 'b', 1)).toBeNull();
+    expect(stepMember(g, 'b', 1)).toBe('a');
+    expect(stepMember(g, 'a', -1)).toBe('b');
     expect(stepMember(g, null, -1)).toBe('b');
     expect(stepMember(g, 'gone', 1)).toBe('a');
+    expect(stepMember(group('e', []), null, 1)).toBeNull();
   });
 });
 

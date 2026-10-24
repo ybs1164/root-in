@@ -91,12 +91,15 @@ function tileProjection(all: readonly [number, number][], size: number, margin: 
 }
 
 /**
- * The `<` `>` in the middle of a group's map: one member after another in
- * the rail's order, ALL before the first and after the last, going round.
+ * The `<` `>` beside the pass: one member after another in the row's order,
+ * going round from the last to the first — never ALL (that's its own button).
+ * From ALL (or someone gone), `>` is the first member and `<` the last.
  */
 export function stepMember(group: Group, picked: string | null, dir: -1 | 1): string | null {
-  const order: (string | null)[] = [null, ...group.members.map((m) => m.userId)];
-  const i = Math.max(0, order.indexOf(picked));
+  const order = group.members.map((m) => m.userId);
+  if (order.length === 0) return null;
+  const i = picked ? order.indexOf(picked) : -1;
+  if (i < 0) return dir === 1 ? order[0] : order[order.length - 1];
   return order[(i + dir + order.length) % order.length];
 }
 

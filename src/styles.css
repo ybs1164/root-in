@@ -8237,6 +8237,121 @@ button:disabled {
   color: var(--muted);
 }
 
+button.group-photo-panel__photo {
+  padding: 0;
+  border: 0;
+  cursor: zoom-in;
+}
+
+/* The panel's photo big: a dark veil over everything, the photo whole, the place under it. */
+.group-photo-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--safe-top) + 64px) 16px calc(var(--safe-bottom) + 24px);
+  background: var(--tray-bg);
+  animation: veil-in 0.2s ease both;
+}
+
+@keyframes veil-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.group-photo-viewer__close {
+  position: absolute;
+  top: calc(var(--safe-top) + 12px);
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tray-hi);
+  color: var(--tray-fg);
+}
+
+.group-photo-viewer__figure {
+  display: grid;
+  gap: 14px;
+  width: min(100%, 520px);
+  margin: 0;
+  animation: pop-in 0.26s var(--pop-ease) both;
+}
+
+.group-photo-viewer__photo {
+  display: grid;
+  place-items: center;
+  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 200px);
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+.group-photo-viewer__photo img {
+  display: block;
+  width: 100%;
+  max-height: inherit;
+  object-fit: contain;
+}
+
+.group-photo-viewer__photo.is-empty {
+  aspect-ratio: 1;
+  align-content: center;
+  gap: 8px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.group-photo-viewer__caption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--tray-fg);
+}
+
+.group-photo-viewer__text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.group-photo-viewer__text strong {
+  overflow: hidden;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-photo-viewer__text span {
+  color: var(--tray-dim);
+  font-size: 13px;
+}
+
+.group-photo-viewer__nav {
+  display: flex;
+  flex: none;
+}
+
+.group-photo-viewer__nav button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tray-fg);
+}
+
 /* The thread from the panel down to the ping (GroupMapView moves it every frame). */
 .group-photo-thread {
   position: fixed;
@@ -8367,6 +8482,8 @@ button:disabled {
 
 /* On the map: a member's pings as dots in their colour, their latest as their face. */
 .group-ping {
+  /* Over the lines (GroupLines, z 0 beside the map), as a route's stops are. */
+  z-index: 1;
   width: 14px;
   height: 14px;
   border-radius: 50%;
@@ -8521,19 +8638,22 @@ button:disabled {
   pointer-events: none;
 }
 
-.group-lines polyline {
+.group-lines line {
   fill: none;
   stroke-width: 3.5;
   stroke-linecap: round;
-  stroke-linejoin: round;
+}
+
+.group-lines g {
   transition: opacity 0.25s ease;
 }
 
-.group-lines polyline.is-faded {
+.group-lines g.is-faded {
   opacity: 0.22;
 }
 
-/* Each member's line on a light casing (as a route's). */
+/* Each leg on its own light casing, the next leg's casing over the one
+   before: the line breaks at every ping, as TODAY's do. */
 .group-lines .group-lines__case {
   stroke: var(--map-road);
   stroke-width: 6.5;
