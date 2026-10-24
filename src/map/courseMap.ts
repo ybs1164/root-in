@@ -201,7 +201,7 @@ export function createGroupPingElement(mark: GroupPingMark): HTMLElement {
     el.append(pin);
   }
   if (mark.photo) {
-    // The photo as the ping's head: a small rounded print in the member's colour, its tail on the spot (over the face, if it's their latest).
+    // The photo over the ping: a small rounded print in the member's colour on top of its pin (or face, if it's their latest).
     const head = document.createElement('span');
     head.className = 'group-ping__photo';
     const img = document.createElement('img');

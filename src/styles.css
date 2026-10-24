@@ -8570,17 +8570,13 @@ button.group-photo-panel__photo {
   height: 100%;
 }
 
-/* A ping with a photo: the photo is its head, a small rounded print framed
-   in the member's colour with a tail down to the spot — over the pin, or
-   over the face for their latest. The tapped one swells a little. */
-.group-ping.has-photo .group-ping__pin {
-  visibility: hidden;
-}
-
+/* A ping with a photo: a small rounded print framed in the member's colour
+   standing on top of the ping's own shape (the pin stays), its tail on the
+   pin's head — or on the face, for their latest. The tapped one swells a little. */
 .group-ping__photo {
   position: absolute;
   left: -28px;
-  top: -70px;
+  top: -96px;
   width: 56px;
   height: 56px;
   padding: 3px;
@@ -8612,7 +8608,7 @@ button.group-photo-panel__photo {
 }
 
 .group-ping--face .group-ping__photo {
-  top: -122px;
+  top: -126px;
 }
 
 .group-ping.is-selected {

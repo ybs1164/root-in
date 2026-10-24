@@ -7,11 +7,12 @@ const DEMO_PLACES = [['광화문', '서촌 카페', '통인시장'], ['명동성
 
 /**
  * A stand-in for a photo sent from the camera: a little drawn scene (sky,
- * sun, hills) as an SVG data URL, so the demo works offline. The third ping
- * of each demo member has none, as a place someone didn't photograph.
+ * sun, hills) as an SVG data URL, so the demo works offline. The first demo
+ * member's last place has none (a place they didn't photograph); the
+ * second's does, so a photo shows over a face too.
  */
 function demoPhoto(member: number, step: number): string | undefined {
-  if (step === 2) return undefined;
+  if (member === 0 && step === 2) return undefined;
   const hue = [205, 25, 140, 330][(member * 2 + step) % 4];
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(${hue} 70% 78%)"/><stop offset="1" stop-color="hsl(${hue + 30} 80% 92%)"/></linearGradient></defs><rect width="120" height="120" fill="url(#s)"/><circle cx="${40 + step * 30}" cy="42" r="14" fill="hsl(45 95% 70%)"/><path d="M0 92 Q30 64 60 88 T120 80 V120 H0Z" fill="hsl(${hue + 90} 35% 52%)"/><path d="M0 104 Q40 86 80 102 T120 98 V120 H0Z" fill="hsl(${hue + 90} 40% 38%)"/></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;

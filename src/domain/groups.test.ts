@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, groupPingKey, groupPingKeys, myGroupPings, type Group } from './groups';
+import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoLimit, photoPings, passRoute, groupPingKey, groupPingKeys, myGroupPings, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -129,20 +129,41 @@ describe('newMemberPings', () => {
 });
 
 describe('photoPings', () => {
-  const ann = { ...member('ann', 0, [[126.9, 37.5], [127.0, 37.6], [127.1, 37.6], [127.2, 37.6]]), userId: 'ann' };
-  ann.pings = ann.pings.map((p, i) => (i === 2 ? p : { ...p, photo: `p${i}.jpg` }));
+  const withPhotos = (n: number, photos: number[]) => {
+    const m = member('ann', 0, Array.from({ length: n }, (_, k) => [126.9 + k * 0.01, 37.5] as [number, number]));
+    m.pings = m.pings.map((p, i) => (photos.includes(i) ? { ...p, at: `2026-10-24T${String(i).padStart(2, '0')}:00:00.000Z`, photo: `p${i}.jpg` } : { ...p, at: `2026-10-24T${String(i).padStart(2, '0')}:00:00.000Z` }));
+    return m;
+  };
 
-  it('with ALL shows only the latest two with a photo', () => {
-    expect([...photoPings(ann, null)]).toEqual([1, 3]);
+  it('limits a member to three, and to n − 2 places from three places up', () => {
+    expect(photoLimit(1, 1)).toBe(1);
+    expect(photoLimit(2, 2)).toBe(2);
+    expect(photoLimit(3, 3)).toBe(1);
+    expect(photoLimit(4, 4)).toBe(2);
+    expect(photoLimit(5, 5)).toBe(3);
+    expect(photoLimit(9, 9)).toBe(3);
+    expect(photoLimit(9, 1)).toBe(1);
   });
 
-  it('picked shows all of theirs, and nobody else\'s', () => {
-    expect([...photoPings(ann, 'ann')]).toEqual([0, 1, 3]);
-    expect([...photoPings(ann, 'bo')]).toEqual([]);
+  it('always shows the latest place with a photo, the rest stable picks among the others', () => {
+    const m = withPhotos(8, [0, 1, 2, 4, 6]);
+    const shown = photoPings(m, null);
+    expect(shown.size).toBe(3);
+    expect(shown.has(6)).toBe(true);
+    expect([...shown].every((i) => [0, 1, 2, 4, 6].includes(i))).toBe(true);
+    // The same day draws the same picks.
+    expect([...photoPings(m, null)]).toEqual([...shown]);
   });
 
-  it('none while a photo is open big', () => {
-    expect([...photoPings(ann, 'ann', true)]).toEqual([]);
+  it('a short day shows its photos unheld', () => {
+    expect([...photoPings(withPhotos(2, [0, 1]), null)].sort()).toEqual([0, 1]);
+  });
+
+  it('none for someone else while a member is picked, nor while a photo is open', () => {
+    const m = withPhotos(5, [0, 3]);
+    expect(photoPings(m, 'ann').size).toBe(2);
+    expect(photoPings(m, 'bo').size).toBe(0);
+    expect(photoPings(m, 'ann', true).size).toBe(0);
   });
 });
 
