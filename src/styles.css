@@ -8284,12 +8284,34 @@ button.group-photo-panel__photo {
   animation: pop-in 0.26s var(--pop-ease) both;
 }
 
+/* What the finger drags (GroupMapView moves it); sideways is the viewer's, up and down stay the page's. */
+.group-photo-viewer__drag {
+  touch-action: pan-y;
+  cursor: grab;
+}
+
 .group-photo-viewer__photo {
   display: grid;
   place-items: center;
   max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 200px);
   overflow: hidden;
   border-radius: 18px;
+}
+
+/* The next photo slides in from the side it was paged toward. */
+.group-photo-viewer__photo[data-from] {
+  animation: viewer-in 0.24s var(--slide-ease) both;
+}
+
+.group-photo-viewer__photo[data-from="-1"] {
+  --viewer-from: -40%;
+}
+
+@keyframes viewer-in {
+  from {
+    opacity: 0;
+    translate: var(--viewer-from, 40%) 0;
+  }
 }
 
 .group-photo-viewer__photo img {
@@ -8339,6 +8361,10 @@ button.group-photo-panel__photo {
 .group-photo-viewer__nav {
   display: flex;
   flex: none;
+}
+
+.group-photo-viewer__nav button:disabled {
+  opacity: 0.3;
 }
 
 .group-photo-viewer__nav button {

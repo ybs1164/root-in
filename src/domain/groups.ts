@@ -149,6 +149,15 @@ export function photoPings(member: GroupMember, picked: string | null, open = fa
 }
 
 /**
+ * Paging the big photo (drag or ‹ ›): the place before or after, stopping at
+ * the ends rather than going round — null when there's nothing that way.
+ */
+export function viewerStep(seq: number, dir: -1 | 1, count: number): number | null {
+  const next = seq + dir;
+  return next >= 0 && next < count ? next : null;
+}
+
+/**
  * The pass's day: every place in order; a long one keeps the first and the
  * last few (null = the … between).
  */

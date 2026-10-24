@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoLimit, photoPings, passRoute, groupPingKey, groupPingKeys, myGroupPings, type Group } from './groups';
+import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoLimit, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -171,5 +171,14 @@ describe('passRoute', () => {
   it('keeps a short day whole and cuts a long one to its first and last places', () => {
     expect(passRoute(['a', 'b', 'c'])).toEqual(['a', 'b', 'c']);
     expect(passRoute(['a', 'b', 'c', 'd', 'e', 'f', 'g'])).toEqual(['a', null, 'e', 'f', 'g']);
+  });
+});
+
+describe('viewerStep', () => {
+  it('pages the big photo and stops at both ends', () => {
+    expect(viewerStep(0, 1, 3)).toBe(1);
+    expect(viewerStep(2, 1, 3)).toBeNull();
+    expect(viewerStep(0, -1, 3)).toBeNull();
+    expect(viewerStep(2, -1, 3)).toBe(1);
   });
 });
