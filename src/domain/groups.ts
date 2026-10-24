@@ -5,6 +5,8 @@ export interface GroupPing {
   center: [number, number];
   /** The place's name (shown while its member is picked); missing from older servers. */
   name?: string;
+  /** The photo sent with it from the camera (not built yet, so never set for now). */
+  photo?: string;
 }
 
 export interface GroupMember {

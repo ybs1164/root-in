@@ -83,6 +83,8 @@ export interface GroupPingMark {
   faded?: boolean;
   /** The place's name under it (the picked member's pings only). */
   label?: string;
+  /** The ping tapped on: a card over it with the place and the photo sent from there. */
+  card?: { name: string; who: string; photo: string | null };
 }
 
 export interface CourseMapOptions {
@@ -172,9 +174,41 @@ export function syncAreaLabels<M>(
 const DEFAULT_FACE_SVG =
   '<svg viewBox="0 0 24 24" width="60%" height="60%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>';
 
+/** Over a tapped ping: the photo sent from there (an empty frame until the camera exists), then the place and who. */
+function createGroupPingCard(card: NonNullable<GroupPingMark['card']>): HTMLElement {
+  const el = document.createElement('div');
+  el.className = 'group-card';
+  const photo = document.createElement('div');
+  photo.className = 'group-card__photo';
+  if (card.photo) {
+    const img = document.createElement('img');
+    img.src = card.photo;
+    img.alt = '';
+    photo.append(img);
+  } else {
+    photo.classList.add('is-empty');
+    photo.innerHTML = CAMERA_SVG;
+    const note = document.createElement('span');
+    note.textContent = '아직 사진이 없어요';
+    photo.append(note);
+  }
+  const name = document.createElement('strong');
+  name.className = 'group-card__name';
+  name.textContent = card.name;
+  const who = document.createElement('span');
+  who.className = 'group-card__who';
+  who.textContent = card.who;
+  el.append(photo, name, who);
+  return el;
+}
+
+/** lucide's Camera, for the empty photo frame. */
+const CAMERA_SVG =
+  '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>';
+
 export function createGroupPingElement(mark: GroupPingMark): HTMLElement {
   const el = document.createElement('div');
-  el.className = `group-ping${mark.face ? ' group-ping--face' : ''}${mark.faded ? ' is-faded' : ''}`;
+  el.className = `group-ping${mark.face ? ' group-ping--face' : ' group-ping--pin'}${mark.faded ? ' is-faded' : ''}${mark.card ? ' has-card' : ''}`;
   el.style.setProperty('--member', mark.color);
   el.dataset.member = mark.member;
   el.dataset.seq = String(mark.seq);
@@ -189,8 +223,15 @@ export function createGroupPingElement(mark: GroupPingMark): HTMLElement {
       face.append(img);
     } else face.innerHTML = DEFAULT_FACE_SVG;
     el.append(face);
+  } else {
+    // A ping, not a bare dot: the pin glyph in the member's colour, its tip on the spot.
+    const pin = document.createElement('span');
+    pin.className = 'group-ping__pin';
+    pin.innerHTML = pinGlyphSvg('pin');
+    el.append(pin);
   }
-  if (mark.label) {
+  if (mark.card) el.append(createGroupPingCard(mark.card));
+  if (mark.label && !mark.card) {
     const label = document.createElement('span');
     label.className = 'group-ping__label';
     label.textContent = mark.label;

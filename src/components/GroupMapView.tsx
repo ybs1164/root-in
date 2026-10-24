@@ -1,7 +1,8 @@
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { memberColor, RAIL_FOLDED_MEMBERS, stepMember, type Group } from '../domain/groups';
 import { MemberFace } from './WeNowPage';
+import CameraButton from './CameraButton';
 
 /** Matches `pin-rail-out` in styles.css: the unfolded members stay mounted until they've tucked away. */
 const OUT_MS = 160;
@@ -21,10 +22,10 @@ interface GroupMapViewProps {
 /**
  * A group opened from We Now: the map with every member's pings and lines
  * (App draws them), and over it ‹ back, the group's name (and under it who's
- * picked), ⚙ settings with the rail right under it — ALL and the first three
- * members, ↓ for everyone (↑ folds it again) — and `<` `>` at the middle of
- * the screen's sides, one member after another. No place names or times on
- * the map, and no bottom row.
+ * picked), ⚙ settings, the rail along the bottom centre — ALL and the first
+ * three members, › for everyone (‹ folds it again) — the camera at the
+ * bottom-right, and `<` `>` at the middle of the screen's sides, one member
+ * after another. No place names or times on the map with ALL, and no bottom row.
  */
 export default function GroupMapView({ group, picked, onPick, onBack, onSettings }: GroupMapViewProps) {
   const pickedMember = group.members.find((m) => m.userId === picked) ?? null;
@@ -86,10 +87,12 @@ export default function GroupMapView({ group, picked, onPick, onBack, onSettings
         ))}
         {foldable && (
           <button className="group-rail__more" style={stagger(RAIL_FOLDED_MEMBERS + 1)} aria-label={open ? '모임원 접기' : '모임원 모두 보기'} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-            {open ? <ChevronUp size={22} strokeWidth={2.2} /> : <ChevronDown size={22} strokeWidth={2.2} />}
+            {open ? <ChevronLeft size={22} strokeWidth={2.2} /> : <ChevronRight size={22} strokeWidth={2.2} />}
           </button>
         )}
       </div>
+
+      <CameraButton className="group-view__camera" />
     </div>
   );
 }

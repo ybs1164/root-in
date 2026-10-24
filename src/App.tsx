@@ -333,6 +333,14 @@ export default function App() {
     }
   }, [tab]);
   useEffect(() => setGroupPicked(null), [openGroupId]);
+  // The ping tapped on a group's map (its card is open over it); it goes with its member's focus.
+  const [groupPing, setGroupPing] = useState<{ member: string; seq: number } | null>(null);
+  useEffect(() => {
+    if (groupPing && groupPing.member !== groupPicked) setGroupPing(null);
+  }, [groupPicked, groupPing]);
+  // Read by the map's tap listener, which is set up once per open group.
+  const groupPingNow = useRef(groupPing);
+  groupPingNow.current = groupPing;
   // A group's 새 핑 badge: pings that weren't on its map when I last had it
   // open. Whatever is on the open group's map counts as seen, new arrivals too.
   const [groupSeen, setGroupSeen] = useState<GroupSeen>(loadGroupSeen);
@@ -615,9 +623,13 @@ export default function App() {
         faded: !!groupPicked && groupPicked !== m.userId,
         // The picked member's places by name; nobody's while ALL.
         label: groupPicked === m.userId ? p.name : undefined,
+        card:
+          groupPing?.member === m.userId && groupPing.seq === i
+            ? { name: p.name || '이름 없는 곳', who: m.nickname, photo: p.photo ?? null }
+            : undefined,
       })),
     );
-  }, [openGroup, groupPicked]);
+  }, [openGroup, groupPicked, groupPing]);
   const groupLines = useMemo<GroupLine[]>(
     () =>
       (openGroup?.members ?? [])
@@ -630,16 +642,17 @@ export default function App() {
   }, [groupMarks, mapProvider]);
   // Opening a group fits all of it; picking someone brings the map in close on their day.
   const groupFitted = useRef<{ group: string; picked: string | null } | null>(null);
-  const groupFitKey = openGroup ? `${openGroup.id}|${groupPicked ?? ''}|${focusPoints(openGroup, groupPicked).length}` : '';
+  const groupFitKey = openGroup ? `${openGroup.id}|${groupPicked ?? ''}|${focusPoints(openGroup, groupPicked).length}|${groupPing ? 'card' : ''}` : '';
   useEffect(() => {
     if (!openGroup || !mapRef.current) return;
     const points = focusPoints(openGroup, groupPicked);
     if (points.length === 0) return;
     const el = mapEl.current;
     const width = el?.clientWidth ?? window.innerWidth;
-    // Under the title, clear of the rail on the right; the same margin on the left keeps it centred.
+    // Under the title (and, with a ping's card open, under the card's height
+    // too, so it stays on screen), over the rail along the bottom, clear of the < > at the sides.
     const side = width < 520 ? 76 : 96;
-    const padding = { top: 150, right: side, bottom: 64, left: side };
+    const padding = { top: groupPing ? 330 : 150, right: side, bottom: 130, left: side };
     // Like a route: the first move onto someone (from ALL, or opening the
     // group) glides at the usual pace; going on from one member to the next
     // is as quick as stepping between routes with < >.
@@ -657,23 +670,24 @@ export default function App() {
   }, [openGroup]);
 
   // On a group's map, a quick tap (not a pan or a long press) on someone's
-  // face (faded or not) puts the focus on them; on bare map, with someone
-  // picked, it goes back to ALL; on a ping dot it does nothing. The pings
-  // let taps through to the map, so they're found by where they are on screen.
+  // ping or face (faded or not) puts the focus on them and opens that
+  // place's card; on bare map it closes an open card, else goes back to ALL.
+  // The pings let taps through to the map, so they're found by where they are on screen.
   const groupOnMap = !!openGroup;
   useEffect(() => {
     const el = mapEl.current;
     if (!groupOnMap || !el) return;
     let tap: { x: number; y: number; at: number } | null = null;
-    const hit = (x: number, y: number): { member: string | null } | null => {
-      let dot = false;
+    const hit = (x: number, y: number): { member: string; seq: number } | null => {
+      let found: { member: string; seq: number } | null = null;
       for (const p of document.querySelectorAll<HTMLElement>('.group-ping')) {
-        const face = p.querySelector('.group-ping__face')?.getBoundingClientRect();
-        if (face && x >= face.left - 4 && x <= face.right + 4 && y >= face.top - 4 && y <= face.bottom + 4) return { member: p.dataset.member ?? null };
-        const r = p.getBoundingClientRect();
-        if (Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2)) < 22) dot = true;
+        const r = p.querySelector('.group-ping__face, .group-ping__pin')?.getBoundingClientRect();
+        if (!r || !p.dataset.member || x < r.left - 6 || x > r.right + 6 || y < r.top - 6 || y > r.bottom + 6) continue;
+        found = { member: p.dataset.member, seq: Number(p.dataset.seq) };
+        // A face is over the pins around it.
+        if (p.classList.contains('group-ping--face')) break;
       }
-      return dot ? { member: null } : null;
+      return found;
     };
     const down = (e: PointerEvent) => {
       tap = e.isPrimary && el.contains(e.target as Node) ? { x: e.clientX, y: e.clientY, at: performance.now() } : null;
@@ -684,8 +698,14 @@ export default function App() {
       if (!t || !e.isPrimary || !el.contains(e.target as Node)) return;
       if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > PRESS.slopPx || performance.now() - t.at >= PRESS.longMs) return;
       const on = hit(e.clientX, e.clientY);
-      if (on?.member) setGroupPicked(on.member);
-      else if (!on) setGroupPicked(null);
+      if (on) {
+        setGroupPicked(on.member);
+        setGroupPing(on);
+      } else {
+        // Bare map: an open card closes first, then the focus goes.
+        if (groupPingNow.current) setGroupPing(null);
+        else setGroupPicked(null);
+      }
     };
     document.addEventListener('pointerdown', down, true);
     document.addEventListener('pointerup', up, true);

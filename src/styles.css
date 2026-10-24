@@ -5240,6 +5240,36 @@ button:disabled {
   scale: 0.92;
 }
 
+/* The camera at the row's right end on the map and We Now (TODAY has 공유
+   there): a white round like the small row buttons, a size up, its bottom
+   level with the big centre one. A group's map has its own (GroupMapView). */
+.camera-btn {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--round-btn-shadow);
+  transition: scale 0.12s ease;
+  -webkit-touch-callout: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.camera-btn:active {
+  scale: 0.92;
+}
+
+.bar-camera {
+  position: absolute;
+  right: 16px;
+  bottom: -8px;
+}
+
 /* Over the calendar page, the app's row sits above it (the page's own row
    only holds 공유). */
 .bottom-bar-wrap--over {
@@ -7980,23 +8010,30 @@ button:disabled {
   top: 50%;
 }
 
-/* ALL then the members' faces, down the right under ⚙ (the pin rail's place). */
+/* ALL then the members' faces, in a row along the bottom centre (where the
+   other screens have their bottom row); scrolls sideways once unfolded wide. */
 .group-rail {
   position: fixed;
-  /* Right under ⚙ (12 + 48 + 12), as the pin rail sits under the profile. */
-  top: calc(var(--safe-top) + 72px);
-  right: 14px;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + 36px);
   z-index: 20;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 180px);
-  /* Room for the buttons' shadows inside the scroll box (it clips them). */
-  margin: -10px -10px 0 0;
+  gap: 10px;
+  max-width: calc(100% - 32px);
+  /* Room for the buttons' shadows and the picked ring inside the scroll box (it clips them). */
   padding: 10px;
-  overflow-y: auto;
+  overflow-x: auto;
   scrollbar-width: none;
+  translate: -50% 10px;
+}
+
+/* A group's camera: bottom-right like the other screens', a row up so the rail has the bottom to itself. */
+.group-view__camera {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--safe-bottom) + 36px + 48px + 16px);
+  z-index: 20;
 }
 
 .group-rail > button {
@@ -8122,6 +8159,107 @@ button:disabled {
   border-radius: 50%;
   background: var(--member);
   box-shadow: 0 0 0 2px var(--surface);
+}
+
+/* A ping other than the latest: the pin glyph in the member's colour, its
+   tip on the spot (the marker itself is a point, as the face one is). */
+.group-ping--pin {
+  width: 0;
+  height: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.group-ping__pin {
+  position: absolute;
+  left: -14px;
+  top: -26px;
+  width: 28px;
+  height: 28px;
+  color: var(--member);
+  filter: drop-shadow(0 0 1.5px var(--surface)) drop-shadow(0 0 1px var(--surface));
+}
+
+.group-ping__pin svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The tapped ping's card, over it: the photo sent from there, the place, who. */
+.group-ping.has-card {
+  z-index: 5;
+}
+
+.group-card {
+  position: absolute;
+  left: 0;
+  bottom: 34px;
+  display: grid;
+  gap: 2px;
+  width: 188px;
+  padding: 8px 8px 10px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  translate: -50% 0;
+  animation: rise-in 0.2s ease-out both;
+  --anim-x: -50%;
+}
+
+/* The face sits higher than a pin: the card clears it. */
+.group-ping--face .group-card {
+  bottom: 62px;
+}
+
+.group-card::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  background: var(--surface);
+  border-radius: 0 0 3px 0;
+  rotate: 45deg;
+  translate: -50% 0;
+}
+
+.group-card__photo {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  margin-bottom: 6px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.group-card__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.group-card__photo.is-empty {
+  align-content: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.group-card__name {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-card__who {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .group-ping.is-faded {
