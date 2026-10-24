@@ -642,17 +642,16 @@ export default function App() {
   }, [groupMarks, mapProvider]);
   // Opening a group fits all of it; picking someone brings the map in close on their day.
   const groupFitted = useRef<{ group: string; picked: string | null } | null>(null);
-  const groupFitKey = openGroup ? `${openGroup.id}|${groupPicked ?? ''}|${focusPoints(openGroup, groupPicked).length}|${groupPing ? 'card' : ''}` : '';
+  const groupFitKey = openGroup ? `${openGroup.id}|${groupPicked ?? ''}|${focusPoints(openGroup, groupPicked).length}|${groupPing ? `${groupPing.member}:${groupPing.seq}` : ''}` : '';
   useEffect(() => {
     if (!openGroup || !mapRef.current) return;
     const points = focusPoints(openGroup, groupPicked);
     if (points.length === 0) return;
     const el = mapEl.current;
     const width = el?.clientWidth ?? window.innerWidth;
-    // Under the title (and, with a ping's card open, under the card's height
-    // too, so it stays on screen), over the rail along the bottom, clear of the < > at the sides.
+    // Under the title, over the rail along the bottom, clear of the < > at the sides.
     const side = width < 520 ? 76 : 96;
-    const padding = { top: groupPing ? 330 : 150, right: side, bottom: 130, left: side };
+    const padding = { top: 150, right: side, bottom: 130, left: side };
     // Like a route: the first move onto someone (from ALL, or opening the
     // group) glides at the usual pace; going on from one member to the next
     // is as quick as stepping between routes with < >.
@@ -660,6 +659,15 @@ export default function App() {
     const memberToMember = !!last && last.group === openGroup.id && !!last.picked && !!groupPicked;
     groupFitted.current = { group: openGroup.id, picked: groupPicked };
     const id = requestAnimationFrame(() => {
+      // A tapped ping: it and its card together in the middle of the screen
+      // (from the card's top down to the ping, measured off the marker), not the member's whole day.
+      const ping = groupPing && openGroup.members.find((m) => m.userId === groupPing.member)?.pings[groupPing.seq];
+      const marker = ping && document.querySelector<HTMLElement>('.group-ping.has-card');
+      const card = marker?.querySelector('.group-card');
+      if (ping && marker && card) {
+        const span = marker.getBoundingClientRect().top - card.getBoundingClientRect().top;
+        return mapRef.current?.focus(ping.center, { top: Math.max(0, span), right: 0, bottom: 0, left: 0 });
+      }
       void mapRef.current?.fitPoints(points, padding, memberToMember ? STEP_GLIDE_MS : undefined);
     });
     return () => cancelAnimationFrame(id);
