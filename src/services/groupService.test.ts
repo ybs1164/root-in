@@ -129,4 +129,57 @@ describe('groupService', () => {
     expect(g.members[0].pings[0].name).toHaveLength(80);
     expect(g.members[0].pings[1].name).toBeUndefined();
   });
+
+  it('reads a sent photo only from a group-photos path, as its address', () => {
+    const ping = (photo: unknown) => ({ at: '2026-10-27T01:00:00Z', center: [127, 37.5], name: '카페', photo });
+    const [g] = readGroups(
+      [{ ...row, members: [{ user_id: U1, slot: 0, nickname: 'a', pings: [ping(`${U1}/AbCdEf123456.jpg`), ping('../../etc/passwd'), ping(`${U1}/x.png`)] }] }],
+      () => null,
+      (p) => `https://photos/${p}`,
+    );
+    expect(g.members[0].pings.map((p) => p.photo)).toEqual([`https://photos/${U1}/AbCdEf123456.jpg`, undefined, undefined]);
+  });
+
+  describe('sendPhoto', () => {
+    const photo = 'data:image/jpeg;base64,AQID';
+    const ping = { day: '2026-10-27', at: '2026-10-27T03:00:00.000Z', center: [127, 37.5] as [number, number], name: ' 성수 카페 ' };
+    function photoClient(answer: { data?: unknown; error?: unknown }, uploadError: unknown = null) {
+      const upload = vi.fn(async () => ({ error: uploadError }));
+      const remove = vi.fn(async () => ({ error: null }));
+      const rpc = vi.fn(async () => ({ data: null, error: null, ...answer }));
+      const client = {
+        rpc,
+        auth: { getSession: async () => ({ data: { session: { user: { id: U1 } } } }) },
+        storage: { from: () => ({ upload, remove }) },
+      } as unknown as SupabaseClient;
+      return { client, rpc, upload, remove };
+    }
+
+    it('uploads once under my folder, then sends it to every picked group', async () => {
+      const fake = photoClient({ data: 2 });
+      const service = createSupabaseGroupService(async () => fake.client, true, () => 'Slug012345');
+      const G2 = '22222222-2222-2222-2222-222222222222';
+      expect(await service.sendPhoto([G1, G2, G1, 'bad'], ping, photo)).toBe(2);
+      expect(fake.upload).toHaveBeenCalledTimes(1);
+      const path = `${U1}/Slug012345Slug012345.jpg`;
+      expect(fake.upload).toHaveBeenCalledWith(path, expect.any(Blob), expect.objectContaining({ contentType: 'image/jpeg' }));
+      expect(fake.rpc).toHaveBeenCalledWith('send_group_photo', {
+        gids: [G1, G2], on_day: '2026-10-27', at_time: ping.at, ping_center: [127, 37.5], place_name: '성수 카페', photo_path: path,
+      });
+    });
+
+    it('sends nothing for a bad ping, and cleans up when no group took it; never rejects', async () => {
+      const fake = photoClient({ data: 0 });
+      const service = createSupabaseGroupService(async () => fake.client, true, () => 'Slug012345');
+      expect(await service.sendPhoto([G1], { ...ping, center: [2.35, 48.85] }, photo)).toBe(0);
+      expect(await service.sendPhoto([], ping, photo)).toBe(0);
+      expect(fake.upload).not.toHaveBeenCalled();
+      expect(await service.sendPhoto([G1], ping, photo)).toBe(0);
+      expect(fake.remove).toHaveBeenCalledWith([`${U1}/Slug012345Slug012345.jpg`]);
+      const failedUpload = photoClient({ data: 1 }, { message: 'x' });
+      expect(await createSupabaseGroupService(async () => failedUpload.client, true).sendPhoto([G1], ping, photo)).toBe(0);
+      expect(failedUpload.rpc).not.toHaveBeenCalled();
+      expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).sendPhoto([G1], ping, photo)).toBe(0);
+    });
+  });
 });

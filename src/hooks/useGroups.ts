@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { dateKey } from '../domain/diary';
 import type { Group } from '../domain/groups';
 import type { AuthUser } from '../services/authService';
-import { groupService as defaultService, readInviteSlug, type GroupService } from '../services/groupService';
+import { groupService as defaultService, readInviteSlug, type GroupService, type PhotoPing } from '../services/groupService';
 
 export type GroupsStatus = 'unavailable' | 'signed-out' | 'loading' | 'ready' | 'error';
 
@@ -16,6 +16,8 @@ export interface Groups {
   kick(id: string, userId: string): Promise<boolean>;
   setAlias(id: string, alias: string): Promise<boolean>;
   remove(id: string): Promise<boolean>;
+  /** A camera photo and where it was taken, to each of `groupIds`; how many got it. */
+  sendPhoto(groupIds: string[], ping: PhotoPing, photo: string): Promise<number>;
 }
 
 /** While We Now is open the pings are asked for again this often (others keep adding theirs). */
@@ -158,5 +160,14 @@ export function useGroups(
     [service],
   );
 
-  return { status, groups, refresh, create, rename, leave, kick, setAlias, remove };
+  const sendPhoto = useCallback(
+    async (groupIds: string[], ping: PhotoPing, photo: string) => {
+      const sent = await service.sendPhoto(groupIds, ping, photo);
+      if (sent) refresh();
+      return sent;
+    },
+    [service, refresh],
+  );
+
+  return { status, groups, refresh, create, rename, leave, kick, setAlias, remove, sendPhoto };
 }

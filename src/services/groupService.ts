@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { cleanGroupName, GROUP_LIMITS, type Group, type GroupMember, type GroupPing } from '../domain/groups';
 import { getSupabase, supabaseConfigured } from '../lib/supabase';
 import { inKorea } from './pinShareService';
+import { dataUrlToBlob } from './remoteProfileService';
 import { newSlug } from './shareLinkService';
 import { createGroupDemoService } from '../dev/groupDemoService';
 
@@ -41,7 +42,25 @@ export interface GroupService {
   setAlias(id: string, alias: string): Promise<boolean>;
   /** 그룹 삭제, for everyone (the group's maker only). */
   remove(id: string): Promise<boolean>;
+  /**
+   * A camera photo (square JPEG data URL) with a ping of where it was taken,
+   * to each of `groupIds`: uploaded once, then a row per group. How many
+   * groups got it (0: none, e.g. the upload failed).
+   */
+  sendPhoto(groupIds: string[], ping: PhotoPing, photo: string): Promise<number>;
 }
+
+/** Where a camera photo was taken: the ping that goes with it. */
+export interface PhotoPing {
+  /** The phone's local date (YYYY-MM-DD), the day screen it belongs to. */
+  day: string;
+  at: string;
+  center: [number, number];
+  name: string;
+}
+
+const PHOTO_BUCKET = 'group-photos';
+const PHOTO_PATH = /^[0-9a-f-]{36}\/[A-Za-z0-9_-]{6,40}\.jpg$/;
 
 export function inviteUrl(slug: string, base = `${window.location.origin}${window.location.pathname}`): string {
   return `${base}#${INVITE_KEY}=${slug}`;
@@ -57,19 +76,22 @@ export function readInviteSlug(url: string): string | null {
   }
 }
 
-function readPing(raw: unknown): GroupPing | null {
+function readPing(raw: unknown, photoUrl: (path: string) => string | null): GroupPing | null {
   if (!raw || typeof raw !== 'object') return null;
-  const { at, center, name } = raw as Record<string, unknown>;
+  const { at, center, name, photo } = raw as Record<string, unknown>;
   if (typeof at !== 'string' || Number.isNaN(Date.parse(at))) return null;
   if (!Array.isArray(center) || center.length !== 2 || !center.every((n) => typeof n === 'number' && Number.isFinite(n))) return null;
   const c: [number, number] = [center[0] as number, center[1] as number];
   if (!inKorea(c)) return null;
   const ping: GroupPing = { at: new Date(at).toISOString(), center: c };
   if (typeof name === 'string' && name.trim()) ping.name = name.trim().slice(0, 80);
+  // Only a path in the group-photos bucket's own <uuid>/<id>.jpg shape.
+  const url = typeof photo === 'string' && PHOTO_PATH.test(photo) ? photoUrl(photo) : null;
+  if (url) ping.photo = url;
   return ping;
 }
 
-function readMember(raw: unknown, photoUrl: (path: string) => string | null): GroupMember | null {
+function readMember(raw: unknown, photoUrl: (path: string) => string | null, pingPhotoUrl: (path: string) => string | null): GroupMember | null {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Record<string, unknown>;
   if (typeof r.user_id !== 'string' || !UUID.test(r.user_id)) return null;
@@ -79,15 +101,18 @@ function readMember(raw: unknown, photoUrl: (path: string) => string | null): Gr
   // Only a photo in the avatars bucket's own <uuid>/avatar.jpg shape.
   const path = typeof r.avatar_path === 'string' && /^[0-9a-f-]{36}\/avatar\.jpg$/.test(r.avatar_path) ? r.avatar_path : null;
   const pings = (Array.isArray(r.pings) ? r.pings : [])
-    .map(readPing)
+    .map((p) => readPing(p, pingPhotoUrl))
     .filter((p): p is GroupPing => !!p)
     .sort((a, b) => a.at.localeCompare(b.at))
     .slice(-GROUP_LIMITS.pingsPerMember);
   return { userId: r.user_id, slot: r.slot, nickname, alias, photo: path ? photoUrl(path) : null, pings };
 }
 
-/** What my_groups returned, checked; bad rows are dropped. */
-export function readGroups(raw: unknown, photoUrl: (path: string) => string | null): Group[] {
+/**
+ * What my_groups returned, checked; bad rows are dropped. `photoUrl` makes a
+ * profile photo's address (avatars), `pingPhotoUrl` a sent photo's (group-photos).
+ */
+export function readGroups(raw: unknown, photoUrl: (path: string) => string | null, pingPhotoUrl: (path: string) => string | null = () => null): Group[] {
   if (!Array.isArray(raw)) return [];
   const groups: Group[] = [];
   for (const g of raw.slice(0, 30)) {
@@ -99,7 +124,7 @@ export function readGroups(raw: unknown, photoUrl: (path: string) => string | nu
     const seen = new Set<string>();
     const members = (Array.isArray(r.members) ? r.members : [])
       .slice(0, GROUP_LIMITS.members)
-      .map((m) => readMember(m, photoUrl))
+      .map((m) => readMember(m, photoUrl, pingPhotoUrl))
       .filter((m): m is GroupMember => !!m && !seen.has(m.userId) && !!seen.add(m.userId))
       .sort((a, b) => a.slot - b.slot);
     groups.push({ id: r.id, name: name || '이름 없는 그룹', cover, inviteSlug: r.invite_slug, mine: r.mine === true, members });
@@ -121,7 +146,11 @@ export function createSupabaseGroupService(
         if (!client || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return 'error';
         const { data, error } = await client.rpc('my_groups', { on_day: day });
         if (error) return 'error';
-        return readGroups(data, (path) => client.storage.from('avatars').getPublicUrl(path).data.publicUrl || null);
+        return readGroups(
+          data,
+          (path) => client.storage.from('avatars').getPublicUrl(path).data.publicUrl || null,
+          (path) => client.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl || null,
+        );
       } catch {
         return 'error';
       }
@@ -211,6 +240,34 @@ export function createSupabaseGroupService(
         return !error && data === true;
       } catch {
         return false;
+      }
+    },
+
+    async sendPhoto(groupIds, ping, photo) {
+      try {
+        const ids = [...new Set(groupIds)].filter((id) => UUID.test(id)).slice(0, 30);
+        const name = ping.name.trim().slice(0, 80);
+        if (!ids.length || !name || !inKorea(ping.center) || !/^\d{4}-\d{2}-\d{2}$/.test(ping.day)) return 0;
+        const blob = dataUrlToBlob(photo);
+        const client = await getClient();
+        if (!blob || !client) return 0;
+        const { data: session } = await client.auth.getSession();
+        const userId = session.session?.user.id;
+        if (!userId) return 0;
+        const path = `${userId}/${slug()}${slug()}.jpg`;
+        const { error: upload } = await client.storage.from(PHOTO_BUCKET).upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
+        if (upload) return 0;
+        const { data, error } = await client.rpc('send_group_photo', {
+          gids: ids, on_day: ping.day, at_time: ping.at, ping_center: ping.center, place_name: name, photo_path: path,
+        });
+        if (error || typeof data !== 'number' || data < 1) {
+          // Nobody will ever see it: don't leave it in the bucket.
+          await client.storage.from(PHOTO_BUCKET).remove([path]);
+          return 0;
+        }
+        return data;
+      } catch {
+        return 0;
       }
     },
   };

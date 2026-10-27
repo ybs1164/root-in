@@ -50,6 +50,7 @@
    `20261018000000_group_alias_delete.sql` — 그룹원 별명 `group_members.alias`·`set_group_alias`, 그룹 삭제 `delete_group`(만든 사람만), `my_groups`가 별명도 돌려줌.
    `20261019000000_group_alias_default.sql` — 그룹에 들어올 때 프로필 닉네임을 그 그룹의 이름(`alias`)으로 넣고, 이미 있는 그룹원도 채움; 이름은 비울 수 없음.
    `20261020000000_group_ping_names.sql` — `my_groups`가 핑마다 장소 이름(80자)도 보냄(포커스한 그룹원의 장소 이름 표시용, 주소는 여전히 안 보냄).
+   `20261027000000_group_photos.sql` — 카메라 사진 전송: 공개 버킷 `group-photos`(1MB JPEG, 자기 `<uid>/` 폴더에만 쓰기) · `group_photos`(그룹마다 한 줄 — 고른 그룹만 봄, 모임원만 select) · `send_group_photo(gids, on_day, at_time, ping_center, place_name, photo_path)`(내가 속한 그룹에만 넣고 넣은 수를 돌려줌) · `my_groups`가 그룹원 핑에 그 그룹으로 보낸 사진 핑(`photo` = 버킷 경로)을 섞어 보냄. 80줄.
    **이 마이그레이션들을 먼저 적용하고 나서 클라이언트를 배포**할 것 — 새 클라이언트는 이 열을 읽어서, 적용 전 DB에서는 동기화가 실패(프로필 창 안내)한다.
    지움 표시는 30일 뒤 지운다: Integrations → Cron(pg_cron)에 매일 `select public.purge_sync_tombstones();` 등록. 그 전까지 지운 핀·루트의 내용이 서버에 남아 있음.
 3. Project Settings → API의 Project URL과 **anon(public)** 키를 `.env.local`에:

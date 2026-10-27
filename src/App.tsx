@@ -46,12 +46,14 @@ import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
 import { useGroups } from './hooks/useGroups';
 import { groupsNeedLogin, inviteUrl } from './services/groupService';
-import { focusPoints, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, newPingCount, photoPings, type GroupMember } from './domain/groups';
+import { focusPoints, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, newPingCount, photoPings, withSentPhotos, type GroupMember } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
 import { loadGroupSeen, loadMemberSeen, memberSeenKey, saveGroupSeen, saveMemberSeen, type GroupSeen, type MemberSeen } from './services/groupSeenRepository';
 import { useStoredPings } from './hooks/useStoredPings';
 import { dateKey } from './domain/diary';
 import GroupMapView from './components/GroupMapView';
+import CameraScreen from './components/CameraScreen';
+import GroupSendDialog from './components/GroupSendDialog';
 import GroupFormDialog from './components/GroupFormDialog';
 import GroupSettingsDialog from './components/GroupSettingsDialog';
 import GroupLines, { type GroupLine } from './components/GroupLines';
@@ -65,11 +67,11 @@ import { useSettings } from './hooks/useSettings';
 import { SEOUL_CENTER, type CourseMap, type MapPadding, type PinMarker } from './map/courseMap';
 import { createMapStack } from './map/createCourseMap';
 import { haversineMeters as distanceMeters } from './domain/geo';
-import { pointPlace, type PlaceSearchService } from './services/placeSearch/placeSearchService';
+import { pointPlace, UNNAMED_SPOT, type PlaceSearchService } from './services/placeSearch/placeSearchService';
 import { withRecentCategory } from './services/settingsRepository';
 import { loadProfile, saveProfile, type Profile } from './services/profileRepository';
 import { usePrivacy } from './hooks/usePrivacy';
-import { hasHome } from './domain/privacy';
+import { hasHome, isExcluded } from './domain/privacy';
 import type { CourseStop, PlaceRef, Course, SharedCourse } from './types/course';
 import type { Pin } from './types/pin';
 
@@ -141,6 +143,9 @@ export default function App() {
   const [tab, setTab] = useState<AppTab>('pins');
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  // A shot from the camera waiting for its groups (the 그룹에 보내기 popup is up).
+  const [cameraShot, setCameraShot] = useState<string | null>(null);
   const [profile, setProfile] = useState(loadProfile);
   // 로그인: the account's profile replaces this one on sign-in, and changes go up after.
   const account = useAccount(profile, (next) => {
@@ -310,7 +315,7 @@ export default function App() {
       groups.groups.map((g) => ({
         ...g,
         members: g.members.map((m) =>
-          m.userId === myId ? { ...m, photo: profile.photo ?? m.photo, nickname: m.alias ?? (getDisplayName().trim() || m.nickname), pings: myPings } : m,
+          m.userId === myId ? { ...m, photo: profile.photo ?? m.photo, nickname: m.alias ?? (getDisplayName().trim() || m.nickname), pings: withSentPhotos(myPings, m.pings) } : m,
         ),
       })),
     [groups.groups, myId, profile.photo, myPings],
@@ -1163,6 +1168,7 @@ export default function App() {
   // Android's back button closes one layer at a time, innermost first.
   useBackButton(() => {
     if (closeTopDialog()) return true;
+    if (cameraOpen) return setCameraOpen(false), true;
     if (studio) return setStudio(null), true;
     if (groupPhotoBig) return setGroupPhotoBig(false), true;
     if (openGroupId) return setOpenGroupId(null), true;
@@ -1178,6 +1184,24 @@ export default function App() {
     if (tab !== 'pins') return changeTab('pins'), true;
     return false;
   });
+
+  // 전송 from the camera: the photo and a ping of where I am now to each
+  // picked group. Never from near a 제외 주소 (as pings there never leave the
+  // phone); the place is named by reverse geocoding. What went wrong, or null.
+  const sendCameraShot = async (groupIds: string[], photo: string): Promise<string | null> => {
+    const center = me?.center;
+    if (!center) return '지금 위치를 찾지 못했어요. 위치 권한을 확인해 주세요.';
+    if (isExcluded({ center }, privacy.excluded)) return '제외 주소 근처에서는 보낼 수 없어요.';
+    const named = await searchService?.reverse(center);
+    if (named && isExcluded({ center, address: named.address }, privacy.excluded)) return '제외 주소 근처에서는 보낼 수 없어요.';
+    const name = named?.name.trim() && named.name !== UNNAMED_SPOT ? named.name.trim() : '현재 위치';
+    const sent = await groups.sendPhoto(groupIds, { day: dateKey(), at: new Date().toISOString(), center, name }, photo);
+    if (!sent) return '보내지 못했어요. 잠시 뒤에 다시 시도해 주세요.';
+    setCameraShot(null);
+    setCameraOpen(false);
+    notify(sent === 1 ? '그룹에 보냈어요.' : `${sent}개 그룹에 보냈어요.`);
+    return null;
+  };
 
   // 📍 again on the pin screen: a new pin right where the map is looking —
   // the same card a search pick or a long press opens (name, memo, group,
@@ -1678,6 +1702,7 @@ export default function App() {
             onPhotoBig={setGroupPhotoBig}
             onBack={() => setOpenGroupId(null)}
             onSettings={() => setGroupSettingsOpen(true)}
+            onCamera={() => setCameraOpen(true)}
           />
         </>
       )}
@@ -1795,6 +1820,7 @@ export default function App() {
           } : undefined}
           onPin={startPinning}
           onPeople={() => changeTab('people')}
+          onCamera={() => setCameraOpen(true)}
         />
       </div>
 
@@ -1888,6 +1914,23 @@ export default function App() {
       )}
       {/* 설정, opened from the profile's ⚙: the profile closes once 설정 covers the screen,
           so leaving 설정 goes back to the screen under it, with no grey left over. */}
+      {cameraOpen && (
+        <CameraScreen
+          onSend={(photo) => {
+            setCameraShot(photo);
+            groups.refresh();
+          }}
+          onClose={() => setCameraOpen(false)}
+        />
+      )}
+      {cameraOpen && cameraShot && (
+        <GroupSendDialog
+          groups={groupList}
+          status={groups.status}
+          onSend={(ids) => sendCameraShot(ids, cameraShot)}
+          onClose={() => setCameraShot(null)}
+        />
+      )}
       {settingsOpen && (
         <SettingsScreen
           profile={profile}
