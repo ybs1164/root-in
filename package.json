@@ -12,7 +12,7 @@
     "check": "tsc -b && vitest run",
     "shots": "node scripts/ui-shots.mjs",
     "android:sync": "node scripts/android-sync.mjs",
-    "android:apk": "cd android && gradlew.bat assembleDebug"
+    "android:apk": "node scripts/android-apk.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",

@@ -17,7 +17,7 @@ React 19 + Vite 7 + TypeScript. 지도는 **카카오맵 JS SDK**(키 없으면 
 - UI 검증은 모바일 폭(`resize_window` preset `mobile`, 375px)을 기본으로 하고, 데스크톱 폭도 깨지지 않는지 본다
 
 ## 안드로이드 (Capacitor, 2026-10-06)
-- 웹 앱을 `android/` 셸(WebView, origin `https://localhost`)에 넣는다. `npm run android:sync`(웹 빌드 → 안 쓰는 `public/korea` 옛 폴더 제외 → `cap sync`) 다음 `npm run android:apk`로 디버그 APK(`android/app/build/outputs/apk/debug/`). 지도 데이터(`korea/base`·`korea/admin`, 약 1.5GB)가 APK에 들어가 Play AAB 한도(150MB)를 넘으므로 스토어용은 데이터를 원격 호스팅으로 옮겨야 한다(미정). 오프라인 지원은 목표 아님.
+- 웹 앱을 `android/` 셸(WebView, origin `https://localhost`)에 넣는다. `npm run android:sync`(웹 빌드 → 안 쓰는 `public/korea` 옛 폴더 제외 → `cap sync`) 다음 `npm run android:apk`로 디버그 APK(`android/app/build/outputs/apk/debug/`, 약 500MB). Mac은 JDK 21(`brew install openjdk@21` — JAVA_HOME이 없으면 스크립트가 이걸 씀)과 SDK(`brew install --cask android-commandlinetools` → `sdkmanager`로 platform-tools·platforms;android-36·build-tools;36.0.0), `android/local.properties`에 `sdk.dir`(커밋 안 함), 2026-10-27. 지도 데이터(`korea/base`·`korea/admin`, 약 1.5GB)가 APK에 들어가 Play AAB 한도(150MB)를 넘으므로 스토어용은 데이터를 원격 호스팅으로 옮겨야 한다(미정). 오프라인 지원은 목표 아님.
 - 카카오 콘솔 Web 플랫폼에 `https://localhost`를 등록해야 앱 안에서 카카오 지도가 뜬다(안 하면 MapLibre로 대체).
 - 하드웨어 뒤로가기는 `hooks/useBackButton.ts` + `lib/native.ts`: 열린 `<dialog>` → 꾸미기 화면 → 검색 → 카드 → 경로 → 핀·경로 줄 → 달력 → 앱 종료 순으로 한 겹씩 닫는다. 새 오버레이를 만들면 `App.tsx`의 뒤로가기 목록에 넣을 것.
 - 아직 안 한 것: 공유 이미지 저장·시스템 공유(네이티브 플러그인 어댑터), 딥링크(App Links), 웹폰트 번들, 데이터 원격 호스팅.
