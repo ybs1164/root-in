@@ -7,12 +7,12 @@ const HOLD_MS = 280;
 
 /**
  * The camera at the bottom-right of the map and We Now (and a group's map).
- * A short hold will switch to the camera — shoot a photo, decorate it, send
- * it to a group with a ping of where you are. Only the button for now:
- * `onHold` is left unset until camera mode exists.
+ * A tap opens the camera screen; so does a short hold, which fires before the
+ * finger lifts (the click after it is swallowed so it doesn't open twice).
  */
-export default function CameraButton({ className = '', onHold }: { className?: string; onHold?: () => void }) {
+export default function CameraButton({ className = '', onOpen }: { className?: string; onOpen?: () => void }) {
   const timer = useRef<number | null>(null);
+  const held = useRef(false);
   const start = useRef<{ x: number; y: number } | null>(null);
   const clear = () => {
     if (timer.current !== null) window.clearTimeout(timer.current);
@@ -27,9 +27,11 @@ export default function CameraButton({ className = '', onHold }: { className?: s
       onPointerDown={(e) => {
         if (!e.isPrimary) return;
         start.current = { x: e.clientX, y: e.clientY };
+        held.current = false;
         timer.current = window.setTimeout(() => {
           timer.current = null;
-          onHold?.();
+          held.current = true;
+          onOpen?.();
         }, HOLD_MS);
       }}
       onPointerMove={(e) => {
@@ -39,6 +41,10 @@ export default function CameraButton({ className = '', onHold }: { className?: s
       onPointerUp={clear}
       onPointerCancel={clear}
       onPointerLeave={clear}
+      onClick={() => {
+        if (held.current) held.current = false;
+        else onOpen?.();
+      }}
       onContextMenu={(e) => e.preventDefault()}
     >
       <Camera size={24} strokeWidth={2.2} aria-hidden />

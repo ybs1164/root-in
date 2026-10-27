@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoLimit, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, type Group } from './groups';
+import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoLimit, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, withSentPhotos, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -99,6 +99,16 @@ describe('newPingCount', () => {
 
   it('a group never opened counts all of their pings', () => {
     expect(newPingCount(group({ me: ['a'], ann: ['b', 'c'] }), 'me', undefined)).toBe(2);
+  });
+});
+
+describe('withSentPhotos', () => {
+  it("is this phone's pings plus only the photos I sent from the server, in time order", () => {
+    const at = (h: number) => `2026-10-27T0${h}:00:00.000Z`;
+    const mine = [{ at: at(1), center: [127, 37.5] as [number, number] }, { at: at(5), center: [127, 37.6] as [number, number] }];
+    const server = [{ at: at(1), center: [127, 37.5] as [number, number] }, { at: at(3), center: [127, 37.7] as [number, number], photo: 'p.jpg' }];
+    expect(withSentPhotos(mine, server).map((p) => p.at)).toEqual([at(1), at(3), at(5)]);
+    expect(withSentPhotos(mine, [server[0]])).toBe(mine);
   });
 });
 

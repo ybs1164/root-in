@@ -68,6 +68,8 @@
   --tray-dim: rgba(255, 255, 255, 0.55);
   --tray-line: rgba(255, 255, 255, 0.16);
   --tray-hi: rgba(255, 255, 255, 0.16);
+  /* The camera screen: black behind the live view, whatever the theme. */
+  --camera-bg: #000000;
   --rainbow-1: #ff4d4d;
   --rainbow-2: #ffb020;
   --rainbow-3: #ffe14d;
@@ -4472,6 +4474,112 @@ button:disabled {
   animation: unfold 0.2s ease both;
 }
 
+/* 그룹에 보내기 from the camera: every group I'm in with its cover, tap to pick several. */
+.group-send {
+  width: min(340px, calc(100vw - 32px));
+}
+
+.group-send__main {
+  padding: 24px 16px 18px;
+}
+
+.group-send__title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 400;
+  text-align: center;
+}
+
+.group-send__lead {
+  margin: 8px 0 14px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.group-send__empty,
+.group-send__problem {
+  margin: 8px 6px 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.group-send__problem {
+  color: var(--danger);
+}
+
+.group-send__list {
+  display: grid;
+  gap: 4px;
+  max-height: min(340px, 48dvh);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.group-send__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.group-send__item.is-on {
+  background: var(--accent-soft);
+}
+
+.group-send__cover {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.group-send__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-send__count {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.group-send__check {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--muted);
+  border-radius: 50%;
+  color: var(--on-accent);
+}
+
+.group-send__item.is-on .group-send__check {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
 /* A shared route link's popup: the sharer's photo centred, who shared it and how often. */
 .shared-route-dialog {
   width: min(300px, calc(100vw - 48px));
@@ -5268,6 +5376,136 @@ button:disabled {
   position: absolute;
   right: 16px;
   bottom: -8px;
+}
+
+/* The camera screen (CameraScreen): a square live view over everything, ✕
+   top-left, the shutter in the middle of a row along the bottom. */
+.camera {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  overflow: hidden;
+  background: var(--camera-bg);
+  color: var(--tray-fg);
+  animation: veil-in 0.2s ease both;
+}
+
+.camera__frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(100vw, 100dvh - var(--safe-top) - var(--safe-bottom) - 280px, 640px);
+  aspect-ratio: 1;
+  overflow: hidden;
+  translate: -50% -50%;
+}
+
+.camera__view,
+.camera__shot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.camera__view.is-mirrored {
+  scale: -1 1;
+}
+
+.camera__message {
+  position: absolute;
+  inset: 40% 24px auto;
+  margin: 0;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--tray-dim);
+}
+
+.camera__flash {
+  position: absolute;
+  inset: 0;
+  background: var(--tray-fg);
+  pointer-events: none;
+  animation: camera-flash 0.25s ease-out both;
+}
+
+@keyframes camera-flash {
+  from {
+    opacity: 0.8;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.camera__btn {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tray-hi);
+  color: var(--tray-fg);
+}
+
+.camera__close {
+  position: absolute;
+  top: calc(var(--safe-top) + 12px);
+  left: 14px;
+}
+
+.camera__bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--safe-bottom) + 32px);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  justify-items: center;
+  padding: 0 24px;
+}
+
+.camera__spacer {
+  width: 48px;
+}
+
+.camera__shutter {
+  width: 76px;
+  height: 76px;
+  padding: 0;
+  border: 5px solid var(--tray-fg);
+  border-radius: 50%;
+  background: var(--tray-fg);
+  box-shadow: inset 0 0 0 3px var(--camera-bg);
+  transition: scale 0.12s ease;
+  touch-action: manipulation;
+}
+
+.camera__shutter:active {
+  scale: 0.9;
+}
+
+.camera__shutter:disabled {
+  opacity: 0.4;
+}
+
+.camera__send {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 56px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-size: 18px;
 }
 
 /* Over the calendar page, the app's row sits above it (the page's own row

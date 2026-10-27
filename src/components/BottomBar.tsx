@@ -34,6 +34,8 @@ interface BottomBarProps {
   onDeletePing?: () => void;
   /** A ping is being dragged over the ✕. */
   deleteHot?: boolean;
+  /** The camera at the row's right end: the camera screen. */
+  onCamera?: () => void;
 }
 
 /**
@@ -45,7 +47,7 @@ interface BottomBarProps {
  * mounted so the swap is animated. On TODAY (`today`) the row is the big
  * calendar button and 공유 instead.
  */
-export default function BottomBar({ tab, today = false, calendarMode, onCalendar, onMap, onPin, onPeople, onShare, onDeletePing, deleteHot = false }: BottomBarProps) {
+export default function BottomBar({ tab, today = false, calendarMode, onCalendar, onMap, onPin, onPeople, onShare, onDeletePing, deleteHot = false, onCamera }: BottomBarProps) {
   const cal = today;
   const map = tab === 'pins';
   // Every move is played from where each button is on screen right now
@@ -154,7 +156,7 @@ export default function BottomBar({ tab, today = false, calendarMode, onCalendar
         </>
       )}
       {/* The map and We Now share the camera at the row's right end (TODAY has 공유 there). */}
-      {!cal && <CameraButton className="bar-camera" />}
+      {!cal && <CameraButton className="bar-camera" onOpen={onCamera} />}
       {onShare && (
         <button className="bar-share" aria-label="공유" onClick={onShare}>
           <Share size={24} strokeWidth={2.2} aria-hidden />

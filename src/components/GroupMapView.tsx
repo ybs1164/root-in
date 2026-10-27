@@ -27,6 +27,7 @@ interface GroupMapViewProps {
   onPhotoBig(open: boolean): void;
   onBack(): void;
   onSettings(): void;
+  onCamera(): void;
 }
 
 /**
@@ -44,7 +45,7 @@ interface GroupMapViewProps {
  * the place, who, n / N with ‹ › through their day, tied to the ping by a
  * faint thread.
  */
-export default function GroupMapView({ group, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings }: GroupMapViewProps) {
+export default function GroupMapView({ group, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCamera }: GroupMapViewProps) {
   const pickedMember = group.members.find((m) => m.userId === picked) ?? null;
   // The picked face is scrolled into the middle of the row, however it was picked (row, < >, the map).
   const row = useRef<HTMLDivElement>(null);
@@ -79,7 +80,7 @@ export default function GroupMapView({ group, picked, me, newPings, onPick, plac
         </>
       )}
 
-      <CameraButton className="group-view__camera" />
+      <CameraButton className="group-view__camera" onOpen={onCamera} />
 
       {pickedMember && <MemberPass key={pickedMember.userId} member={pickedMember} mine={pickedMember.userId === me} />}
 

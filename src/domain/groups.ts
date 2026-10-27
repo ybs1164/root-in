@@ -5,7 +5,7 @@ export interface GroupPing {
   center: [number, number];
   /** The place's name (shown while its member is picked); missing from older servers. */
   name?: string;
-  /** The photo sent with it from the camera (the server sends none yet; the dev demo members have some). */
+  /** The photo sent with it from the camera (its address; the dev demo members' are drawn data URLs). */
   photo?: string;
 }
 
@@ -187,6 +187,16 @@ export function newPingCount(group: Group, me: string | null, seen: readonly str
  * server only catches up after the next push and the next read). 제외 주소
  * pings (`local`) stay off it, as they never reach the server either.
  */
+/**
+ * My row in a group: this phone's TODAY pings (fresher than the server's
+ * copy) plus the photos I sent to that group, which only the server has.
+ */
+export function withSentPhotos(mine: readonly GroupPing[], fromServer: readonly GroupPing[]): GroupPing[] {
+  const sent = fromServer.filter((p) => p.photo);
+  if (!sent.length) return mine as GroupPing[];
+  return [...mine, ...sent].sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+}
+
 export function myGroupPings(stored: readonly StoredPing[], day: string): GroupPing[] {
   return stored
     .filter((p) => p.day === day && !p.local)
