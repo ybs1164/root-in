@@ -244,8 +244,8 @@ export class KakaoCourseMap implements CourseMap {
           position: this.latLng(mark.center),
           content: createGroupPingElement(mark),
           yAnchor: 0.5,
-          // Faces over the dots, the picked member's over everyone else's.
-          zIndex: (mark.face ? 3 : 2) + (mark.faded ? 0 : 2),
+          // Faces over the dots, photos over those, the picked member's over everyone else's, the tapped one over all.
+          zIndex: (mark.face ? 3 : 2) + (mark.photo ? 2 : 0) + (mark.faded ? 0 : 4) + (mark.selected ? 8 : 0),
           map: this.map,
         }),
     );
@@ -333,9 +333,16 @@ export class KakaoCourseMap implements CourseMap {
     );
   }
 
-  focus(center: [number, number]): void {
+  focus(center: [number, number], padding?: MapPadding): void {
     if (this.map.getLevel() > FOCUS_LEVEL) this.map.setLevel(FOCUS_LEVEL);
-    this.map.panTo(this.latLng(center));
+    if (!padding) return this.map.panTo(this.latLng(center));
+    // As MapLibre's `offset`: `center` lands in the middle of the padded box.
+    // The view only shifts, so the map centre to pan to is where `center` is now, less that offset.
+    const projection = this.map.getProjection();
+    const at = projection.containerPointFromCoords(this.latLng(center));
+    const dx = (padding.left - padding.right) / 2;
+    const dy = (padding.top - padding.bottom) / 2;
+    this.map.panTo(projection.coordsFromContainerPoint(new this.maps.Point(at.x - dx, at.y - dy)));
   }
 
   setPanEnabled(enabled: boolean): void {

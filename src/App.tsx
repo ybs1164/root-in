@@ -46,9 +46,9 @@ import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
 import { useGroups } from './hooks/useGroups';
 import { groupsNeedLogin, inviteUrl } from './services/groupService';
-import { focusPoints, groupPingKeys, memberColor, myGroupPings, newPingCount, type GroupMember } from './domain/groups';
+import { focusPoints, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, newPingCount, photoPings, type GroupMember } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
-import { loadGroupSeen, saveGroupSeen, type GroupSeen } from './services/groupSeenRepository';
+import { loadGroupSeen, loadMemberSeen, memberSeenKey, saveGroupSeen, saveMemberSeen, type GroupSeen, type MemberSeen } from './services/groupSeenRepository';
 import { useStoredPings } from './hooks/useStoredPings';
 import { dateKey } from './domain/diary';
 import GroupMapView from './components/GroupMapView';
@@ -85,6 +85,8 @@ const AIM_MIN_MOVE_M = 8;
 /** Matches `tray-down` in styles.css: the 경로 폴더 sheet stays mounted while it slides away. */
 const ROUTE_TRAY_OUT_MS = 170;
 /** How much of the folder sheet stays up while a route is on show (matches .route-folders.is-lowered). */
+/** The top of a group's map held by ‹, the name and ⚙: a tapped ping is centred below it (or below its photo panel). */
+const GROUP_TITLE_PX = 120;
 const FOLDER_LOWERED_PX = 324;
 /** Once the map has glided over to a route, the pins fade off (matches .app--pins-away), and only then do its stops drop in. */
 const PINS_FADE_MS = 250;
@@ -333,6 +335,16 @@ export default function App() {
     }
   }, [tab]);
   useEffect(() => setGroupPicked(null), [openGroupId]);
+  // The ping tapped on a group's map (its place is in the photo panel under the title); it goes with its member's focus.
+  const [groupPing, setGroupPing] = useState<{ member: string; seq: number } | null>(null);
+  useEffect(() => {
+    if (groupPing && groupPing.member !== groupPicked) setGroupPing(null);
+  }, [groupPicked, groupPing]);
+  // The panel's photo opened big over everything; it goes when the panel does.
+  const [groupPhotoBig, setGroupPhotoBig] = useState(false);
+  useEffect(() => {
+    if (!groupPing) setGroupPhotoBig(false);
+  }, [groupPing]);
   // A group's 새 핑 badge: pings that weren't on its map when I last had it
   // open. Whatever is on the open group's map counts as seen, new arrivals too.
   const [groupSeen, setGroupSeen] = useState<GroupSeen>(loadGroupSeen);
@@ -345,6 +357,19 @@ export default function App() {
       return next;
     });
   }, [openGroup?.id, openGroupKeys]);
+  // Each face's badge on a group's map: that member's pings since I last had
+  // them picked. Picking someone sees all of theirs, and so do new ones while picked.
+  const [memberSeen, setMemberSeen] = useState<MemberSeen>(loadMemberSeen);
+  const pickedMember = openGroup && groupPicked ? (openGroup.members.find((m) => m.userId === groupPicked) ?? null) : null;
+  const pickedKeys = pickedMember ? pickedMember.pings.map((p) => groupPingKey(pickedMember, p)).join(',') : null;
+  useEffect(() => {
+    if (!openGroup || !pickedMember) return;
+    setMemberSeen((seen) => {
+      const next = { ...seen, [memberSeenKey(openGroup.id, pickedMember.userId)]: pickedMember.pings.map((p) => groupPingKey(pickedMember, p)) };
+      saveMemberSeen(next);
+      return next;
+    });
+  }, [openGroup?.id, pickedMember?.userId, pickedKeys]);
   useEffect(() => {
     if (!needLogin && tab === 'people' && account.available && !account.user && guest === 'idle') startGuest();
   }, [needLogin, tab, account.available, account.user, guest, startGuest]);
@@ -602,11 +627,13 @@ export default function App() {
   }, [pinMarkers, mapProvider]);
 
   // An open group: every member's pings (their latest as their face), the
-  // picked member's over the rest, everyone else stepping back.
+  // picked member's over the rest, everyone else stepping back; a few
+  // photos as ping heads (`photoPings`), the tapped ping marked for the panel.
   const groupMarks = useMemo(() => {
     if (!openGroup) return [];
-    return openGroup.members.flatMap((m) =>
-      m.pings.map((p, i) => ({
+    return openGroup.members.flatMap((m) => {
+      const photos = photoPings(m, groupPicked, !!groupPing);
+      return m.pings.map((p, i) => ({
         member: m.userId,
         seq: i,
         center: p.center,
@@ -615,9 +642,11 @@ export default function App() {
         faded: !!groupPicked && groupPicked !== m.userId,
         // The picked member's places by name; nobody's while ALL.
         label: groupPicked === m.userId ? p.name : undefined,
-      })),
-    );
-  }, [openGroup, groupPicked]);
+        photo: photos.has(i) ? p.photo : undefined,
+        selected: groupPing?.member === m.userId && groupPing.seq === i,
+      }));
+    });
+  }, [openGroup, groupPicked, groupPing]);
   const groupLines = useMemo<GroupLine[]>(
     () =>
       (openGroup?.members ?? [])
@@ -630,16 +659,17 @@ export default function App() {
   }, [groupMarks, mapProvider]);
   // Opening a group fits all of it; picking someone brings the map in close on their day.
   const groupFitted = useRef<{ group: string; picked: string | null } | null>(null);
-  const groupFitKey = openGroup ? `${openGroup.id}|${groupPicked ?? ''}|${focusPoints(openGroup, groupPicked).length}` : '';
+  const groupFitKey = openGroup ? `${openGroup.id}|${groupPicked ?? ''}|${focusPoints(openGroup, groupPicked).length}|${groupPing ? `${groupPing.member}:${groupPing.seq}` : ''}` : '';
   useEffect(() => {
     if (!openGroup || !mapRef.current) return;
     const points = focusPoints(openGroup, groupPicked);
     if (points.length === 0) return;
     const el = mapEl.current;
     const width = el?.clientWidth ?? window.innerWidth;
-    // Under the title, clear of the rail on the right; the same margin on the left keeps it centred.
+    // Under the title, over the member row along the bottom (and the picked
+    // member's pass over it), clear of the < > at the sides.
     const side = width < 520 ? 76 : 96;
-    const padding = { top: 150, right: side, bottom: 64, left: side };
+    const padding = { top: 150, right: side, bottom: groupPicked ? 270 : 130, left: side };
     // Like a route: the first move onto someone (from ALL, or opening the
     // group) glides at the usual pace; going on from one member to the next
     // is as quick as stepping between routes with < >.
@@ -647,6 +677,19 @@ export default function App() {
     const memberToMember = !!last && last.group === openGroup.id && !!last.picked && !!groupPicked;
     groupFitted.current = { group: openGroup.id, picked: groupPicked };
     const id = requestAnimationFrame(() => {
+      // A tapped ping: it (with its photo head or face, measured off the
+      // marker) in the middle of the room between the photo panel under the
+      // title and the member's pass, not the member's whole day.
+      const ping = groupPing && openGroup.members.find((m) => m.userId === groupPing.member)?.pings[groupPing.seq];
+      const marker = ping && document.querySelector<HTMLElement>('.group-ping.is-selected');
+      const box = el?.getBoundingClientRect();
+      if (ping && marker && box) {
+        const at = marker.getBoundingClientRect().top;
+        const head = Math.min(at, ...[...marker.children].map((c) => c.getBoundingClientRect().top));
+        const above = document.querySelector('.group-photo-panel')?.getBoundingClientRect().bottom ?? box.top + GROUP_TITLE_PX;
+        const below = document.querySelector('.member-pass, .group-rail')?.getBoundingClientRect().top ?? box.bottom;
+        return mapRef.current?.focus(ping.center, { top: above - box.top + (at - head) + 12, right: 0, bottom: Math.max(0, box.bottom - below), left: 0 });
+      }
       void mapRef.current?.fitPoints(points, padding, memberToMember ? STEP_GLIDE_MS : undefined);
     });
     return () => cancelAnimationFrame(id);
@@ -657,23 +700,29 @@ export default function App() {
   }, [openGroup]);
 
   // On a group's map, a quick tap (not a pan or a long press) on someone's
-  // face (faded or not) puts the focus on them; on bare map, with someone
-  // picked, it goes back to ALL; on a ping dot it does nothing. The pings
-  // let taps through to the map, so they're found by where they are on screen.
+  // ping, photo or face (faded or not) puts the focus on them and opens that
+  // place's photo panel; on bare map it goes back to ALL (panel and all).
+  // The pings let taps through to the map, so they're found by where they are on screen.
   const groupOnMap = !!openGroup;
   useEffect(() => {
     const el = mapEl.current;
     if (!groupOnMap || !el) return;
     let tap: { x: number; y: number; at: number } | null = null;
-    const hit = (x: number, y: number): { member: string | null } | null => {
-      let dot = false;
+    const hit = (x: number, y: number): { member: string; seq: number } | null => {
+      let found: { member: string; seq: number } | null = null;
       for (const p of document.querySelectorAll<HTMLElement>('.group-ping')) {
-        const face = p.querySelector('.group-ping__face')?.getBoundingClientRect();
-        if (face && x >= face.left - 4 && x <= face.right + 4 && y >= face.top - 4 && y <= face.bottom + 4) return { member: p.dataset.member ?? null };
-        const r = p.getBoundingClientRect();
-        if (Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2)) < 22) dot = true;
+        if (!p.dataset.member) continue;
+        const parts = [...p.querySelectorAll<HTMLElement>('.group-ping__photo, .group-ping__face, .group-ping__pin')].filter((c) => getComputedStyle(c).visibility !== 'hidden');
+        const on = parts.some((c) => {
+          const r = c.getBoundingClientRect();
+          return x >= r.left - 6 && x <= r.right + 6 && y >= r.top - 6 && y <= r.bottom + 6;
+        });
+        if (!on) continue;
+        found = { member: p.dataset.member, seq: Number(p.dataset.seq) };
+        // A photo or a face is over the pins around it.
+        if (p.classList.contains('has-photo') || p.classList.contains('group-ping--face')) break;
       }
-      return dot ? { member: null } : null;
+      return found;
     };
     const down = (e: PointerEvent) => {
       tap = e.isPrimary && el.contains(e.target as Node) ? { x: e.clientX, y: e.clientY, at: performance.now() } : null;
@@ -684,8 +733,14 @@ export default function App() {
       if (!t || !e.isPrimary || !el.contains(e.target as Node)) return;
       if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > PRESS.slopPx || performance.now() - t.at >= PRESS.longMs) return;
       const on = hit(e.clientX, e.clientY);
-      if (on?.member) setGroupPicked(on.member);
-      else if (!on) setGroupPicked(null);
+      if (on) {
+        setGroupPicked(on.member);
+        setGroupPing(on);
+      } else {
+        // Bare map: back to ALL, with the photo panel too if it's open.
+        setGroupPing(null);
+        setGroupPicked(null);
+      }
     };
     document.addEventListener('pointerdown', down, true);
     document.addEventListener('pointerup', up, true);
@@ -1109,6 +1164,7 @@ export default function App() {
   useBackButton(() => {
     if (closeTopDialog()) return true;
     if (studio) return setStudio(null), true;
+    if (groupPhotoBig) return setGroupPhotoBig(false), true;
     if (openGroupId) return setOpenGroupId(null), true;
     if (todayOpen) return setTodayOpen(false), true;
     if (searchOpen) return setSearchOpen(false), setQuery(''), searchInput.current?.blur(), true;
@@ -1612,7 +1668,14 @@ export default function App() {
           <GroupMapView
             group={openGroup}
             picked={groupPicked}
+            me={myId}
+            // Mine never: my own pings aren't news to me.
+            newPings={(m) => (m.userId === myId ? 0 : newMemberPings(m, memberSeen[memberSeenKey(openGroup.id, m.userId)]))}
             onPick={setGroupPicked}
+            place={groupPing}
+            onPlace={setGroupPing}
+            photoBig={groupPhotoBig}
+            onPhotoBig={setGroupPhotoBig}
             onBack={() => setOpenGroupId(null)}
             onSettings={() => setGroupSettingsOpen(true)}
           />

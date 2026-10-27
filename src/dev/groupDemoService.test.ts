@@ -18,7 +18,9 @@ describe('local group demo members', () => {
     expect(result[1].members[0]).toBe(groups[1].members[0]);
     expect(new Set(result[1].members.map((m) => m.slot)).size).toBe(3);
     expect(result[1].members.slice(1).map((m) => m.nickname)).toEqual(['더미 유저 1', '더미 유저 2']);
-    expect(result[1].members[1].pings[0]).toEqual({ at: '2026-10-17T00:30:00.000Z', center: [127.002, 37.501] });
+    expect(result[1].members[1].pings[0]).toMatchObject({ at: '2026-10-17T00:30:00.000Z', center: [127.002, 37.501], name: '광화문' });
+    // Stand-in photos on all but each member's last place.
+    expect(result[1].members[1].pings.map((p) => !!p.photo)).toEqual([true, true, false]);
     expect(withGroupDemoMembers(result, '2026-10-18')[1].members).toHaveLength(3);
     expect(groups[1].members).toHaveLength(1);
   });

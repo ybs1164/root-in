@@ -83,6 +83,10 @@ export interface GroupPingMark {
   faded?: boolean;
   /** The place's name under it (the picked member's pings only). */
   label?: string;
+  /** The photo sent from there, shown as the ping's head (a few per member at a time, App picks). */
+  photo?: string;
+  /** The ping tapped on (its place is in the panel under the group's title). */
+  selected?: boolean;
 }
 
 export interface CourseMapOptions {
@@ -174,7 +178,7 @@ const DEFAULT_FACE_SVG =
 
 export function createGroupPingElement(mark: GroupPingMark): HTMLElement {
   const el = document.createElement('div');
-  el.className = `group-ping${mark.face ? ' group-ping--face' : ''}${mark.faded ? ' is-faded' : ''}`;
+  el.className = `group-ping${mark.face ? ' group-ping--face' : ' group-ping--pin'}${mark.faded ? ' is-faded' : ''}${mark.selected ? ' is-selected' : ''}${mark.photo ? ' has-photo' : ''}`;
   el.style.setProperty('--member', mark.color);
   el.dataset.member = mark.member;
   el.dataset.seq = String(mark.seq);
@@ -189,6 +193,23 @@ export function createGroupPingElement(mark: GroupPingMark): HTMLElement {
       face.append(img);
     } else face.innerHTML = DEFAULT_FACE_SVG;
     el.append(face);
+  } else {
+    // A ping, not a bare dot: the pin glyph in the member's colour, its tip on the spot.
+    const pin = document.createElement('span');
+    pin.className = 'group-ping__pin';
+    pin.innerHTML = pinGlyphSvg('pin');
+    el.append(pin);
+  }
+  if (mark.photo) {
+    // The photo over the ping: a small rounded print in the member's colour on top of its pin (or face, if it's their latest).
+    const head = document.createElement('span');
+    head.className = 'group-ping__photo';
+    const img = document.createElement('img');
+    img.src = mark.photo;
+    img.alt = '';
+    img.draggable = false;
+    head.append(img);
+    el.append(head);
   }
   if (mark.label) {
     const label = document.createElement('span');

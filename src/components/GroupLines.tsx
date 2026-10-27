@@ -8,31 +8,45 @@ export interface GroupLine {
 }
 
 /** Screen centre of a member's `seq`th ping marker, if it's on the map. */
-function pingCentre(member: string, seq: number): string | null {
+function pingCentre(member: string, seq: number): [number, number] | null {
   const el = document.querySelector<HTMLElement>(`.group-ping[data-member="${member}"][data-seq="${seq}"]`);
   if (!el) return null;
   const r = el.getBoundingClientRect();
-  return `${Math.round(r.left + r.width / 2)},${Math.round(r.top + r.height / 2)}`;
+  return [Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2)];
 }
 
 /**
- * We Now: each member's day as a straight line through their pings, in their
+ * We Now: each member's day as straight lines from ping to ping, in their
  * colour, drawn over the map from the markers' screen positions (moved every
- * frame so they follow pans and zooms), as StopLines does for a route.
+ * frame so they follow pans and zooms) and under the markers. Like TODAY's
+ * lines, each leg is its own line on its own casing, drawn in order, so the
+ * next leg's casing cuts the one before at every ping rather than running
+ * through as one polyline.
  */
 export default function GroupLines({ lines }: { lines: GroupLine[] }) {
-  const refs = useRef<(SVGPolylineElement | null)[]>([]);
-  /** Each member's casing: the same line, wider, in a light colour under it. */
-  const cases = useRef<(SVGPolylineElement | null)[]>([]);
+  /** Per member, per leg: [casing, line]. */
+  const legs = useRef<Record<string, ([SVGLineElement | null, SVGLineElement | null] | undefined)[]>>({});
   useEffect(() => {
     let frame = 0;
     const draw = () => {
-      lines.forEach((line, i) => {
-        const points = Array.from({ length: line.count }, (_, k) => pingCentre(line.member, k)).filter(Boolean).join(' ');
-        for (const el of [refs.current[i], cases.current[i]]) {
-          if (el && el.getAttribute('points') !== points) el.setAttribute('points', points);
-        }
-      });
+      for (const line of lines) {
+        const ends = Array.from({ length: line.count }, (_, k) => pingCentre(line.member, k));
+        (legs.current[line.member] ?? []).forEach((pair, k) => {
+          const [a, b] = [ends[k], ends[k + 1]];
+          for (const el of pair ?? []) {
+            if (!el) continue;
+            if (!a || !b) {
+              el.style.visibility = 'hidden';
+              continue;
+            }
+            el.style.visibility = '';
+            el.setAttribute('x1', String(a[0]));
+            el.setAttribute('y1', String(a[1]));
+            el.setAttribute('x2', String(b[0]));
+            el.setAttribute('y2', String(b[1]));
+          }
+        });
+      }
       frame = requestAnimationFrame(draw);
     };
     draw();
@@ -41,25 +55,24 @@ export default function GroupLines({ lines }: { lines: GroupLine[] }) {
 
   return (
     <svg className="group-lines" aria-hidden>
-      {/* The casings first, so no member's line is covered by another's casing. */}
-      {lines.map((line, i) => (
-        <polyline
-          key={`case-${line.member}`}
-          ref={(el) => {
-            cases.current[i] = el;
-          }}
-          className={`group-lines__case${line.faded ? ' is-faded' : ''}`}
-        />
-      ))}
-      {lines.map((line, i) => (
-        <polyline
-          key={line.member}
-          ref={(el) => {
-            refs.current[i] = el;
-          }}
-          className={line.faded ? 'is-faded' : undefined}
-          style={{ stroke: line.color }}
-        />
+      {lines.map((line) => (
+        <g key={line.member} className={line.faded ? 'is-faded' : undefined} style={{ stroke: line.color }}>
+          {Array.from({ length: Math.max(0, line.count - 1) }, (_, k) => (
+            <g key={k}>
+              <line
+                className="group-lines__case"
+                ref={(el) => {
+                  (legs.current[line.member] ??= [])[k] = [el, legs.current[line.member]?.[k]?.[1] ?? null];
+                }}
+              />
+              <line
+                ref={(el) => {
+                  (legs.current[line.member] ??= [])[k] = [legs.current[line.member]?.[k]?.[0] ?? null, el];
+                }}
+              />
+            </g>
+          ))}
+        </g>
       ))}
     </svg>
   );
