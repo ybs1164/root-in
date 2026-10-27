@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, groupPingKeys, myGroupPings, type Group } from './groups';
+import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoLimit, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, withSentPhotos, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -66,13 +66,15 @@ describe('groups', () => {
     expect(tilePaths(group('e', []), 100)).toEqual([]);
   });
 
-  it('steps through the members with ALL at both ends, going round', () => {
+  it('steps through the members only, going round, never to ALL', () => {
     const g = group('g');
     expect(stepMember(g, null, 1)).toBe('a');
     expect(stepMember(g, 'a', 1)).toBe('b');
-    expect(stepMember(g, 'b', 1)).toBeNull();
+    expect(stepMember(g, 'b', 1)).toBe('a');
+    expect(stepMember(g, 'a', -1)).toBe('b');
     expect(stepMember(g, null, -1)).toBe('b');
     expect(stepMember(g, 'gone', 1)).toBe('a');
+    expect(stepMember(group('e', []), null, 1)).toBeNull();
   });
 });
 
@@ -100,6 +102,16 @@ describe('newPingCount', () => {
   });
 });
 
+describe('withSentPhotos', () => {
+  it("is this phone's pings plus only the photos I sent from the server, in time order", () => {
+    const at = (h: number) => `2026-10-27T0${h}:00:00.000Z`;
+    const mine = [{ at: at(1), center: [127, 37.5] as [number, number] }, { at: at(5), center: [127, 37.6] as [number, number] }];
+    const server = [{ at: at(1), center: [127, 37.5] as [number, number] }, { at: at(3), center: [127, 37.7] as [number, number], photo: 'p.jpg' }];
+    expect(withSentPhotos(mine, server).map((p) => p.at)).toEqual([at(1), at(3), at(5)]);
+    expect(withSentPhotos(mine, [server[0]])).toBe(mine);
+  });
+});
+
 describe('myGroupPings', () => {
   it("is that day's pings from this phone, oldest first, without 제외 주소 ones", () => {
     const at = (h: number) => `2026-10-19T0${h}:00:00.000Z`;
@@ -113,5 +125,70 @@ describe('myGroupPings', () => {
       { at: at(1), center: [127, 37.6], name: 'A' },
       { at: at(3), center: [127, 37.5], name: 'B' },
     ]);
+  });
+});
+
+describe('newMemberPings', () => {
+  it('counts only the pings since I last had that member picked', () => {
+    const ann = member('ann', 0, [[126.9, 37.5], [127.0, 37.6], [127.1, 37.6]]);
+    expect(newMemberPings(ann, undefined)).toBe(3);
+    const seen = ann.pings.slice(0, 2).map((p) => groupPingKey(ann, p));
+    expect(newMemberPings(ann, seen)).toBe(1);
+    expect(newMemberPings(ann, [...seen, groupPingKey(ann, ann.pings[2])])).toBe(0);
+  });
+});
+
+describe('photoPings', () => {
+  const withPhotos = (n: number, photos: number[]) => {
+    const m = member('ann', 0, Array.from({ length: n }, (_, k) => [126.9 + k * 0.01, 37.5] as [number, number]));
+    m.pings = m.pings.map((p, i) => (photos.includes(i) ? { ...p, at: `2026-10-24T${String(i).padStart(2, '0')}:00:00.000Z`, photo: `p${i}.jpg` } : { ...p, at: `2026-10-24T${String(i).padStart(2, '0')}:00:00.000Z` }));
+    return m;
+  };
+
+  it('limits a member to three, and to n − 2 places from three places up', () => {
+    expect(photoLimit(1, 1)).toBe(1);
+    expect(photoLimit(2, 2)).toBe(2);
+    expect(photoLimit(3, 3)).toBe(1);
+    expect(photoLimit(4, 4)).toBe(2);
+    expect(photoLimit(5, 5)).toBe(3);
+    expect(photoLimit(9, 9)).toBe(3);
+    expect(photoLimit(9, 1)).toBe(1);
+  });
+
+  it('always shows the latest place with a photo, the rest stable picks among the others', () => {
+    const m = withPhotos(8, [0, 1, 2, 4, 6]);
+    const shown = photoPings(m, null);
+    expect(shown.size).toBe(3);
+    expect(shown.has(6)).toBe(true);
+    expect([...shown].every((i) => [0, 1, 2, 4, 6].includes(i))).toBe(true);
+    // The same day draws the same picks.
+    expect([...photoPings(m, null)]).toEqual([...shown]);
+  });
+
+  it('a short day shows its photos unheld', () => {
+    expect([...photoPings(withPhotos(2, [0, 1]), null)].sort()).toEqual([0, 1]);
+  });
+
+  it('none for someone else while a member is picked, nor while a photo is open', () => {
+    const m = withPhotos(5, [0, 3]);
+    expect(photoPings(m, 'ann').size).toBe(2);
+    expect(photoPings(m, 'bo').size).toBe(0);
+    expect(photoPings(m, 'ann', true).size).toBe(0);
+  });
+});
+
+describe('passRoute', () => {
+  it('keeps a short day whole and cuts a long one to its first and last places', () => {
+    expect(passRoute(['a', 'b', 'c'])).toEqual(['a', 'b', 'c']);
+    expect(passRoute(['a', 'b', 'c', 'd', 'e', 'f', 'g'])).toEqual(['a', null, 'e', 'f', 'g']);
+  });
+});
+
+describe('viewerStep', () => {
+  it('pages the big photo and stops at both ends', () => {
+    expect(viewerStep(0, 1, 3)).toBe(1);
+    expect(viewerStep(2, 1, 3)).toBeNull();
+    expect(viewerStep(0, -1, 3)).toBeNull();
+    expect(viewerStep(2, -1, 3)).toBe(1);
   });
 });

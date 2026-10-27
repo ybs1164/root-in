@@ -97,7 +97,7 @@ export interface KakaoMapInstance {
   setBounds(bounds: unknown, paddingTop?: number, paddingRight?: number, paddingBottom?: number, paddingLeft?: number): void;
   relayout(): void;
   setDraggable(draggable: boolean): void;
-  getProjection(): { coordsFromContainerPoint(point: unknown): KakaoLatLng };
+  getProjection(): { coordsFromContainerPoint(point: unknown): KakaoLatLng; containerPointFromCoords(latlng: KakaoLatLng): { x: number; y: number } };
 }
 
 declare global {

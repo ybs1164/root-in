@@ -133,8 +133,10 @@ export function createSupabaseAuthService(getClient: ClientSource = getSupabase,
         const userId = data.session?.user.id;
         if (!userId) return false;
         // Storage isn't covered by the cascade: clear this user's folder first.
-        const { data: files } = await client.storage.from('avatars').list(userId);
-        if (files?.length) await client.storage.from('avatars').remove(files.map((f) => `${userId}/${f.name}`));
+        for (const bucket of ['avatars', 'group-photos']) {
+          const { data: files } = await client.storage.from(bucket).list(userId, { limit: 1000 });
+          if (files?.length) await client.storage.from(bucket).remove(files.map((f) => `${userId}/${f.name}`));
+        }
         const { error } = await client.rpc('delete_my_account');
         if (error) return false;
         await client.auth.signOut();

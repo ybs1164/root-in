@@ -5,6 +5,8 @@ export interface GroupPing {
   center: [number, number];
   /** The place's name (shown while its member is picked); missing from older servers. */
   name?: string;
+  /** The photo sent with it from the camera (its address; the dev demo members' are drawn data URLs). */
+  photo?: string;
 }
 
 export interface GroupMember {
@@ -88,16 +90,16 @@ function tileProjection(all: readonly [number, number][], size: number, margin: 
   ];
 }
 
-/** How many members the rail shows folded (after ALL); ↓ opens the rest. */
-export const RAIL_FOLDED_MEMBERS = 3;
-
 /**
- * The `<` `>` in the middle of a group's map: one member after another in
- * the rail's order, ALL before the first and after the last, going round.
+ * The `<` `>` beside the pass: one member after another in the row's order,
+ * going round from the last to the first — never ALL (that's its own button).
+ * From ALL (or someone gone), `>` is the first member and `<` the last.
  */
 export function stepMember(group: Group, picked: string | null, dir: -1 | 1): string | null {
-  const order: (string | null)[] = [null, ...group.members.map((m) => m.userId)];
-  const i = Math.max(0, order.indexOf(picked));
+  const order = group.members.map((m) => m.userId);
+  if (order.length === 0) return null;
+  const i = picked ? order.indexOf(picked) : -1;
+  if (i < 0) return dir === 1 ? order[0] : order[order.length - 1];
   return order[(i + dir + order.length) % order.length];
 }
 
@@ -106,6 +108,69 @@ export const groupPingKey = (member: GroupMember, ping: GroupPing): string => `$
 
 /** Every ping on the group's map right now: what opening it has seen. */
 export const groupPingKeys = (group: Group): string[] => group.members.flatMap((m) => m.pings.map((p) => groupPingKey(m, p)));
+
+/** At most this many of a member's photos are up on the map at once. */
+export const PHOTOS_PER_MEMBER = 3;
+
+/**
+ * How many of a member's photos go up: at most `PHOTOS_PER_MEMBER`, and
+ * with n places (n ≥ 3) at most n − 2 so some of the day stays plain pins;
+ * a short day (n < 3) isn't held back. Never more than they have.
+ */
+export function photoLimit(places: number, photos: number): number {
+  return Math.min(PHOTOS_PER_MEMBER, places >= 3 ? places - 2 : places, photos);
+}
+
+/** A small stable hash: the "random" pick is the same every time the same day is drawn. */
+function hash(text: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+
+/**
+ * Which of a member's pings show their photo on the map (`photoLimit` of
+ * them): always the latest place with a photo, the rest picked at random
+ * among their other photos — stable for the same pings, so the map doesn't
+ * reshuffle on every redraw. None while someone else is picked, nor while a
+ * photo is open in the panel (`open`).
+ */
+export function photoPings(member: GroupMember, picked: string | null, open = false): Set<number> {
+  if (open || (picked && picked !== member.userId)) return new Set();
+  const withPhoto = member.pings.flatMap((p, i) => (p.photo ? [i] : []));
+  const limit = photoLimit(member.pings.length, withPhoto.length);
+  if (limit === 0) return new Set();
+  const latest = withPhoto[withPhoto.length - 1];
+  const rest = withPhoto
+    .slice(0, -1)
+    .sort((a, b) => hash(groupPingKey(member, member.pings[a])) - hash(groupPingKey(member, member.pings[b])))
+    .slice(0, limit - 1);
+  return new Set([latest, ...rest]);
+}
+
+/**
+ * Paging the big photo (drag or ‹ ›): the place before or after, stopping at
+ * the ends rather than going round — null when there's nothing that way.
+ */
+export function viewerStep(seq: number, dir: -1 | 1, count: number): number | null {
+  const next = seq + dir;
+  return next >= 0 && next < count ? next : null;
+}
+
+/**
+ * The pass's day: every place in order; a long one keeps the first and the
+ * last few (null = the … between).
+ */
+export function passRoute(names: string[], keep = 5): (string | null)[] {
+  if (names.length <= keep) return names;
+  return [names[0], null, ...names.slice(-(keep - 2))];
+}
+
+/** A face's badge on a group's map: the member's pings since I last had them picked (`seen`; never = all of them). */
+export function newMemberPings(member: GroupMember, seen: readonly string[] | undefined): number {
+  const known = new Set(seen ?? []);
+  return member.pings.filter((p) => !known.has(groupPingKey(member, p))).length;
+}
 
 /**
  * The tile's 새 핑 badge: other members' pings that weren't on the map when I
@@ -122,6 +187,16 @@ export function newPingCount(group: Group, me: string | null, seen: readonly str
  * server only catches up after the next push and the next read). 제외 주소
  * pings (`local`) stay off it, as they never reach the server either.
  */
+/**
+ * My row in a group: this phone's TODAY pings (fresher than the server's
+ * copy) plus the photos I sent to that group, which only the server has.
+ */
+export function withSentPhotos(mine: readonly GroupPing[], fromServer: readonly GroupPing[]): GroupPing[] {
+  const sent = fromServer.filter((p) => p.photo);
+  if (!sent.length) return mine as GroupPing[];
+  return [...mine, ...sent].sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+}
+
 export function myGroupPings(stored: readonly StoredPing[], day: string): GroupPing[] {
   return stored
     .filter((p) => p.day === day && !p.local)
