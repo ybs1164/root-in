@@ -8,7 +8,7 @@
 // path because share links carry a whole route in their #hash.
 
 export type PinSource = 'search' | 'long_press' | 'pin_button' | 'aim';
-export type ShareKind = 'route' | 'day';
+export type ShareKind = 'route' | 'day' | 'category';
 export type ShareMethod = 'system_share' | 'save_image' | 'copy_link';
 
 /** Every event and its properties — the three funnels: 핀 꽂기, 루트 만들기, 공유. */

@@ -6,8 +6,11 @@ import {
   attachLongPress,
   createAreaLabelElement,
   createMarkerElement,
+  createPreviewElement,
   createMyLocationElement,
   createPinElement,
+  createNearbyPlaceElement,
+  syncNearbyPlaces,
   syncAreaLabels,
   type CourseMap,
   type CourseMapOptions,
@@ -21,6 +24,7 @@ import { MAP_LAYERS, SHADOW, TONE_TOKENS, WATER_TOKEN, pickKakaoLand, type MapLa
 
 type Overlay = { setMap(map: KakaoMapInstance | null): void };
 type KakaoPolygon = InstanceType<KakaoMapsNamespace['Polygon']>;
+type KakaoPolyline = InstanceType<KakaoMapsNamespace['Polyline']>;
 type Fill = { fillColor: string; fillOpacity: number };
 
 /**
@@ -42,12 +46,15 @@ export class KakaoCourseMap implements CourseMap {
   private preview: Overlay | null = null;
   private me: (Overlay & { setPosition(position: ReturnType<KakaoCourseMap['latLng']>): void }) | null = null;
   private pinOverlays: Overlay[] = [];
+  private nearbyOverlays = new Map<string, KakaoOverlay>();
   private groupOverlays: Overlay[] = [];
   private guide: Overlay | null = null;
   private areas: AreaShapes | null = null;
   private areaCover: KakaoPolygon | null = null;
   private partPolygons: KakaoPolygon[] = [];
   private landPolygons: KakaoPolygon[] = [];
+  private parkPolygons: KakaoPolygon[] = [];
+  private roadLines: KakaoPolyline[] = [];
   private shadowPolygons: KakaoPolygon[] = [];
   private tintShown = true;
   private areaLabels = new Map<string, { label: AreaLabel; marker: KakaoOverlay }>();
@@ -73,6 +80,7 @@ export class KakaoCourseMap implements CourseMap {
       options.onViewportChange?.({
         bounds: { west: sw.getLng(), south: sw.getLat(), east: ne.getLng(), north: ne.getLat() },
         widthPx: container.clientWidth,
+        screen: { width: container.clientWidth, height: container.clientHeight, bearing: 0 },
       });
     };
     maps.event.addListener(this.map, 'idle', emitViewport);
@@ -115,12 +123,9 @@ export class KakaoCourseMap implements CourseMap {
     return { fillColor: colour, fillOpacity: this.tintShown ? alpha : 0 };
   }
 
-  /**
-   * The shadow under the split 동 as one shape: Kakao can't blur, so it is
-   * the outline shifted down a few pixels, flat and faint.
-   */
+  /** The soft shadow outside the split 동 (cut to the outside in the worker). */
   private shadowFill(): Fill {
-    return { fillColor: this.layerColour('area-shadow'), fillOpacity: this.tintShown ? SHADOW.opacity * 0.6 : 0 };
+    return { fillColor: this.layerColour('area-shadow'), fillOpacity: this.tintShown ? SHADOW.opacity : 0 };
   }
 
   private recolourTints(): void {
@@ -132,6 +137,8 @@ export class KakaoCourseMap implements CourseMap {
   refreshColors(): void {
     this.areaCover?.setOptions(this.coverFill());
     this.landPolygons.forEach((o) => o.setOptions({ fillColor: this.layerColour('base-land') }));
+    this.parkPolygons.forEach((o) => o.setOptions({ fillColor: this.layerColour('base-parks') }));
+    this.roadLines.forEach((o) => o.setOptions({ strokeColor: this.layerColour('base-roads') }));
     this.recolourTints();
   }
 
@@ -141,38 +148,31 @@ export class KakaoCourseMap implements CourseMap {
     this.recolourTints();
   }
 
-  /** The outline moved down by the shadow's drop (degrees of latitude per screen pixel from the map's bounds). */
-  private dropped(polygons: [number, number][][][]): [number, number][][][] {
-    const b = this.map.getBounds();
-    const height = this.container.clientHeight || this.container.clientWidth || 1;
-    const perPx = (b.getNorthEast().getLat() - b.getSouthWest().getLat()) / height;
-    const dy = SHADOW.dy * (Number.isFinite(perPx) ? perPx : 0);
-    return polygons.map((rings) => rings.map((ring) => ring.map(([x, y]) => [x, y - dy] as [number, number])));
-  }
-
   setAreaMap(shapes: AreaShapes | null): void {
     const before = this.areas;
     this.areas = shapes;
     if (!shapes) {
-      [this.areaCover, ...this.partPolygons, ...this.landPolygons, ...this.shadowPolygons].forEach((o) => o?.setMap(null));
+      [this.areaCover, ...this.partPolygons, ...this.landPolygons, ...this.shadowPolygons, ...this.parkPolygons, ...this.roadLines].forEach((o) => o?.setMap(null));
       this.areaCover = null;
       this.partPolygons = [];
       this.landPolygons = [];
       this.shadowPolygons = [];
+      this.parkPolygons = [];
+      this.roadLines = [];
       this.attribution?.remove();
       this.attribution = null;
     } else {
       // Kakao tiles can't be restyled, so a Korea-sized polygon hides them;
       // the base map's land (water is where there is none) and the 동 tint
-      // go on it, in MapLibre's order. The neighbouring areas are just land
-      // (§6-1); no roads or parks (M9).
+      // go on it, in MapLibre's order. Neighborhood parks and streets sit
+      // above the tint, with nearby places below saved pins.
       if (!this.areaCover) this.areaCover = this.polygon(KOREA_BOX, this.coverFill(), Z['area-cover']);
       else if (!before?.base !== !shapes.base) this.areaCover.setOptions(this.coverFill());
       if (!before || before.base !== shapes.base) this.drawBase();
       // Existing polygons take the new outlines: building hundreds of SDK
       // objects per pan was much of the wait.
       if (!before || before.parts !== shapes.parts) {
-        this.shadowPolygons = this.reshape(this.shadowPolygons, this.dropped(shapes.partsOutline ?? []), () => this.shadowFill(), Z['area-shadow']);
+        this.shadowPolygons = this.reshape(this.shadowPolygons, shapes.partsDrop ?? [], () => this.shadowFill(), Z['area-shadow']);
         this.partPolygons = this.reshape(this.partPolygons, shapes.parts, (i) => this.tint(i), Z['area-parts']);
       }
       if (!this.attribution) {
@@ -200,6 +200,17 @@ export class KakaoCourseMap implements CourseMap {
   private drawBase(): void {
     const land = pickKakaoLand(this.areas?.base);
     this.landPolygons = this.reshape(this.landPolygons, land, () => ({ fillColor: this.layerColour('base-land'), fillOpacity: 1 }), Z['base-land']);
+    this.parkPolygons = this.reshape(this.parkPolygons, this.areas?.base?.parks ?? [], () => ({ fillColor: this.layerColour('base-parks'), fillOpacity: 1 }), Z['base-parks']);
+    const roads = this.areas?.base?.roads ?? [];
+    roads.forEach((road, i) => {
+      const path = road.path.map((p) => this.latLng(p));
+      const style = { strokeWeight: road.width, strokeColor: this.layerColour('base-roads') };
+      if (this.roadLines[i]) {
+        this.roadLines[i].setPath(path);
+        this.roadLines[i].setOptions(style);
+      } else this.roadLines.push(new this.maps.Polyline({ path, ...style, strokeOpacity: 1, strokeStyle: 'solid', zIndex: Z['base-roads'], map: this.map }));
+    });
+    this.roadLines.splice(roads.length).forEach((o) => o.setMap(null));
   }
 
   private polygon(rings: [number, number][][], fill: Fill, zIndex: number): KakaoPolygon {
@@ -220,6 +231,16 @@ export class KakaoCourseMap implements CourseMap {
     });
     existing.slice(list.length).forEach((o) => o.setMap(null));
     return [...existing.slice(0, list.length), ...list.slice(existing.length).map((rings, k) => this.polygon(rings, fill(existing.length + k), zIndex))];
+  }
+
+  setNearbyPlaces(places: PlaceRef[]): void {
+    syncNearbyPlaces(this.nearbyOverlays, places, {
+      create: (place) => new this.maps.CustomOverlay({
+        position: this.latLng(place.center), content: createNearbyPlaceElement(place, this.options.onNearbyPlaceClick),
+        yAnchor: 0.5, zIndex: 0, map: this.map,
+      }),
+      remove: (overlay) => overlay.setMap(null),
+    });
   }
 
   setPins(pins: PinMarker[]): void {
@@ -317,7 +338,7 @@ export class KakaoCourseMap implements CourseMap {
     this.preview = place
       ? new this.maps.CustomOverlay({
           position: this.latLng(place.center),
-          content: createMarkerElement('', 'preview'),
+          content: createPreviewElement(place),
           yAnchor: 0.5,
           zIndex: 3,
           map: this.map,
@@ -364,6 +385,7 @@ export class KakaoCourseMap implements CourseMap {
 
   destroy(): void {
     this.detachLongPress();
+    this.setNearbyPlaces([]);
     this.setAreaMap(null);
     this.pinOverlays.forEach((o) => o.setMap(null));
     this.guide?.setMap(null);

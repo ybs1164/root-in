@@ -1,7 +1,7 @@
 import * as clipperNs from 'clipper-lib';
-import type { BaseMap, PolygonRings } from './baseMap';
+import { roadWidthPx, type BaseMap, type PolygonRings } from './baseMap';
 import { smoothClosed } from './curves';
-import type { MapViewport, Ring } from './districtMap';
+import { metersPerPixel, type MapViewport, type Ring } from './districtMap';
 
 const ClipperLib = ((clipperNs as unknown as { default?: typeof clipperNs }).default ?? clipperNs) as typeof clipperNs;
 
@@ -18,11 +18,13 @@ const ClipperLib = ((clipperNs as unknown as { default?: typeof clipperNs }).def
  *   drop   — islands under `MIN_SHAPE_PX`, ponds under `MIN_POND_PX`;
  *   simplify (Douglas–Peucker, `SIMPLIFY_PX`) and smooth into one continuous
  *   curve through what is left (Catmull-Rom, `smoothClosed` — M11).
- * Water is wherever no land is drawn. Parks and roads are not kept: the main
- * map draws only land, water and the 동 tint (M9).
+ * Water is wherever no land is drawn. At neighborhood scale, parks and roads
+ * retain their source geometry so zooming in reveals streets and paths.
  */
 export interface BaseShapes {
   land: PolygonRings[];
+  parks?: PolygonRings[];
+  roads?: { path: BaseMap['roads'][number]['path']; width: number; tier: number }[];
 }
 
 /** Water narrower than twice this (px) closes up: a stream or a dock reads as a scribble. */
@@ -128,12 +130,17 @@ function inPath(p: Pt, path: Pt[]): boolean {
 
 /** The base map shaped for this screen (see `BaseShapes`). */
 export function shapeBaseMap(base: BaseMap, viewport: MapViewport): BaseShapes {
+  const mpp = metersPerPixel(viewport);
+  const detail = {
+    parks: mpp <= 60 ? base.parks : [],
+    roads: mpp <= 30 ? base.roads.map((road) => ({ path: road.path, tier: road.tier, width: roadWidthPx(road.tier, mpp) })).filter((road) => road.width > 0) : [],
+  };
   const scale = screenScale(viewport);
   // Screen px (y down, as on screen), in Clipper's integer units.
   const toPt = ([lon, lat]: [number, number]): Pt => ({ X: Math.round((lon / scale.x) * SCALE), Y: Math.round((-lat / scale.y) * SCALE) });
   const toLonLat = ({ X, Y }: Pt): [number, number] => [(X / SCALE) * scale.x, (-Y / SCALE) * scale.y];
 
-  if (!base.land.length) return { land: [] };
+  if (!base.land.length) return { land: [], ...detail };
   // Merge: every polygon with its holes wound against its outer ring, so the
   // union keeps them as holes and joins touching pieces (tile seams) into one.
   const clip = new ClipperLib.Clipper();
@@ -168,7 +175,7 @@ export function shapeBaseMap(base: BaseMap, viewport: MapViewport): BaseShapes {
     const owner = outers.findIndex((outer) => inPath(hole[0], outer));
     if (owner >= 0) polygons[owner].push(ring(hole));
   }
-  return { land: polygons };
+  return { land: polygons, ...detail };
 
   function ring(path: Pt[]): Ring {
     const points = path.map(toLonLat);

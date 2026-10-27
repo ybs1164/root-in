@@ -1,15 +1,7 @@
-import { areaAt, areasInRange, bboxCenter, bboxOverlaps, FOCUS_RANGE_RATIO, focusLevel, type AdminArea, type AreaMap } from '../domain/adminAreas';
+import { areaAt, bboxCenter, bboxOverlaps, focusLevel, type AdminArea, type AreaMap } from '../domain/adminAreas';
 import type { PolygonRings } from '../domain/baseMap';
 import type { Bbox, LonLat, MapViewport, Ring } from '../domain/districtMap';
 import { mapDataRoot } from '../lib/mapData';
-
-/** The middle of the whole screen, when the caller knows no better range. */
-const centerRange = (b: Bbox): Bbox => {
-  const [cx, cy] = bboxCenter(b);
-  const hw = ((b.east - b.west) * FOCUS_RANGE_RATIO) / 2;
-  const hh = ((b.north - b.south) * FOCUS_RANGE_RATIO) / 2;
-  return { west: cx - hw, east: cx + hw, south: cy - hh, north: cy + hh };
-};
 
 /**
  * Administrative areas for the screen (see scripts/korea-data/build_admin.py):
@@ -19,15 +11,11 @@ const centerRange = (b: Bbox): Bbox => {
  * docs/plan-mainmap-style.md M9.)
  */
 export interface AdminAreaService {
-  /** The areas reaching into `focusRange` are split (the middle one is the main); defaults to the screen's middle. */
+  /** All areas in and around the viewport are split. An explicit range is used by share-card terrain. */
   fetchAreaMap(viewport: MapViewport, focusRange?: Bbox, signal?: AbortSignal): Promise<AreaMap | null>;
 }
 
 const BASE = `${mapDataRoot()}admin/`;
-/** Neighboring 시도 whose 시군구 are loaded; more only on a very wide screen. */
-const MAX_SIDO_FILES = 4;
-/** 시군구 whose 읍면동 are loaded around a focused 읍면동. */
-
 const MAX_NAME = 40;
 const validPoint = (p: unknown): p is LonLat => Array.isArray(p) && p.length === 2 &&
   Number.isFinite(p[0]) && Number.isFinite(p[1]) && p[0] >= 120 && p[0] <= 135 && p[1] >= 30 && p[1] <= 45;
@@ -67,7 +55,7 @@ export class StaticAdminAreaService implements AdminAreaService {
     let entry = this.cache.get(path);
     if (!entry) {
       // Not tied to one request's signal: a cancelled pan must not poison the cache.
-      entry = fetch(`${this.base}${path}`)
+      entry = fetch(`${this.base}${path}`, { signal: AbortSignal.timeout(15000) })
         .then(async (response) => {
           if (!response.ok) {
             // Without the top file the map stays an empty background: say why.
@@ -97,6 +85,14 @@ export class StaticAdminAreaService implements AdminAreaService {
     return (sgg && areaAt(sgg, point))?.code ?? null;
   }
 
+  /** All districts touching the screen, including those across province borders. */
+  async sggAreasInBounds(bounds: Bbox): Promise<AdminArea[]> {
+    const sido = await this.load('sido.json');
+    if (!sido) return [];
+    const lists = await Promise.all(sido.filter((a) => bboxOverlaps(a.bbox, bounds)).map((a) => this.load(`sgg/${a.code}.json`)));
+    return lists.flatMap((list) => list ?? []).filter((a) => bboxOverlaps(a.bbox, bounds));
+  }
+
   async fetchAreaMap(viewport: MapViewport, focusRange?: Bbox, signal?: AbortSignal): Promise<AreaMap | null> {
     const b = viewport.bounds;
     if (![b.west, b.south, b.east, b.north, viewport.widthPx].every(Number.isFinite) ||
@@ -104,13 +100,20 @@ export class StaticAdminAreaService implements AdminAreaService {
     try {
       const sido = await this.load('sido.json', signal);
       if (!sido || signal?.aborted) return null;
-      const range = focusRange ?? centerRange(b);
-      const center = bboxCenter(range);
       const padded: Bbox = {
         west: b.west - (b.east - b.west) * 0.5, east: b.east + (b.east - b.west) * 0.5,
         south: b.south - (b.north - b.south) * 0.5, north: b.north + (b.north - b.south) * 0.5,
       };
-      const near = (areas: AdminArea[]) => areas.filter((a) => bboxOverlaps(a.bbox, padded));
+      const range = focusRange ?? padded;
+      const search = { west: Math.min(padded.west, range.west), east: Math.max(padded.east, range.east),
+        south: Math.min(padded.south, range.south), north: Math.max(padded.north, range.north) };
+      const center = bboxCenter(range);
+      const near = (areas: AdminArea[]) => areas.filter((a) => bboxOverlaps(a.bbox, search));
+      const inRange = (areas: AdminArea[]) => {
+        const first = areaAt(areas, center);
+        const visible = areas.filter((a) => bboxOverlaps(a.bbox, range));
+        return first ? [first, ...visible.filter((a) => a !== first)] : visible;
+      };
       const mapOf = (foci: AdminArea[], parts: AdminArea[], others: AdminArea[]): AreaMap => ({
         focus: { code: foci[0].code, name: foci[0].name },
         alsoFocus: foci.slice(1).map((f) => ({ code: f.code, name: f.name })),
@@ -119,29 +122,28 @@ export class StaticAdminAreaService implements AdminAreaService {
       });
 
       if (focusLevel(viewport) === 'sido') {
-        const foci = areasInRange(sido, range);
+        const foci = inRange(sido);
         if (!foci.length) return null;
         const lists = await Promise.all(foci.map((f) => this.load(`sgg/${f.code}.json`, signal)));
-        if (signal?.aborted || !lists[0]) return null;
-        return mapOf(foci, lists.flatMap((list) => list ?? []), near(sido));
+        if (signal?.aborted) return null;
+        return mapOf(foci, lists.flatMap((list, i) => list?.length ? list : [foci[i]]), near(sido));
       }
 
       // A 시군구 near a 시도 border has neighbors in the next 시도 too.
       const homeSido = areaAt(sido, center);
       if (!homeSido) return null;
-      const sidoNear = [homeSido, ...near(sido).filter((a) => a !== homeSido)].slice(0, MAX_SIDO_FILES);
+      const sidoNear = [homeSido, ...near(sido).filter((a) => a !== homeSido)];
       const sggLists = await Promise.all(sidoNear.map((s) => this.load(`sgg/${s.code}.json`, signal)));
-      if (signal?.aborted || !sggLists[0]) return null;
-      const allSgg = sggLists.flatMap((list) => list ?? []);
-      const sggFoci = areasInRange(allSgg, range);
-      const focus = areaAt(sggLists[0], center) ?? sggFoci[0];
-      if (!focus) return null;
+      if (signal?.aborted) return null;
+      const allSgg = sggLists.flatMap((list, i) => list?.length ? list : [sidoNear[i]]);
+      const sggFoci = inRange(allSgg);
+      if (!sggFoci.length) return null;
       const sggNear = near(allSgg);
       // From here in the map stays at 읍면동, the smallest shape it draws
       // (docs/plan-mainmap-style.md M9): no finer pieces cut by roads.
       const lists = await Promise.all(sggFoci.map((f) => this.load(`dong/${f.code}.json`, signal)));
-      if (signal?.aborted || !lists[0]) return null;
-      return mapOf(sggFoci, lists.flatMap((list) => list ?? []), sggNear);
+      if (signal?.aborted) return null;
+      return mapOf(sggFoci, lists.flatMap((list, i) => list?.length ? list : [sggFoci[i]]), sggNear);
     } catch (error) {
       if (import.meta.env.DEV && !signal?.aborted) console.warn('Admin areas loading failed', error);
       return null;

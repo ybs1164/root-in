@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AreaShapes } from '../domain/adminAreas';
 import type { LabelCover } from '../domain/areaLabels';
-import type { Bbox, MapViewport } from '../domain/districtMap';
+import type { MapViewport } from '../domain/districtMap';
 import { AreaRenderer, type AreaUpdate } from '../services/areaRenderer';
 import { mapDataRoot } from '../lib/mapData';
 
 interface AreaRequest {
   viewport: MapViewport;
-  focusRange?: Bbox;
   cover?: LabelCover;
 }
 
@@ -29,12 +28,12 @@ function createAreaClient(apply: (update: AreaUpdate) => void): AreaClient {
   let disposed = false;
   let last: AreaRequest | null = null;
   let local: AreaRenderer | null = null;
-  const renderLocally = (id: number, { viewport, focusRange, cover }: AreaRequest) => {
+  const renderLocally = (id: number, { viewport, cover }: AreaRequest) => {
     local ??= new AreaRenderer();
     const applyLive = (update: AreaUpdate | null) => {
       if (update && !disposed) apply(update);
     };
-    void local.render(viewport, { focusRange, cover }, () => id === latest, applyLive).then(applyLive);
+    void local.render(viewport, { cover }, () => id === latest, applyLive).then(applyLive);
   };
   let worker: Worker | null = null;
   if (typeof Worker !== 'undefined') {
@@ -71,12 +70,12 @@ function createAreaClient(apply: (update: AreaUpdate) => void): AreaClient {
 }
 
 /**
- * The 시군구 (or 시도, zoomed out) in the screen-center range split into its
- * sub-areas, with neighbors as whole shapes and the areas' names. Redrawn
+ * Every 시군구 (or 시도, zoomed out) across the viewport split into its
+ * sub-areas, with the areas' names. Redrawn
  * when the zoom or the focus changes or the screen leaves what was drawn;
  * the old shapes stay up meanwhile.
  */
-export function useAreaMap(viewport: MapViewport | null, focusRange?: Bbox | null, cover?: LabelCover): AreaShapes | null {
+export function useAreaMap(viewport: MapViewport | null, cover?: LabelCover): AreaShapes | null {
   const [shapes, setShapes] = useState<AreaShapes | null>(null);
   const client = useRef<AreaClient | null>(null);
   useEffect(() => {
@@ -93,13 +92,13 @@ export function useAreaMap(viewport: MapViewport | null, focusRange?: Bbox | nul
   }, []);
   const bounds = viewport?.bounds;
   const key = bounds
-    ? [bounds.west, bounds.south, bounds.east, bounds.north, viewport?.widthPx, focusRange && Object.values(focusRange).join(), cover && Object.values(cover).join()].join(',')
+    ? [bounds.west, bounds.south, bounds.east, bounds.north, viewport?.widthPx, cover && Object.values(cover).join()].join(',')
     : '';
   useEffect(() => {
     if (!viewport) return;
-    const timer = setTimeout(() => client.current?.request({ viewport, focusRange: focusRange ?? undefined, cover }), 100);
+    const timer = setTimeout(() => client.current?.request({ viewport, cover }), 100);
     return () => clearTimeout(timer);
-    // The key covers the bounds, pixel width, focus and cover the result depends on.
+    // The key covers the bounds, pixel width and cover the result depends on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
   return shapes;

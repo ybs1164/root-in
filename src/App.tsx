@@ -8,6 +8,7 @@ import { routeSubject, type ShareSubject } from './domain/shareSubject';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { useBackButton } from './hooks/useBackButton';
 import { closeTopDialog } from './lib/native';
+import { LOCATION_MESSAGES } from './lib/geolocation';
 import BottomBar from './components/BottomBar';
 import SettingsScreen from './components/SettingsScreen';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
@@ -24,10 +25,14 @@ import SearchBar from './components/SearchBar';
 import ProfileSheet, { ProfileAvatar } from './components/ProfileSheet';
 import CategorySheet from './components/CategorySheet';
 import SharedRouteDialog from './components/SharedRouteDialog';
-import { visibleRange } from './domain/adminAreas';
+import SharedCategoryDialog from './components/SharedCategoryDialog';
+import type { CategorySharing } from './components/CategoryManager';
+import { useCategorySubscriptions, useIncomingCategory, useSharedCategories } from './hooks/useCategoryShares';
+import { authService } from './services/authService';
+import { categoryLinkUrl, categoryShareService } from './services/categoryShareService';
 import { calendarAgain, pageSwipes, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { COURSE_LIMITS } from './domain/course';
-import type { MapViewport } from './domain/districtMap';
+import { metersPerPixel, type MapViewport } from './domain/districtMap';
 import { filterPinsByCategories, isUncategorized, pinStyle, UNCATEGORIZED } from './domain/pin';
 import { placeKindService } from './services/placeKindService';
 import { pinRailNext, tapAll, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
@@ -38,6 +43,7 @@ import { cleanRouteLook, withEdgeStyle, withStopShape } from './domain/routeStyl
 import { folderOf, moveRoute, neighborRoute, type RouteTab } from './domain/routeFolders';
 import { useCourses } from './hooks/useCourses';
 import { useAreaMap } from './hooks/useAreaMap';
+import { useNearbyPlaces } from './hooks/useNearbyPlaces';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
 import { useMyLocation } from './hooks/useMyLocation';
 import { removePingsOfPin } from './services/pingRepository';
@@ -61,6 +67,7 @@ import { shareLinkService } from './services/shareLinkService';
 import { planShare } from './services/shareTargets';
 import { usePageSwipe } from './hooks/usePageSwipe';
 import { usePins } from './hooks/usePins';
+import { usePinKinds } from './hooks/usePinKinds';
 import { useRouteFolders } from './hooks/useRouteFolders';
 import { usePlaceSearch } from './hooks/usePlaceSearch';
 import { useSettings } from './hooks/useSettings';
@@ -73,7 +80,7 @@ import { loadProfile, saveProfile, type Profile } from './services/profileReposi
 import { usePrivacy } from './hooks/usePrivacy';
 import { hasHome, isExcluded } from './domain/privacy';
 import type { CourseStop, PlaceRef, Course, SharedCourse } from './types/course';
-import type { Pin } from './types/pin';
+import type { Pin, PinCategory } from './types/pin';
 
 type Toast = { text: string; undo?: () => void };
 
@@ -137,6 +144,7 @@ export default function App() {
   const pinStore = usePins();
   const routeFolders = useRouteFolders();
   const { pins, categories } = pinStore;
+  usePinKinds(pins, pinStore.transform);
   const course = useCourses();
   const { incoming: incomingCourse, dismiss: dismissCourse } = useIncomingCourse();
 
@@ -478,6 +486,67 @@ export default function App() {
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
   // 제외 주소 are located with the same place search (search failing just leaves the address text to match).
   const privacy = usePrivacy(async (address) => (await searchService?.search(address))?.[0]?.center ?? null);
+  // 카테고리 공유: my shared categories' snapshots follow every change; the ones I follow are read again now and then.
+  const sharedCategories = useSharedCategories(account.user?.id ?? null, pins, categories, privacy.excluded);
+  const followedCategories = useCategorySubscriptions(pinStore.transform, (categoryId) => {
+    const name = categories.find((c) => c.id === categoryId)?.name;
+    notify(`${name ? `'${name}' ` : ''}카테고리 공유가 끝났어요. 받은 장소는 그대로 남아요.`);
+  });
+  const { incoming: incomingCategory, dismiss: dismissCategory } = useIncomingCategory();
+  const incomingFollowed =
+    incomingCategory.status === 'ready' && followedCategories.subs.some((s) => s.slug === incomingCategory.slug);
+  // A link of mine says so instead of offering to follow it; a broken or stopped one says that.
+  useEffect(() => {
+    if (incomingCategory.status === 'invalid') {
+      notify('카테고리 링크를 열 수 없어요. 공유가 끝났을 수 있어요.');
+      dismissCategory();
+    } else if (incomingCategory.status === 'ready' && incomingCategory.opened.mine) {
+      notify('내가 공유한 카테고리예요.');
+      dismissCategory();
+    } else if (incomingCategory.status === 'ready' && incomingFollowed) {
+      followedCategories.subscribe(incomingCategory.slug, incomingCategory.opened); // brings it up to date
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomingCategory]);
+  const followCategory = () => {
+    if (incomingCategory.status !== 'ready') return;
+    const done = followedCategories.subscribe(incomingCategory.slug, incomingCategory.opened);
+    if (!('places' in done)) return notify(done.result === 'too-many' ? '카테고리가 너무 많아 구독할 수 없어요.' : '잠시 후 다시 시도하세요.');
+    changeTab('pins');
+    const name = incomingCategory.opened.snapshot.category.name;
+    notify(`'${name}' 카테고리를 구독했어요. ${done.places}곳이 추가됐어요.`);
+  };
+  const shareCategory = async (category: PinCategory) => {
+    if (!hasHome(privacy.excluded)) {
+      setCategoriesOpen(false);
+      return needHome('category');
+    }
+    analytics.track('share_started', { kind: 'category' });
+    // No account yet: a guest one for this phone (the link lives on the server), as for We Now.
+    const userId = account.user?.id ?? ((await account.signInAsGuest()) ? (await authService.current())?.id : undefined);
+    if (!userId) return notify('지금은 링크를 만들 수 없어요. 잠시 후 다시 시도하세요.');
+    const shared = await sharedCategories.share(userId, category);
+    if (!shared) return notify('지금은 링크를 만들 수 없어요. 잠시 후 다시 시도하세요.');
+    const ok = await copyToClipboard(categoryLinkUrl(shared.slug));
+    analytics.track('share_completed', { kind: 'category', method: 'copy_link', ok });
+    const left = shared.removed > 0 ? ` 제외 주소에 있는 ${shared.removed}곳은 빠졌어요.` : '';
+    notify(ok ? `링크를 복사했어요.${left}` : '링크를 복사하지 못했어요.');
+  };
+  const categorySharing: CategorySharing = {
+    available: categoryShareService.available,
+    shared: new Set(sharedCategories.links.keys()),
+    followed: new Map(followedCategories.subs.map((s) => [s.categoryId, s.owner])),
+    onShare: (category) => void shareCategory(category),
+    onStop: (category) => {
+      const userId = account.user?.id;
+      if (!userId) return;
+      void sharedCategories.stop(userId, category.id).then((ok) => notify(ok ? '공유를 중지했어요.' : '공유를 중지하지 못했어요.'));
+    },
+    onUnsubscribe: (category) => {
+      followedCategories.unsubscribe(category.id);
+      notify('구독을 취소했어요.');
+    },
+  };
   // 제외 주소 설정 as the profile and 설정 both show it.
   const privacyProps = {
     places: privacy.excluded,
@@ -525,6 +594,7 @@ export default function App() {
   const mapEvents = useRef({
     stop: (_i: number) => {},
     pin: (_id: string) => {},
+    nearby: (_place: PlaceRef) => {},
     longPress: (_c: [number, number]) => {},
     move: (_c: [number, number]) => {},
   });
@@ -537,6 +607,7 @@ export default function App() {
       center: SEOUL_CENTER,
       onStopClick: (index) => mapEvents.current.stop(index),
       onPinClick: (id) => mapEvents.current.pin(id),
+      onNearbyPlaceClick: (place) => mapEvents.current.nearby(place),
       onLongPress: (center) => mapEvents.current.longPress(center),
       onViewportChange: setViewport,
       onMove: (center) => mapEvents.current.move(center),
@@ -556,8 +627,7 @@ export default function App() {
     };
   }, []);
 
-  // Focus the area in the middle of the uncovered map, not under the sheet.
-  // The same uncovered part keeps the area names clear of the bars and buttons.
+  // Draw the whole viewport; only the labels avoid sheets and controls.
   const areaView = useMemo(() => {
     const el = mapEl.current;
     if (!viewport || !el) return null;
@@ -567,11 +637,19 @@ export default function App() {
     const bar = barEl.current?.getBoundingClientRect();
     const underBar = bar && bar.height > 0 ? el.getBoundingClientRect().bottom - bar.top + 8 : 0;
     return {
-      range: visibleRange(viewport.bounds, { width: el.clientWidth, height: el.clientHeight }, cover),
       cover: { ...cover, bottom: Math.max(cover.bottom, underBar) },
     };
   }, [viewport, mapPadding]);
-  const areaMap = useAreaMap(viewport, areaView?.range, areaView?.cover);
+  const areaMap = useAreaMap(viewport, areaView?.cover);
+  const nearbyPlaces = useNearbyPlaces(viewport, areaView?.cover);
+  useEffect(() => {
+    const mpp = viewport ? metersPerPixel(viewport) : 0;
+    const visible = nearbyPlaces.filter((place) =>
+      !pinMarkers.some((pin) => distanceMeters(place.center, pin.center) < 32 * mpp) &&
+      !(preview && distanceMeters(place.center, preview.center) < 32 * mpp) &&
+      !areaMap?.labels?.some((label) => distanceMeters(place.center, label.at) < 40 * mpp));
+    mapRef.current?.setNearbyPlaces(visible);
+  }, [nearbyPlaces, mapProvider, viewport, pinMarkers, preview, areaMap?.labels]);
   useEffect(() => {
     mapRef.current?.setAreaMap(areaMap);
   }, [areaMap, mapProvider]);
@@ -582,7 +660,15 @@ export default function App() {
   }, [areaTint, mapProvider]);
   // 내 위치: a dot on the map, and the first fix after opening centers the
   // map there. TODAY offers the pins within 50m of it (CalendarZoom).
-  const me = useMyLocation();
+  const location = useMyLocation();
+  const { me } = location;
+  useEffect(() => {
+    if (location.error) notify(LOCATION_MESSAGES[location.error]);
+  }, [location.error, notify]);
+  const locateMe = async () => {
+    const fix = await location.enable();
+    if (fix) mapRef.current?.focus(fix.center);
+  };
   const centeredOnMe = useRef(false);
   useEffect(() => {
     const map = mapRef.current;
@@ -886,6 +972,10 @@ export default function App() {
     setPreview(place);
     // Into the middle at the current zoom; the new pin's card stands above it.
     mapRef.current?.centerOn(place.center);
+  };
+  mapEvents.current.nearby = (place) => {
+    if ((building && routeMode) || shownRoute) return;
+    pickPlace(place);
   };
 
   // Stable, so the card's outside-touch listener isn't re-attached every render.
@@ -1399,6 +1489,9 @@ export default function App() {
           (same move, same speed) instead of vanishing and replaying its entrance. */}
       {mapUi && (
         <PinRail
+          onLocate={() => void locateMe()}
+          locating={location.busy}
+          locationOn={location.enabled && !location.error}
           mode={railMode}
           onAction={railAction}
           categories={categories}
@@ -1885,6 +1978,18 @@ export default function App() {
         />
       )}
 
+      {incomingCategory.status === 'ready' && !incomingCategory.opened.mine && (
+        <SharedCategoryDialog
+          sender={incomingCategory.opened.owner.nickname || '익명'}
+          photo={incomingCategory.opened.owner.photo}
+          category={incomingCategory.opened.snapshot.category}
+          places={incomingCategory.opened.snapshot.places.length}
+          already={incomingFollowed}
+          onSubscribe={followCategory}
+          onClose={dismissCategory}
+        />
+      )}
+
       {studio && (
         <ShareStudio
           subject={studio}
@@ -1939,6 +2044,7 @@ export default function App() {
       )}
       {settingsOpen && (
         <SettingsScreen
+          location={location}
           profile={profile}
           onChange={changeProfile}
           account={account}
@@ -1960,8 +2066,12 @@ export default function App() {
           onEdit={pinStore.editCategory}
           onMove={pinStore.reorderCategory}
           onDrop={pinStore.dropCategory}
-          onDelete={pinStore.deleteCategory}
+          onDelete={(id) => {
+            pinStore.deleteCategory(id);
+            followedCategories.unsubscribe(id);
+          }}
           onPickPin={pickListedPin}
+          sharing={categorySharing}
         />
       )}
 

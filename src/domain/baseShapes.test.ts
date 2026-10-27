@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { BaseMap } from './baseMap';
+import { ROAD_TIERS, type BaseMap } from './baseMap';
 import { CLOSE_PX, MIN_POND_PX, MIN_SHAPE_PX, OPEN_PX, shapeBaseMap } from './baseShapes';
 import type { MapViewport, Ring } from './districtMap';
 
@@ -21,9 +21,18 @@ describe('shapeBaseMap', () => {
     expect(shaped.land).toHaveLength(1);
   });
 
-  it('keeps only land: parks and roads are not drawn on the main map', () => {
+  it('keeps parks and roads at neighborhood scale', () => {
     const shaped = shapeBaseMap({ land: [[square(0, 0, 50)]], parks: [[square(0, 0, 50)]], roads: [{ tier: 1, path: [[0, 0], [100 * PX, 0]] }] }, screen);
-    expect(Object.keys(shaped)).toEqual(['land']);
+    expect(shaped.parks).toHaveLength(1);
+    expect(shaped.roads).toEqual([{ tier: 1, width: expect.any(Number), path: [[0, 0], [100 * PX, 0]] }]);
+  });
+
+  it('reveals local streets and footpaths when zoomed in, including tiles without land', () => {
+    const close = { ...screen, widthPx: 4000 };
+    const shaped = shapeBaseMap({ ...empty, roads: ROAD_TIERS.map((tier) => ({ tier, path: [[0, 0], [100 * PX, 0]] })) }, close);
+    expect(shaped.roads?.map((road) => road.tier)).toEqual([1, 2, 3, 4, 5]);
+    expect(shaped.roads?.every((road) => road.width > 0)).toBe(true);
+    expect(shapeBaseMap({ ...empty, parks: [[square(0, 0, 50)]], roads: [{ tier: 1, path: [[0, 0], [100 * PX, 0]] }] }, { ...screen, widthPx: 20 })).toMatchObject({ parks: [], roads: [] });
   });
 
   it('fills ponds too small to read as water, keeps the bigger ones', () => {

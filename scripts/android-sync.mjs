@@ -4,28 +4,35 @@
 // With VITE_MAP_DATA_URL set the map data is read from that host
 // (scripts/publish-map-data.mjs), so none of korea/ goes in.
 import { execSync } from 'node:child_process';
-import { readFileSync, rmSync } from 'node:fs';
+import { cpSync, readdirSync, rmSync } from 'node:fs';
+import { resolve, join } from 'node:path';
+import { build, loadEnv } from 'vite';
+import { androidBackend, checkAndroidBackend } from './android-config.mjs';
 
 const run = (cmd) => execSync(cmd, { stdio: 'inherit' });
 
-/** The value Vite will build with: the shell first, then .env.local / .env like Vite. */
-function mapDataUrl() {
-  if (process.env.VITE_MAP_DATA_URL?.trim()) return process.env.VITE_MAP_DATA_URL.trim();
-  for (const file of ['.env.production.local', '.env.local', '.env.production', '.env']) {
-    try {
-      const line = readFileSync(file, 'utf8').split(/\r?\n/).find((l) => /^\s*VITE_MAP_DATA_URL\s*=/.test(l));
-      const value = line?.split('=').slice(1).join('=').trim().replace(/^['"]|['"]$/g, '');
-      if (value) return value;
-    } catch { /* no such file */ }
+// Use the same environment precedence and expansion as the Vite build.
+const env = loadEnv('production', process.cwd(), 'VITE_');
+const backend = androidBackend(env, process.argv.includes('--local-only'));
+await checkAndroidBackend(backend);
+console.log(backend ? 'Backend connection verified.' : 'Local-only test APK: server features disabled.');
+const hosted = env.VITE_MAP_DATA_URL?.trim();
+if (!process.argv.includes('--skip-build')) {
+  run('npx tsc -b');
+  // Avoid copying gigabytes of map files only to delete them immediately.
+  await build({ publicDir: false });
+  const out = resolve('dist');
+  if (out !== join(process.cwd(), 'dist')) throw new Error('Unexpected build output path.');
+  for (const entry of readdirSync('public', { withFileTypes: true })) {
+    if (entry.name === 'overture' || (hosted && entry.name === 'korea')) continue;
+    cpSync(join('public', entry.name), join(out, entry.name), { recursive: true });
   }
-  return '';
 }
-
-if (!process.argv.includes('--skip-build')) run('npm run build');
-const hosted = mapDataUrl();
 const pruned = hosted ? ['korea'] : ['korea/detail', 'korea/city', 'korea/region', 'korea/country', 'korea/manifest.json'];
 for (const p of [...pruned, 'overture']) rmSync(`dist/${p}`, { recursive: true, force: true });
 console.log(hosted
   ? `Map data from ${hosted} — not bundled.`
   : 'Map data bundled into the APK (set VITE_MAP_DATA_URL to read it from a host instead).');
+// The sticker PNGs are ~150MB at full size; shrink the built copies (needs Python + Pillow).
+run('python scripts/shrink-stickers.py dist/stickers');
 run('npx cap sync android');

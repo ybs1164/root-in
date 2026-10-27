@@ -58,8 +58,10 @@ export interface AreaShapes {
   labels?: AreaLabel[];
   /** Index-aligned with `parts`: which of `PART_TONES` tones each is drawn in (neighbours differ, M11). */
   partTones?: number[];
-  /** The parts as one silhouette, gaps closed: where the soft shadow goes (M11). */
+  /** The parts as one silhouette, gaps closed. */
   partsOutline?: PolygonRings[];
+  /** Its shadow: the silhouette moved right and down by `DROP_PX`, less the silhouette itself (screen px, so the fill never darkens the 동). */
+  partsDrop?: PolygonRings[];
   /** Water, land, parks and roads for the same region (docs/plan-mainmap-style.md M2); missing where the base map didn't load. */
   base?: BaseShapes;
 }
@@ -496,7 +498,7 @@ function screenTools(map: AreaMap, viewport: MapViewport, cache?: AreaShapeCache
     ...map.parts.map((a) => ({ part: true, tag: areaTag(a), paths: shape(a, true) })),
     ...map.others.map((a) => ({ part: false, tag: areaTag(a), paths: shape(a, false) })),
   ].filter((s) => s.paths.length);
-  const finish = (shaped: Shaped[], extra: { tones?: number[]; outline?: clipperNs.Paths } = {}): AreaShapes => {
+  const finish = (shaped: Shaped[], extra: { tones?: number[]; outline?: clipperNs.Paths; drop?: clipperNs.Paths } = {}): AreaShapes => {
     const collect = (part: boolean) => {
       const polygons: PolygonRings[] = [];
       const tags: AreaTag[] = [];
@@ -520,6 +522,7 @@ function screenTools(map: AreaMap, viewport: MapViewport, cache?: AreaShapeCache
       otherTags: others.tags,
       partTones: parts.tones,
       ...(extra.outline ? { partsOutline: rings(extra.outline) } : {}),
+      ...(extra.drop ? { partsDrop: rings(extra.drop) } : {}),
       // From the source outlines, so it doesn't depend on the current zoom.
       focus: { code: map.focus.code, bearing: rectangleBearing(map.parts.flatMap((a) => a.polygons)) },
     };
@@ -645,40 +648,76 @@ export function renderAreaMap(map: AreaMap, viewport: MapViewport, cache?: AreaS
     shaped[i].paths = boolean(ClipperLib.ClipType.ctDifference, shaped[i].paths, keepOff);
   }
   const partIndexes = shaped.flatMap((s, i) => (s.part ? [i] : []));
+  const areaOf = (paths: clipperNs.Paths) => Math.abs(paths.reduce((sum, path) => sum + ClipperLib.Clipper.Area(path), 0));
   // Neighbouring parts: within a little more than the gap of each other.
   const near = (i: number, j: number) =>
     touches(boxes[i], boxes[j], (2 * GAP_PX + 1) * SCALE) &&
     boolean(ClipperLib.ClipType.ctIntersection, offset(shaped[i].paths, 2 * GAP_PX + 1), shaped[j].paths).length > 0;
-  const tones = toneParts(partIndexes, near);
-  // The split parts as one silhouette (their gaps closed), for the soft shadow under them.
+  const neighbours = new Map(partIndexes.map((i) => [i, partIndexes.filter((j) => j !== i && near(i, j))]));
+  const middle = screenProjection(viewport).project(bboxCenter(viewport.bounds));
+  const tones = toneParts(partIndexes.map((i) => {
+    const box = boxes[i];
+    return { index: i, key: shaped[i].tag.key, area: areaOf(shaped[i].paths), at: { X: (box.minX + box.maxX) / 2, Y: (box.minY + box.maxY) / 2 } };
+  }), neighbours, middle);
+  // The split parts as one silhouette (their gaps closed), for the shadow round them.
   const bridge = 2 * GAP_PX;
   // Small holes left where three gaps meet would each cast a ring of shadow
   // (dark dots at the junctions): only holes a real place could be are kept.
   const outline = offset(offset(partIndexes.flatMap((i) => shaped[i].paths), bridge), -bridge)
     .filter((path) => ClipperLib.Clipper.Orientation(path) || Math.abs(ClipperLib.Clipper.Area(path)) > (OUTLINE_HOLE_PX * SCALE) ** 2);
-  return finish(shaped, { tones, outline });
+  // No outline (MZ draft): just a soft shadow under the group, cut here in
+  // screen pixels to the outside so it never covers the see-through 동.
+  const moved = outline.map((path) => path.map((p) => ({ X: p.X + DROP_PX.dx * SCALE, Y: p.Y - DROP_PX.dy * SCALE })));
+  const drop = boolean(ClipperLib.ClipType.ctDifference, moved, outline);
+  return finish(shaped, { tones, outline, drop });
 }
+
+/** How far the shadow falls, right and down (px; screen up is +Y in the projection). */
+export const DROP_PX = { dx: 2, dy: 3 };
 
 /** Holes in the shadow's outline smaller than a square this wide (px) are filled. */
 const OUTLINE_HOLE_PX = 30;
 
-/** How many tones the split parts take turns in (the four-colour map's four). */
-export const PART_TONES = 4;
+/**
+ * The tones the split parts are drawn in and the share of the drawn area
+ * each aims for: 7:2:1 — a base, a pastel, a little accent (MZ draft; it
+ * replaced M11's four-colour map).
+ */
+export const TONE_SHARES = [0.7, 0.2, 0.1];
+export const PART_TONES = TONE_SHARES.length;
+
+/** A small stable hash, so ties between areas break the same way on every screen. */
+function hashKey(key: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+
+type TonePart = { index: number; key: string; area: number; at?: { X: number; Y: number } };
 
 /**
- * A tone for each part so that no two neighbours share one (M11): greedy
- * colouring, most-connected parts first, as in a four-colour map; with
- * more neighbours than tones, the tone fewest of them use. Indexed like
- * `indexes`' values (other entries left undefined).
+ * A tone for each part, 7:2:1 by area (`TONE_SHARES`). Going out from
+ * `middle` (the screen's centre, where the eye goes), each part takes the
+ * pastel or the accent — whichever is further behind its share — unless a
+ * neighbour already has it; failing both, the base. So the pastel and the
+ * accent gather in one patch round the middle, never touching their own
+ * colour, with the base between them; once their shares are used up the
+ * rest is base (at 70% it can't help touching itself; the gaps keep those
+ * apart). Indexed like `parts`' `index` (other entries left undefined).
  */
-function toneParts(indexes: number[], near: (i: number, j: number) => boolean): number[] {
-  const neighbours = new Map(indexes.map((i) => [i, indexes.filter((j) => j !== i && near(i, j))]));
+export function toneParts(parts: TonePart[], neighbours: Map<number, number[]> = new Map(), middle?: { X: number; Y: number }): number[] {
   const tones: number[] = [];
-  const order = [...indexes].sort((a, b) => neighbours.get(b)!.length - neighbours.get(a)!.length || a - b);
-  for (const i of order) {
-    const used = neighbours.get(i)!.map((j) => tones[j]).filter((t) => t !== undefined);
-    const free = Array.from({ length: PART_TONES }, (_, t) => t).find((t) => !used.includes(t));
-    tones[i] = free ?? Array.from({ length: PART_TONES }, (_, t) => t).sort((a, b) => used.filter((u) => u === a).length - used.filter((u) => u === b).length)[0];
+  const total = parts.reduce((sum, p) => sum + p.area, 0);
+  const distance = (p: TonePart) => (middle && p.at ? Math.hypot(p.at.X - middle.X, p.at.Y - middle.Y) : 0);
+  const order = [...parts].sort((a, b) => distance(a) - distance(b) || hashKey(a.key) - hashKey(b.key) || a.index - b.index);
+  const left = TONE_SHARES.map((share) => share * total);
+  for (const part of order) {
+    const taken = new Set((neighbours.get(part.index) ?? []).map((j) => tones[j]));
+    // Only while most of the part still fits in the share, so the shares aren't overrun.
+    const open = [1, 2].filter((t) => !taken.has(t) && left[t] >= part.area / 2);
+    const tone = open.sort((a, b) => left[b] / TONE_SHARES[b] - left[a] / TONE_SHARES[a])[0] ?? 0;
+    tones[part.index] = tone;
+    left[tone] -= part.area;
   }
   return tones;
 }

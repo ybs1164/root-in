@@ -33,6 +33,8 @@ export function usePins(pinsRepo: PinRepository = pinRepository, categoriesRepo:
   // Latest values for callbacks that chain several edits (import, undo).
   const latest = useRef({ pins, categories });
   latest.current = { pins, categories };
+  // Until the stored pins are read, a transform would work on empty lists.
+  const loaded = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -40,6 +42,7 @@ export function usePins(pinsRepo: PinRepository = pinRepository, categoriesRepo:
       Promise.all([pinsRepo.listByUser(userId), categoriesRepo.list()]).then(([p, c]) => {
         if (cancelled) return;
         latest.current = { pins: p, categories: c };
+        loaded.current = true;
         setPins(p);
         setCategories(c);
       });
@@ -146,9 +149,33 @@ export function usePins(pinsRepo: PinRepository = pinRepository, categoriesRepo:
     [commitPins, makePin],
   );
 
+  /**
+   * Several edits to pins and categories as one (카테고리 구독): `fn` gets the
+   * latest of both and the id makers, and returns the new state (null: no change).
+   * False when the stored pins aren't read yet (`fn` isn't called).
+   */
+  const transform = useCallback(
+    (
+      fn: (
+        state: { pins: Pin[]; categories: PinCategory[] },
+        make: { pin: typeof makePin; categoryId: () => string },
+      ) => { pins: Pin[]; categories: PinCategory[] } | null,
+    ) => {
+      if (!loaded.current) return false;
+      const before = { ...latest.current };
+      const next = fn(before, { pin: makePin, categoryId: () => generateId('cat') });
+      if (!next) return true;
+      if (next.categories !== before.categories) commitCategories(next.categories);
+      if (next.pins !== before.pins) commitPins(next.pins);
+      return true;
+    },
+    [commitCategories, commitPins, makePin],
+  );
+
   return {
     pins,
     categories,
+    transform,
     savePin,
     updatePin,
     removePin,

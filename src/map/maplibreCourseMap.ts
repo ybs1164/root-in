@@ -7,8 +7,11 @@ import {
   attachLongPress,
   createAreaLabelElement,
   createMarkerElement,
+  createPreviewElement,
   createMyLocationElement,
   createPinElement,
+  createNearbyPlaceElement,
+  syncNearbyPlaces,
   syncAreaLabels,
   type CourseMap,
   type CourseMapOptions,
@@ -18,7 +21,10 @@ import {
   createGroupPingElement,
   type GroupPingMark,
 } from './courseMap';
-import { AREA_SOURCES, BASE_SOURCES, MAP_LAYERS, SHADOW, WATER_TOKEN, mapSourceData, type MapLayerSpec } from './mapStyle';
+import { AREA_SOURCES, BASE_SOURCES, MAP_LAYERS, SHADOW, WATER_TOKEN, mapSourceData, type MapLayerId, type MapLayerSpec } from './mapStyle';
+
+/** A fading fill's opacity while shown (the tones carry their own alpha). */
+const fillOpacity = (id: MapLayerId) => (id === 'area-shadow' ? SHADOW.opacity : 1);
 
 /** A route's glide into view (App waits for its end before playing the route in). */
 const GLIDE_MS = 1000;
@@ -51,6 +57,7 @@ export class MapLibreCourseMap implements CourseMap {
   private previewMarker: Marker | null = null;
   private meMarker: Marker | null = null;
   private pinMarkers: Marker[] = [];
+  private nearbyMarkers = new Map<string, Marker>();
   private groupMarkers: Marker[] = [];
   private guide: [number, number][] = [];
   private areas: AreaShapes | null = null;
@@ -71,7 +78,7 @@ export class MapLibreCourseMap implements CourseMap {
       },
       center: options.center,
       zoom: 12,
-      attributionControl: { compact: true },
+      attributionControl: false,
     });
     this.detachLongPress = attachLongPress(container, (x, y) => {
       const at = this.map.unproject([x, y]);
@@ -113,26 +120,17 @@ export class MapLibreCourseMap implements CourseMap {
         }
         // The shadow and the tint fade with the area names when a route is shown.
         const fade = { duration: TINT_FADE_MS };
-        if (layer.type === 'line') {
-          this.map.addLayer({
-            id: layer.id, type: 'line', source: layer.source,
-            layout: { 'line-join': 'round' },
-            paint: {
-              'line-color': layerColour(layer),
-              'line-width': SHADOW.width,
-              'line-blur': SHADOW.blur,
-              'line-translate': [0, SHADOW.dy],
-              'line-opacity': this.tintShown ? SHADOW.opacity : 0,
-              'line-opacity-transition': fade,
-            },
-          });
-          continue;
-        }
-        this.map.addLayer({
+        const fades = layer.id === 'area-parts' || layer.id === 'area-shadow';
+        if (layer.type === 'line') this.map.addLayer({
+          id: layer.id, type: 'line', source: layer.source,
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: { 'line-color': layerColour(layer), 'line-width': ['get', 'width'] },
+        });
+        else this.map.addLayer({
           id: layer.id, type: 'fill', source: layer.source,
           paint: {
             'fill-color': layerColour(layer),
-            ...(layer.id === 'area-parts' ? { 'fill-opacity': this.tintShown ? 1 : 0, 'fill-opacity-transition': fade } : {}),
+            ...(fades ? { 'fill-opacity': this.tintShown ? fillOpacity(layer.id) : 0, 'fill-opacity-transition': fade } : {}),
           },
         });
       }
@@ -173,8 +171,10 @@ export class MapLibreCourseMap implements CourseMap {
   setAreaTint(shown: boolean): void {
     if (shown === this.tintShown) return;
     this.tintShown = shown;
-    if (this.ready && this.map.getLayer('area-parts')) this.map.setPaintProperty('area-parts', 'fill-opacity', shown ? 1 : 0);
-    if (this.ready && this.map.getLayer('area-shadow')) this.map.setPaintProperty('area-shadow', 'line-opacity', shown ? SHADOW.opacity : 0);
+    if (!this.ready) return;
+    for (const id of ['area-parts', 'area-shadow'] as const) {
+      if (this.map.getLayer(id)) this.map.setPaintProperty(id, 'fill-opacity', shown ? fillOpacity(id) : 0);
+    }
   }
 
   setAreaMap(shapes: AreaShapes | null): void {
@@ -199,6 +199,18 @@ export class MapLibreCourseMap implements CourseMap {
         return marker;
       },
       move: (marker, label) => marker.setLngLat(label.at),
+      remove: (marker) => marker.remove(),
+    });
+  }
+
+  setNearbyPlaces(places: PlaceRef[]): void {
+    syncNearbyPlaces(this.nearbyMarkers, places, {
+      create: (place) => {
+        const marker = new maplibregl.Marker({ element: createNearbyPlaceElement(place, this.options.onNearbyPlaceClick) })
+          .setLngLat(place.center).addTo(this.map);
+        this.map.getCanvas().after(marker.getElement());
+        return marker;
+      },
       remove: (marker) => marker.remove(),
     });
   }
@@ -282,7 +294,7 @@ export class MapLibreCourseMap implements CourseMap {
   setPreview(place: PlaceRef | null): void {
     this.previewMarker?.remove();
     this.previewMarker = place
-      ? new maplibregl.Marker({ element: createMarkerElement('', 'preview') }).setLngLat(place.center).addTo(this.map)
+      ? new maplibregl.Marker({ element: createPreviewElement(place) }).setLngLat(place.center).addTo(this.map)
       : null;
   }
 
@@ -334,6 +346,7 @@ export class MapLibreCourseMap implements CourseMap {
 
   destroy(): void {
     this.detachLongPress();
+    this.setNearbyPlaces([]);
     this.map.remove();
   }
 }

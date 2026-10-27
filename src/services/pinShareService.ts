@@ -14,13 +14,13 @@ export const MAX_PINS_TOKEN_LENGTH = 6000;
 // a typo or a crafted link.
 export const KOREA_BOUNDS = { minLat: 33, maxLat: 39, minLon: 124, maxLon: 132 } as const;
 
-interface WireCategory {
+export interface WireCategory {
   n: string;
   ic: PinIcon;
   co: PinColor;
   p?: number; // parent index — old links only (sub-categories are gone); ignored
 }
-interface WirePin {
+export interface WirePin {
   i: string;
   n: string;
   c: [number, number];
@@ -67,6 +67,17 @@ export interface PinsEncodeResult {
   dropped: number;
 }
 
+/** A place (and its memo) as a link or a shared category carries it; `k` is the caller's. */
+export function wirePlace(place: PlaceRef, memo: string | undefined, withAddress = true): Omit<WirePin, 'k'> {
+  const wire: Omit<WirePin, 'k'> = { i: place.id, n: place.name, c: [round6(place.center[0]), round6(place.center[1])] };
+  const address = withAddress ? clampText(place.address, 80) : undefined;
+  const note = clampText(memo, PIN_LIMITS.memo);
+  if (address) wire.a = address;
+  if (place.kind) wire.y = place.kind;
+  if (note) wire.m = note;
+  return wire;
+}
+
 export function encodeSharedPinSet(set: SharedPinSet): PinsEncodeResult {
   const pins = set.pins.slice(0, PIN_SET_LIMITS.maxPins);
   const build = (withMemo: boolean, withAddress: boolean) => {
@@ -74,20 +85,7 @@ export function encodeSharedPinSet(set: SharedPinSet): PinsEncodeResult {
       v: PAYLOAD_VERSION,
       t: set.title.trim().slice(0, PIN_SET_LIMITS.title),
       c: set.categories.map((c) => ({ n: c.name, ic: c.icon, co: c.color })),
-      p: pins.map((pin) => {
-        const wire: WirePin = {
-          i: pin.place.id,
-          n: pin.place.name,
-          c: [round6(pin.place.center[0]), round6(pin.place.center[1])],
-          k: pin.category,
-        };
-        const address = withAddress ? clampText(pin.place.address, 80) : undefined;
-        const memo = withMemo ? clampText(pin.memo, PIN_LIMITS.memo) : undefined;
-        if (address) wire.a = address;
-        if (pin.place.kind) wire.y = pin.place.kind;
-        if (memo) wire.m = memo;
-        return wire;
-      }),
+      p: pins.map((pin) => ({ ...wirePlace(pin.place, withMemo ? pin.memo : undefined, withAddress), k: pin.category })),
       s: set.sharedAt,
     };
     const sharedBy = clampText(set.sharedBy, SHARE_LIMITS.sharedBy);
@@ -104,7 +102,7 @@ export function encodeSharedPinSet(set: SharedPinSet): PinsEncodeResult {
 
 // Links come from anyone: validate every field, clamp every string, and
 // accept icons/colors only from the fixed lists.
-const parseCategory = (raw: unknown): SharedPinCategory | null => {
+export const parseCategory = (raw: unknown): SharedPinCategory | null => {
   if (!raw || typeof raw !== 'object') return null;
   // `p` (a parent, from links made while sub-categories existed) is ignored:
   // such a category simply arrives as a category of its own.
@@ -114,23 +112,28 @@ const parseCategory = (raw: unknown): SharedPinCategory | null => {
   return { name, icon: ic, color: co };
 };
 
-const parsePin = (raw: unknown, categoryCount: number): SharedPin | null => {
+/** A place written by `wirePlace`, checked: null when anything is off. */
+export function parseWirePlace(raw: unknown): { place: PlaceRef; memo?: string } | null {
   if (!raw || typeof raw !== 'object') return null;
-  const { i, n, c, k, a, y, m } = raw as Partial<WirePin>;
+  const { i, n, c, a, y, m } = raw as Partial<WirePin>;
   const id = clampText(i, 64);
   const name = clampText(n, 80);
   if (!id || !name || !Array.isArray(c) || c.length !== 2) return null;
   const [lon, lat] = c;
   if (typeof lon !== 'number' || typeof lat !== 'number' || !inKorea([lon, lat])) return null;
-  if (!Number.isInteger(k) || (k as number) < 0 || (k as number) >= categoryCount) return null;
   const place: PlaceRef = { id, name, center: [lon, lat] };
   const address = clampText(a, 80);
   if (address) place.address = address;
   if (isPlaceKind(y)) place.kind = y;
-  const pin: SharedPin = { place, category: k as number };
   const memo = clampText(m, PIN_LIMITS.memo);
-  if (memo) pin.memo = memo;
-  return pin;
+  return memo ? { place, memo } : { place };
+}
+
+const parsePin = (raw: unknown, categoryCount: number): SharedPin | null => {
+  const parsed = parseWirePlace(raw);
+  const k = (raw as Partial<WirePin> | null)?.k;
+  if (!parsed || !Number.isInteger(k) || (k as number) < 0 || (k as number) >= categoryCount) return null;
+  return { ...parsed, category: k as number };
 };
 
 export function decodeSharedPinSet(token: string): SharedPinSet | null {

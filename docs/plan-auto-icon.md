@@ -111,7 +111,7 @@ TourAPI 분류 코드      ┘
 - `domain/pin.ts` `pinStyle(categories, categoryId, place)`: 미분류(지워진 카테고리 포함)면 `kindIcon(place.kind) ?? 'pin'`, 색은 `--pin-0` 그대로. 사용자 카테고리는 언제나 그 카테고리 모양. 지도 마커·핀 카드 GROUP 칸·경로 정류장 모양·공유 카드 아이콘이 이걸 씀(고르기 목록은 그대로 `categoryStyle`).
 - `suggestCategory(categories, kind)`: kind 아이콘과 같은 아이콘의 내 카테고리가 딱 하나면 그 id, 아니면 미분류. 새 핀 카드가 처음 그룹으로 쓰고, kind가 늦게 붙어도(I6) 손으로 고르기 전이면 다시 맞춤.
 - 확인(모바일 375px, Photon 흉내): 공원→나무, 빵집→빵, 호프→맥주, kind 없음→핀, 카페 카테고리 핀은 kind와 상관없이 카페 컵; 검색한 카페는 '카페' 그룹으로, 공원은 미분류 + 나무로 시작.
-- 남은 것: 새 핀 카드가 떠 있는 동안 지도의 미리보기 마커는 여전히 일반 핀(`courseMap` preview 변형) — 바꾸려면 `CourseMap` 인터페이스에 아이콘을 넘겨야 함.
+- 2026-10-28: 지도 미리보기 마커도 `createPreviewElement(place)`에서 장소 종류 아이콘을 사용한다. `usePinKinds`가 기존 저장 핀의 누락된 종류를 조회해 보충한다(동시 조회 최대 3개, 현재 이름·좌표가 같은 핀만 적용). 이미 고른 카테고리와 알려진 종류는 유지한다.
 
 원래 할 일:
 - `categoryStyle`/지도 마커가 미분류 핀이면 `kindIcon(pin.place.kind) ?? 'pin'`. 색은 `--pin-0` 그대로.
