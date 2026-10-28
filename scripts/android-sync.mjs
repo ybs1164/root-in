@@ -1,4 +1,4 @@
-// Builds the web app and copies it into the Android project.
+// Builds the web app and copies it into the Android project (or the iOS one with --ios).
 // public/korea also holds an old flat layout (detail/city/region/country, ~3GB) that
 // no code reads — only korea/base, korea/admin and korea/places are fetched — so keep it out of the APK.
 // With VITE_MAP_DATA_URL set the map data is read from that host
@@ -8,8 +8,10 @@ import { cpSync, readdirSync, rmSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { build, loadEnv } from 'vite';
 import { androidBackend, checkAndroidBackend } from './android-config.mjs';
+import { xcodeEnv } from './xcode-env.mjs';
 
-const run = (cmd) => execSync(cmd, { stdio: 'inherit' });
+const platform = process.argv.includes('--ios') ? 'ios' : 'android';
+const run = (cmd, env) => execSync(cmd, { stdio: 'inherit', env });
 
 // Use the same environment precedence and expansion as the Vite build.
 const env = loadEnv('production', process.cwd(), 'VITE_');
@@ -36,5 +38,6 @@ console.log(hosted
   ? `Map data from ${hosted} — not bundled.`
   : 'Map data bundled into the APK (set VITE_MAP_DATA_URL to read it from a host instead).');
 // The sticker PNGs are ~150MB at full size; shrink the built copies (needs Python + Pillow).
-run('python scripts/shrink-stickers.py dist/stickers');
-run('npx cap sync android');
+// macOS ships python3 only; Windows installs python.
+run(`${process.platform === 'win32' ? 'python' : 'python3'} scripts/shrink-stickers.py dist/stickers`);
+run(`npx cap sync ${platform}`, platform === 'ios' ? xcodeEnv() : process.env);
