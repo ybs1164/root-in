@@ -22,6 +22,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="rootin" android:host="open" />
+            </intent-filter>
+
+            <!-- Verification needs /.well-known/assetlinks.json at the HOST root,
+                 not under the /root-in/ project path. See docs/deep-links.md. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="ybs1164.github.io" />
+                <data android:path="/root-in" />
+                <data android:pathPrefix="/root-in/" />
+            </intent-filter>
+
         </activity>
 
         <provider

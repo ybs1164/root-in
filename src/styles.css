@@ -9578,3 +9578,40 @@ button.group-photo-panel__photo {
 .group-ping--face .group-ping__label {
   top: 9px;
 }
+
+/* A shared mobile link opens in the app before joining/resolving in the browser. */
+.app-link-entry {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+  background: var(--bg);
+  color: var(--text);
+}
+.app-link-entry__card {
+  width: min(100%, 360px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+.app-link-entry__card .logo { width: 80px; height: 80px; border-radius: 20px; overflow: hidden; }
+.app-link-entry__card h1 { margin: 8px 0 0; font-size: 26px; }
+.app-link-entry__card p { margin: 0 0 12px; color: var(--muted); }
+.app-link-entry__open,
+.app-link-entry__card button {
+  width: 100%;
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.app-link-entry__open { background: var(--accent); color: var(--on-accent); }
+.app-link-entry__card button { background: var(--surface); color: var(--text); }
+.app-link-entry__card small { color: var(--muted); line-height: 1.6; }

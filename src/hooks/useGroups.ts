@@ -85,6 +85,8 @@ export function useGroups(
       if (slug) setInvite(slug);
     };
     window.addEventListener('hashchange', onHash);
+    // Native startup can deliver a link between the initial render and this effect.
+    onHash();
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
   useEffect(() => {
