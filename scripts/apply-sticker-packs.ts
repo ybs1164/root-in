@@ -8,7 +8,7 @@
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { STICKERS } from '../src/domain/decor';
-import { packsDocument, readPacks } from '../src/domain/stickerSheets';
+import { formatPacks, packsDocument, readPacks } from '../src/domain/stickerSheets';
 
 const source = process.argv[2];
 if (!source) {
@@ -34,7 +34,7 @@ const backups = resolve('output/sticker-packs/backups');
 mkdirSync(backups, { recursive: true });
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
 copyFileSync(target, `${backups}/stickerPacks-${stamp}.json`);
-writeFileSync(target, `${JSON.stringify(packsDocument(packs), null, 2)}\n`);
+writeFileSync(target, formatPacks(packsDocument(packs)));
 
 const used = new Set(packs.flatMap((p) => p.slots.map((s) => s.stickerId)));
 const unused = STICKERS.filter((s) => !used.has(s.id));

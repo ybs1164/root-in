@@ -17,6 +17,7 @@ import {
   PACK_LIMITS,
   PACK_MOTIFS,
   PACK_NAME_STYLES,
+  formatPacks,
   packsDocument,
   readPacks,
   SHEET_ASPECT,
@@ -289,7 +290,7 @@ function Editor() {
   const fileInput = useRef<HTMLInputElement | null>(null);
   const exportFile = () => {
     const doc = { ...packsDocument(packs), savedAt: new Date().toISOString() };
-    const blob = new Blob([`${JSON.stringify(doc, null, 2)}\n`], { type: 'application/json' });
+    const blob = new Blob([formatPacks(doc)], { type: 'application/json' });
     const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'sticker-packs.json' });
     a.click();
     URL.revokeObjectURL(a.href);

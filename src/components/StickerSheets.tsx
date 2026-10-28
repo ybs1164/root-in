@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as R
 import { createPortal } from 'react-dom';
 import { getSticker } from '../domain/decor';
 import { outlinedSticker } from '../lib/stickerEdge';
+import { SWIPE, swipeCommits } from '../domain/appTabs';
 import { peelFold, STICKER_SHEETS, type PeelFold, type SheetSlot, type StickerDrop, type StickerSheet } from '../domain/stickerSheets';
 
 /** Less movement than this is a tap on a sticker, not a pull (px). */
@@ -164,6 +165,11 @@ export default function StickerSheets({
     if (!down) setTaken(null);
   };
   const sheetEl = useRef<HTMLDivElement | null>(null);
+  const sheetsEl = useRef<HTMLDivElement | null>(null);
+  /** Pulling the tucked pack up by its band: where it started and how far down it sits. */
+  const raise = useRef<{ id: number; y: number; t: number; down: number; dy: number; on: boolean } | null>(null);
+  /** Swallows the click that ends a pull up. */
+  const raised = useRef(false);
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const freeEl = useRef<HTMLImageElement | null>(null);
   const peel = useRef<Peel | null>(null);
@@ -394,12 +400,63 @@ export default function StickerSheets({
     setPeek(true);
   };
 
+  // Tucked down, the pack can be dragged up by its band: it follows the
+  // finger (never below where it sits) and, let go far or fast enough, comes
+  // all the way up; otherwise it drops back down. The move is set on the
+  // element straight from the pointer, not by a re-render each frame.
+  const placeSheets = (y: number | null, animate: boolean) => {
+    const el = sheetsEl.current;
+    if (!el) return;
+    el.style.transition = animate ? '' : 'none';
+    el.style.transform = y === null ? '' : `translateY(${y}px)`;
+  };
+  const onRaiseDown = (e: ReactPointerEvent) => {
+    const el = sheetsEl.current;
+    if (!e.isPrimary || !el) return;
+    const down = new DOMMatrixReadOnly(getComputedStyle(el).transform).m42;
+    raise.current = { id: e.pointerId, y: e.clientY, t: performance.now(), down, dy: 0, on: false };
+  };
+  const onRaiseMove = (e: ReactPointerEvent) => {
+    const r = raise.current;
+    if (!r || r.id !== e.pointerId) return;
+    const dy = e.clientY - r.y;
+    if (!r.on) {
+      if (Math.abs(dy) < SWIPE.startPx) return;
+      r.on = true;
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+    r.dy = Math.min(0, Math.max(-r.down, dy));
+    placeSheets(r.down + r.dy, false);
+  };
+  const onRaiseUp = (e: ReactPointerEvent) => {
+    const r = raise.current;
+    raise.current = null;
+    if (!r || r.id !== e.pointerId || !r.on) return;
+    raised.current = true;
+    window.setTimeout(() => (raised.current = false), 0);
+    const velocity = r.dy / Math.max(1, performance.now() - r.t);
+    // Either way it glides on from where the finger left it (up, or back down to its band).
+    placeSheets(null, true);
+    if (swipeCommits(-1, r.dy, r.down, velocity)) setPeek(false);
+  };
+
   if (!sheet) return null;
   return (
     <>
-      {/* Tucked down: the whole strip around the band (a little above it, edge to edge) brings the pack back up. */}
-      {peek && !lifted && <button className="sticker-sheets__catch" aria-label="스티커 팩 올리기" onClick={() => setPeek(false)} />}
-      <div className={`sticker-sheets ${peek ? 'is-peek' : ''}`}>
+      {/* Tucked down: the whole strip around the band (a little above it, edge to edge) brings the
+          pack back up — a tap, or a drag up that the pack follows. */}
+      {peek && !lifted && (
+        <button
+          className="sticker-sheets__catch"
+          aria-label="스티커 팩 올리기"
+          onPointerDown={onRaiseDown}
+          onPointerMove={onRaiseMove}
+          onPointerUp={onRaiseUp}
+          onPointerCancel={onRaiseUp}
+          onClick={() => raised.current || setPeek(false)}
+        />
+      )}
+      <div ref={sheetsEl} className={`sticker-sheets ${peek ? 'is-peek' : ''}`}>
         <div className="sticker-sheets__row">
           <button className="sticker-sheets__step" aria-label="이전 스티커 한 장" onClick={() => step(-1)}>
             <ChevronLeft size={30} strokeWidth={2.2} aria-hidden />

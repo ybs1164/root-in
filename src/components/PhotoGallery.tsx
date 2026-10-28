@@ -1,20 +1,28 @@
 import { ChevronLeft, Images } from 'lucide-react';
-import { useEffect, useMemo, type CSSProperties } from 'react';
-import { galleryDayLabel, galleryDays, type GalleryItem } from '../domain/gallery';
+import { useEffect, useMemo, useRef, type CSSProperties } from 'react';
+import { dayPosters, galleryDayLabel, galleryTabDays, viewerOrder, type GalleryItem, type GalleryPhoto, type GalleryTab } from '../domain/gallery';
 import { memberColor, type Group, type GroupMember } from '../domain/groups';
+import { centeredScrollLeft } from '../domain/routeFolders';
 import type { GalleryState } from '../hooks/useGalleryPhotos';
 import { dateKey } from '../domain/diary';
 import { MemberFace } from './WeNowPage';
 import PhotoViewer from './PhotoViewer';
 
 interface PhotoGalleryProps {
-  /** Whose photos: one group's, or (TODAY) every group I'm in. */
+  /** Every group I'm in: a tab each, after MY. */
   groups: Group[];
-  /** The one group's name under the title; null = all my groups (TODAY). */
-  groupName: string | null;
+  /** My user id (null: never signed in, so MY is only TODAY's photos on this phone). */
+  me: string | null;
+  /** My face and name on my own photos. */
+  meMember: GroupMember;
+  tab: GalleryTab;
+  onTab(tab: GalleryTab): void;
+  /** The photos sent to all of `groups`. */
   state: GalleryState;
   onRetry(): void;
-  /** The photo open big (App holds it, for the back button); null = the grid. */
+  /** TODAY's photos kept on this phone, in MY. */
+  local: GalleryPhoto[];
+  /** The photo open big, in the viewer's order (oldest first; App holds it, for the back button); null = the grid. */
   seq: number | null;
   onSeq(seq: number | null): void;
   onClose(): void;
@@ -24,27 +32,33 @@ interface PhotoGalleryProps {
 const goneMember = (userId: string): GroupMember => ({ userId, slot: 0, nickname: '나간 그룹원', alias: null, photo: null, pings: [] });
 
 /**
- * The photos sent to a group from the camera (or, from TODAY, to any of my
- * groups), over the whole screen: ‹ back, GALLERY and whose, then a heading
- * per day (newest first) over a grid of square thumbnails, each with the
- * sender's face in the corner. A photo sent to several groups shows once.
- * Tapping one opens it big, paging through every photo in the gallery's order.
+ * The camera's photos over the whole screen: ‹ back and GALLERY, then index
+ * tabs as on the route folders — MY (what I sent, and TODAY's photos on this
+ * phone) and one per group — and under them a heading per day (newest
+ * first) over a grid of squares, each with the sender's face in the corner.
+ * A photo sent to several groups shows once in MY. Tapping one opens it big;
+ * there the newest is furthest right and paging back runs on through the
+ * days before, the day over the photo.
  */
-export default function PhotoGallery({ groups, groupName, state, onRetry, seq, onSeq, onClose }: PhotoGalleryProps) {
-  const days = useMemo(() => (state.status === 'ready' ? galleryDays(state.photos) : []), [state]);
-  const flat = useMemo(() => days.flatMap((d) => d.photos), [days]);
-  const who = useMemo(() => {
-    const byGroup = new Map(groups.map((g) => [g.id, g]));
-    return (item: GalleryItem): GroupMember => {
-      for (const id of item.groupIds) {
-        const m = byGroup.get(id)?.members.find((x) => x.userId === item.userId);
-        if (m) return m;
-      }
-      return goneMember(item.userId);
-    };
-  }, [groups]);
-  const groupNames = (item: GalleryItem) =>
-    item.groupIds.map((id) => groups.find((g) => g.id === id)?.name).filter((n): n is string => !!n).join(', ');
+export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, onRetry, local, seq, onSeq, onClose }: PhotoGalleryProps) {
+  const ready = state.status === 'ready' || tab === 'my';
+  const days = useMemo(
+    () => galleryTabDays(tab, state.status === 'ready' ? state.photos : [], me, local),
+    [tab, state, me, local],
+  );
+  const viewer = useMemo(() => viewerOrder(days), [days]);
+  const byGroup = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
+  const who = (item: GalleryItem): GroupMember => {
+    if (item.userId === meMember.userId || (me && item.userId === me)) return meMember;
+    for (const id of item.groupIds) {
+      const m = byGroup.get(id)?.members.find((x) => x.userId === item.userId);
+      if (m) return m;
+    }
+    return goneMember(item.userId);
+  };
+  // Where it went: this tab's group, or (MY) every group it was sent to; TODAY for one that stayed on the phone.
+  const where = (item: GalleryItem) =>
+    tab !== 'my' ? (byGroup.get(tab)?.name ?? '') : item.groupIds.length ? item.groupIds.map((id) => byGroup.get(id)?.name).filter(Boolean).join(', ') : 'TODAY';
 
   useEffect(() => {
     if (seq !== null) return;
@@ -53,23 +67,43 @@ export default function PhotoGallery({ groups, groupName, state, onRetry, seq, o
     return () => window.removeEventListener('keydown', key);
   }, [seq, onClose]);
 
+  // The open tab comes to the middle of the row (or as near as its ends allow).
+  const tabsEl = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const row = tabsEl.current;
+    const el = row?.querySelector<HTMLElement>(`[data-tab="${CSS.escape(tab)}"]`);
+    if (row && el) row.scrollTo({ left: centeredScrollLeft(el.offsetLeft, el.offsetWidth, row.clientWidth, row.scrollWidth), behavior: 'smooth' });
+  }, [tab]);
+
   const today = dateKey();
-  let index = 0;
+  const tabs: { id: GalleryTab; label: string }[] = [{ id: 'my', label: 'MY' }, ...groups.map((g) => ({ id: g.id, label: g.name }))];
   return (
-    <div className="gallery" role="dialog" aria-modal="true" aria-label={groupName ? `${groupName} 갤러리` : '갤러리'}>
+    <div className="gallery" role="dialog" aria-modal="true" aria-label="갤러리">
       <header className="gallery__head">
         <button className="gallery__back" aria-label="닫기" onClick={onClose}>
           <ChevronLeft size={24} strokeWidth={2.2} />
         </button>
-        <div className="gallery__title">
-          <h2>GALLERY</h2>
-          <span>{groupName ?? '모든 그룹'}</span>
-        </div>
+        <h2 className="gallery__title">GALLERY</h2>
       </header>
 
-      <div className="gallery__body">
-        {state.status === 'loading' && <p className="gallery__note">사진을 불러오는 중…</p>}
-        {state.status === 'error' && (
+      <div ref={tabsEl} className="route-folders__tabs gallery__tabs" role="tablist" aria-label="갤러리">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            data-tab={t.id}
+            role="tab"
+            aria-selected={tab === t.id}
+            className={`route-folders__tab ${tab === t.id ? 'is-on' : ''} ${t.id === 'my' ? 'gallery__tab--my' : ''}`}
+            onClick={() => onTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="gallery__body" role="tabpanel">
+        {!ready && state.status === 'loading' && <p className="gallery__note">사진을 불러오는 중…</p>}
+        {!ready && state.status === 'error' && (
           <p className="gallery__note">
             사진을 불러오지 못했어요
             <button className="gallery__retry" onClick={onRetry}>
@@ -77,10 +111,10 @@ export default function PhotoGallery({ groups, groupName, state, onRetry, seq, o
             </button>
           </p>
         )}
-        {state.status === 'ready' && !flat.length && (
+        {ready && !days.length && (
           <div className="gallery__empty">
             <Images size={34} strokeWidth={1.8} aria-hidden />
-            <p>아직 주고받은 사진이 없어요</p>
+            <p>{tab === 'my' ? '아직 내 사진이 없어요' : '아직 주고받은 사진이 없어요'}</p>
             <small>카메라로 찍어 그룹에 보내면 여기에 날짜별로 모여요.</small>
           </div>
         )}
@@ -88,11 +122,20 @@ export default function PhotoGallery({ groups, groupName, state, onRetry, seq, o
           <section key={d.day} className="gallery__day" aria-label={galleryDayLabel(d.day, today)}>
             <h3 className="gallery__date">
               {galleryDayLabel(d.day, today)}
-              <small>{d.photos.length}</small>
+              {/* Who put photos up that day, in place of a count. */}
+              <span className="gallery__posters">
+                {dayPosters(d.photos).map((id) => {
+                  const member = who(d.photos.find((p) => p.userId === id)!);
+                  return (
+                    <span key={id} className="gallery__poster" title={member.nickname} style={{ '--member': memberColor(member.slot) } as CSSProperties}>
+                      <MemberFace member={member} size={24} />
+                    </span>
+                  );
+                })}
+              </span>
             </h3>
             <div className="gallery__grid">
               {d.photos.map((p) => {
-                const at = index++;
                 const member = who(p);
                 return (
                   <button
@@ -100,7 +143,7 @@ export default function PhotoGallery({ groups, groupName, state, onRetry, seq, o
                     className="gallery__photo"
                     style={{ '--member': memberColor(member.slot) } as CSSProperties}
                     aria-label={`${p.name}, ${member.nickname}`}
-                    onClick={() => onSeq(at)}
+                    onClick={() => onSeq(viewer.indexOf(p))}
                   >
                     <img src={p.url} alt="" loading="lazy" draggable={false} />
                     <span className="gallery__face">
@@ -114,18 +157,25 @@ export default function PhotoGallery({ groups, groupName, state, onRetry, seq, o
         ))}
       </div>
 
-      {seq !== null && flat[seq] && (
+      {seq !== null && viewer[seq] && (
         <PhotoViewer
-          items={flat.map((p) => {
+          items={viewer.map((p) => {
             const member = who(p);
-            const where = groupName ? galleryDayLabel(p.day, today) : groupNames(p);
-            return { photo: p.url, name: p.name, who: where ? `${member.nickname} · ${where}` : member.nickname, face: <MemberFace member={member} size={32} /> };
+            const to = where(p);
+            return {
+              photo: p.url,
+              name: p.name,
+              who: to ? `${member.nickname} | ${to}` : member.nickname,
+              face: <MemberFace member={member} size={32} />,
+              date: galleryDayLabel(p.day, today),
+            };
           })}
           seq={seq}
           onSeq={onSeq}
           onClose={() => onSeq(null)}
           prevLabel="이전 사진"
           nextLabel="다음 사진"
+          counted={false}
         />
       )}
     </div>

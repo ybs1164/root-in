@@ -124,8 +124,14 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
     if (!sticker) return;
     const img = new Image();
     img.src = sticker.src;
-    await img.decode();
-    stickerImages.set(id, img);
+    // A sticker no pack uses isn't in the build (scripts/prune-stickers.mjs):
+    // left off the image rather than failing the whole card.
+    try {
+      await img.decode();
+      stickerImages.set(id, img);
+    } catch {
+      // skipped
+    }
   }));
   const canvas = document.createElement('canvas');
   canvas.width = Math.round(W * scale);

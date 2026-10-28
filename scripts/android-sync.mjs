@@ -37,7 +37,9 @@ for (const p of [...pruned, 'overture']) rmSync(`dist/${p}`, { recursive: true, 
 console.log(hosted
   ? `Map data from ${hosted} — not bundled.`
   : 'Map data bundled into the APK (set VITE_MAP_DATA_URL to read it from a host instead).');
-// The sticker PNGs are ~150MB at full size; shrink the built copies (needs Python + Pillow).
+// Only the stickers a pack uses go in; public/stickers is already shrunk (2026-10-28),
+// and the shrink runs again for any art added since (needs Python + Pillow).
 // macOS ships python3 only; Windows installs python.
+run('node scripts/prune-stickers.mjs dist/stickers');
 run(`${process.platform === 'win32' ? 'python' : 'python3'} scripts/shrink-stickers.py dist/stickers`);
 run(`npx cap sync ${platform}`, platform === 'ios' ? xcodeEnv() : process.env);
