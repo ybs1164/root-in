@@ -1,5 +1,4 @@
-import { CalendarDays, MapPin, Share, Users, X } from 'lucide-react';
-import CameraButton from './CameraButton';
+import { CalendarDays, Camera, MapPin, Users, X } from 'lucide-react';
 import { GalleryButton } from './PhotoGallery';
 import { useLayoutEffect, useRef } from 'react';
 import { barSlot, barTurn, type AppTab, type BarButton } from '../domain/appTabs';
@@ -29,15 +28,13 @@ interface BottomBarProps {
   onPin: () => void;
   /** The two-people button: to the people screen. */
   onPeople: () => void;
-  /** A day on TODAY: 공유 at the row's right end. */
-  onShare?: () => void;
   /** A ping is picked on the day screen: the calendar button is ✕ and deletes it. */
   onDeletePing?: () => void;
   /** A ping is being dragged over the ✕. */
   deleteHot?: boolean;
-  /** TODAY: the camera at the bottom of its column (the camera screen). */
+  /** We Now and TODAY: the big middle button opens the camera screen. */
   onCamera?: () => void;
-  /** TODAY: the gallery in the bottom-right column, over the camera (every photo in my groups, by day). */
+  /** The gallery (every photo in my groups, by day): bottom-right on TODAY (under the calendar) and We Now. */
   onGallery?: () => void;
 }
 
@@ -47,11 +44,12 @@ interface BottomBarProps {
  * (`barSlot`; the calendar button is gone from it, test build 2026-10-19).
  * Pressing the side button slides the row toward it: it grows into the
  * centre and the centre one shrinks to the other side. The buttons stay
- * mounted so the swap is animated. On TODAY (`today`) the row is one column
- * at the bottom-right instead: 공유 (day screen), the calendar (day ⇄ month,
- * ✕ while a ping is picked), the gallery, the camera.
+ * mounted so the swap is animated. On TODAY (`today`) the row is the big
+ * camera in the middle (as on We Now) and two buttons stacked at the
+ * bottom-right: the calendar (day ⇄ month, ✕ while a ping is picked) over
+ * the gallery.
  */
-export default function BottomBar({ tab, today = false, calendarMode, onCalendar, onMap, onPin, onPeople, onShare, onDeletePing, deleteHot = false, onCamera, onGallery }: BottomBarProps) {
+export default function BottomBar({ tab, today = false, calendarMode, onCalendar, onMap, onPin, onPeople, onDeletePing, deleteHot = false, onCamera, onGallery }: BottomBarProps) {
   const cal = today;
   const map = tab === 'pins';
   // Every move is played from where each button is on screen right now
@@ -134,16 +132,22 @@ export default function BottomBar({ tab, today = false, calendarMode, onCalendar
   return (
     <nav ref={nav} className={`bottom-bar ${map ? '' : 'bottom-bar--page'} ${cal ? 'bottom-bar--cal' : ''}`} aria-label="메뉴">
       {cal ? (
-        // TODAY: one column at the bottom-right, from the top 공유 · 달력 · 갤러리 · 카메라.
-        <button
-          className={`bar-col bar-col--cal bar-cal ${onDeletePing ? 'is-delete' : ''} ${onDeletePing && deleteHot ? 'is-hot' : ''}`}
-          aria-label={onDeletePing ? '핑 삭제' : calendarMode === 'day' ? '월 달력' : '오늘'}
-          onClick={onDeletePing ?? onCalendar}
-        >
-          {/* Shows where the press goes: the month grid from a day, today's date
-              from the month; ✕ while a ping is picked (tap it or drop the ping on it). */}
-          {onDeletePing ? <X size={24} strokeWidth={2.4} aria-hidden /> : calendarMode === 'day' ? <CalendarDays size={24} strokeWidth={2.2} aria-hidden /> : <CalendarToday />}
-        </button>
+        <>
+          {/* TODAY keeps We Now's big camera in the middle of the row. */}
+          <button className="bar-btn bar-slot-c bar-today-camera" aria-label="카메라" onClick={onCamera}>
+            <Camera strokeWidth={2.2} aria-hidden />
+          </button>
+          {/* TODAY: the calendar over the gallery at the bottom-right. */}
+          <button
+            className={`bar-col bar-col--cal bar-cal ${onDeletePing ? 'is-delete' : ''} ${onDeletePing && deleteHot ? 'is-hot' : ''}`}
+            aria-label={onDeletePing ? '핑 삭제' : calendarMode === 'day' ? '월 달력' : '오늘'}
+            onClick={onDeletePing ?? onCalendar}
+          >
+            {/* Shows where the press goes: the month grid from a day, today's date
+                from the month; ✕ while a ping is picked (tap it or drop the ping on it). */}
+            {onDeletePing ? <X size={24} strokeWidth={2.4} aria-hidden /> : calendarMode === 'day' ? <CalendarDays size={24} strokeWidth={2.2} aria-hidden /> : <CalendarToday />}
+          </button>
+        </>
       ) : (
         <>
           <button ref={(el) => void (els.current.pins = el)} className={`${cls('pins')} bar-pin`} aria-label={map ? '지도에 핀 꽂기' : '지도'} onClick={map ? onPin : onMap}>
@@ -152,22 +156,18 @@ export default function BottomBar({ tab, today = false, calendarMode, onCalendar
           <button
             ref={(el) => void (els.current.people = el)}
             className={`${cls('people')} bar-people`}
-            aria-label="We Now"
-            aria-current={tab === 'people' ? 'page' : undefined}
-            onClick={tab === 'people' ? undefined : onPeople}
+            // On We Now it's big in the middle and is the camera (the screen has no other).
+            aria-label={tab === 'people' ? '카메라' : 'We Now'}
+            onClick={tab === 'people' ? onCamera : onPeople}
           >
-            <Users strokeWidth={2.2} aria-hidden />
+            {tab === 'people' ? <Camera strokeWidth={2.2} aria-hidden /> : <Users strokeWidth={2.2} aria-hidden />}
           </button>
         </>
       )}
       {cal && onGallery && <GalleryButton className="bar-col bar-col--gallery" onOpen={onGallery} />}
-      {/* Only TODAY has the camera in the row (its column stands on it): the map has none, We Now its own on the TODAY tile. */}
-      {cal && <CameraButton className="bar-camera" onOpen={onCamera} />}
-      {onShare && (
-        <button className="bar-share" aria-label="공유" onClick={onShare}>
-          <Share size={24} strokeWidth={2.2} aria-hidden />
-        </button>
-      )}
+      {/* We Now's list: the gallery in the bottom-right corner (where the camera stood). */}
+      {!cal && tab === 'people' && onGallery && <GalleryButton className="bar-corner" onOpen={onGallery} />}
+      {/* No small camera anywhere in the row: on We Now and TODAY the big middle button is the camera. */}
     </nav>
   );
 }

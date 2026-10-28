@@ -5,7 +5,6 @@ import { addDays } from '../domain/calendar';
 import { dateKey } from '../domain/diary';
 import { galleryDayLabel } from '../domain/gallery';
 import { MemberFace } from './WeNowPage';
-import CameraButton from './CameraButton';
 import PhotoViewer from './PhotoViewer';
 import { GalleryButton } from './PhotoGallery';
 
@@ -36,7 +35,6 @@ interface GroupMapViewProps {
   onSettings(): void;
   /** The calendar under ⚙: the group's month, who pinged on each day. */
   onCalendar(): void;
-  onCamera(): void;
   /** The gallery under the calendar: every photo sent to this group, by day. */
   onGallery(): void;
 }
@@ -47,7 +45,7 @@ interface GroupMapViewProps {
  * the pass says who's picked),
  * ⚙ settings with the group's calendar and then the gallery under it, `<` `>` down the middle either side, a day back or forward
  * (no `>` on today) with the day under the name (name and day open the calendar too),
- * the gallery under the calendar, the camera at the bottom-right, and the member row
+ * the gallery under the calendar, and the member row
  * along the bottom: ALL then every member's face, each its own button with
  * a badge of their new pings since I last picked them, scrolled sideways when they don't fit. The picked
  * member's boarding pass rises over the row: photo, name, the day's places
@@ -57,7 +55,7 @@ interface GroupMapViewProps {
  * the place, who, n / N with ‹ › through their day, tied to the ping by a
  * faint thread.
  */
-export default function GroupMapView({ group, day, onDay, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onCamera, onGallery }: GroupMapViewProps) {
+export default function GroupMapView({ group, day, onDay, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onGallery }: GroupMapViewProps) {
   const pickedMember = group.members.find((m) => m.userId === picked) ?? null;
   const today = dateKey();
   const shown = day ?? today;
@@ -105,7 +103,6 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
         </button>
       )}
 
-      <CameraButton className="group-view__camera" onOpen={onCamera} />
 
       {pickedMember && <MemberPass key={pickedMember.userId} member={pickedMember} mine={pickedMember.userId === me} day={label} />}
 

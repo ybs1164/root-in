@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Share } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MutableRefObject, type TouchEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type TouchEvent } from 'react';
 import { dayTitle, edgeKey, photoPingTarget, PINCH, pinchOutcome, pinchProgress, pingCounts, pingKey, pingsForDate, pingsLandedMs, todayCandidates, type DayPing } from '../domain/dayPings';
 import { useStoredPings } from '../hooks/useStoredPings';
 import { loadPings, recordPing, recordPlacePing, removePing, todayPingOfPin } from '../services/pingRepository';
@@ -39,8 +39,7 @@ import type { StickerDrop } from '../domain/stickerSheets';
 import DecorLayer, { type TextFocus } from './DecorLayer';
 import { DecorRail, DecorTray } from './DecorTools';
 import MonthCalendar from './MonthCalendar';
-import { hasHome, type ExcludedPlace } from '../domain/privacy';
-import { daySubject, type ShareSubject } from '../domain/shareSubject';
+import type { ExcludedPlace } from '../domain/privacy';
 
 type Mode = 'day' | 'month';
 type Point = { x: number; y: number };
@@ -114,14 +113,8 @@ interface CalendarZoomProps {
   here: [number, number] | null;
   pins: Pin[];
   categories: PinCategory[];
-  /** 공유 pressed before 집 is set (it's required): the app asks for it. */
-  onNeedHome: () => void;
-  /** 공유: the day as a card (its 꾸미기 carried along), for the app's 꾸미기 screen. */
-  onShare: (subject: ShareSubject) => void;
   /** The page is still sliding in: the day's pins, lines and 꾸미기 wait to play until it lands. */
   holdIntro?: boolean;
-  /** Filled with this calendar's way to share the day on screen (the page head's 공유 calls it). */
-  shareRef?: MutableRefObject<(() => void) | null>;
   /**
    * Handed the way to take a photo while TODAY's own day screen is up (null
    * otherwise): the app shows its camera button only then.
@@ -136,7 +129,7 @@ interface CalendarZoomProps {
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
 
-export default function CalendarZoom({ command, onMode, onDecorating, onPingPicked, pingDropZone, onPingDropHover, onDayTheme, onDayPattern, excluded, here, pins, categories, onNeedHome, onShare, holdIntro = false, shareRef, onCamera, nameAt, onToast }: CalendarZoomProps) {
+export default function CalendarZoom({ command, onMode, onDecorating, onPingPicked, pingDropZone, onPingDropHover, onDayTheme, onDayPattern, excluded, here, pins, categories, holdIntro = false, onCamera, nameAt, onToast }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
   const [date, setDate] = useState(today);
@@ -348,22 +341,6 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
   const dayHistory = history[shownDate] ?? EMPTY_HISTORY;
   const setDayDecor = (next: DayDecor) => setDays((d) => ({ ...d, decor: { ...d.decor, [shownDate]: next } }));
   // A drawing change: undo can bring back what was there; redo is forgotten.
-  // 공유: the day's card, its 꾸미기 carried along, opened on the 꾸미기 screen.
-  const shareDay = () => {
-    if (!hasHome(excluded)) return onNeedHome();
-    onShare(
-      daySubject(
-        date,
-        pingsForDate(date, stored),
-        (ping) => days.shapes[pingKey(date, ping)] ?? 'pin',
-        (from, to) => days.edges[edgeKey(date, from, to)] ?? 'solid',
-        excluded,
-        days.decor[date] ?? EMPTY_DECOR,
-        (ping) => pinLookOf(ping).icon,
-      ),
-    );
-  };
-  if (shareRef) shareRef.current = shareDay;
 
   // The camera is TODAY's alone (a photo is taken now, so it pings today).
   const canShoot = !!onCamera && shownDate === today && mode === 'day' && !preview && !holdIntro && !tool;

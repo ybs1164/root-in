@@ -227,7 +227,6 @@ export default function App() {
   // Commands for the calendar page (there's no calendar button to send them now).
   const [calendarCommand, setCalendarCommand] = useState<CalendarCommand | null>(null);
   // The calendar hands up how to share the day on screen (its 공유 sits in the bottom row).
-  const shareDay = useRef<(() => void) | null>(null);
   const [activePinId, setActivePinId] = useState<string | null>(null);
   // The round buttons under ⚙, and the categories picked in its 핀 list.
   const [railMode, setRailMode] = useState<PinRailMode>('menu');
@@ -842,7 +841,8 @@ export default function App() {
     // Under the title, over the member row along the bottom (and the picked
     // member's pass over it), clear of the < > at the sides.
     const side = width < 520 ? 76 : 96;
-    const padding = { top: 150, right: side, bottom: groupPicked ? 332 : 192, left: side };
+    // (59px less than when the row sat over the camera.)
+    const padding = { top: 150, right: side, bottom: groupPicked ? 273 : 133, left: side };
     // Like a route: the first move onto someone (from ALL, or opening the
     // group) glides at the usual pace; going on from one member to the next
     // is as quick as stepping between routes with < >.
@@ -1861,19 +1861,12 @@ export default function App() {
           {calendarZoom ? (
             <CalendarZoom
               command={calendarCommand}
-              shareRef={shareDay}
               nameAt={async (center) => (await searchService?.reverse(center)) ?? null}
               onToast={(text) => setToast({ text })}
               excluded={privacy.excluded}
               here={me?.center ?? null}
               pins={pinStore.pins}
               categories={pinStore.categories}
-              onNeedHome={() => needHome('day')}
-              onShare={(subject) => {
-                openStudio('day');
-                setStudioCourse(null); // a day's card: no link to copy yet
-                setStudio(subject);
-              }}
               onDecorating={setDecorating}
               onPingPicked={(remove) => setPingRemove(() => remove)}
               pingDropZone={() => barEl.current?.querySelector('.bar-cal') ?? null}
@@ -1902,8 +1895,6 @@ export default function App() {
               newPings={(g) => newPingCount(g, myId, groupSeen[g.id])}
               photo={profile.photo}
               onProfile={() => setProfileOpen(true)}
-              onGallery={() => openGallery('my')}
-              onCamera={() => setCameraOpen(true)}
               onOpen={setOpenGroupId}
               onCreate={() => setGroupFormOpen(true)}
               onSignIn={account.signIn}
@@ -1932,7 +1923,6 @@ export default function App() {
             onBack={() => setOpenGroupId(null)}
             onSettings={() => setGroupSettingsOpen(true)}
             onCalendar={() => setGroupCalendar(true)}
-            onCamera={() => setCameraOpen(true)}
             onGallery={() => openGallery(openGroup.id)}
           />
         </>
@@ -2080,14 +2070,10 @@ export default function App() {
           onDeletePing={onPage && calendarZoom && calendarMode === 'day' && pingRemove ? pingRemove : undefined}
           deleteHot={pingDropHot}
           onMap={() => changeTab('pins')}
-          onShare={onPage && calendarZoom && calendarMode === 'day' ? () => {
-            analytics.track('share_started', { kind: 'day' });
-            shareDay.current?.();
-          } : undefined}
           onPin={startPinning}
           onPeople={() => changeTab('people')}
           onCamera={() => setCameraOpen(true)}
-          onGallery={calendarZoom ? () => openGallery('my') : undefined}
+          onGallery={() => openGallery('my')}
         />
       </div>
 
