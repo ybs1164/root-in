@@ -1,5 +1,6 @@
 import { CalendarDays, MapPin, Share, Users, X } from 'lucide-react';
 import CameraButton from './CameraButton';
+import { GalleryButton } from './PhotoGallery';
 import { useLayoutEffect, useRef } from 'react';
 import { barSlot, barTurn, type AppTab, type BarButton } from '../domain/appTabs';
 import { CalendarToday } from './icons';
@@ -36,6 +37,8 @@ interface BottomBarProps {
   deleteHot?: boolean;
   /** The camera at the row's right end: the camera screen. */
   onCamera?: () => void;
+  /** TODAY: the gallery at the row's left end (every photo in my groups, by day). */
+  onGallery?: () => void;
 }
 
 /**
@@ -47,7 +50,7 @@ interface BottomBarProps {
  * mounted so the swap is animated. On TODAY (`today`) the row is the big
  * calendar button and 공유 instead.
  */
-export default function BottomBar({ tab, today = false, calendarMode, onCalendar, onMap, onPin, onPeople, onShare, onDeletePing, deleteHot = false, onCamera }: BottomBarProps) {
+export default function BottomBar({ tab, today = false, calendarMode, onCalendar, onMap, onPin, onPeople, onShare, onDeletePing, deleteHot = false, onCamera, onGallery }: BottomBarProps) {
   const cal = today;
   const map = tab === 'pins';
   // Every move is played from where each button is on screen right now
@@ -155,6 +158,7 @@ export default function BottomBar({ tab, today = false, calendarMode, onCalendar
           </button>
         </>
       )}
+      {cal && onGallery && <GalleryButton className="bar-gallery" onOpen={onGallery} />}
       {/* Every screen has the camera at the row's right end; TODAY's 공유 sits on top of it. */}
       <CameraButton className="bar-camera" onOpen={onCamera} />
       {onShare && (

@@ -1,5 +1,6 @@
 import type { Group, GroupMember } from '../domain/groups';
 import { GROUP_LIMITS } from '../domain/groups';
+import type { GalleryPhoto } from '../domain/gallery';
 import type { GroupService } from '../services/groupService';
 
 const DEMO_IDS = ['dev-group-user-1', 'dev-group-user-2'];
@@ -18,9 +19,40 @@ function demoPhoto(member: number, step: number): string | undefined {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
+const demoTarget = (groups: Group[]): Group | undefined =>
+  groups.find((g) => g.name.replace(/\s/g, '') === '마이그룹') ?? groups.find((g) => g.mine) ?? groups[0];
+
+/** YYYY-MM-DD `back` days before `day`. */
+function daysBefore(day: string, back: number): string {
+  const [y, m, d] = day.split('-').map(Number);
+  const t = new Date(y, m - 1, d - back);
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+}
+
+/** The demo members' photos in the gallery: today's (as on the map) and a few from the days before. */
+export function demoGalleryPhotos(groupId: string, day: string): GalleryPhoto[] {
+  const photos: GalleryPhoto[] = [];
+  [0, 1, 3].forEach((back, d) => {
+    const on = daysBefore(day, back);
+    for (let i = 0; i < 2; i++) {
+      for (let step = 0; step < 3; step++) {
+        if (back > 0 && (step + d + i) % 2) continue;
+        const url = demoPhoto(i, (step + d) % 3) ?? demoPhoto(i, 0);
+        if (!url) continue;
+        photos.push({
+          id: `demo-${back}-${i}-${step}`, groupId, userId: DEMO_IDS[i], day: on,
+          at: new Date(`${on}T${['09:30', '11:00', '14:00'][step]}:00+09:00`).toISOString(),
+          name: DEMO_PLACES[i][step], path: `demo/${back}-${i}-${step}`, url,
+        });
+      }
+    }
+  });
+  return photos;
+}
+
 /** Local development fixtures only; no accounts or memberships are written to Supabase. */
 export function withGroupDemoMembers(groups: Group[], day: string): Group[] {
-  const target = groups.find((g) => g.name.replace(/\s/g, '') === '마이그룹') ?? groups.find((g) => g.mine) ?? groups[0];
+  const target = demoTarget(groups);
   if (!target) return groups;
   const members = target.members.filter((m) => !DEMO_IDS.includes(m.userId));
   const center = members.flatMap((m) => m.pings)[0]?.center ?? [126.978, 37.5665];
@@ -45,12 +77,21 @@ export function withGroupDemoMembers(groups: Group[], day: string): Group[] {
 
 export function createGroupDemoService(service: GroupService): GroupService {
   const hidden = new Set<string>();
+  let target: { id: string; day: string } | null = null;
   return {
     ...service,
     async list(day) {
       const result = await service.list(day);
       if (result === 'error') return result;
+      const g = demoTarget(result);
+      target = g ? { id: g.id, day } : null;
       return withGroupDemoMembers(result, day).map((g) => ({ ...g, members: g.members.filter((m) => !hidden.has(`${g.id}:${m.userId}`)) }));
+    },
+    async photos(groupIds) {
+      const result = await service.photos(groupIds);
+      if (result === 'error' || !target || !groupIds.includes(target.id)) return result;
+      const shown = demoGalleryPhotos(target.id, target.day).filter((p) => !hidden.has(`${p.groupId}:${p.userId}`));
+      return [...result, ...shown].sort((a, b) => (a.at < b.at ? 1 : -1));
     },
     async kick(id, userId) {
       if (!DEMO_IDS.includes(userId)) return service.kick(id, userId);

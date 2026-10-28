@@ -58,6 +58,8 @@ import { loadGroupSeen, loadMemberSeen, memberSeenKey, saveGroupSeen, saveMember
 import { useStoredPings } from './hooks/useStoredPings';
 import { dateKey } from './domain/diary';
 import GroupMapView from './components/GroupMapView';
+import PhotoGallery from './components/PhotoGallery';
+import { useGalleryPhotos } from './hooks/useGalleryPhotos';
 import CameraScreen from './components/CameraScreen';
 import GroupSendDialog from './components/GroupSendDialog';
 import GroupFormDialog from './components/GroupFormDialog';
@@ -341,6 +343,28 @@ export default function App() {
   }, [todayOpen]);
   const [kicking, setKicking] = useState<GroupMember | null>(null);
   const openGroup = tab === 'people' && openGroupId ? (groupList.find((g) => g.id === openGroupId) ?? null) : null;
+  // The gallery: TODAY's (every group I'm in) or one group's; the photo open big in it.
+  const [galleryOf, setGalleryOf] = useState<'today' | string | null>(null);
+  const [gallerySeq, setGallerySeq] = useState<number | null>(null);
+  // The gallery's groups: TODAY's is every group I'm in, a group's only that one.
+  const galleryGroups = useMemo(
+    () => (!galleryOf || tab !== 'people' ? null : galleryOf === 'today' ? groupList : groupList.filter((g) => g.id === galleryOf)),
+    [galleryOf, tab, groupList],
+  );
+  const galleryIds = useMemo(() => galleryGroups?.map((g) => g.id) ?? null, [galleryGroups]);
+  const gallery = useGalleryPhotos(galleryIds);
+  const openGallery = (of: 'today' | string) => {
+    setGallerySeq(null);
+    setGalleryOf(of);
+  };
+  const closeGallery = useCallback(() => {
+    setGallerySeq(null);
+    setGalleryOf(null);
+  }, []);
+  // Off We Now, or the group's gone (left, deleted): the gallery closes too.
+  useEffect(() => {
+    if (galleryOf && (tab !== 'people' || (galleryOf !== 'today' && !groupList.some((g) => g.id === galleryOf)))) closeGallery();
+  }, [galleryOf, tab, groupList, closeGallery]);
   // A group I've left (or that's gone) closes; a member who left can't stay picked.
   useEffect(() => {
     if (openGroupId && groups.status === 'ready' && !groups.groups.some((g) => g.id === openGroupId)) setOpenGroupId(null);
@@ -1263,6 +1287,8 @@ export default function App() {
   useBackButton(() => {
     if (closeTopDialog()) return true;
     if (cameraOpen) return setCameraOpen(false), true;
+    if (gallerySeq !== null) return setGallerySeq(null), true;
+    if (galleryOf) return setGalleryOf(null), true;
     if (studio) return setStudio(null), true;
     if (groupPhotoBig) return setGroupPhotoBig(false), true;
     if (openGroupId) return setOpenGroupId(null), true;
@@ -1813,8 +1839,21 @@ export default function App() {
             onBack={() => setOpenGroupId(null)}
             onSettings={() => setGroupSettingsOpen(true)}
             onCamera={() => setCameraOpen(true)}
+            onGallery={() => openGallery(openGroup.id)}
           />
         </>
+      )}
+
+      {galleryGroups && (
+        <PhotoGallery
+          groups={galleryGroups}
+          groupName={galleryOf === 'today' ? null : (galleryGroups[0]?.name ?? null)}
+          state={gallery.state}
+          onRetry={gallery.retry}
+          seq={gallerySeq}
+          onSeq={setGallerySeq}
+          onClose={closeGallery}
+        />
       )}
 
       {groupFormOpen && (
@@ -1931,6 +1970,7 @@ export default function App() {
           onPin={startPinning}
           onPeople={() => changeTab('people')}
           onCamera={() => setCameraOpen(true)}
+          onGallery={calendarZoom ? () => openGallery('today') : undefined}
         />
       </div>
 
