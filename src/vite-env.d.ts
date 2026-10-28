@@ -11,6 +11,8 @@ interface ImportMetaEnv {
   readonly VITE_GROUPS_NEED_LOGIN?: string;
   /** Root of the hosted map data package (scripts/export-map-data.mjs); unset = korea/ in this app. */
   readonly VITE_MAP_DATA_URL?: string;
+  /** The web app's public address; share and invite links point here (the Android shell itself is https://localhost). */
+  readonly VITE_PUBLIC_APP_URL?: string;
 }
 
 interface ImportMeta {
