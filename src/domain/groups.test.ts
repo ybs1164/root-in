@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoLimit, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlacePings, withSentPhotos, type Group } from './groups';
+import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoLimit, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlacePings, withSentPhotos, readPingDays, withMyPingDays, dayPingers, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -205,5 +205,30 @@ describe('sharedPlacePings', () => {
   it("doesn't count one member's own pings at the same place", () => {
     const a = member('a', 0, [[127.0, 37.5], [127.0001, 37.5]]);
     expect(sharedPlacePings([a, member('b', 1, [[128, 36]])]).size).toBe(0);
+  });
+});
+
+describe('group calendar days', () => {
+  it('reads the server pairs, skipping bad rows and repeats', () => {
+    expect(
+      readPingDays([
+        { day: '2026-10-27', user_id: 'a' },
+        { day: '2026-10-27', user_id: 'a' },
+        { day: '2026-10-27', user_id: 'b' },
+        { day: '10/28', user_id: 'a' },
+        { day: '2026-10-28', user_id: 7 },
+        null,
+      ]),
+    ).toEqual({ '2026-10-27': ['a', 'b'] });
+    expect(readPingDays('nope')).toEqual({});
+  });
+
+  it('adds my own days and picks faces in the group order', () => {
+    const days = withMyPingDays({ '2026-10-27': ['b'] }, 'me', ['2026-10-27', '2026-10-28']);
+    expect(days).toEqual({ '2026-10-27': ['b', 'me'], '2026-10-28': ['me'] });
+    const face = (userId: string, slot: number) => ({ userId, slot, nickname: userId, alias: null, photo: null, pings: [] });
+    const group = { id: 'g', name: 'g', cover: 0, inviteSlug: 'abcdefgh', mine: true, members: [face('me', 0), face('b', 1), face('c', 2)] };
+    expect(dayPingers(group, days['2026-10-27']).map((m) => m.userId)).toEqual(['me', 'b']);
+    expect(dayPingers(group, undefined)).toEqual([]);
   });
 });

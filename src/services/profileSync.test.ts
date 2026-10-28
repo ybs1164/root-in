@@ -13,7 +13,7 @@ describe('profileSync', () => {
       handle: 'rootin',
       nickname: '루트인',
       avatar_path: 'u1/avatar.jpg',
-      settings: { sound: false, pingAlerts: [9], shareAlerts: base.shareAlerts, scheme: 'dark' },
+      settings: { sound: false, pingAlerts: [9], groupAlertsOff: base.groupAlertsOff, scheme: 'dark' },
     });
     expect(fromProfileRow(row, profile.photo, base)).toEqual({ profile, nickname: '루트인' });
   });

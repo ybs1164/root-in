@@ -1,3 +1,4 @@
+import { dateKey } from '../domain/diary';
 import type { Group, GroupMember } from '../domain/groups';
 import { GROUP_LIMITS } from '../domain/groups';
 import type { GalleryPhoto } from '../domain/gallery';
@@ -29,6 +30,22 @@ function daysBefore(day: string, back: number): string {
   return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
 }
 
+/**
+ * Whether demo member `i` walked on `day`: only the last ten days up to
+ * `today`, and not every one of those (a group's calendar shows gaps).
+ */
+export function demoWalked(i: number, day: string, today: string): boolean {
+  const back = dayNumber(today) - dayNumber(day);
+  if (back < 0 || back >= 10) return false;
+  return back === 0 || (dayNumber(day) + i * 2) % 3 !== 0;
+}
+
+/** Whole days since 1970 for a YYYY-MM-DD (local), to vary the demo by day. */
+function dayNumber(day: string): number {
+  const [y, m, d] = day.split('-').map(Number);
+  return Math.round(Date.UTC(y, m - 1, d) / 86_400_000);
+}
+
 /** The demo members' photos in the gallery: today's (as on the map) and a few from the days before. */
 export function demoGalleryPhotos(groupId: string, day: string): GalleryPhoto[] {
   const photos: GalleryPhoto[] = [];
@@ -51,7 +68,7 @@ export function demoGalleryPhotos(groupId: string, day: string): GalleryPhoto[] 
 }
 
 /** Local development fixtures only; no accounts or memberships are written to Supabase. */
-export function withGroupDemoMembers(groups: Group[], day: string): Group[] {
+export function withGroupDemoMembers(groups: Group[], day: string, today: string = day): Group[] {
   const target = demoTarget(groups);
   if (!target) return groups;
   const members = target.members.filter((m) => !DEMO_IDS.includes(m.userId));
@@ -62,12 +79,20 @@ export function withGroupDemoMembers(groups: Group[], day: string): Group[] {
     const slot = Array.from({ length: GROUP_LIMITS.members }, (_, n) => n).find((n) => !used.has(n));
     if (slot === undefined) break;
     used.add(slot);
+    // Its colour stays its own on the days it's away.
+    if (!demoWalked(i, day, today)) continue;
+    // Each day its own: the walk drifts and shortens, so paging a group's days shows a change.
+    const shift = dayNumber(day) % 4;
+    const steps = [0, 1, 2].slice(0, 3 - ((shift + i) % 3));
     demos.push({
       userId: DEMO_IDS[i], slot, nickname: `더미 유저 ${i + 1}`, alias: null, photo: null,
-      pings: [0, 1, 2].map((step) => ({
+      pings: steps.map((step) => ({
         at: new Date(`${day}T${['09:30', '11:00', '14:00'][step]}:00+09:00`).toISOString(),
-        center: [center[0] + (i === 0 ? 1 : -1) * (0.002 + step * 0.003), center[1] + (i === 0 ? 1 : -1) * (0.001 + step * 0.002)],
-        name: DEMO_PLACES[i][step],
+        center: [
+          center[0] + (i === 0 ? 1 : -1) * (0.002 + step * 0.003) + shift * 0.003,
+          center[1] + (i === 0 ? 1 : -1) * (0.001 + step * 0.002) - shift * 0.002,
+        ],
+        name: DEMO_PLACES[i][(step + shift) % 3],
         photo: demoPhoto(i, step),
       })),
     });
@@ -84,14 +109,28 @@ export function createGroupDemoService(service: GroupService): GroupService {
       const result = await service.list(day);
       if (result === 'error') return result;
       const g = demoTarget(result);
-      target = g ? { id: g.id, day } : null;
-      return withGroupDemoMembers(result, day).map((g) => ({ ...g, members: g.members.filter((m) => !hidden.has(`${g.id}:${m.userId}`)) }));
+      // The target's day is today's, whatever day was asked (the gallery and calendar count back from it).
+      if (g) target = { id: g.id, day: dateKey() };
+      return withGroupDemoMembers(result, day, dateKey()).map((g) => ({ ...g, members: g.members.filter((m) => !hidden.has(`${g.id}:${m.userId}`)) }));
     },
     async photos(groupIds) {
       const result = await service.photos(groupIds);
       if (result === 'error' || !target || !groupIds.includes(target.id)) return result;
       const shown = demoGalleryPhotos(target.id, target.day).filter((p) => !hidden.has(`${p.groupId}:${p.userId}`));
       return [...result, ...shown].sort((a, b) => (a.at < b.at ? 1 : -1));
+    },
+    async pingDays(groupId, from, to) {
+      const result = await service.pingDays(groupId, from, to);
+      if (result === 'error' || !target || groupId !== target.id) return result;
+      // The days the demo members walked (as withGroupDemoMembers draws them).
+      const days = { ...result };
+      for (let back = 0; back < 10; back++) {
+        const day = daysBefore(target.day, back);
+        if (day < from || day > to) continue;
+        const ids = DEMO_IDS.filter((id, i) => demoWalked(i, day, target!.day) && !hidden.has(`${groupId}:${id}`) && !(days[day] ?? []).includes(id));
+        if (ids.length) days[day] = [...(days[day] ?? []), ...ids];
+      }
+      return days;
     },
     async kick(id, userId) {
       if (!DEMO_IDS.includes(userId)) return service.kick(id, userId);

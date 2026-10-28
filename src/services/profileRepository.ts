@@ -1,4 +1,4 @@
-import { defaultHandle, isValidHandle, PING_ALERT_HOURS, PROFILE_LIMITS, sanitizeAlerts, SHARE_ALERT_COUNTS } from '../domain/profile';
+import { defaultHandle, isValidHandle, PING_ALERT_HOURS, PROFILE_LIMITS, sanitizeAlerts, sanitizeGroupIds } from '../domain/profile';
 import { getCurrentUserId } from '../lib/currentUser';
 
 const PROFILE_KEY = 'goodroot:profile:v1';
@@ -13,8 +13,8 @@ export interface Profile {
   sound: boolean;
   /** 알림 설정 → 투데이 알림: the hours switched on (PING_ALERT_HOURS), all until switched off. */
   pingAlerts: number[];
-  /** 알림 설정 → 공유수 알림: the share counts switched on (SHARE_ALERT_COUNTS), all until switched off. */
-  shareAlerts: number[];
+  /** 알림 설정 → 그룹 알림: the groups switched off (ids); every other group, joined before or after, is on. */
+  groupAlertsOff: string[];
   /** 디스플레이 및 언어 → 디스플레이: 기본 (light) or 다크. Null until picked: the phone's own setting decides. */
   scheme: ColorScheme | null;
 }
@@ -26,7 +26,7 @@ export function isPhoto(value: unknown): value is string {
 }
 
 export function defaultProfile(handle = defaultHandle(getCurrentUserId())): Profile {
-  return { handle, photo: null, sound: true, pingAlerts: [...PING_ALERT_HOURS], shareAlerts: [...SHARE_ALERT_COUNTS], scheme: null };
+  return { handle, photo: null, sound: true, pingAlerts: [...PING_ALERT_HOURS], groupAlertsOff: [], scheme: null };
 }
 
 /**
@@ -41,7 +41,8 @@ export function profileFromRecord(parsed: Record<string, unknown> | null | undef
     sound: parsed?.sound !== false,
     // Before the hours existed there was one 알림 switch: off meant none of them.
     pingAlerts: sanitizeAlerts(parsed?.pingAlerts, PING_ALERT_HOURS) ?? (parsed?.alerts === false ? [] : [...PING_ALERT_HOURS]),
-    shareAlerts: sanitizeAlerts(parsed?.shareAlerts, SHARE_ALERT_COUNTS) ?? [...SHARE_ALERT_COUNTS],
+    // 공유수 알림 (shareAlerts) is gone; a stored one is dropped.
+    groupAlertsOff: sanitizeGroupIds(parsed?.groupAlertsOff) ?? [],
     scheme: parsed?.scheme === 'light' || parsed?.scheme === 'dark' ? parsed.scheme : null,
   };
 }

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { cleanGroupName, GROUP_LIMITS, type Group, type GroupMember, type GroupPing } from '../domain/groups';
+import { cleanGroupName, GROUP_LIMITS, readPingDays, type Group, type GroupMember, type GroupPing, type PingDays } from '../domain/groups';
 import { getSupabase, supabaseConfigured } from '../lib/supabase';
 import { inKorea } from './pinShareService';
 import { dataUrlToBlob } from './remoteProfileService';
@@ -22,6 +22,7 @@ export const groupsNeedLogin = (): boolean => import.meta.env.VITE_GROUPS_NEED_L
 const INVITE_KEY = 'g';
 const SLUG = /^[A-Za-z0-9_-]{6,16}$/;
 const UUID = /^[0-9a-f-]{36}$/;
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
 // Postgres unique_violation: the random invite slug was taken (rare); try another.
 const UNIQUE_VIOLATION = '23505';
 
@@ -52,6 +53,12 @@ export interface GroupService {
   sendPhoto(groupIds: string[], ping: PhotoPing, photo: string): Promise<number>;
   /** Every photo sent to `groupIds` (I'm a member of), newest first; 'error' when the server couldn't be asked. */
   photos(groupIds: string[]): Promise<GalleryPhoto[] | 'error'>;
+  /**
+   * The group's calendar: who of its members pinged (or sent it a photo) on
+   * each day from `from` to `to` (YYYY-MM-DD, at most 62 days), day → user ids;
+   * 'error' when the server couldn't be asked.
+   */
+  pingDays(groupId: string, from: string, to: string): Promise<PingDays | 'error'>;
 }
 
 /** How many photos a gallery reads at most (the newest). */
@@ -290,6 +297,19 @@ export function createSupabaseGroupService(
         return data;
       } catch {
         return 0;
+      }
+    },
+
+    async pingDays(groupId, from, to) {
+      try {
+        if (!UUID.test(groupId) || !DAY.test(from) || !DAY.test(to)) return 'error';
+        const client = await getClient();
+        if (!client) return 'error';
+        const { data, error } = await client.rpc('group_ping_days', { gid: groupId, from_day: from, to_day: to });
+        if (error) return 'error';
+        return readPingDays(data);
+      } catch {
+        return 'error';
       }
     },
 

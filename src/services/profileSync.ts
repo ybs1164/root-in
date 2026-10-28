@@ -10,7 +10,7 @@ export interface ProfileRow {
   handle: string;
   nickname: string;
   avatar_path: string | null;
-  settings: Pick<Profile, 'sound' | 'pingAlerts' | 'shareAlerts' | 'scheme'>;
+  settings: Pick<Profile, 'sound' | 'pingAlerts' | 'groupAlertsOff' | 'scheme'>;
   updated_at?: string;
 }
 
@@ -24,7 +24,7 @@ export function toProfileRow(userId: string, profile: Profile, nickname: string,
     handle: profile.handle,
     nickname: cleanNickname(nickname),
     avatar_path: hasPhoto ? avatarPath(userId) : null,
-    settings: { sound: profile.sound, pingAlerts: profile.pingAlerts, shareAlerts: profile.shareAlerts, scheme: profile.scheme },
+    settings: { sound: profile.sound, pingAlerts: profile.pingAlerts, groupAlertsOff: profile.groupAlertsOff, scheme: profile.scheme },
   };
 }
 

@@ -40,13 +40,11 @@ export function defaultHandle(userId: string): string {
   return `user${tail || '000000'}`;
 }
 
-// 알림 설정: each row is a set of steps switched on or off one by one, all on
-// until switched off. 투데이 알림 — the hours of the day a ping reminder may
-// come; 공유수 알림 — the share counts a shared route is told about at.
+// 알림 설정 → 투데이 알림: the hours of the day a ping reminder may come, each
+// switched on or off one by one, all on until switched off.
 export const PING_ALERT_HOURS = [7, 9, 12, 16, 20, 23] as const;
-export const SHARE_ALERT_COUNTS = [10, 100, 1_000, 10_000, 100_000, 1_000_000] as const;
 
-/** A 공유수 알림 step as its board cell reads: 10, 100, 1k, 10k, 100k, 1M. */
+/** A share count as a route row reads it: 10, 100, 1k, 10k, 100k, 1M. */
 export function shareCountLabel(count: number): string {
   if (count >= 1_000_000) return `${count / 1_000_000}M`;
   if (count >= 1_000) return `${count / 1_000}k`;
@@ -57,6 +55,17 @@ export function shareCountLabel(count: number): string {
 export function sanitizeAlerts(value: unknown, steps: readonly number[]): number[] | null {
   if (!Array.isArray(value)) return null;
   return steps.filter((step) => value.includes(step));
+}
+
+/**
+ * 알림 설정 → 그룹 알림 keeps the groups switched *off* (so a group joined
+ * later starts on): stored ids, kept only if they're short strings, once each.
+ */
+export const GROUP_ALERTS_MAX = 100;
+export function sanitizeGroupIds(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const ids = value.filter((id): id is string => typeof id === 'string' && id.length > 0 && id.length <= 64);
+  return [...new Set(ids)].slice(0, GROUP_ALERTS_MAX);
 }
 
 /** The steps with `step` switched the other way. */

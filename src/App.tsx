@@ -11,6 +11,7 @@ import { closeTopDialog } from './lib/native';
 import { LOCATION_MESSAGES } from './lib/geolocation';
 import BottomBar from './components/BottomBar';
 import SettingsScreen from './components/SettingsScreen';
+import GroupCalendar from './components/GroupCalendar';
 import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
 import NewPinCard, { type NewPinInput } from './components/NewPinCard';
 import PinCard from './components/PinCard';
@@ -52,7 +53,7 @@ import { avatarFromDataUrl } from './lib/avatarImage';
 import { useAccount } from './hooks/useAccount';
 import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
-import { useGroups } from './hooks/useGroups';
+import { useGroups, useGroupsOnDay } from './hooks/useGroups';
 import { groupsNeedLogin, inviteUrl } from './services/groupService';
 import { focusPoints, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, newPingCount, photoPings, sharedPlacePings, withSentPhotos, type GroupMember } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
@@ -309,7 +310,11 @@ export default function App() {
     void account.signInAsGuest().then((ok) => setGuest(ok ? 'done' : 'failed'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account.signInAsGuest]);
-  const groups = useGroups(account.user, tab === 'people', {
+  // The gallery's open tab (the map, We Now and TODAY open on MY, a group on its own),
+  // null = closed; the photo open big in it. Every group's photos are read at once,
+  // for every tab — so the groups are read while it (or 설정, for 그룹 알림) is open, off We Now too.
+  const [galleryTab, setGalleryTab] = useState<GalleryTab | null>(null);
+  const groups = useGroups(account.user, tab === 'people' || galleryTab !== null || settingsOpen, {
     onJoined: (id) => {
       changeTab('people');
       setOpenGroupId(id);
@@ -346,12 +351,37 @@ export default function App() {
     wasTodayOpen.current = todayOpen;
   }, [todayOpen]);
   const [kicking, setKicking] = useState<GroupMember | null>(null);
-  const openGroup = tab === 'people' && openGroupId ? (groupList.find((g) => g.id === openGroupId) ?? null) : null;
-  // The gallery's open tab (TODAY opens on MY, a group on its own), null = closed;
-  // the photo open big in it. Every group's photos are read at once, for every tab.
-  const [galleryTab, setGalleryTab] = useState<GalleryTab | null>(null);
+  // The day an open group's map shows, paged with its `<` `>`; null = today (the live list).
+  const [groupDay, setGroupDay] = useState<string | null>(null);
+  // The group's calendar over its map (from the button under ⚙).
+  const [groupCalendar, setGroupCalendar] = useState(false);
+  useEffect(() => {
+    setGroupDay(null);
+    setGroupCalendar(false);
+  }, [openGroupId]);
+  // The days this phone has pings of mine to show the others (not those near an excluded address).
+  const myPingDays = useMemo(() => new Set(storedPings.filter((p) => !p.local).map((p) => p.day)), [storedPings]);
+  const pastGroups = useGroupsOnDay(account.user, openGroupId ? groupDay : null);
+  useEffect(() => {
+    if (groupDay && pastGroups.status === 'error') notify('그날 핑을 불러오지 못했어요.');
+  }, [groupDay, pastGroups.status, notify]);
+  // Another day keeps today's members (names, faces as they are now) with that
+  // day's pings — mine from this phone's TODAY, as on today.
+  const openGroup = useMemo(() => {
+    const live = tab === 'people' && openGroupId ? (groupList.find((g) => g.id === openGroupId) ?? null) : null;
+    if (!live || !groupDay) return live;
+    const then = pastGroups.groups.find((g) => g.id === live.id);
+    const mine = myGroupPings(storedPings, groupDay);
+    return {
+      ...live,
+      members: live.members.map((m) => {
+        const pings = then?.members.find((t) => t.userId === m.userId)?.pings ?? [];
+        return { ...m, pings: m.userId === myId ? withSentPhotos(mine, pings) : pings };
+      }),
+    };
+  }, [tab, openGroupId, groupList, groupDay, pastGroups.groups, storedPings, myId]);
   const [gallerySeq, setGallerySeq] = useState<number | null>(null);
-  const galleryIds = useMemo(() => (galleryTab && tab === 'people' ? groupList.map((g) => g.id) : null), [galleryTab, tab, groupList]);
+  const galleryIds = useMemo(() => (galleryTab ? groupList.map((g) => g.id) : null), [galleryTab, groupList]);
   const gallery = useGalleryPhotos(galleryIds);
   const pingPhotos = usePingPhotos();
   const myMember = useMemo<GroupMember>(
@@ -373,11 +403,10 @@ export default function App() {
     setGallerySeq(null);
     setGalleryTab(null);
   }, []);
-  // Off We Now the gallery closes; a group's tab that's gone (left, deleted) falls back to MY.
+  // A group's tab that's gone (left, deleted) falls back to MY.
   useEffect(() => {
-    if (galleryTab && tab !== 'people') closeGallery();
-    else if (galleryTab && galleryTab !== 'my' && !groupList.some((g) => g.id === galleryTab)) openGallery('my');
-  }, [galleryTab, tab, groupList, closeGallery]);
+    if (galleryTab && galleryTab !== 'my' && !groupList.some((g) => g.id === galleryTab)) openGallery('my');
+  }, [galleryTab, groupList]);
   // A group I've left (or that's gone) closes; a member who left can't stay picked.
   useEffect(() => {
     if (openGroupId && groups.status === 'ready' && !groups.groups.some((g) => g.id === openGroupId)) setOpenGroupId(null);
@@ -394,6 +423,8 @@ export default function App() {
   useEffect(() => {
     if (groupPing && groupPing.member !== groupPicked) setGroupPing(null);
   }, [groupPicked, groupPing]);
+  // Another day: the panel's ping was that day's.
+  useEffect(() => setGroupPing(null), [groupDay]);
   // The panel's photo opened big over everything; it goes when the panel does.
   const [groupPhotoBig, setGroupPhotoBig] = useState(false);
   useEffect(() => {
@@ -404,26 +435,27 @@ export default function App() {
   const [groupSeen, setGroupSeen] = useState<GroupSeen>(loadGroupSeen);
   const openGroupKeys = openGroup ? groupPingKeys(openGroup).join(',') : null;
   useEffect(() => {
-    if (!openGroup) return;
+    // Another day's pings aren't today's news, nor what today's badge counts against.
+    if (!openGroup || groupDay) return;
     setGroupSeen((seen) => {
       const next = { ...seen, [openGroup.id]: groupPingKeys(openGroup) };
       saveGroupSeen(next);
       return next;
     });
-  }, [openGroup?.id, openGroupKeys]);
+  }, [openGroup?.id, openGroupKeys, groupDay]);
   // Each face's badge on a group's map: that member's pings since I last had
   // them picked. Picking someone sees all of theirs, and so do new ones while picked.
   const [memberSeen, setMemberSeen] = useState<MemberSeen>(loadMemberSeen);
   const pickedMember = openGroup && groupPicked ? (openGroup.members.find((m) => m.userId === groupPicked) ?? null) : null;
   const pickedKeys = pickedMember ? pickedMember.pings.map((p) => groupPingKey(pickedMember, p)).join(',') : null;
   useEffect(() => {
-    if (!openGroup || !pickedMember) return;
+    if (!openGroup || !pickedMember || groupDay) return;
     setMemberSeen((seen) => {
       const next = { ...seen, [memberSeenKey(openGroup.id, pickedMember.userId)]: pickedMember.pings.map((p) => groupPingKey(pickedMember, p)) };
       saveMemberSeen(next);
       return next;
     });
-  }, [openGroup?.id, pickedMember?.userId, pickedKeys]);
+  }, [openGroup?.id, pickedMember?.userId, pickedKeys, groupDay]);
   useEffect(() => {
     if (!needLogin && tab === 'people' && account.available && !account.user && guest === 'idle') startGuest();
   }, [needLogin, tab, account.available, account.user, guest, startGuest]);
@@ -793,7 +825,7 @@ export default function App() {
   }, [groupMarks, mapProvider]);
   // Opening a group fits all of it; picking someone brings the map in close on their day.
   const groupFitted = useRef<{ group: string; picked: string | null } | null>(null);
-  const groupFitKey = openGroup ? `${openGroup.id}|${groupPicked ?? ''}|${focusPoints(openGroup, groupPicked).length}|${groupPing ? `${groupPing.member}:${groupPing.seq}` : ''}` : '';
+  const groupFitKey = openGroup ? `${openGroup.id}|${groupDay ?? ''}|${groupPicked ?? ''}|${focusPoints(openGroup, groupPicked).length}|${groupPing ? `${groupPing.member}:${groupPing.seq}` : ''}` : '';
   useEffect(() => {
     if (!openGroup || !mapRef.current) return;
     const points = focusPoints(openGroup, groupPicked);
@@ -1304,6 +1336,7 @@ export default function App() {
     if (cameraOpen) return setCameraOpen(false), true;
     if (gallerySeq !== null) return setGallerySeq(null), true;
     if (galleryTab) return closeGallery(), true;
+    if (groupCalendar) return setGroupCalendar(false), true;
     if (studio) return setStudio(null), true;
     if (groupPhotoBig) return setGroupPhotoBig(false), true;
     if (openGroupId) return setOpenGroupId(null), true;
@@ -1868,7 +1901,10 @@ export default function App() {
             picked={groupPicked}
             me={myId}
             // Mine never: my own pings aren't news to me.
-            newPings={(m) => (m.userId === myId ? 0 : newMemberPings(m, memberSeen[memberSeenKey(openGroup.id, m.userId)]))}
+            day={groupDay}
+            onDay={(day) => setGroupDay(day >= dateKey() ? null : day)}
+            loading={!!groupDay && pastGroups.status === 'loading'}
+            newPings={(m) => (m.userId === myId || groupDay ? 0 : newMemberPings(m, memberSeen[memberSeenKey(openGroup.id, m.userId)]))}
             onPick={setGroupPicked}
             place={groupPing}
             onPlace={setGroupPing}
@@ -1876,13 +1912,29 @@ export default function App() {
             onPhotoBig={setGroupPhotoBig}
             onBack={() => setOpenGroupId(null)}
             onSettings={() => setGroupSettingsOpen(true)}
+            onCalendar={() => setGroupCalendar(true)}
             onCamera={() => setCameraOpen(true)}
             onGallery={() => openGallery(openGroup.id)}
           />
         </>
       )}
 
-      {galleryTab && tab === 'people' && (
+      {groupCalendar && openGroup && (
+        <GroupCalendar
+          group={openGroup}
+          user={account.user}
+          me={myId}
+          myDays={myPingDays}
+          day={groupDay ?? dateKey()}
+          onPick={(day) => {
+            setGroupDay(day >= dateKey() ? null : day);
+            setGroupCalendar(false);
+          }}
+          onClose={() => setGroupCalendar(false)}
+        />
+      )}
+
+      {galleryTab && (
         <PhotoGallery
           groups={groupList}
           me={myId}
@@ -2012,7 +2064,7 @@ export default function App() {
           onPin={startPinning}
           onPeople={() => changeTab('people')}
           onCamera={() => setCameraOpen(true)}
-          onGallery={calendarZoom ? () => openGallery('my') : undefined}
+          onGallery={() => openGallery('my')}
         />
       </div>
 
@@ -2148,6 +2200,7 @@ export default function App() {
           onChange={changeProfile}
           account={account}
           privacy={privacyProps}
+          groups={groupList}
           onCovered={() => {
             setProfileOpen(false);
             setPrivacyNotice(null);

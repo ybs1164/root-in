@@ -1,21 +1,22 @@
 import { Bell, ChevronLeft, ChevronRight, FileText, LocateFixed, MapPinOff, Monitor, UserRound, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { PING_ALERT_HOURS, SHARE_ALERT_COUNTS, shareCountLabel } from '../domain/profile';
+import { PING_ALERT_HOURS } from '../domain/profile';
+import type { Group } from '../domain/groups';
 import type { Account } from '../hooks/useAccount';
 import type { ColorScheme, Profile } from '../services/profileRepository';
 import { clearAppData } from '../services/settingsRepository';
 import { SWIPE, swipeCommits } from '../domain/appTabs';
 import { ADMIN_ATTRIBUTION } from '../map/courseMap';
 import AlertBoard from './AlertBoard';
+import { GroupCover } from './WeNowPage';
 import Logo from './Logo';
 import PrivacySection from './PrivacySection';
 import LocationSection from './LocationSection';
 import type { MyLocationControl } from '../hooks/useMyLocation';
 
-/** 알림 설정's two boards: 투데이 알림 by hour, 공유수 알림 by share count. */
+/** 알림 설정 → 투데이 알림's board, by hour. */
 const PING_STEPS = PING_ALERT_HOURS.map((hour) => ({ value: hour, text: `${hour}:00` }));
-const SHARE_STEPS = SHARE_ALERT_COUNTS.map((count) => ({ value: count, text: shareCountLabel(count) }));
 
 /** 디스플레이 및 언어 → 디스플레이's two choices. */
 const SCHEMES: { id: ColorScheme; label: string }[] = [
@@ -62,6 +63,8 @@ interface SettingsScreenProps {
   account?: Account;
   /** 제외 주소 설정 (PrivacySection's props), the same as on the profile. */
   privacy: Omit<Parameters<typeof PrivacySection>[0], 'notice'>;
+  /** 알림 설정 → 그룹 알림: my groups, one switch each. */
+  groups?: readonly Pick<Group, 'id' | 'name' | 'cover'>[];
   /** 설정 has slid in and covers the whole screen (the profile under it can go now). */
   onCovered?: () => void;
   onClose: () => void;
@@ -76,7 +79,7 @@ interface SettingsScreenProps {
  * list the same slides 설정 itself off to the right, closed. A left-to-right
  * swipe does the same, the screen following the finger.
  */
-export default function SettingsScreen({ profile, onChange, account, privacy, location, onCovered, onClose }: SettingsScreenProps) {
+export default function SettingsScreen({ profile, onChange, account, privacy, location, groups = [], onCovered, onClose }: SettingsScreenProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const [page, setPage] = useState<Page>('main');
   // The detail screen drawn over the list: it stays while it slides back out
@@ -188,13 +191,7 @@ export default function SettingsScreen({ profile, onChange, account, privacy, lo
       body = (
         <section className="privacy alerts" aria-label="알림 설정">
           <AlertBoard label="투데이 알림" steps={PING_STEPS} on={profile.pingAlerts} onChange={(pingAlerts) => onChange({ ...profile, pingAlerts })} />
-          <AlertBoard
-            label="공유수 알림"
-            steps={SHARE_STEPS}
-            on={profile.shareAlerts}
-            random={false}
-            onChange={(shareAlerts) => onChange({ ...profile, shareAlerts })}
-          />
+          <GroupAlerts groups={groups} off={profile.groupAlertsOff} onChange={(groupAlertsOff) => onChange({ ...profile, groupAlertsOff })} />
         </section>
       );
     } else if (page === 'display') {
@@ -341,5 +338,56 @@ export default function SettingsScreen({ profile, onChange, account, privacy, lo
       )}
     </dialog>,
     document.body,
+  );
+}
+
+/**
+ * 알림 설정 → 그룹 알림: every group of mine down the page, each with its own
+ * switch (on until switched off), and 전체 at the head as on the board above —
+ * no 랜덤. Switches of groups I've left are kept off as they were.
+ */
+function GroupAlerts({ groups, off, onChange }: { groups: readonly Pick<Group, 'id' | 'name' | 'cover'>[]; off: readonly string[]; onChange: (off: string[]) => void }) {
+  const allOn = groups.every((g) => !off.includes(g.id));
+  const ids = groups.map((g) => g.id);
+  return (
+    <div className="alerts__row" role="group" aria-label="그룹 알림">
+      <div className="alerts__head">
+        <span className="alerts__label">그룹 알림</span>
+        {groups.length > 0 && (
+          <button
+            className="alerts__all"
+            aria-label="그룹 알림 전체"
+            onClick={() => onChange(allOn ? [...new Set([...off, ...ids])] : off.filter((id) => !ids.includes(id)))}
+          >
+            전체
+          </button>
+        )}
+      </div>
+      {groups.length === 0 ? (
+        <p className="alerts__empty">아직 그룹이 없어요.</p>
+      ) : (
+        <ul className="alerts__groups">
+          {groups.map((g) => {
+            const on = !off.includes(g.id);
+            return (
+              <li key={g.id}>
+                <button
+                  className="settings__row alerts__group"
+                  role="switch"
+                  aria-checked={on}
+                  onClick={() => onChange(on ? [...off, g.id] : off.filter((id) => id !== g.id))}
+                >
+                  <svg className="alerts__cover" viewBox="0 0 100 100" aria-hidden>
+                    <GroupCover cover={g.cover} />
+                  </svg>
+                  <span className="settings__label alerts__group-name">{g.name}</span>
+                  <span className={`settings__switch ${on ? 'is-on' : ''}`} aria-hidden />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }

@@ -7,6 +7,7 @@ import PinGlyph from './PinGlyph';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import CategoryIconPicker from './CategoryIconPicker';
 import ColorPicker from './ColorPicker';
+import { showModalQuietly } from '../lib/dialog';
 
 export interface CategoryFormValue {
   name: string;
@@ -42,7 +43,7 @@ export default function CategoryFormDialog({ mode, initial, onSubmit, onClose }:
   // No close() in cleanup: it would fire onClose during StrictMode's check (as ConfirmDialog).
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (dialog && !dialog.open) dialog.showModal();
+    if (dialog) showModalQuietly(dialog);
   }, []);
 
   const title = mode === 'create' ? '새 카테고리' : '카테고리 편집';

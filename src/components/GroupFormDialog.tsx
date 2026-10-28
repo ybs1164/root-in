@@ -5,6 +5,7 @@ import { inviteUrl } from '../services/groupService';
 import { newSlug } from '../services/shareLinkService';
 import InviteLinkField from './InviteLinkField';
 import { GroupCover } from './WeNowPage';
+import { showModalQuietly } from '../lib/dialog';
 
 interface GroupFormDialogProps {
   /** Resolves false when it didn't go through (the dialog then stays open with a note). */
@@ -29,7 +30,7 @@ export default function GroupFormDialog({ onSubmit, onClose }: GroupFormDialogPr
   // No close() in cleanup: it would fire onClose during StrictMode's check (as ConfirmDialog).
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (dialog && !dialog.open) dialog.showModal();
+    if (dialog) showModalQuietly(dialog);
   }, []);
 
   const canSubmit = name.trim().length > 0 && !busy;

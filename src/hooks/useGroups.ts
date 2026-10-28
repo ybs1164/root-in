@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { dateKey } from '../domain/diary';
-import type { Group } from '../domain/groups';
+import type { Group, PingDays } from '../domain/groups';
 import type { AuthUser } from '../services/authService';
 import { groupService as defaultService, readInviteSlug, type GroupService, type PhotoPing } from '../services/groupService';
 
@@ -172,4 +172,80 @@ export function useGroups(
   );
 
   return { status, groups, refresh, create, rename, leave, kick, setAlias, remove, sendPhoto };
+}
+
+export type GroupDayStatus = 'loading' | 'ready' | 'error';
+
+/**
+ * A past day's groups for a group's map paged back with its `<` `>`: read
+ * once per day asked (a day gone by hardly changes), null = today (the live
+ * list above). Answers for a day no longer asked are dropped.
+ */
+export function useGroupsOnDay(user: AuthUser | null, day: string | null, service: GroupService = defaultService): { status: GroupDayStatus; groups: Group[] } {
+  const [state, setState] = useState<{ day: string | null; status: GroupDayStatus; groups: Group[] }>({ day: null, status: 'loading', groups: [] });
+  const userId = user?.id ?? null;
+  useEffect(() => {
+    if (!day) return;
+    setState({ day, status: 'loading', groups: [] });
+    if (!service.available || !userId) return setState({ day, status: 'error', groups: [] });
+    let live = true;
+    void service.list(day).then((result) => {
+      if (!live) return;
+      setState(result === 'error' ? { day, status: 'error', groups: [] } : { day, status: 'ready', groups: result });
+    });
+    return () => {
+      live = false;
+    };
+  }, [day, service, userId]);
+  return state.day === day ? state : { status: 'loading', groups: [] };
+}
+
+/**
+ * A group's calendar month (`from`..`to`, YYYY-MM-DD): who pinged on each day.
+ * Asked in one go (group_ping_days); where the server doesn't have that yet,
+ * day by day through `list` (only the days up to today), so the calendar works
+ * either way. null `groupId` = closed.
+ */
+export function useGroupPingDays(
+  user: AuthUser | null,
+  groupId: string | null,
+  from: string,
+  to: string,
+  service: GroupService = defaultService,
+): { status: GroupDayStatus; days: PingDays } {
+  const [state, setState] = useState<{ key: string; status: GroupDayStatus; days: PingDays }>({ key: '', status: 'loading', days: {} });
+  const userId = user?.id ?? null;
+  const key = groupId ? `${groupId}|${from}|${to}` : '';
+  useEffect(() => {
+    if (!groupId) return;
+    setState({ key, status: 'loading', days: {} });
+    if (!service.available || !userId) return setState({ key, status: 'error', days: {} });
+    let live = true;
+    void (async () => {
+      const asked = await service.pingDays(groupId, from, to);
+      if (asked !== 'error') return live && setState({ key, status: 'ready', days: asked });
+      const today = dateKey();
+      const dayList: string[] = [];
+      for (let d = from; d <= to && d <= today; d = nextDay(d)) dayList.push(d);
+      const lists = await Promise.all(dayList.map((d) => service.list(d)));
+      if (!live) return;
+      const days: PingDays = {};
+      lists.forEach((list, i) => {
+        if (list === 'error') return;
+        const ids = list.find((g) => g.id === groupId)?.members.filter((m) => m.pings.length > 0).map((m) => m.userId) ?? [];
+        if (ids.length) days[dayList[i]] = ids;
+      });
+      const failed = lists.length > 0 && lists.every((l) => l === 'error');
+      setState({ key, status: failed ? 'error' : 'ready', days });
+    })();
+    return () => {
+      live = false;
+    };
+  }, [key, groupId, from, to, service, userId]);
+  return state.key === key ? state : { status: 'loading', days: {} };
+}
+
+function nextDay(day: string): string {
+  const [y, m, d] = day.split('-').map(Number);
+  return dateKey(new Date(y, m - 1, d + 1));
 }
