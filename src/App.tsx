@@ -60,6 +60,8 @@ import { dateKey } from './domain/diary';
 import GroupMapView from './components/GroupMapView';
 import PhotoGallery from './components/PhotoGallery';
 import { useGalleryPhotos } from './hooks/useGalleryPhotos';
+import { usePingPhotos } from './hooks/usePingPhotos';
+import { localGalleryPhotos, type GalleryTab } from './domain/gallery';
 import CameraScreen from './components/CameraScreen';
 import GroupSendDialog from './components/GroupSendDialog';
 import GroupFormDialog from './components/GroupFormDialog';
@@ -343,28 +345,37 @@ export default function App() {
   }, [todayOpen]);
   const [kicking, setKicking] = useState<GroupMember | null>(null);
   const openGroup = tab === 'people' && openGroupId ? (groupList.find((g) => g.id === openGroupId) ?? null) : null;
-  // The gallery: TODAY's (every group I'm in) or one group's; the photo open big in it.
-  const [galleryOf, setGalleryOf] = useState<'today' | string | null>(null);
+  // The gallery's open tab (TODAY opens on MY, a group on its own), null = closed;
+  // the photo open big in it. Every group's photos are read at once, for every tab.
+  const [galleryTab, setGalleryTab] = useState<GalleryTab | null>(null);
   const [gallerySeq, setGallerySeq] = useState<number | null>(null);
-  // The gallery's groups: TODAY's is every group I'm in, a group's only that one.
-  const galleryGroups = useMemo(
-    () => (!galleryOf || tab !== 'people' ? null : galleryOf === 'today' ? groupList : groupList.filter((g) => g.id === galleryOf)),
-    [galleryOf, tab, groupList],
-  );
-  const galleryIds = useMemo(() => galleryGroups?.map((g) => g.id) ?? null, [galleryGroups]);
+  const galleryIds = useMemo(() => (galleryTab && tab === 'people' ? groupList.map((g) => g.id) : null), [galleryTab, tab, groupList]);
   const gallery = useGalleryPhotos(galleryIds);
-  const openGallery = (of: 'today' | string) => {
+  const pingPhotos = usePingPhotos();
+  const myMember = useMemo<GroupMember>(
+    () =>
+      groupList.flatMap((g) => g.members).find((m) => m.userId === myId) ?? {
+        userId: myId ?? 'me', slot: 0, nickname: getDisplayName().trim() || '나', alias: null, photo: profile.photo ?? null, pings: [],
+      },
+    [groupList, myId, profile.photo],
+  );
+  const galleryLocal = useMemo(
+    () => (galleryTab ? localGalleryPhotos(storedPings, pingPhotos, myMember.userId) : []),
+    [galleryTab, storedPings, pingPhotos, myMember.userId],
+  );
+  const openGallery = (to: GalleryTab) => {
     setGallerySeq(null);
-    setGalleryOf(of);
+    setGalleryTab(to);
   };
   const closeGallery = useCallback(() => {
     setGallerySeq(null);
-    setGalleryOf(null);
+    setGalleryTab(null);
   }, []);
-  // Off We Now, or the group's gone (left, deleted): the gallery closes too.
+  // Off We Now the gallery closes; a group's tab that's gone (left, deleted) falls back to MY.
   useEffect(() => {
-    if (galleryOf && (tab !== 'people' || (galleryOf !== 'today' && !groupList.some((g) => g.id === galleryOf)))) closeGallery();
-  }, [galleryOf, tab, groupList, closeGallery]);
+    if (galleryTab && tab !== 'people') closeGallery();
+    else if (galleryTab && galleryTab !== 'my' && !groupList.some((g) => g.id === galleryTab)) openGallery('my');
+  }, [galleryTab, tab, groupList, closeGallery]);
   // A group I've left (or that's gone) closes; a member who left can't stay picked.
   useEffect(() => {
     if (openGroupId && groups.status === 'ready' && !groups.groups.some((g) => g.id === openGroupId)) setOpenGroupId(null);
@@ -788,7 +799,7 @@ export default function App() {
     // Under the title, over the member row along the bottom (and the picked
     // member's pass over it), clear of the < > at the sides.
     const side = width < 520 ? 76 : 96;
-    const padding = { top: 150, right: side, bottom: groupPicked ? 270 : 130, left: side };
+    const padding = { top: 150, right: side, bottom: groupPicked ? 332 : 192, left: side };
     // Like a route: the first move onto someone (from ALL, or opening the
     // group) glides at the usual pace; going on from one member to the next
     // is as quick as stepping between routes with < >.
@@ -1288,7 +1299,7 @@ export default function App() {
     if (closeTopDialog()) return true;
     if (cameraOpen) return setCameraOpen(false), true;
     if (gallerySeq !== null) return setGallerySeq(null), true;
-    if (galleryOf) return setGalleryOf(null), true;
+    if (galleryTab) return closeGallery(), true;
     if (studio) return setStudio(null), true;
     if (groupPhotoBig) return setGroupPhotoBig(false), true;
     if (openGroupId) return setOpenGroupId(null), true;
@@ -1844,12 +1855,16 @@ export default function App() {
         </>
       )}
 
-      {galleryGroups && (
+      {galleryTab && tab === 'people' && (
         <PhotoGallery
-          groups={galleryGroups}
-          groupName={galleryOf === 'today' ? null : (galleryGroups[0]?.name ?? null)}
+          groups={groupList}
+          me={myId}
+          meMember={myMember}
+          tab={galleryTab}
+          onTab={openGallery}
           state={gallery.state}
           onRetry={gallery.retry}
+          local={galleryLocal}
           seq={gallerySeq}
           onSeq={setGallerySeq}
           onClose={closeGallery}
@@ -1970,7 +1985,7 @@ export default function App() {
           onPin={startPinning}
           onPeople={() => changeTab('people')}
           onCamera={() => setCameraOpen(true)}
-          onGallery={calendarZoom ? () => openGallery('today') : undefined}
+          onGallery={calendarZoom ? () => openGallery('my') : undefined}
         />
       </div>
 

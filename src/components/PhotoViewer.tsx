@@ -10,6 +10,8 @@ export interface ViewerItem {
   who: string;
   /** Beside the caption: who sent it. */
   face: ReactNode;
+  /** Over the photo: the day it's from (the gallery, paging across days). */
+  date?: string;
 }
 
 /** How far a drag past the first or last photo still moves it (a little give, then it springs back). */
@@ -25,7 +27,24 @@ const EDGE_GIVE = 0.25;
  * springs back) rather than going round as the panel's ‹ › do. The veil,
  * ✕, Esc or the back button closes it, back to where it was opened.
  */
-export default function PhotoViewer({ items, seq, onSeq, onClose, prevLabel = '이전 장소', nextLabel = '다음 장소' }: { items: ViewerItem[]; seq: number; onSeq(seq: number): void; onClose(): void; prevLabel?: string; nextLabel?: string }) {
+export default function PhotoViewer({
+  items,
+  seq,
+  onSeq,
+  onClose,
+  prevLabel = '이전 장소',
+  nextLabel = '다음 장소',
+  counted = true,
+}: {
+  items: ViewerItem[];
+  seq: number;
+  onSeq(seq: number): void;
+  onClose(): void;
+  prevLabel?: string;
+  nextLabel?: string;
+  /** `n / N` after who (the gallery leaves it out). */
+  counted?: boolean;
+}) {
   const ping = items[seq];
   const count = items.length;
   // Which way the new photo slides in from (1 = from the right, after a drag or › to the next).
@@ -100,6 +119,7 @@ export default function PhotoViewer({ items, seq, onSeq, onClose, prevLabel = '�
         <X size={22} strokeWidth={2.4} />
       </button>
       <figure className="group-photo-viewer__figure" onClick={(e) => e.stopPropagation()}>
+        {ping.date && <p className="group-photo-viewer__date">{ping.date}</p>}
         <div
           ref={photo}
           className="group-photo-viewer__drag"
@@ -124,7 +144,8 @@ export default function PhotoViewer({ items, seq, onSeq, onClose, prevLabel = '�
           <span className="group-photo-viewer__text">
             <strong>{ping.name}</strong>
             <span>
-              {ping.who} · {seq + 1} / {count}
+              {ping.who}
+              {counted && ` · ${seq + 1} / ${count}`}
             </span>
           </span>
           {count > 1 && (
