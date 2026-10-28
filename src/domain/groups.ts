@@ -1,3 +1,4 @@
+import { haversineMeters } from './geo';
 import type { StoredPing } from './dayPings';
 /** We Now: a group whose members see each other's TODAY pings on one map. */
 export interface GroupPing {
@@ -34,6 +35,34 @@ export interface Group {
 }
 
 export const GROUP_LIMITS = { name: 12, alias: 20, members: 20, pingsPerMember: 200, covers: 4 } as const;
+
+/**
+ * Two pings this close are the same place. By distance, not by place id: the
+ * same café pinged from a phone on Kakao and one on the OSM fallback has two
+ * different ids (and names spelled differently).
+ */
+export const SAME_PLACE_M = 50;
+
+/**
+ * Pings at a place where at least one other member pinged too, as
+ * `groupPingKey`s — drawn with the aurora edge (two or more of us were there).
+ */
+export function sharedPlacePings(members: readonly GroupMember[]): Set<string> {
+  const shared = new Set<string>();
+  members.forEach((a, ai) =>
+    a.pings.forEach((pa) => {
+      for (const b of members.slice(ai + 1)) {
+        if (b.userId === a.userId) continue;
+        b.pings.forEach((pb) => {
+          if (haversineMeters(pa.center, pb.center) > SAME_PLACE_M) return;
+          shared.add(groupPingKey(a, pa));
+          shared.add(groupPingKey(b, pb));
+        });
+      }
+    }),
+  );
+  return shared;
+}
 
 /** A member's colour: the pin palette in turn (it repeats past eight). */
 export const memberColor = (slot: number): string => `var(--pin-${(slot % 8) + 1})`;

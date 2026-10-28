@@ -90,6 +90,8 @@ export interface GroupPingMark {
   photo?: string;
   /** The ping tapped on (its place is in the panel under the group's title). */
   selected?: boolean;
+  /** Someone else in the group pinged the same place: an aurora edge instead of the member's colour. */
+  together?: boolean;
 }
 
 export interface CourseMapOptions {
@@ -211,7 +213,7 @@ const DEFAULT_FACE_SVG =
 
 export function createGroupPingElement(mark: GroupPingMark): HTMLElement {
   const el = document.createElement('div');
-  el.className = `group-ping${mark.face ? ' group-ping--face' : ' group-ping--pin'}${mark.faded ? ' is-faded' : ''}${mark.selected ? ' is-selected' : ''}${mark.photo ? ' has-photo' : ''}`;
+  el.className = `group-ping${mark.face ? ' group-ping--face' : ' group-ping--pin'}${mark.faded ? ' is-faded' : ''}${mark.selected ? ' is-selected' : ''}${mark.photo ? ' has-photo' : ''}${mark.together ? ' is-together' : ''}`;
   el.style.setProperty('--member', mark.color);
   el.dataset.member = mark.member;
   el.dataset.seq = String(mark.seq);

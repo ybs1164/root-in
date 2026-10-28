@@ -141,7 +141,8 @@ function drawPeel(canvas: HTMLCanvasElement, p: Peel, fold: PeelFold | null) {
  * the sticker goes back. A peeled spot keeps a faint mark of the sticker,
  * from the first lift until the pack next comes up, full again — so at
  * most one spot is ever bare. While it's up, a touch anywhere off it tucks
- * it down (and only the next one puts the tool away).
+ * it down (and only the next one puts the tool away), and so does dragging
+ * it down by its band or bare paper.
  */
 export default function StickerSheets({
   onPlace,
@@ -182,6 +183,12 @@ export default function StickerSheets({
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
 
   const step = (by: 1 | -1) => {
+    // A sticker half off this pack (its release lost, or still laying back
+    // down) would otherwise stay drawn over the next pack.
+    if (peel.current) {
+      cancelAnimationFrame(frame.current);
+      end();
+    }
     setIndex((i) => (i + by + count) % count);
     setFrom(by > 0 ? 'next' : 'prev');
   };
@@ -440,6 +447,46 @@ export default function StickerSheets({
     if (swipeCommits(-1, r.dy, r.down, velocity)) setPeek(false);
   };
 
+  // Up, the pack can be dragged down by its band or bare paper the same way:
+  // it follows the finger and, let go far or fast enough, tucks down to its
+  // band; otherwise it springs back up.
+  const lower = useRef<{ id: number; y: number; t: number; down: number; dy: number; on: boolean } | null>(null);
+  const lowered = useRef(false);
+  const onLowerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const sheetBox = sheetEl.current;
+    if (peek || !e.isPrimary || !sheetBox || (e.target as Element).closest('.sticker-sheet__slot')) return;
+    const band = sheetBox.querySelector<HTMLElement>('.sticker-pack__band');
+    // How far down the tucked pack sits: all but its band (and a sliver) below the screen.
+    const down = Math.max(0, window.innerHeight - sheetBox.getBoundingClientRect().top - (band?.offsetHeight ?? 0) - 6);
+    lower.current = { id: e.pointerId, y: e.clientY, t: performance.now(), down, dy: 0, on: false };
+  };
+  const onLowerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const r = lower.current;
+    if (!r || r.id !== e.pointerId) return;
+    const dy = e.clientY - r.y;
+    if (!r.on) {
+      if (Math.abs(dy) < SWIPE.startPx) return;
+      r.on = true;
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        // Moves still come while the finger is over the pack.
+      }
+    }
+    r.dy = Math.max(0, Math.min(r.down, dy));
+    placeSheets(r.dy, false);
+  };
+  const onLowerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const r = lower.current;
+    lower.current = null;
+    if (!r || r.id !== e.pointerId || !r.on) return;
+    lowered.current = true;
+    window.setTimeout(() => (lowered.current = false), 0);
+    const velocity = r.dy / Math.max(1, performance.now() - r.t);
+    placeSheets(null, true);
+    if (e.type !== 'pointercancel' && swipeCommits(1, r.dy, r.down, velocity)) setPeek(true);
+  };
+
   if (!sheet) return null;
   return (
     <>
@@ -468,8 +515,12 @@ export default function StickerSheets({
             style={{ '--pack': sheet.color, '--pack-ink': sheet.ink } as CSSProperties}
             role="group"
             aria-label={`스티커 한 장 ${sheet.label ?? sheet.name}`}
+            onPointerDown={onLowerDown}
+            onPointerMove={onLowerMove}
+            onPointerUp={onLowerUp}
+            onPointerCancel={onLowerUp}
             // Tucked down: a tap brings it back up. Up: a tap off the stickers tucks it down.
-            onClick={(e) => (peek ? setPeek(false) : !(e.target as Element).closest('.sticker-sheet__slot') && setPeek(true))}
+            onClick={(e) => lowered.current || (peek ? setPeek(false) : !(e.target as Element).closest('.sticker-sheet__slot') && setPeek(true))}
           >
             <StickerPackBand sheet={sheet} />
             <div className="sticker-sheet__body">

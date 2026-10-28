@@ -16,6 +16,10 @@ const PHOTON_REVERSE_URL = 'https://photon.komoot.io/reverse';
 const NEARBY_MAX_M = 150;
 const NOT_A_VISIT = new Set(['highway', 'place', 'boundary', 'railway', 'landuse']);
 const SEARCH_TIMEOUT_MS = 8000;
+// Without it Photon answers in the WebView's Accept-Language: an English
+// phone got "Gwanghwamun Gate, Sajik-ro, Seoul" where others got "광화문".
+// 'default' is the local (Korean) name; 'ko' isn't a language Photon offers.
+const PHOTON_LANG = 'default';
 
 interface PhotonFeature {
   geometry?: { coordinates?: [number, number] };
@@ -59,7 +63,7 @@ export class PhotonPlaceSearch implements PlaceSearchService {
     const timer = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
 
     try {
-      const params = new URLSearchParams({ q: trimmed, limit: String(MAX_SEARCH_RESULTS) });
+      const params = new URLSearchParams({ q: trimmed, limit: String(MAX_SEARCH_RESULTS), lang: PHOTON_LANG });
       if (near) {
         params.set('lon', String(near[0]));
         params.set('lat', String(near[1]));
@@ -85,7 +89,7 @@ export class PhotonPlaceSearch implements PlaceSearchService {
     signal?.addEventListener('abort', onAbort);
     const timer = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
     try {
-      const params = new URLSearchParams({ lon: String(center[0]), lat: String(center[1]), limit: String(limit) });
+      const params = new URLSearchParams({ lon: String(center[0]), lat: String(center[1]), limit: String(limit), lang: PHOTON_LANG });
       const response = await fetch(`${PHOTON_REVERSE_URL}?${params}`, { signal: controller.signal });
       if (!response.ok) return [];
       const data = (await response.json()) as { features?: PhotonFeature[] };

@@ -34,6 +34,12 @@
   --shadow: 0 10px 30px rgba(27, 36, 64, 0.12);
   --shadow-sm: 0 2px 10px rgba(27, 36, 64, 0.08);
   --pin-shadow: 0 2px 3px rgba(27, 36, 64, 0.22);
+  /* We Now: a place two or more members pinged wears a pastel aurora edge. */
+  --aurora-1: #ffb8d9;
+  --aurora-2: #ffd9a8;
+  --aurora-3: #c8f0b0;
+  --aurora-4: #a8e4f5;
+  --aurora-5: #c9b8ff;
   /* Boarding-pass tear line on the pin card. */
   --perforation: rgba(27, 36, 64, 0.22);
   /* drop-shadow() for the ticket-shaped tab bar (a box-shadow would be cut by its notches). */
@@ -617,6 +623,8 @@ button:disabled {
 
 .app {
   position: relative;
+  /* WebViews older than iOS 15.4 have no dvh. */
+  height: 100%;
   height: 100dvh;
   overflow: hidden;
 }
@@ -9061,6 +9069,84 @@ button.group-photo-panel__photo {
 .group-ping.is-faded {
   /* !important: MapLibre sets each marker's opacity inline. */
   opacity: 0.25 !important;
+}
+
+/* Two or more members pinged here (`sharedPlacePings`): the ping, its face
+   ring and its photo frame turn a slowly turning pastel aurora instead of
+   the member's colour. */
+@property --aurora-turn {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+
+.group-ping.is-together {
+  --aurora: conic-gradient(from var(--aurora-turn), var(--aurora-1), var(--aurora-2), var(--aurora-3), var(--aurora-4), var(--aurora-5), var(--aurora-1));
+  animation: aurora-turn 6s linear infinite;
+}
+
+.group-ping.is-together .group-ping__photo {
+  background: var(--aurora);
+}
+
+.group-ping.is-together .group-ping__photo::after,
+.group-ping--face.is-together::after {
+  border-top-color: var(--aurora-4);
+}
+
+.group-ping.is-together .group-ping__face {
+  padding: 3px;
+  background: var(--aurora);
+  box-shadow: 0 0 0 2px var(--surface), var(--pin-shadow);
+}
+
+.group-ping.is-together .group-ping__face img {
+  border-radius: 50%;
+}
+
+.group-ping--face.is-together::before {
+  background: var(--aurora);
+}
+
+/* The pin glyph is one fill: it drifts through the same colours, with a soft glow. */
+.group-ping.is-together .group-ping__pin {
+  animation: aurora-fill 6s linear infinite;
+  filter: drop-shadow(0 0 1.5px var(--surface)) drop-shadow(0 0 4px var(--aurora-5));
+}
+
+@keyframes aurora-turn {
+  to {
+    --aurora-turn: 360deg;
+  }
+}
+
+@keyframes aurora-fill {
+  0%,
+  100% {
+    color: var(--aurora-1);
+  }
+  20% {
+    color: var(--aurora-2);
+  }
+  40% {
+    color: var(--aurora-3);
+  }
+  60% {
+    color: var(--aurora-4);
+  }
+  80% {
+    color: var(--aurora-5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group-ping.is-together,
+  .group-ping.is-together .group-ping__pin {
+    animation: none;
+  }
+  .group-ping.is-together .group-ping__pin {
+    color: var(--aurora-5);
+  }
 }
 
 .group-lines {
