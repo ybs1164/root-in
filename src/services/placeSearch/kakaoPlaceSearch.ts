@@ -90,7 +90,7 @@ export class KakaoPlaceSearch implements PlaceSearchService {
     });
   }
 
-  async nearby(center: [number, number], { signal }: { signal?: AbortSignal } = {}): Promise<PlaceRef[]> {
+  async nearby(center: [number, number], { signal, limit = MAX_NEARBY_RESULTS }: { signal?: AbortSignal; limit?: number } = {}): Promise<PlaceRef[]> {
     const one = (code: string) =>
       new Promise<PlaceRef[]>((resolve) => {
         if (signal?.aborted) return resolve([]);
@@ -108,7 +108,8 @@ export class KakaoPlaceSearch implements PlaceSearchService {
               location: new this.maps.LatLng(center[1], center[0]),
               radius: NEARBY_RADIUS_M,
               sort: this.maps.services.SortBy?.DISTANCE,
-              size: MAX_NEARBY_RESULTS,
+              // Kakao takes at most 15 a page.
+              size: Math.min(15, limit),
             },
           );
         } catch {
@@ -119,6 +120,6 @@ export class KakaoPlaceSearch implements PlaceSearchService {
     const unique = [...new Map(all.map((p) => [p.id, p])).values()];
     return unique
       .sort((a, b) => haversineMeters(center, a.center) - haversineMeters(center, b.center))
-      .slice(0, MAX_NEARBY_RESULTS);
+      .slice(0, limit);
   }
 }

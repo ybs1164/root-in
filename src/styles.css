@@ -4580,6 +4580,43 @@ button:disabled {
   background: var(--accent);
 }
 
+/* 위치 선택, the dialog's first step: a pin mark, the place's name over its
+   address (or 현재 위치 for the spot itself). */
+.group-send__spot {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--accent);
+}
+
+.group-send__place {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.group-send__place .group-send__name {
+  flex: none;
+}
+
+.group-send__sub {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-send__where {
+  color: var(--accent);
+  font-weight: inherit;
+}
+
 /* A shared route link's popup: the sharer's photo centred, who shared it and how often. */
 .shared-route-dialog {
   width: min(300px, calc(100vw - 48px));
@@ -5330,7 +5367,8 @@ button:disabled {
 .bar-share {
   position: absolute;
   right: 16px;
-  bottom: -8px;
+  /* Over the camera (52px + a 12px gap), which keeps its place on every screen. */
+  bottom: 56px;
   display: grid;
   place-items: center;
   width: 52px;
@@ -5348,8 +5386,8 @@ button:disabled {
   scale: 0.92;
 }
 
-/* The camera at the row's right end on the map and We Now (TODAY has 공유
-   there): a white round like the small row buttons, a size up, its bottom
+/* The camera at the row's right end on every screen (TODAY's 공유 sits
+   above it): a white round like the small row buttons, a size up, its bottom
    level with the big centre one. A group's map has its own (GroupMapView). */
 .camera-btn {
   display: grid;
@@ -5391,13 +5429,22 @@ button:disabled {
 }
 
 .camera__frame {
+  /* One side for both: a square even where aspect-ratio or dvh don't hold
+     (older phone web views). Room is left for ✕ above and the shutter below. */
+  --side: min(100vw, 100vh - var(--safe-top) - var(--safe-bottom) - 280px, 640px);
   position: absolute;
   top: 50%;
   left: 50%;
-  width: min(100vw, 100dvh - var(--safe-top) - var(--safe-bottom) - 280px, 640px);
-  aspect-ratio: 1;
+  width: var(--side);
+  height: var(--side);
   overflow: hidden;
   translate: -50% -50%;
+}
+
+@supports (height: 1dvh) {
+  .camera__frame {
+    --side: min(100vw, 100dvh - var(--safe-top) - var(--safe-bottom) - 280px, 640px);
+  }
 }
 
 .camera__view,

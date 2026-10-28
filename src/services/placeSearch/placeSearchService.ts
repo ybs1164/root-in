@@ -20,8 +20,8 @@ export interface PlaceSearchService {
    * Null when unknown — the caller names it "지정한 위치".
    */
   reverse(center: [number, number], options?: { signal?: AbortSignal }): Promise<PlaceRef | null>;
-  /** Named places around a point, nearest first (route-in candidates). */
-  nearby(center: [number, number], options?: { signal?: AbortSignal }): Promise<PlaceRef[]>;
+  /** Named places around a point, nearest first (route-in candidates; `limit` defaults to MAX_NEARBY_RESULTS). */
+  nearby(center: [number, number], options?: { signal?: AbortSignal; limit?: number }): Promise<PlaceRef[]>;
 }
 
 export const MAX_NEARBY_RESULTS = 3;

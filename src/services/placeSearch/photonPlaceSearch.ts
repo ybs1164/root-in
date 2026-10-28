@@ -106,13 +106,13 @@ export class PhotonPlaceSearch implements PlaceSearchService {
     return name ? pointPlace(center, name, place?.address) : null;
   }
 
-  async nearby(center: [number, number], { signal }: { signal?: AbortSignal } = {}): Promise<PlaceRef[]> {
+  async nearby(center: [number, number], { signal, limit = MAX_NEARBY_RESULTS }: { signal?: AbortSignal; limit?: number } = {}): Promise<PlaceRef[]> {
     const features = await this.reverseFeatures(center, 10, signal);
     return features
       .filter((f) => !NOT_A_VISIT.has(f.properties?.osm_key ?? ''))
       .map(photonToPlaceRef)
       .filter((p): p is PlaceRef => p !== null && haversineMeters(center, p.center) <= NEARBY_MAX_M)
       .sort((a, b) => haversineMeters(center, a.center) - haversineMeters(center, b.center))
-      .slice(0, MAX_NEARBY_RESULTS);
+      .slice(0, limit);
   }
 }

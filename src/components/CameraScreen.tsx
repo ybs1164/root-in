@@ -49,7 +49,10 @@ export default function CameraScreen({ onSend, onClose }: { onSend: (photo: stri
   const shoot = () => {
     const el = video.current;
     if (!el || state !== 'live') return;
-    const url = captureFrame(el, el.getBoundingClientRect(), facing === 'user');
+    // Always a square, whatever shape the view ended up on screen: its middle.
+    const { width, height } = el.getBoundingClientRect();
+    const side = Math.min(width, height);
+    const url = captureFrame(el, { width: side, height: side }, facing === 'user');
     if (!url) return;
     setFlash((n) => n + 1);
     setShot(url);

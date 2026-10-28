@@ -72,6 +72,7 @@ import { withRecentCategory } from './services/settingsRepository';
 import { loadProfile, saveProfile, type Profile } from './services/profileRepository';
 import { usePrivacy } from './hooks/usePrivacy';
 import { hasHome, isExcluded } from './domain/privacy';
+import { CAMERA_PLACE_LIMIT, cameraPlaces } from './domain/cameraPlaces';
 import type { CourseStop, PlaceRef, Course, SharedCourse } from './types/course';
 import type { Pin } from './types/pin';
 
@@ -146,6 +147,9 @@ export default function App() {
   const [cameraOpen, setCameraOpen] = useState(false);
   // A shot from the camera waiting for its groups (the 그룹에 보내기 popup is up).
   const [cameraShot, setCameraShot] = useState<string | null>(null);
+  // Where that shot can say it was taken (null while still looking), or why there's nowhere.
+  const [cameraSpots, setCameraSpots] = useState<{ places: PlaceRef[] | null; problem: string | null }>({ places: null, problem: null });
+  const cameraLookup = useRef(0);
   const [profile, setProfile] = useState(loadProfile);
   // 로그인: the account's profile replaces this one on sign-in, and changes go up after.
   const account = useAccount(profile, (next) => {
@@ -1185,17 +1189,28 @@ export default function App() {
     return false;
   });
 
-  // 전송 from the camera: the photo and a ping of where I am now to each
-  // picked group. Never from near a 제외 주소 (as pings there never leave the
-  // phone); the place is named by reverse geocoding. What went wrong, or null.
-  const sendCameraShot = async (groupIds: string[], photo: string): Promise<string | null> => {
+  // 전송 from the camera, first: the places around where I am, for the shot
+  // to say where it was taken (CameraPlaces). Never from near a 제외 주소 (as
+  // pings there never leave the phone). Only the latest lookup lands.
+  const findCameraSpots = async () => {
+    const turn = ++cameraLookup.current;
     const center = me?.center;
-    if (!center) return '지금 위치를 찾지 못했어요. 위치 권한을 확인해 주세요.';
-    if (isExcluded({ center }, privacy.excluded)) return '제외 주소 근처에서는 보낼 수 없어요.';
-    const named = await searchService?.reverse(center);
-    if (named && isExcluded({ center, address: named.address }, privacy.excluded)) return '제외 주소 근처에서는 보낼 수 없어요.';
-    const name = named?.name.trim() && named.name !== UNNAMED_SPOT ? named.name.trim() : '현재 위치';
-    const sent = await groups.sendPhoto(groupIds, { day: dateKey(), at: new Date().toISOString(), center, name }, photo);
+    if (!center) return setCameraSpots({ places: [], problem: '지금 위치를 찾지 못했어요. 위치 권한을 확인해 주세요.' });
+    if (isExcluded({ center }, privacy.excluded)) return setCameraSpots({ places: [], problem: '제외 주소 근처에서는 보낼 수 없어요.' });
+    setCameraSpots({ places: null, problem: null });
+    const [named, around] = await Promise.all([
+      searchService?.reverse(center) ?? null,
+      searchService?.nearby(center, { limit: CAMERA_PLACE_LIMIT }) ?? [],
+    ]);
+    if (turn !== cameraLookup.current) return;
+    const places = cameraPlaces(center, named && named.name !== UNNAMED_SPOT ? named : null, pinStore.pins, around, privacy.excluded);
+    setCameraSpots({ places, problem: places.length ? null : '제외 주소 근처에서는 보낼 수 없어요.' });
+  };
+
+  // Then the photo and a ping of the place picked to each picked group. What went wrong, or null.
+  const sendCameraShot = async (groupIds: string[], photo: string, place: PlaceRef): Promise<string | null> => {
+    if (isExcluded(place, privacy.excluded)) return '제외 주소 근처에서는 보낼 수 없어요.';
+    const sent = await groups.sendPhoto(groupIds, { day: dateKey(), at: new Date().toISOString(), center: place.center, name: place.name }, photo);
     if (!sent) return '보내지 못했어요. 잠시 뒤에 다시 시도해 주세요.';
     setCameraShot(null);
     setCameraOpen(false);
@@ -1919,6 +1934,7 @@ export default function App() {
           onSend={(photo) => {
             setCameraShot(photo);
             groups.refresh();
+            void findCameraSpots();
           }}
           onClose={() => setCameraOpen(false)}
         />
@@ -1927,8 +1943,13 @@ export default function App() {
         <GroupSendDialog
           groups={groupList}
           status={groups.status}
-          onSend={(ids) => sendCameraShot(ids, cameraShot)}
-          onClose={() => setCameraShot(null)}
+          places={cameraSpots.places}
+          placeProblem={cameraSpots.problem}
+          onSend={(ids, place) => sendCameraShot(ids, cameraShot, place)}
+          onClose={() => {
+            cameraLookup.current++;
+            setCameraShot(null);
+          }}
         />
       )}
       {settingsOpen && (

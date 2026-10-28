@@ -155,8 +155,8 @@ export default function BottomBar({ tab, today = false, calendarMode, onCalendar
           </button>
         </>
       )}
-      {/* The map and We Now share the camera at the row's right end (TODAY has 공유 there). */}
-      {!cal && <CameraButton className="bar-camera" onOpen={onCamera} />}
+      {/* Every screen has the camera at the row's right end; TODAY's 공유 sits on top of it. */}
+      <CameraButton className="bar-camera" onOpen={onCamera} />
       {onShare && (
         <button className="bar-share" aria-label="공유" onClick={onShare}>
           <Share size={24} strokeWidth={2.2} aria-hidden />
