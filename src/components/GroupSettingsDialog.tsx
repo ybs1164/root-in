@@ -5,6 +5,7 @@ import { useBackdropTap } from '../hooks/useBackdropTap';
 import { inviteUrl } from '../services/groupService';
 import InviteLinkField from './InviteLinkField';
 import { MemberFace } from './WeNowPage';
+import { showModalQuietly } from '../lib/dialog';
 
 interface GroupSettingsDialogProps {
   group: Group;
@@ -59,7 +60,7 @@ export default function GroupSettingsDialog({ group, me, onRename, onAlias, onKi
   const [problem, setProblem] = useState<string | null>(null);
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (dialog && !dialog.open) dialog.showModal();
+    if (dialog) showModalQuietly(dialog);
   }, []);
 
   const limit = owner ? GROUP_LIMITS.name : GROUP_LIMITS.alias;

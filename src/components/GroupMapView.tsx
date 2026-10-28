@@ -1,6 +1,9 @@
-import { Camera, ChevronLeft, ChevronRight, Settings, X } from 'lucide-react';
+import { CalendarDays, Camera, ChevronLeft, ChevronRight, Settings, X } from 'lucide-react';
 import { useEffect, useRef, type CSSProperties } from 'react';
-import { memberColor, passRoute, stepMember, type Group, type GroupMember } from '../domain/groups';
+import { memberColor, passRoute, type Group, type GroupMember } from '../domain/groups';
+import { addDays } from '../domain/calendar';
+import { dateKey } from '../domain/diary';
+import { galleryDayLabel } from '../domain/gallery';
 import { MemberFace } from './WeNowPage';
 import CameraButton from './CameraButton';
 import PhotoViewer from './PhotoViewer';
@@ -15,6 +18,11 @@ interface GroupMapViewProps {
   group: Group;
   /** The member picked on the rail (their pings only, the map on them); null = ALL. */
   picked: string | null;
+  /** The day on the map ('YYYY-MM-DD'), null = today; `<` `>` in the middle page it. */
+  day: string | null;
+  onDay(day: string): void;
+  /** Another day's pings are still on their way. */
+  loading?: boolean;
   /** My user id: my pass reads ME. */
   me: string | null;
   /** A face's badge: their pings since I last picked them (App keeps what was seen). */
@@ -28,6 +36,8 @@ interface GroupMapViewProps {
   onPhotoBig(open: boolean): void;
   onBack(): void;
   onSettings(): void;
+  /** The calendar under ⚙: the group's month, who pinged on each day. */
+  onCalendar(): void;
   onCamera(): void;
   /** The gallery at the bottom-left: every photo sent to this group, by day. */
   onGallery(): void;
@@ -37,7 +47,8 @@ interface GroupMapViewProps {
  * A group opened from We Now: the map with every member's pings and lines
  * (App draws them), and over it ‹ back, the group's name (only the name —
  * the pass says who's picked),
- * ⚙ settings, `<` `>` either side of the pass, one member after another,
+ * ⚙ settings with the group's calendar under it, `<` `>` down the middle either side, a day back or forward
+ * (no `>` on today) with the day under the name,
  * the gallery fixed at the bottom-left and the camera at the bottom-right, and the member row
  * along the bottom: ALL then every member's face, each its own button with
  * a badge of their new pings since I last picked them, scrolled sideways when they don't fit. The picked
@@ -48,8 +59,11 @@ interface GroupMapViewProps {
  * the place, who, n / N with ‹ › through their day, tied to the ping by a
  * faint thread.
  */
-export default function GroupMapView({ group, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCamera, onGallery }: GroupMapViewProps) {
+export default function GroupMapView({ group, day, onDay, loading = false, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onCamera, onGallery }: GroupMapViewProps) {
   const pickedMember = group.members.find((m) => m.userId === picked) ?? null;
+  const today = dateKey();
+  const shown = day ?? today;
+  const label = galleryDayLabel(shown, today);
   // The picked face is scrolled into the middle of the row, however it was picked (row, < >, the map).
   const row = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -67,26 +81,31 @@ export default function GroupMapView({ group, picked, me, newPings, onPick, plac
       <button className="group-view__btn group-view__btn--settings" aria-label="그룹 설정" onClick={onSettings}>
         <Settings size={22} strokeWidth={2} />
       </button>
+      <button className="group-view__btn group-view__btn--calendar" aria-label="그룹 달력" onClick={onCalendar}>
+        <CalendarDays size={22} strokeWidth={2} />
+      </button>
 
       <div className="group-view__title">
         <h2 key={group.id}>{group.name}</h2>
+        <p className="group-view__day" aria-live="polite">
+          {label}
+          {loading && <span className="group-view__loading"> · 불러오는 중</span>}
+        </p>
       </div>
 
-      {group.members.length > 0 && (
-        <>
-          <button className="route-step route-step--prev group-view__step" aria-label="이전 그룹원" onClick={() => onPick(stepMember(group, picked, -1))}>
-            <ChevronLeft size={34} strokeWidth={2.4} />
-          </button>
-          <button className="route-step route-step--next group-view__step" aria-label="다음 그룹원" onClick={() => onPick(stepMember(group, picked, 1))}>
-            <ChevronRight size={34} strokeWidth={2.4} />
-          </button>
-        </>
+      <button className="route-step route-step--prev group-view__step" aria-label="전날" onClick={() => onDay(addDays(shown, -1))}>
+        <ChevronLeft size={34} strokeWidth={2.4} />
+      </button>
+      {shown < today && (
+        <button className="route-step route-step--next group-view__step" aria-label="다음 날" onClick={() => onDay(addDays(shown, 1))}>
+          <ChevronRight size={34} strokeWidth={2.4} />
+        </button>
       )}
 
       <GalleryButton className="group-view__gallery" onOpen={onGallery} />
       <CameraButton className="group-view__camera" onOpen={onCamera} />
 
-      {pickedMember && <MemberPass key={pickedMember.userId} member={pickedMember} mine={pickedMember.userId === me} />}
+      {pickedMember && <MemberPass key={pickedMember.userId} member={pickedMember} mine={pickedMember.userId === me} day={label} />}
 
       {pickedMember && place?.member === pickedMember.userId && pickedMember.pings[place.seq] && (() => {
         const step = (dir: -1 | 1) => onPlace({ member: pickedMember.userId, seq: (place.seq + dir + pickedMember.pings.length) % pickedMember.pings.length });
@@ -132,16 +151,17 @@ export default function GroupMapView({ group, picked, me, newPings, onPick, plac
 }
 
 /** The picked member's boarding pass over the row. */
-function MemberPass({ member, mine }: { member: GroupMember; mine: boolean }) {
+function MemberPass({ member, mine, day }: { member: GroupMember; mine: boolean; day: string }) {
+  const today = day === 'TODAY';
   const route = passRoute(member.pings.map((p) => placeName(p.name)));
   return (
-    <section className="member-pass" style={{ '--member': memberColor(member.slot) } as CSSProperties} aria-label={`${member.nickname}의 오늘`}>
+    <section className="member-pass" style={{ '--member': memberColor(member.slot) } as CSSProperties} aria-label={`${member.nickname}의 ${today ? '오늘' : day}`}>
       <div className="member-pass__ticket">
         <div className="member-pass__main">
           <div className="member-pass__who">
             <MemberFace member={member} size={48} />
             <div>
-              <span className="member-pass__tag">TODAY · {mine ? 'ME' : 'MEMBER'}</span>
+              <span className="member-pass__tag">{day} · {mine ? 'ME' : 'MEMBER'}</span>
               <strong className="member-pass__name">{member.nickname}</strong>
             </div>
           </div>
@@ -156,7 +176,7 @@ function MemberPass({ member, mine }: { member: GroupMember; mine: boolean }) {
               ))}
             </p>
           ) : (
-            <p className="member-pass__route">아직 오늘 핑이 없어요</p>
+            <p className="member-pass__route">{today ? '아직 오늘 핑이 없어요' : '이날은 핑이 없어요'}</p>
           )}
         </div>
         <div className="member-pass__stub">

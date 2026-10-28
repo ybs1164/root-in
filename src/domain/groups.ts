@@ -232,3 +232,36 @@ export function myGroupPings(stored: readonly StoredPing[], day: string): GroupP
     .sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0))
     .map((p) => ({ at: p.at, center: p.center, name: p.name }));
 }
+
+/** A group's calendar: day (YYYY-MM-DD) → the ids of the members who pinged that day, each once. */
+export type PingDays = Record<string, string[]>;
+
+/** The server's { day, user_id } pairs, checked like any answer: anything off is skipped. */
+export function readPingDays(data: unknown): PingDays {
+  const days: PingDays = {};
+  if (!Array.isArray(data)) return days;
+  for (const row of data.slice(0, 62 * GROUP_LIMITS.members)) {
+    const day = (row as { day?: unknown })?.day;
+    const user = (row as { user_id?: unknown })?.user_id;
+    if (typeof day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day) || typeof user !== 'string' || !user || user.length > 64) continue;
+    const ids = (days[day] ??= []);
+    if (!ids.includes(user)) ids.push(user);
+  }
+  return days;
+}
+
+/** `days` with `userId` on every day of `mine` (this phone's own pings, fresher than the server's copy). */
+export function withMyPingDays(days: PingDays, userId: string, mine: Iterable<string>): PingDays {
+  const next: PingDays = { ...days };
+  for (const day of mine) {
+    const ids = next[day] ?? [];
+    if (!ids.includes(userId)) next[day] = [...ids, userId];
+  }
+  return next;
+}
+
+/** A calendar cell's faces: the members who pinged, in the group's order (by colour slot). */
+export function dayPingers(group: Group, ids: readonly string[] | undefined): GroupMember[] {
+  if (!ids?.length) return [];
+  return group.members.filter((m) => ids.includes(m.userId));
+}

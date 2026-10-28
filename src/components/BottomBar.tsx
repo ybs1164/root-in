@@ -37,7 +37,7 @@ interface BottomBarProps {
   deleteHot?: boolean;
   /** The camera at the row's right end: the camera screen. */
   onCamera?: () => void;
-  /** TODAY: the gallery at the row's left end (every photo in my groups, by day). */
+  /** The gallery at the row's left end on every screen (every photo in my groups, by day). */
   onGallery?: () => void;
 }
 
@@ -158,7 +158,7 @@ export default function BottomBar({ tab, today = false, calendarMode, onCalendar
           </button>
         </>
       )}
-      {cal && onGallery && <GalleryButton className="bar-gallery" onOpen={onGallery} />}
+      {onGallery && <GalleryButton className="bar-gallery" onOpen={onGallery} />}
       {/* Every screen has the camera at the row's right end; TODAY's 공유 sits on top of it. */}
       <CameraButton className="bar-camera" onOpen={onCamera} />
       {onShare && (
