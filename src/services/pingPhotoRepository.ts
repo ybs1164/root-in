@@ -7,6 +7,8 @@ const PHOTOS_KEY = 'goodroot:ping-photos:v1';
 
 /** Oldest go first past this, so the photos can't fill up localStorage. */
 export const MAX_PING_PHOTOS = 120;
+/** A ping's photo: a square this many px across, small enough to keep a hundred in localStorage. */
+export const PING_PHOTO_PX = 240;
 
 const isPhoto = (value: unknown): value is string =>
   typeof value === 'string' && value.startsWith('data:image/jpeg;base64,') && value.length < 200_000;

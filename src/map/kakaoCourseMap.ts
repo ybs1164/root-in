@@ -61,6 +61,7 @@ export class KakaoCourseMap implements CourseMap {
   private readonly container: HTMLElement;
   private attribution: HTMLElement | null = null;
   private readonly detachLongPress: () => void;
+  private readonly sizeWatch: ResizeObserver | null;
 
   constructor(
     private readonly maps: KakaoMapsNamespace,
@@ -91,6 +92,11 @@ export class KakaoCourseMap implements CourseMap {
     });
     // Not every SDK version fires idle for the first render.
     setTimeout(emitViewport, 0);
+    // Unlike MapLibre, the Kakao map never re-measures its element. In the
+    // iOS WebView the first layout can be shorter than the final screen, which
+    // left the map's centre high up and its lower part dead to touches.
+    this.sizeWatch = typeof ResizeObserver === 'function' ? new ResizeObserver(() => this.resize()) : null;
+    this.sizeWatch?.observe(container);
   }
 
   private routeColor(token: string, fallback: string): string {
@@ -380,11 +386,14 @@ export class KakaoCourseMap implements CourseMap {
   }
 
   resize(): void {
+    const center = this.map.getCenter();
     this.map.relayout();
+    this.map.setCenter(center);
   }
 
   destroy(): void {
     this.detachLongPress();
+    this.sizeWatch?.disconnect();
     this.setNearbyPlaces([]);
     this.setAreaMap(null);
     this.pinOverlays.forEach((o) => o.setMap(null));

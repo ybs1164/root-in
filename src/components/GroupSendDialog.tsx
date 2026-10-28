@@ -1,4 +1,4 @@
-import { Check, MapPin } from 'lucide-react';
+import { CalendarCheck, Check, MapPin } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { Group } from '../domain/groups';
 import { useBackdropTap } from '../hooks/useBackdropTap';
@@ -13,21 +13,27 @@ interface GroupSendDialogProps {
   places: PlaceRef[] | null;
   /** Why there's nowhere to send from (no location, near a 제외 주소). */
   placeProblem: string | null;
-  /** Sends to the picked groups as the picked place; resolves to what went wrong, or null once sent (the dialog then closes). */
-  onSend(groupIds: string[], place: PlaceRef): Promise<string | null>;
+  /**
+   * Sends to the picked groups as the picked place (and, with `today`, pings
+   * it on my own TODAY with the photo); resolves to what went wrong, or null
+   * once sent (the dialog then closes).
+   */
+  onSend(groupIds: string[], place: PlaceRef, today: boolean): Promise<string | null>;
   onClose(): void;
 }
 
 /**
  * 전송 from the camera: a boarding pass (`ticket-dialog`) in two steps. First
  * 위치 선택 — the places around where I am, the spot itself picked to start
- * with; 다음 goes on to every group I'm in, each with its cover; tap as many
- * as you like, then 전송 sends the photo and a ping of that place to each.
+ * with; 다음 goes on to TODAY (MY — my own day, picked to start with) and
+ * every group I'm in, each with its cover; tap as many as you like, then 전송
+ * sends the photo and a ping of that place to each.
  */
 export default function GroupSendDialog({ groups, status, places, placeProblem, onSend, onClose }: GroupSendDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const backdrop = useBackdropTap(dialogRef);
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
+  const [today, setToday] = useState(true);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [step, setStep] = useState<'place' | 'groups'>('place');
@@ -50,10 +56,11 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
       return next;
     });
   };
+  const targets = ids.length + (today ? 1 : 0);
   const send = async () => {
-    if (!ids.length || !place || busy) return;
+    if (!targets || !place || busy) return;
     setBusy(true);
-    const failed = await onSend(ids, place);
+    const failed = await onSend(ids, place, today);
     setBusy(false);
     if (failed) setProblem(failed);
     else dialogRef.current?.close();
@@ -133,13 +140,31 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
           <div className="ticket-dialog__main group-send__main">
             <h3 className="group-send__title">그룹에 보내기</h3>
             <p className="group-send__lead">
-              사진과 <strong className="group-send__where">{place?.name}</strong> 핑이 고른 그룹에 보내져요.
+              사진과 <strong className="group-send__where">{place?.name}</strong> 핑이 고른 곳에 보내져요.
             </p>
-            {empty ? (
-              <p className="group-send__empty">{empty}</p>
-            ) : (
-              <ul className="group-send__list" role="group" aria-label="보낼 그룹">
-                {groups.map((g) => {
+            <ul className="group-send__list" role="group" aria-label="보낼 곳">
+              <li>
+                <button
+                  type="button"
+                  className={`group-send__item ${today ? 'is-on' : ''}`}
+                  aria-pressed={today}
+                  onClick={() => {
+                    setProblem(null);
+                    setToday((on) => !on);
+                  }}
+                >
+                  <span className="group-send__spot group-send__spot--today" aria-hidden>
+                    <CalendarCheck size={20} strokeWidth={2.2} />
+                  </span>
+                  <span className="group-send__name">TODAY</span>
+                  <span className="group-send__count">MY</span>
+                  <span className="group-send__check" aria-hidden>
+                    {today && <Check size={16} strokeWidth={3} />}
+                  </span>
+                </button>
+              </li>
+              {!empty &&
+                groups.map((g) => {
                   const on = picked.has(g.id);
                   return (
                     <li key={g.id}>
@@ -156,8 +181,8 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
                     </li>
                   );
                 })}
-              </ul>
-            )}
+            </ul>
+            {empty && <p className="group-send__empty">{empty}</p>}
             {problem && <p className="group-send__problem">{problem}</p>}
           </div>
           <div className="ticket-dialog__stub ticket-dialog__split">
@@ -170,8 +195,8 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
             >
               이전
             </button>
-            <button className="is-action" disabled={!ids.length || !place || busy} onClick={() => void send()}>
-              {busy ? '보내는 중…' : ids.length ? `전송 (${ids.length})` : '전송'}
+            <button className="is-action" disabled={!targets || !place || busy} onClick={() => void send()}>
+              {busy ? '보내는 중…' : targets ? `전송 (${targets})` : '전송'}
             </button>
           </div>
         </>

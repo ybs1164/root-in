@@ -72,21 +72,28 @@ export function createSupabaseProfileService(getClient: () => Promise<SupabaseCl
       try {
         const client = await getClient();
         if (!client) return 'error';
+        let photoFailed = false;
         if (photoChanged) {
           const bucket = client.storage.from('avatars');
           if (profile.photo) {
             const blob = dataUrlToBlob(profile.photo);
-            if (!blob) return 'error';
-            const { error } = await bucket.upload(avatarPath(userId), blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '60' });
-            if (error) return 'error';
+            const { error } = blob
+              ? await bucket.upload(avatarPath(userId), blob, { upsert: true, contentType: 'image/jpeg', cacheControl: '60' })
+              : { error: true };
+            photoFailed = !!error;
           } else {
             await bucket.remove([avatarPath(userId)]);
           }
         }
-        const row = { ...toProfileRow(userId, profile, nickname, !!profile.photo), updated_at: new Date().toISOString() };
+        // A photo that didn't go up must not hold back the rest: without the
+        // row the group saw this person as 익명 with no photo at all. The
+        // photo's path is then left as the server has it, and the push still
+        // counts as failed so the photo is sent again.
+        const { avatar_path, ...rest } = toProfileRow(userId, profile, nickname, !!profile.photo);
+        const row = { ...rest, ...(photoFailed ? {} : { avatar_path }), updated_at: new Date().toISOString() };
         const { error } = await client.from('profiles').upsert(row);
         if (error) return error.code === UNIQUE_VIOLATION ? 'handle-taken' : 'error';
-        return 'ok';
+        return photoFailed ? 'error' : 'ok';
       } catch {
         return 'error';
       }

@@ -36,7 +36,7 @@ import { metersPerPixel, type MapViewport } from './domain/districtMap';
 import { filterPinsByCategories, isUncategorized, pinStyle, UNCATEGORIZED } from './domain/pin';
 import { placeKindService } from './services/placeKindService';
 import { pinRailNext, tapAll, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
-import { pingsForDate, PRESS } from './domain/dayPings';
+import { pingsForDate, PRESS, TODAY_PING_RADIUS_M } from './domain/dayPings';
 import { buildRouteLook, EMPTY_BUILD_LOOK, nextRouteName, ROUTE_NOTE_MAX, toggleBuildStop, withBuildEdge, withBuildShape, type BuildLook } from './domain/routeBuild';
 import { addEditStop, moveStop, toggleEditStop, withEditStops, type RouteEdit } from './domain/routeEdit';
 import { cleanRouteLook, withEdgeStyle, withStopShape } from './domain/routeStyle';
@@ -46,13 +46,15 @@ import { useAreaMap } from './hooks/useAreaMap';
 import { useNearbyPlaces } from './hooks/useNearbyPlaces';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
 import { useMyLocation } from './hooks/useMyLocation';
-import { removePingsOfPin } from './services/pingRepository';
+import { loadPings, recordPing, recordPlacePing, removePingsOfPin, todayPingOfPin } from './services/pingRepository';
+import { PING_PHOTO_PX, savePingPhoto } from './services/pingPhotoRepository';
+import { avatarFromDataUrl } from './lib/avatarImage';
 import { useAccount } from './hooks/useAccount';
 import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
 import { useGroups } from './hooks/useGroups';
 import { groupsNeedLogin, inviteUrl } from './services/groupService';
-import { focusPoints, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, newPingCount, photoPings, withSentPhotos, type GroupMember } from './domain/groups';
+import { focusPoints, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, newPingCount, photoPings, sharedPlacePings, withSentPhotos, type GroupMember } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
 import { loadGroupSeen, loadMemberSeen, memberSeenKey, saveGroupSeen, saveMemberSeen, type GroupSeen, type MemberSeen } from './services/groupSeenRepository';
 import { useStoredPings } from './hooks/useStoredPings';
@@ -761,6 +763,7 @@ export default function App() {
   // photos as ping heads (`photoPings`), the tapped ping marked for the panel.
   const groupMarks = useMemo(() => {
     if (!openGroup) return [];
+    const together = sharedPlacePings(openGroup.members);
     return openGroup.members.flatMap((m) => {
       const photos = photoPings(m, groupPicked, !!groupPing);
       return m.pings.map((p, i) => ({
@@ -774,6 +777,7 @@ export default function App() {
         label: groupPicked === m.userId ? p.name : undefined,
         photo: photos.has(i) ? p.photo : undefined,
         selected: groupPing?.member === m.userId && groupPing.seq === i,
+        together: together.has(groupPingKey(m, p)),
       }));
     });
   }, [openGroup, groupPicked, groupPing]);
@@ -1335,13 +1339,36 @@ export default function App() {
   };
 
   // Then the photo and a ping of the place picked to each picked group. What went wrong, or null.
-  const sendCameraShot = async (groupIds: string[], photo: string, place: PlaceRef): Promise<string | null> => {
+  // TODAY (MY) in the send popup: the shot pings the picked place on my own
+  // day, with the photo on it — my pin there if it is one (once a day, so a
+  // second shot only adds the photo), else today's ping of the same place
+  // within 50m, else a new ping of the place.
+  const pingShotOnToday = async (photo: string, place: PlaceRef): Promise<boolean> => {
+    const small = await avatarFromDataUrl(photo, PING_PHOTO_PX, 0.8);
+    const pin = pins.find((p) => p.place.id === place.id);
+    let pingId: string | null;
+    if (pin) {
+      recordPing(pin, privacy.excluded);
+      pingId = todayPingOfPin(pin.id);
+    } else {
+      const today = dateKey();
+      pingId =
+        loadPings().find((p) => p.day === today && !p.pinId && p.name === place.name && distanceMeters(p.center, place.center) <= TODAY_PING_RADIUS_M)?.id ??
+        recordPlacePing(place, privacy.excluded);
+    }
+    if (!pingId) return false;
+    if (small) savePingPhoto(pingId, small, new Set(loadPings().map((p) => p.id)));
+    return true;
+  };
+  const sendCameraShot = async (groupIds: string[], photo: string, place: PlaceRef, today: boolean): Promise<string | null> => {
     if (isExcluded(place, privacy.excluded)) return '제외 주소 근처에서는 보낼 수 없어요.';
-    const sent = await groups.sendPhoto(groupIds, { day: dateKey(), at: new Date().toISOString(), center: place.center, name: place.name }, photo);
-    if (!sent) return '보내지 못했어요. 잠시 뒤에 다시 시도해 주세요.';
+    const sent = groupIds.length ? await groups.sendPhoto(groupIds, { day: dateKey(), at: new Date().toISOString(), center: place.center, name: place.name }, photo) : 0;
+    if (groupIds.length && !sent) return '보내지 못했어요. 잠시 뒤에 다시 시도해 주세요.';
+    const pinged = today && (await pingShotOnToday(photo, place));
+    if (today && !pinged && !sent) return 'TODAY에 핑을 찍지 못했어요.';
     setCameraShot(null);
     setCameraOpen(false);
-    notify(sent === 1 ? '그룹에 보냈어요.' : `${sent}개 그룹에 보냈어요.`);
+    notify(sent ? (pinged ? `TODAY와 ${sent}개 그룹에 보냈어요.` : sent === 1 ? '그룹에 보냈어요.' : `${sent}개 그룹에 보냈어요.`) : `'${place.name}' 핑을 TODAY에 찍었어요.`);
     return null;
   };
 
@@ -2107,7 +2134,7 @@ export default function App() {
           status={groups.status}
           places={cameraSpots.places}
           placeProblem={cameraSpots.problem}
-          onSend={(ids, place) => sendCameraShot(ids, cameraShot, place)}
+          onSend={(ids, place, today) => sendCameraShot(ids, cameraShot, place, today)}
           onClose={() => {
             cameraLookup.current++;
             setCameraShot(null);

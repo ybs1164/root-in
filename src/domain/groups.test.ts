@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoLimit, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, withSentPhotos, type Group } from './groups';
+import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoLimit, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlacePings, withSentPhotos, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -190,5 +190,20 @@ describe('viewerStep', () => {
     expect(viewerStep(2, 1, 3)).toBeNull();
     expect(viewerStep(0, -1, 3)).toBeNull();
     expect(viewerStep(2, -1, 3)).toBe(1);
+  });
+});
+
+describe('sharedPlacePings', () => {
+  it('marks pings where another member was within 50m, both sides, by distance not id', () => {
+    const a = member('a', 0, [[127.0, 37.5], [127.1, 37.6]]);
+    // ~20m east of a's first ping; the second is far from everything.
+    const b = member('b', 1, [[127.0002, 37.5], [127.3, 37.7]]);
+    const shared = sharedPlacePings([a, b]);
+    expect([...shared].sort()).toEqual([groupPingKey(a, a.pings[0]), groupPingKey(b, b.pings[0])].sort());
+  });
+
+  it("doesn't count one member's own pings at the same place", () => {
+    const a = member('a', 0, [[127.0, 37.5], [127.0001, 37.5]]);
+    expect(sharedPlacePings([a, member('b', 1, [[128, 36]])]).size).toBe(0);
   });
 });

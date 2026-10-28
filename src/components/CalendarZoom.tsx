@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { dayTitle, edgeKey, photoPingTarget, PINCH, pinchOutcome, pinchProgress, pingCounts, pingKey, pingsForDate, pingsLandedMs, todayCandidates, type DayPing } from '../domain/dayPings';
 import { useStoredPings } from '../hooks/useStoredPings';
 import { loadPings, recordPing, recordPlacePing, removePing, todayPingOfPin } from '../services/pingRepository';
-import { savePingPhoto } from '../services/pingPhotoRepository';
+import { PING_PHOTO_PX, savePingPhoto } from '../services/pingPhotoRepository';
 import { usePingPhotos } from '../hooks/usePingPhotos';
 import { avatarFromFile } from '../lib/avatarImage';
 import { pointPlace } from '../services/placeSearch/placeSearchService';
@@ -133,9 +133,6 @@ interface CalendarZoomProps {
   onToast?: (text: string) => void;
 }
 
-/** A photo's thumbnail on its ping: small enough to keep a hundred in localStorage. */
-const PHOTO_PX = 240;
-
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
 
@@ -227,7 +224,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
   const photoPing = async (file: File) => {
     const target = photoPingTarget(pins, here, stored.filter((p) => p.day === today));
     if (!target) return onToast?.('위치를 몰라서 핑을 찍지 못했어요');
-    const photo = await avatarFromFile(file, PHOTO_PX, 0.8);
+    const photo = await avatarFromFile(file, PING_PHOTO_PX, 0.8);
     let pingId: string | null;
     let name: string;
     if (target.kind === 'pin') {
