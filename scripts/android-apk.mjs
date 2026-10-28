@@ -14,6 +14,6 @@ const env = { ...process.env };
 const brewJdk = '/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home';
 if (!env.JAVA_HOME && process.platform === 'darwin' && existsSync(brewJdk)) env.JAVA_HOME = brewJdk;
 
-const gradlew = process.platform === 'win32' ? 'gradlew.bat' : 'sh gradlew';
+const gradlew = process.platform === 'win32' ? '.\\gradlew.bat' : 'sh gradlew';
 // A fresh package avoids the unused ZIP space left by incremental asset replacement.
 execSync(`${gradlew} :app:clean :app:assembleDebug`, { cwd: 'android', stdio: 'inherit', env });
