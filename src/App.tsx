@@ -1917,7 +1917,6 @@ export default function App() {
             // Mine never: my own pings aren't news to me.
             day={groupDay}
             onDay={(day) => setGroupDay(day >= dateKey() ? null : day)}
-            loading={!!groupDay && pastGroups.status === 'loading'}
             newPings={(m) => (m.userId === myId || groupDay ? 0 : newMemberPings(m, memberSeen[memberSeenKey(openGroup.id, m.userId)]))}
             onPick={setGroupPicked}
             place={groupPing}
@@ -1942,6 +1941,10 @@ export default function App() {
           day={groupDay ?? dateKey()}
           onPick={(day) => {
             setGroupDay(day >= dateKey() ? null : day);
+            setGroupCalendar(false);
+          }}
+          onToday={() => {
+            setGroupDay(null);
             setGroupCalendar(false);
           }}
           onClose={() => setGroupCalendar(false)}

@@ -24,16 +24,20 @@ interface GroupCalendarProps {
   day: string;
   /** A day picked: the map goes to it. */
   onPick(day: string): void;
+  /** The year tapped: back to the map, on today (as TODAY's year goes back to TODAY). */
+  onToday(): void;
   onClose(): void;
 }
 
 /**
- * A group's calendar, from the ⚙'s calendar button on its map: the month grid
- * of TODAY's month view, but under each day the faces of the members who
+ * A group's calendar, from the ⚙'s calendar button on its map: TODAY's month
+ * view (‹ top-left, the year big where TODAY stands, the month grid centred
+ * under it; the group's name under the year — tapping the year goes back to
+ * the map on today), but under each day the faces of the members who
  * pinged that day (slightly overlapping, +n past three) instead of the ping
  * dots. A day up to today opens the map on it; the days to come can't.
  */
-export default function GroupCalendar({ group, user, me, myDays, day, onPick, onClose }: GroupCalendarProps) {
+export default function GroupCalendar({ group, user, me, myDays, day, onPick, onToday, onClose }: GroupCalendarProps) {
   const [view, setView] = useState(() => {
     const [y, m] = day.split('-').map(Number);
     return { year: y, month: m - 1 };
@@ -53,18 +57,17 @@ export default function GroupCalendar({ group, user, me, myDays, day, onPick, on
   const today = dateKey();
 
   return (
-    <div className="gallery group-calendar" role="dialog" aria-label={`${group.name} 달력`}>
-      <header className="gallery__head">
-        <button className="gallery__back" aria-label="닫기" onClick={onClose}>
-          <ChevronLeft size={24} strokeWidth={2.2} aria-hidden />
+    <div className="group-calendar" role="dialog" aria-label={`${group.name} 달력`}>
+      <button className="today-back" aria-label="닫기" onClick={onClose}>
+        <ChevronLeft size={24} strokeWidth={2.2} aria-hidden />
+      </button>
+      <header className="group-calendar__head">
+        <button className="cal-zoom__title group-calendar__year" aria-label="오늘로" onClick={onToday}>
+          {view.year}
         </button>
-        <h2 className="gallery__title">CALENDAR</h2>
         <p className="group-calendar__name">{group.name}</p>
       </header>
-      <div className="group-calendar__body">
-        <p className="group-calendar__year" aria-hidden>
-          {view.year}
-        </p>
+      <div className="group-calendar__month">
         <MonthCalendar
           counts={NO_COUNTS}
           plans={NO_PLANS}
@@ -91,7 +94,6 @@ export default function GroupCalendar({ group, user, me, myDays, day, onPick, on
             };
           }}
         />
-        {asked.status === 'loading' && <p className="group-calendar__note">불러오는 중…</p>}
         {asked.status === 'error' && <p className="group-calendar__note">달력을 불러오지 못했어요.</p>}
       </div>
     </div>

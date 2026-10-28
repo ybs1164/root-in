@@ -21,8 +21,6 @@ interface GroupMapViewProps {
   /** The day on the map ('YYYY-MM-DD'), null = today; `<` `>` in the middle page it. */
   day: string | null;
   onDay(day: string): void;
-  /** Another day's pings are still on their way. */
-  loading?: boolean;
   /** My user id: my pass reads ME. */
   me: string | null;
   /** A face's badge: their pings since I last picked them (App keeps what was seen). */
@@ -48,7 +46,7 @@ interface GroupMapViewProps {
  * (App draws them), and over it ‹ back, the group's name (only the name —
  * the pass says who's picked),
  * ⚙ settings with the group's calendar under it, `<` `>` down the middle either side, a day back or forward
- * (no `>` on today) with the day under the name,
+ * (no `>` on today) with the day under the name (name and day open the calendar too),
  * the gallery fixed at the bottom-left and the camera at the bottom-right, and the member row
  * along the bottom: ALL then every member's face, each its own button with
  * a badge of their new pings since I last picked them, scrolled sideways when they don't fit. The picked
@@ -59,7 +57,7 @@ interface GroupMapViewProps {
  * the place, who, n / N with ‹ › through their day, tied to the ping by a
  * faint thread.
  */
-export default function GroupMapView({ group, day, onDay, loading = false, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onCamera, onGallery }: GroupMapViewProps) {
+export default function GroupMapView({ group, day, onDay, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onCamera, onGallery }: GroupMapViewProps) {
   const pickedMember = group.members.find((m) => m.userId === picked) ?? null;
   const today = dateKey();
   const shown = day ?? today;
@@ -86,11 +84,15 @@ export default function GroupMapView({ group, day, onDay, loading = false, picke
       </button>
 
       <div className="group-view__title">
-        <h2 key={group.id}>{group.name}</h2>
-        <p className="group-view__day" aria-live="polite">
-          {label}
-          {loading && <span className="group-view__loading"> · 불러오는 중</span>}
-        </p>
+        {/* The name (and the day under it) opens the group's calendar, as TODAY's title opens its month. */}
+        <button className="group-view__title-btn" aria-label={`${group.name}, ${label}, 달력 보기`} onClick={onCalendar}>
+          <span key={group.id} className="group-view__name">
+            {group.name}
+          </span>
+          <span className="group-view__day" aria-live="polite">
+            {label}
+          </span>
+        </button>
       </div>
 
       <button className="route-step route-step--prev group-view__step" aria-label="전날" onClick={() => onDay(addDays(shown, -1))}>

@@ -5955,29 +5955,62 @@ button:disabled {
   opacity: 0.5;
 }
 
-/* The group's calendar over its map (GroupCalendar): the gallery's screen,
-   the year big over the month as on TODAY's month view. */
-.group-calendar__name {
-  margin: 2px 0 0;
-  color: var(--muted);
-  font-size: 15px;
+/* The group's calendar over its map (GroupCalendar): TODAY's month view —
+   the page's colour, the year where TODAY stands (108px down, Bebas 56px),
+   the group's name under it, the month centred below. */
+.group-calendar {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--safe-top);
+  background: var(--surface);
+  color: var(--text);
+  animation: veil-in 0.2s ease both;
 }
 
-.group-calendar__body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px 12px calc(var(--safe-bottom) + 24px);
+.group-calendar__head {
+  position: absolute;
+  top: calc(var(--safe-top) + 108px);
+  left: 64px;
+  right: 64px;
+  display: grid;
+  justify-items: center;
+  pointer-events: none;
 }
 
 .group-calendar__year {
-  margin: 12px 0 4px;
-  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 56px;
-  line-height: 1;
-  text-align: center;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  /* The head lets taps through; only the year itself is the way back to today. */
+  pointer-events: auto;
+  cursor: pointer;
 }
 
-.group-calendar__body .calendar {
+.group-calendar__name {
+  max-width: 100%;
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-calendar__month {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* As .cal-zoom__month: clear of the year (and the name under it), nudged up. */
+  padding: 200px 16px calc(12dvh + var(--safe-bottom));
+  overflow-y: auto;
+}
+
+.group-calendar__month .calendar {
+  width: 100%;
   max-width: 640px;
   margin: 0 auto;
 }
@@ -8664,7 +8697,20 @@ button:disabled {
   pointer-events: none;
 }
 
-.group-view__title h2 {
+/* The name and the day under it, one button to the group's calendar (the title lets other taps through to the map). */
+.group-view__title-btn {
+  max-width: 100%;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.group-view__name {
+  display: block;
   margin: 0;
   overflow: hidden;
   color: var(--text);
@@ -8678,10 +8724,14 @@ button:disabled {
     0 0 2px var(--surface);
 }
 
-.group-view__title p {
+/* The day on the map under the group's name: TODAY or 10.27. */
+.group-view__title .group-view__day {
+  display: block;
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 14px;
+  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.06em;
   text-shadow: 0 0 5px var(--surface);
 }
 
@@ -8690,17 +8740,6 @@ button:disabled {
 .route-step.group-view__step {
   top: 50%;
   translate: 0 -50%;
-}
-
-/* The day on the map under the group's name: TODAY or 10.27. */
-.group-view__title .group-view__day {
-  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 18px;
-  letter-spacing: 0.06em;
-}
-
-.group-view__loading {
-  letter-spacing: 0;
 }
 
 /* The member row along the bottom (where the other screens have their
@@ -9991,7 +10030,8 @@ button.group-photo-panel__photo {
   flex: none;
   display: grid;
   justify-items: center;
-  padding: calc(var(--safe-top) + 12px) 72px 0;
+  /* GALLERY a good way down, a little above TODAY's spot; only ‹ stays up in the corner. */
+  padding: calc(var(--safe-top) + 64px) 72px 0;
 }
 
 .gallery__back {
@@ -10019,9 +10059,10 @@ button.group-photo-panel__photo {
   line-height: 48px;
 }
 
-/* The tabs stand on the sheet's top edge; the open one is the sheet's colour. */
+/* The tabs stand on the sheet's top edge; the open one is the sheet's colour.
+   Well below the title, so the folders read as their own block. */
 .route-folders__tabs.gallery__tabs {
-  padding-top: 14px;
+  padding-top: 24px;
 }
 
 .gallery__tab--my {
