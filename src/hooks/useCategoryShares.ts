@@ -238,9 +238,11 @@ export function useIncomingCategory() {
   const [state, setState] = useState<IncomingCategory>({ status: 'none' });
   useEffect(() => {
     let cancelled = false;
+    let revision = 0;
     const check = async () => {
+      const asked = ++revision;
       const next = await resolveIncomingCategory(window.location.href);
-      if (!cancelled && next.status !== 'none') setState(next);
+      if (!cancelled && asked === revision) setState(next);
     };
     void check();
     window.addEventListener('hashchange', check);
