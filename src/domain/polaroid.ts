@@ -41,9 +41,9 @@ export const BACK_CARD: CardPose = { cx: 730, cy: 985, angle: 4 };
 
 /**
  * How the polaroid lies on the share image (the 꾸미기 screen's 폴라로이드
- * button), after the share card mock, always on plain white: 탑승권 (a
- * smaller card with a boarding pass under it — the default), 두 장, 한 장
- * 반듯하게, 없음 (no card: the drawing straight on the ground), 테이프 at the corners, 항로 (a dashed flight past a tilted card),
+ * button), after the share card mock, always on plain white: 없음 (no card:
+ * the drawing straight on the ground — the default, first), 탑승권 (a smaller
+ * card with a boarding pass under it), 두 장, 한 장 반듯하게, 테이프 at the corners, 항로 (a dashed flight past a tilted card),
  * 클립 (clipped, the date in hand under it), and 빨랫줄, hung straight from a
  * sagging line by two wooden pegs. The notebook page and the map that 클립
  * and 항로 lay on once are background patterns now (노트, 지도).
@@ -51,8 +51,8 @@ export const BACK_CARD: CardPose = { cx: 730, cy: 985, angle: 4 };
 export type PolaroidLayout = 'ticket' | 'bare' | 'stack' | 'single' | 'tape' | 'map' | 'notebook' | 'line';
 
 export const POLAROID_LAYOUTS: { id: PolaroidLayout; label: string }[] = [
-  { id: 'ticket', label: '탑승권' },
   { id: 'bare', label: '없음' },
+  { id: 'ticket', label: '탑승권' },
   { id: 'single', label: '한 장' },
   { id: 'stack', label: '두 장' },
   { id: 'map', label: '항로' },
@@ -61,7 +61,8 @@ export const POLAROID_LAYOUTS: { id: PolaroidLayout; label: string }[] = [
   { id: 'line', label: '빨랫줄' },
 ];
 
-export const DEFAULT_LAYOUT: PolaroidLayout = 'ticket';
+// A new card starts bare (no paper frame), first in the picker (2026-10-29; 탑승권 was).
+export const DEFAULT_LAYOUT: PolaroidLayout = 'bare';
 
 export const isPolaroidLayout = (v: unknown): v is PolaroidLayout => POLAROID_LAYOUTS.some((l) => l.id === v);
 

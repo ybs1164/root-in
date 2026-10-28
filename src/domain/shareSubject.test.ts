@@ -116,9 +116,9 @@ describe('share cards', () => {
     expect(dayCardTitle('2026-01-09')).toBe('01.09');
   });
 
-  it('a new card is laid out as 탑승권, with 없음 (no card) right after it', () => {
-    expect(DEFAULT_LAYOUT).toBe('ticket');
-    expect(POLAROID_LAYOUTS.slice(0, 2).map((l) => l.label)).toEqual(['탑승권', '없음']);
+  it('a new card is laid out as 없음 (no card), first in the picker, with 탑승권 right after it', () => {
+    expect(DEFAULT_LAYOUT).toBe('bare');
+    expect(POLAROID_LAYOUTS.slice(0, 2).map((l) => l.label)).toEqual(['없음', '탑승권']);
   });
 
   it('빨랫줄: the line sags over the card and each peg on it reaches down over the card’s top edge', () => {
