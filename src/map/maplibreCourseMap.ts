@@ -52,6 +52,7 @@ const FOCUS_ZOOM = 15;
 export class MapLibreCourseMap implements CourseMap {
   readonly provider = 'maplibre' as const;
   private readonly map: MapLibreMap;
+  private readonly attribution: HTMLElement;
   private stops: PlaceRef[] = [];
   private stopMarkers: Marker[] = [];
   private previewMarker: Marker | null = null;
@@ -80,6 +81,10 @@ export class MapLibreCourseMap implements CourseMap {
       zoom: 12,
       attributionControl: false,
     });
+    this.attribution = document.createElement('div');
+    this.attribution.className = 'map-attribution';
+    this.attribution.textContent = ADMIN_ATTRIBUTION;
+    container.append(this.attribution);
     this.detachLongPress = attachLongPress(container, (x, y) => {
       const at = this.map.unproject([x, y]);
       options.onLongPress?.([at.lng, at.lat]);
@@ -94,6 +99,7 @@ export class MapLibreCourseMap implements CourseMap {
       options.onViewportChange?.({
         bounds: { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() },
         widthPx,
+        worldDegreesPerPixel: 360 / (512 * 2 ** this.map.getZoom()),
         screen: { width: container.clientWidth, height: container.clientHeight, bearing: this.map.getBearing() },
       });
     };
@@ -347,6 +353,7 @@ export class MapLibreCourseMap implements CourseMap {
   destroy(): void {
     this.detachLongPress();
     this.setNearbyPlaces([]);
+    this.attribution.remove();
     this.map.remove();
   }
 }

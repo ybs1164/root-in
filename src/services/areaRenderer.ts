@@ -79,9 +79,8 @@ export class AreaRenderer {
     isCurrent: () => boolean = () => true,
     onDraft?: (update: AreaUpdate) => void,
   ): Promise<AreaUpdate | null> {
-    // The base map loads alongside the areas (its tiles are cached by the service).
+    // Reuse a complete drawing before starting any new terrain work.
     const window = drawWindow(viewport);
-    const baseMap = this.baseMaps.fetchBaseMap(window).catch(() => null);
     const map = await this.service.fetchAreaMap(viewport, window.bounds);
     if (!map || !isCurrent()) return null;
     const last = this.drawn;
@@ -92,26 +91,36 @@ export class AreaRenderer {
       last.labels = labels;
       return { labels };
     }
+    // Only fetch when a new drawing is needed; small pans reuse its terrain.
+    // Start loading now, but paint administrative shapes without waiting for it.
+    const baseMap = this.baseMaps.fetchBaseMap(window).catch(() => null);
     // Zooming in or a new focus keeps the old shapes up meanwhile; only a
     // screen reaching past them (first load, zooming out, a long pan) shows
     // empty map, and gets the draft.
     // The base map covers the same window the shapes are drawn for, so a pan
     // that reuses the drawing (above) still has water and roads under it.
     // Missing (no tiles, a failed load): the areas are drawn anyway.
-    const loaded = await baseMap;
-    if (!isCurrent()) return null;
-    const base = loaded ? shapeBaseMap(loaded, window) : undefined;
     let draftLabels: AreaLabel[] = [];
     if (onDraft && (!last || !inside(viewport.bounds, last.window)) && (this.drawMs.get(map.focus.code.length) ?? Infinity) > DRAFT_AFTER_MS) {
       const draft = renderAreaDraft(map, viewport, this.cache);
       draftLabels = placeAreaLabels(draft, viewport, [], at.cover);
-      onDraft(this.update(draft, draftLabels, base));
+      onDraft(this.update(draft, draftLabels));
       // The map now shows the draft, not the last drawing.
       this.drawn = null;
     }
     await yieldToMessages();
     if (!isCurrent()) return null;
-    return this.draw(map, viewport, at.cover, draftLabels, base);
+    const full = this.draw(map, viewport, at.cover, draftLabels);
+    const drawn = this.drawn;
+    // A newer screen must not reuse a drawing whose terrain is still pending.
+    this.drawn = null;
+    const loaded = await baseMap;
+    if (!isCurrent()) return null;
+    const base = loaded ? shapeBaseMap(loaded, window) : undefined;
+    this.drawn = drawn;
+    // An explicit missing base clears old terrain after a failed load. Drafts
+    // omit the property so the UI can retain terrain only while loading.
+    return 'shapes' in full ? { shapes: { ...full.shapes, base } } : full;
   }
 
   private draw(map: AreaMap, viewport: MapViewport, cover: LabelCover | undefined, previous: AreaLabel[], base?: BaseShapes): AreaUpdate {

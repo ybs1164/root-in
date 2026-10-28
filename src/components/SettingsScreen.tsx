@@ -1,4 +1,5 @@
-import { Bell, ChevronLeft, ChevronRight, FileText, LocateFixed, MapPinOff, Monitor, UserRound, Volume2, VolumeX } from 'lucide-react';
+import { Bell, ChevronLeft, ChevronRight, FileText, Link, LocateFixed, MapPinOff, Monitor, UserRound, Volume2, VolumeX } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { PING_ALERT_HOURS, SHARE_ALERT_COUNTS, shareCountLabel } from '../domain/profile';
@@ -11,6 +12,7 @@ import AlertBoard from './AlertBoard';
 import Logo from './Logo';
 import PrivacySection from './PrivacySection';
 import LocationSection from './LocationSection';
+import AppLinksSection from './AppLinksSection';
 import type { MyLocationControl } from '../hooks/useMyLocation';
 
 /** 알림 설정's two boards: 투데이 알림 by hour, 공유수 알림 by share count. */
@@ -29,7 +31,7 @@ function shownScheme(picked: ColorScheme | null): ColorScheme {
   return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
-type Page = 'main' | 'location' | 'privacy' | 'alerts' | 'display' | 'account' | 'terms';
+type Page = 'main' | 'location' | 'links' | 'privacy' | 'alerts' | 'display' | 'account' | 'terms';
 
 /** How long a screen takes to slide off to the right, going back (as long as it took coming in, styles.css `settings-in`). */
 const PAGE_OUT_MS = 260;
@@ -48,6 +50,7 @@ function slideOff(el: HTMLElement, fromPx: number, done: () => void) {
 
 const PAGES: { id: Exclude<Page, 'main'>; title: string; icon: ReactNode }[] = [
   { id: 'location', title: '위치 설정', icon: <LocateFixed size={20} aria-hidden /> },
+  { id: 'links', title: '초대 링크 연결', icon: <Link size={20} aria-hidden /> },
   { id: 'privacy', title: '제외 주소 설정', icon: <MapPinOff size={20} aria-hidden /> },
   { id: 'alerts', title: '알림 설정', icon: <Bell size={20} aria-hidden /> },
   { id: 'display', title: '디스플레이 및 언어', icon: <Monitor size={20} aria-hidden /> },
@@ -169,7 +172,7 @@ export default function SettingsScreen({ profile, onChange, account, privacy, lo
               <span className={`settings__switch ${profile.sound ? 'is-on' : ''}`} aria-hidden />
             </button>
           </li>
-          {PAGES.map((p) => (
+          {PAGES.filter((p) => p.id !== 'links' || Capacitor.getPlatform() === 'android').map((p) => (
             <li key={p.id}>
               <button className="settings__row" onClick={() => open(p.id)}>
                 <span className="settings__icon">{p.icon}</span>
@@ -182,6 +185,8 @@ export default function SettingsScreen({ profile, onChange, account, privacy, lo
       );
     } else if (page === 'location') {
       body = <LocationSection location={location} />;
+    } else if (page === 'links') {
+      body = <AppLinksSection />;
     } else if (page === 'privacy') {
       body = <PrivacySection {...privacy} />;
     } else if (page === 'alerts') {

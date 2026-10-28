@@ -336,7 +336,7 @@ export class KakaoCourseMap implements CourseMap {
     }
     // Moved, not rebuilt: the position updates every few seconds.
     if (this.me) return this.me.setPosition(this.latLng(center));
-    this.me = new this.maps.CustomOverlay({ position: this.latLng(center), content: createMyLocationElement(), yAnchor: 0.5, zIndex: 0, map: this.map });
+    this.me = new this.maps.CustomOverlay({ position: this.latLng(center), content: createMyLocationElement(), yAnchor: 0.5, zIndex: 5, map: this.map });
   }
 
   setPreview(place: PlaceRef | null): void {

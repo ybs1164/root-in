@@ -57,6 +57,23 @@ describe('national base map tiles', () => {
     expect(fetcher.mock.calls[1][0]).toBe('/korea/base/country/31_9.json');
   });
 
+  it('shares pending manifest and tile downloads across overlapping requests, including a cancelled caller', async () => {
+    let finish!: (tile: unknown) => void;
+    const fetcher = vi.fn(async (url: string) => ({ ok: true, json: async () => url.endsWith('manifest.json')
+      ? manifest : new Promise((resolve) => { finish = resolve; }) }));
+    vi.stubGlobal('fetch', fetcher);
+    const service = new StaticKoreaMapService();
+    const controller = new AbortController();
+    const first = service.fetchBaseMap(viewport, controller.signal);
+    const second = service.fetchBaseMap(viewport);
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2));
+    controller.abort();
+    finish(tile);
+    expect(await first).toBeNull();
+    expect((await second)?.land).toHaveLength(1);
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual(['/korea/base/manifest.json', '/korea/base/detail/2520_740.json']);
+  });
+
   it('returns failure for missing assets, rather than pretending the region is empty', async () => {
     vi.stubGlobal('fetch', vi.fn(async (url: string) => ({ ok: url.endsWith('manifest.json'), json: async () => manifest })));
     expect(await new StaticKoreaMapService().fetchBaseMap(viewport)).toBeNull();

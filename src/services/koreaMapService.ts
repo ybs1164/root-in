@@ -82,32 +82,56 @@ const overlaps = (a: Bbox, b: Bbox) => a.west < b.east && a.east > b.west && a.s
 
 /** Cache tiles and hand only on-screen features to the map SDK. */
 export class StaticKoreaMapService implements KoreaMapService {
-  private manifest: Manifest | null = null;
-  private cache = new Map<string, BaseMap>();
+  private manifest: Promise<Manifest | null> | null = null;
+  private cache = new Map<string, Promise<BaseMap | null>>();
 
   /** `base` is where the tiles are: a worker passes the page's absolute URL (see StaticAdminAreaService). */
   constructor(private readonly base: string = BASE) {}
+
+  private loadManifest(): Promise<Manifest | null> {
+    this.manifest ??= fetch(`${this.base}manifest.json`, { signal: AbortSignal.timeout(15000) })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const value = await response.json() as Manifest;
+        return value.version === 1 && Array.isArray(value.levels) && value.levels.length === 4 &&
+          value.levels.every((l, i) => l.name === LEVEL_NAMES[i] && l.step === LEVEL_STEPS[i] && Array.isArray(l.tiles)) ? value : null;
+      }).catch(() => null);
+    return this.manifest;
+  }
+
+  private loadTile(key: string): Promise<BaseMap | null> {
+    let entry = this.cache.get(key);
+    if (!entry) {
+      // Share in-flight work across quick pans. One cancelled screen must not
+      // abort a tile another screen still needs; each fetch has its own timeout.
+      entry = fetch(`${this.base}${key}`, { signal: AbortSignal.timeout(15000) })
+        .then(async (response) => response.ok ? parseBaseTile(await response.json()) : null)
+        .catch(() => null);
+      this.cache.set(key, entry);
+      void entry.then((tile) => { if (!tile && this.cache.get(key) === entry) this.cache.delete(key); });
+    } else {
+      this.cache.delete(key);
+      this.cache.set(key, entry);
+    }
+    if (this.cache.size > CACHE_LIMIT) this.cache.delete(this.cache.keys().next().value!);
+    return entry;
+  }
 
   async fetchBaseMap(viewport: MapViewport, signal?: AbortSignal): Promise<BaseMap | null> {
     const b = viewport.bounds;
     if (![b.west, b.south, b.east, b.north, viewport.widthPx].every(Number.isFinite) || b.east <= b.west || b.north <= b.south || viewport.widthPx <= 0 || signal?.aborted) return null;
     try {
-      if (!this.manifest) {
-        const response = await fetch(`${this.base}manifest.json`, { signal });
-        if (!response.ok) return null;
-        const value = await response.json() as Manifest;
-        if (value.version !== 1 || !Array.isArray(value.levels) || value.levels.length !== 4 ||
-          !value.levels.every((l, i) => l.name === LEVEL_NAMES[i] && l.step === LEVEL_STEPS[i] && Array.isArray(l.tiles))) return null;
-        this.manifest = value;
-      }
+      const manifest = await this.loadManifest();
+      if (!manifest) { this.manifest = null; return null; }
+      if (signal?.aborted) return null;
       let index = koreaMapLevelIndex(viewport);
-      let level = this.manifest.levels[index];
+      let level = manifest.levels[index];
       // A little margin keeps wide road lines at the screen edge whole.
       const dx = (b.east - b.west) * 0.1, dy = (b.north - b.south) * 0.1;
       const padded = { west: b.west - dx, east: b.east + dx, south: b.south - dy, north: b.north + dy };
       let keys = visibleKoreaTiles(level, padded);
       while (keys.length > MAX_TILES && index < 3) {
-        level = this.manifest.levels[++index];
+        level = manifest.levels[++index];
         keys = visibleKoreaTiles(level, padded);
       }
       const result: BaseMap = { land: [], parks: [], roads: [] };
@@ -119,18 +143,8 @@ export class StaticKoreaMapService implements KoreaMapService {
       await Promise.all(Array.from({ length: Math.min(6, keys.length) }, async () => {
         while (cursor < keys.length && !signal?.aborted) {
           const key = `${level.name}/${keys[cursor++]}.json`;
-          let tile = this.cache.get(key);
-          if (!tile) {
-            const response = await fetch(`${this.base}${key}`, { signal });
-            if (!response.ok) { failed = true; continue; }
-            tile = parseBaseTile(await response.json()) ?? undefined;
-            if (!tile) { failed = true; continue; }
-            this.cache.set(key, tile);
-          } else {
-            this.cache.delete(key);
-            this.cache.set(key, tile);
-          }
-          if (this.cache.size > CACHE_LIMIT) this.cache.delete(this.cache.keys().next().value!);
+          const tile = await this.loadTile(key);
+          if (!tile) { failed = true; continue; }
           // A detail tile holds thousands of streets. Keep those outside the
           // screen in the cache, not in either SDK's render tree.
           for (const polygon of tile.land) if (overlaps(ringBbox(polygon[0]), padded)) result.land.push(polygon);

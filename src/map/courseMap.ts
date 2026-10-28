@@ -110,7 +110,7 @@ export interface CourseMapOptions {
 export const SEOUL_CENTER: [number, number] = [126.978, 37.5665];
 
 /** Credit line for the boundary data (KOGL Type 1 requires it). */
-export const ADMIN_ATTRIBUTION = '행정경계: 통계청 SGIS · admdongkor';
+export const ADMIN_ATTRIBUTION = '행정경계: 통계청 SGIS · admdongkor | 지도·시설: © OpenStreetMap';
 
 /** Shared marker DOM so both map providers look identical. */
 export function createMarkerElement(label: string, variant: 'stop' | 'preview', onClick?: () => void, icon: PinIcon = 'pin'): HTMLElement {
@@ -141,7 +141,8 @@ export function createPreviewElement(place: PlaceRef): HTMLElement {
 export function createNearbyPlaceElement(place: PlaceRef, onClick?: (place: PlaceRef) => void): HTMLElement {
   const el = document.createElement('button');
   el.type = 'button';
-  el.className = 'map-nearby-place';
+  el.className = `map-nearby-place${place.id.startsWith('landmark:') ? ' map-nearby-place--landmark' : ''}`;
+  if ('importance' in place && place.importance === 0) el.classList.add('map-nearby-place--major');
   el.dataset.kind = place.kind;
   el.title = place.name;
   el.setAttribute('aria-label', `${place.name}${place.category ? ` · ${place.category}` : ''}`);
@@ -169,6 +170,10 @@ export function createMyLocationElement(): HTMLElement {
   el.className = 'map-me';
   el.setAttribute('aria-label', '내 위치');
   el.setAttribute('role', 'img');
+  const label = document.createElement('span');
+  label.className = 'map-me__label';
+  label.textContent = '내 위치';
+  el.append(label);
   return el;
 }
 

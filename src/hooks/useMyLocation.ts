@@ -21,6 +21,12 @@ export function useMyLocation() {
   const request = useRef(0);
   const pending = useRef(false);
   useEffect(() => () => { request.current += 1; }, []);
+  // Keep a recent dot through a transient timeout, but never indefinitely.
+  useEffect(() => {
+    if (!me) return;
+    const timer = setTimeout(() => setMe(null), Math.max(0, me.at + 60000 - Date.now()));
+    return () => clearTimeout(timer);
+  }, [me]);
 
   const enable = useCallback(async () => {
     if (pending.current) return null;
@@ -33,9 +39,11 @@ export function useMyLocation() {
       if (id !== request.current) return null;
       if (!result.center) {
         setError(result.error);
-        setMe(null);
-        setEnabled(false);
-        saveEnabled(false);
+        if (result.error === 'denied' || result.error === 'disabled' || result.error === 'unsupported') {
+          setMe(null);
+          setEnabled(false);
+          saveEnabled(false);
+        }
         return null;
       }
       const fix = inKorea(result.center) ? { center: result.center, at: result.at } : null;
@@ -68,8 +76,8 @@ export function useMyLocation() {
           setError(null);
         }, (failure) => {
           setError(failure);
-          setMe(null);
           if (failure === 'denied' || failure === 'disabled' || failure === 'unsupported') {
+            setMe(null);
             setEnabled(false);
             saveEnabled(false);
           }

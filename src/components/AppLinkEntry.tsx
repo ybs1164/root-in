@@ -44,6 +44,7 @@ export default function AppLinkEntry({ children }: { children: ReactNode }) {
           setWebLink(link);
         }}>웹에서 계속</button>
         <small>앱이 설치되어 있지 않다면 웹에서 계속할 수 있어요.</small>
+        {platform === 'android' && <small>계속 웹으로 열린다면 기기 설정 → 앱 → root-in → 기본으로 열기에서 ‘지원되는 링크 열기’를 켜 주세요.</small>}
       </section>
     </main>
   );

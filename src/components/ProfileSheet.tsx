@@ -1,12 +1,12 @@
 import { ChevronDown, PenLine, Settings, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { handleProblem, PROFILE_LIMITS, sanitizeHandleInput } from '../domain/profile';
-import { avatarFromFile } from '../lib/avatarImage';
 import { getDisplayName, setDisplayName } from '../lib/currentUser';
 import type { Profile } from '../services/profileRepository';
 import type { Account } from '../hooks/useAccount';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import PrivacySection from './PrivacySection';
+import AvatarEditor from './AvatarEditor';
 
 interface ProfileSheetProps {
   profile: Profile;
@@ -42,20 +42,13 @@ export default function ProfileSheet({ profile, onChange, onNickname, account, p
   const backdrop = useBackdropTap(dialogRef);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [nickname, setNickname] = useState(getDisplayName);
-  const [note, setNote] = useState<string | null>(null);
   const [privacyOpen, setPrivacyOpen] = useState(!!privacyNotice);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (dialog && !dialog.open) dialog.showModal();
   }, []);
-
-  const pickPhoto = async (file: File | undefined) => {
-    if (!file) return;
-    const photo = await avatarFromFile(file);
-    if (!photo) return setNote('사진을 불러오지 못했어요.');
-    setNote(onChange({ ...profile, photo }) ? null : '사진이 너무 커서 저장하지 못했어요.');
-  };
 
   // 제외 주소 설정: places never shared, folded away like 로그아웃·탈퇴.
   const privacyPart = (
@@ -105,7 +98,8 @@ export default function ProfileSheet({ profile, onChange, onNickname, account, p
             accept="image/*"
             hidden
             onChange={(e) => {
-              void pickPhoto(e.target.files?.[0]);
+              const file = e.target.files?.[0];
+              if (file) setPhotoFile(file);
               e.target.value = ''; // picking the same photo again still fires
             }}
           />
@@ -143,11 +137,18 @@ export default function ProfileSheet({ profile, onChange, onNickname, account, p
           }}
         />
 
-        {(note ?? account?.note) && <p className="profile__note">{note ?? account?.note}</p>}
+        {account?.note && <p className="profile__note">{account.note}</p>}
       </div>
 
       {/* Past the tear line: 제외 주소 설정 (the rest of the settings are behind ⚙). */}
       <div className="ticket-dialog__stub profile__stub">{privacyPart}</div>
+      {photoFile && (
+        <AvatarEditor
+          file={photoFile}
+          onApply={(photo) => onChange({ ...profile, photo })}
+          onClose={() => setPhotoFile(null)}
+        />
+      )}
     </dialog>
   );
 }

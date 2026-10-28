@@ -62,6 +62,13 @@ describe('incoming app links', () => {
     expect(incomingLinkHash(`${custom}#s=abcdefghij`, custom)).toBe('#s=abcdefghij');
     expect(incomingLinkHash(`${base}#s=abcdefghij`, custom)).toBeNull();
   });
+
+  it('accepts the HTTP variant registered for Android verification without widening the host or path', () => {
+    expect(incomingLinkHash('http://ybs1164.github.io/root-in/#g=abcdefghij', base)).toBe('#g=abcdefghij');
+    expect(incomingLinkHash('http://ybs1164.github.io:8080/root-in/#g=abcdefghij', base)).toBeNull();
+    expect(incomingLinkHash('http://ybs1164.github.io/25/#g=abcdefghij', base)).toBeNull();
+    expect(incomingLinkHash('http://other.github.io/root-in/#g=abcdefghij', base)).toBeNull();
+  });
 });
 
 describe('routing within the native WebView', () => {

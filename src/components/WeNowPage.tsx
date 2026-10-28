@@ -7,6 +7,7 @@ import { dateKey } from '../domain/diary';
 import { loadDays, saveDays, type DayStore } from '../services/dayRepository';
 import { onPulled } from '../services/syncBus';
 import ConfirmDialog from './ConfirmDialog';
+import AppLinksSection from './AppLinksSection';
 import DayPattern from './DayPattern';
 import DayPings from './DayPings';
 import DecorLayer from './DecorLayer';
@@ -263,6 +264,7 @@ export default function WeNowPage({ status, todayPings, pinLookOf, onToday, grou
         <div className="we-now__today">
           <TodayTile pings={todayPings} pinLookOf={pinLookOf} onOpen={onToday} />
         </div>
+        <AppLinksSection compact />
         {content}
       </div>
     </>

@@ -1,4 +1,25 @@
+import { avatarCrop, type AvatarEdit } from './avatarCrop';
+
 const SIZE = 256;
+
+/** Use the same oriented image and crop as the editor's preview. */
+export function avatarFromImage(image: HTMLImageElement, edit: AvatarEdit): string | null {
+  try {
+    if (!image.naturalWidth || !image.naturalHeight) return null;
+    const crop = avatarCrop(image.naturalWidth, image.naturalHeight, edit);
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, SIZE, SIZE);
+    ctx.drawImage(image, crop.x, crop.y, crop.side, crop.side, 0, 0, SIZE, SIZE);
+    return canvas.toDataURL('image/jpeg', 0.85);
+  } catch {
+    return null;
+  }
+}
 
 /**
  * A picked photo cut to a centred square and shrunk, as a JPEG data URL small

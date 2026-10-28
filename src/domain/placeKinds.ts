@@ -103,6 +103,7 @@ export const KIND_ICON = {
   // 미용
   salon: 'salon',
   // 생활 서비스·기관
+  building: 'building',
   laundry: 'building',
   photo_studio: 'building',
   wedding: 'building',

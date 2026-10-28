@@ -30,14 +30,14 @@ export type LocationResult = { center: [number, number]; at: number; error?: nev
 export async function requestLocation(): Promise<LocationResult> {
   try {
     if (isNativeApp()) {
-      const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+      const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
       return { center: centerOf(position.coords), at: position.timestamp || Date.now() };
     }
     if (typeof navigator === 'undefined' || !navigator.geolocation) return { error: 'unsupported' };
     return await new Promise<LocationResult>((resolve) => navigator.geolocation.getCurrentPosition(
       ({ coords, timestamp }) => resolve({ center: centerOf(coords), at: timestamp || Date.now() }),
       (error) => resolve({ error: locationError(error) }),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     ));
   } catch (error) {
     return { error: locationError(error) };

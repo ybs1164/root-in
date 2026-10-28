@@ -14,7 +14,11 @@ export function incomingLinkHash(raw: string, base = publicAppUrl()): string | n
       params = url.hash ? new URLSearchParams(url.hash.slice(1)) : url.searchParams;
     } else {
       const trusted = new URL(base);
-      if (!['https:', 'http:'].includes(url.protocol) || url.origin !== trusted.origin ||
+      // Android also verifies HTTP links for this host. Handle them locally,
+      // with the same account, instead of sending them through a web redirect.
+      const trustedOrigin = url.origin === trusted.origin ||
+        (url.protocol === 'http:' && trusted.protocol === 'https:' && url.host === trusted.host);
+      if (!['https:', 'http:'].includes(url.protocol) || !trustedOrigin ||
           url.pathname.replace(/\/$/, '') !== trusted.pathname.replace(/\/$/, '') ||
           url.username || url.password) return null;
       params = new URLSearchParams(url.hash.slice(1));

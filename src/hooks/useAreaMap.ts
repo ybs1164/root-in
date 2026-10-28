@@ -80,7 +80,8 @@ export function useAreaMap(viewport: MapViewport | null, cover?: LabelCover): Ar
   const client = useRef<AreaClient | null>(null);
   useEffect(() => {
     const created = createAreaClient((update) => {
-      if ('shapes' in update) setShapes(update.shapes);
+      if ('shapes' in update) setShapes((current) => ({ ...update.shapes,
+        base: 'base' in update.shapes ? update.shapes.base : current?.base }));
       // Same polygons, labels moved: the maps keep their drawn polygons.
       else setShapes((current) => (current ? { ...current, labels: update.labels } : current));
     });

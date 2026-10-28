@@ -98,15 +98,14 @@ describe('area renderer', () => {
     expect(next && 'shapes' in next).toBe(true);
   });
 
-  it('sends the base map (its land: water is where there is none) with the shapes, the draft included', async () => {
+  it('sends terrain with the finished shapes, after a draft independent of tile loading', async () => {
     const renderer = new AreaRenderer(fakeService());
     const onDraft = vi.fn();
     const done = await renderer.render(at(127, 37), {}, () => true, onDraft);
-    const draftBase = onDraft.mock.calls[0][0].shapes.base;
-    expect(draftBase.land).toHaveLength(1);
+    expect(onDraft.mock.calls[0][0].shapes.base).toBeUndefined();
     // The river is far wider than a pond: it stays a hole, so water shows there.
-    expect(draftBase.land[0]).toHaveLength(2);
     expect(done && 'shapes' in done && done.shapes.base?.land).toHaveLength(1);
+    expect(done && 'shapes' in done && done.shapes.base?.land[0]).toHaveLength(2);
   });
 
   it('fetches the base map for the whole drawn region, wider than the screen', async () => {
@@ -128,6 +127,22 @@ describe('area renderer', () => {
       const done = await new AreaRenderer(fakeService(), base).render(at(127, 37));
       expect(done && 'shapes' in done && done.shapes.parts).toHaveLength(2);
       expect(done && 'shapes' in done && done.shapes.base).toBeUndefined();
+      // A completed failure must clear stale terrain from another region.
+      expect(done && 'shapes' in done && Object.hasOwn(done.shapes, 'base')).toBe(true);
     }
+  });
+
+  it('paints a draft before a slow terrain download finishes and skips terrain work on small pans', async () => {
+    let finish!: (base: BaseMap) => void;
+    const base = { fetchBaseMap: vi.fn(() => new Promise<BaseMap>((resolve) => { finish = resolve; })) };
+    const renderer = new AreaRenderer(fakeService(), base);
+    const draft = vi.fn();
+    const pending = renderer.render(at(127, 37), {}, () => true, draft);
+    await vi.waitFor(() => expect(draft).toHaveBeenCalledOnce());
+    expect(draft.mock.calls[0][0].shapes.parts.length).toBeGreaterThan(0);
+    finish(land);
+    await pending;
+    await renderer.render(at(127.003, 37.002));
+    expect(base.fetchBaseMap).toHaveBeenCalledOnce();
   });
 });

@@ -32,7 +32,7 @@ import { authService } from './services/authService';
 import { categoryLinkUrl, categoryShareService } from './services/categoryShareService';
 import { calendarAgain, pageSwipes, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { COURSE_LIMITS } from './domain/course';
-import { metersPerPixel, type MapViewport } from './domain/districtMap';
+import type { MapViewport } from './domain/districtMap';
 import { filterPinsByCategories, isUncategorized, pinStyle, UNCATEGORIZED } from './domain/pin';
 import { placeKindService } from './services/placeKindService';
 import { pinRailNext, tapAll, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
@@ -44,6 +44,7 @@ import { folderOf, moveRoute, neighborRoute, type RouteTab } from './domain/rout
 import { useCourses } from './hooks/useCourses';
 import { useAreaMap } from './hooks/useAreaMap';
 import { useNearbyPlaces } from './hooks/useNearbyPlaces';
+import { nearbyPlaceAt } from './domain/nearbyPlaces';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
 import { useMyLocation } from './hooks/useMyLocation';
 import { loadPings, recordPing, recordPlacePing, removePingsOfPin, todayPingOfPin } from './services/pingRepository';
@@ -171,9 +172,10 @@ export default function App() {
     saveProfile(next);
   });
   const changeProfile = (next: Profile) => {
+    if (!saveProfile(next)) return false;
     setProfile(next);
     account.push(next);
-    return saveProfile(next);
+    return true;
   };
   // 디스플레이 및 언어 → 디스플레이: 기본 or 다크 on <html data-scheme>; not picked, the phone's setting decides.
   const scheme = profile.scheme;
@@ -680,15 +682,15 @@ export default function App() {
     };
   }, [viewport, mapPadding]);
   const areaMap = useAreaMap(viewport, areaView?.cover);
-  const nearbyPlaces = useNearbyPlaces(viewport, areaView?.cover);
+  const nearbyPlaces = useNearbyPlaces(viewport);
+  // Drag handlers stay attached while place data and the camera update.
+  const nearbyContext = useRef({ places: nearbyPlaces, viewport });
+  nearbyContext.current = { places: nearbyPlaces, viewport };
+  const refreshAim = useRef(() => {});
+  useEffect(() => { refreshAim.current(); }, [nearbyPlaces, viewport]);
   useEffect(() => {
-    const mpp = viewport ? metersPerPixel(viewport) : 0;
-    const visible = nearbyPlaces.filter((place) =>
-      !pinMarkers.some((pin) => distanceMeters(place.center, pin.center) < 32 * mpp) &&
-      !(preview && distanceMeters(place.center, preview.center) < 32 * mpp) &&
-      !areaMap?.labels?.some((label) => distanceMeters(place.center, label.at) < 40 * mpp));
-    mapRef.current?.setNearbyPlaces(visible);
-  }, [nearbyPlaces, mapProvider, viewport, pinMarkers, preview, areaMap?.labels]);
+    mapRef.current?.setNearbyPlaces(nearbyPlaces);
+  }, [nearbyPlaces, mapProvider]);
   useEffect(() => {
     mapRef.current?.setAreaMap(areaMap);
   }, [areaMap, mapProvider]);
@@ -961,14 +963,17 @@ export default function App() {
     await openNewPinAt(center, 'long_press');
   };
 
-  // A new pin's card on a spot: centred, named by its address once that's known.
+  // Use the same place as the map bubble; address lookup fills only empty spots.
   const openNewPinAt = async (center: [number, number], source: PinSource) => {
-    const place = pointPlace(center);
+    const context = nearbyContext.current;
+    const nearby = nearbyPlaceAt(context.places, center, context.viewport);
+    const place = nearby ?? pointPlace(center);
     setActivePinId(null);
     pinSource.current = source;
     setPreview(place);
     // Into the middle at the current zoom; the new pin's card stands above it.
-    mapRef.current?.centerOn(center);
+    mapRef.current?.centerOn(place.center);
+    if (nearby) return;
     const named = await searchService?.reverse(center);
     // Only if the user is still looking at that spot.
     if (named) setPreview((p) => (p?.id === place.id ? { ...named, id: place.id } : p));
@@ -1389,9 +1394,8 @@ export default function App() {
   // its middle with the name of the place under it, kept up to date as it
   // moves. Up the moment a press on the map starts moving it (a tap on a pin
   // that centres the map doesn't), gone the moment the finger lifts. Names:
-  // one lookup at a time (overlapping ones get Photon to refuse some), at most
-  // every AIM_LOOKUP_MS; when an answer comes back it shows at once, and if
-  // the map has moved on the next lookup asks about where it is now.
+  // nearby icons name the point immediately. Address lookups fill empty spots,
+  // one at a time, without ever showing a reply for an earlier camera position.
   const aimable = tab === 'pins' && !onPage && !routeMode && !searchOpen && !preview && !activePinId;
   useEffect(() => {
     if (!aimable || !searchService) return;
@@ -1403,9 +1407,15 @@ export default function App() {
     let wanted: [number, number] | null = null;
     let lastAt = 0;
     let busy = false;
+    let session = 0;
+    let fallbackName: { center: [number, number]; name: string } | null = null;
     let timer: number | undefined;
     const next = () => {
-      if (!alive || !dragging || busy || timer !== undefined || !wanted) return;
+      if (!alive || !dragging || !wanted) return;
+      const context = nearbyContext.current;
+      const nearby = nearbyPlaceAt(context.places, wanted, context.viewport);
+      setAimName(nearby?.name ?? (fallbackName && distanceMeters(fallbackName.center, wanted) < AIM_MIN_MOVE_M ? fallbackName.name : null));
+      if (nearby || busy || timer !== undefined) return;
       if (asked && distanceMeters(asked, wanted) < AIM_MIN_MOVE_M) return;
       const wait = AIM_LOOKUP_MS - (performance.now() - lastAt);
       if (wait > 0) {
@@ -1419,14 +1429,15 @@ export default function App() {
       asked = center;
       lastAt = performance.now();
       busy = true;
+      const requestSession = session;
       void searchService.reverse(center).then((named) => {
         busy = false;
         if (!alive || !dragging) return;
-        // Nothing found nearby: still say what the crosshair is on.
-        setAimName(named?.name ?? '이름 없는 곳');
+        if (requestSession === session) fallbackName = { center, name: named?.name ?? '이름 없는 곳' };
         next();
       });
     };
+    refreshAim.current = next;
     const down = (e: Event) => {
       const target = e.target as Element;
       if (!el?.contains(target)) return;
@@ -1446,7 +1457,9 @@ export default function App() {
     mapEvents.current.move = (center) => {
       if (pressed && !dragging) {
         dragging = true;
+        session += 1;
         asked = null;
+        fallbackName = null;
         lastAt = 0;
         setAimName(null);
         setPanAim(true);
@@ -1464,6 +1477,7 @@ export default function App() {
     window.addEventListener('blur', up);
     return () => {
       alive = false;
+      refreshAim.current = () => {};
       window.clearTimeout(timer);
       setPanAim(false);
       mapEvents.current.move = () => {};
