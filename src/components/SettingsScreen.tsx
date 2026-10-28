@@ -1,4 +1,4 @@
-import { Bell, ChevronLeft, ChevronRight, FileText, MapPinOff, Monitor, UserRound, Volume2, VolumeX } from 'lucide-react';
+import { Bell, ChevronLeft, ChevronRight, FileText, LocateFixed, MapPinOff, Monitor, UserRound, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { PING_ALERT_HOURS, SHARE_ALERT_COUNTS, shareCountLabel } from '../domain/profile';
@@ -6,9 +6,12 @@ import type { Account } from '../hooks/useAccount';
 import type { ColorScheme, Profile } from '../services/profileRepository';
 import { clearAppData } from '../services/settingsRepository';
 import { SWIPE, swipeCommits } from '../domain/appTabs';
+import { ADMIN_ATTRIBUTION } from '../map/courseMap';
 import AlertBoard from './AlertBoard';
 import Logo from './Logo';
 import PrivacySection from './PrivacySection';
+import LocationSection from './LocationSection';
+import type { MyLocationControl } from '../hooks/useMyLocation';
 
 /** 알림 설정's two boards: 투데이 알림 by hour, 공유수 알림 by share count. */
 const PING_STEPS = PING_ALERT_HOURS.map((hour) => ({ value: hour, text: `${hour}:00` }));
@@ -26,7 +29,7 @@ function shownScheme(picked: ColorScheme | null): ColorScheme {
   return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
-type Page = 'main' | 'privacy' | 'alerts' | 'display' | 'account' | 'terms';
+type Page = 'main' | 'location' | 'privacy' | 'alerts' | 'display' | 'account' | 'terms';
 
 /** How long a screen takes to slide off to the right, going back (as long as it took coming in, styles.css `settings-in`). */
 const PAGE_OUT_MS = 260;
@@ -44,6 +47,7 @@ function slideOff(el: HTMLElement, fromPx: number, done: () => void) {
 }
 
 const PAGES: { id: Exclude<Page, 'main'>; title: string; icon: ReactNode }[] = [
+  { id: 'location', title: '위치 설정', icon: <LocateFixed size={20} aria-hidden /> },
   { id: 'privacy', title: '제외 주소 설정', icon: <MapPinOff size={20} aria-hidden /> },
   { id: 'alerts', title: '알림 설정', icon: <Bell size={20} aria-hidden /> },
   { id: 'display', title: '디스플레이 및 언어', icon: <Monitor size={20} aria-hidden /> },
@@ -52,6 +56,7 @@ const PAGES: { id: Exclude<Page, 'main'>; title: string; icon: ReactNode }[] = [
 ];
 
 interface SettingsScreenProps {
+  location: MyLocationControl;
   profile: Profile;
   onChange: (profile: Profile) => boolean;
   account?: Account;
@@ -71,7 +76,7 @@ interface SettingsScreenProps {
  * list the same slides 설정 itself off to the right, closed. A left-to-right
  * swipe does the same, the screen following the finger.
  */
-export default function SettingsScreen({ profile, onChange, account, privacy, onCovered, onClose }: SettingsScreenProps) {
+export default function SettingsScreen({ profile, onChange, account, privacy, location, onCovered, onClose }: SettingsScreenProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const [page, setPage] = useState<Page>('main');
   // The detail screen drawn over the list: it stays while it slides back out
@@ -175,6 +180,8 @@ export default function SettingsScreen({ profile, onChange, account, privacy, on
           ))}
         </ul>
       );
+    } else if (page === 'location') {
+      body = <LocationSection location={location} />;
     } else if (page === 'privacy') {
       body = <PrivacySection {...privacy} />;
     } else if (page === 'alerts') {
@@ -214,8 +221,14 @@ export default function SettingsScreen({ profile, onChange, account, privacy, on
         </section>
       );
     } else if (page === 'terms') {
-      // Room kept for 개인정보처리방침 and the like.
-      body = <section className="terms" aria-label="약관 및 정책" />;
+      // Room kept for 개인정보처리방침 and the like. The map's data credit
+      // lives here since the map itself no longer shows one.
+      body = (
+        <section className="terms" aria-label="약관 및 정책">
+          <h3 className="privacy__title">지도 출처</h3>
+          <p className="terms__credit">{ADMIN_ATTRIBUTION}</p>
+        </section>
+      );
     } else {
       // 계정 관리: 로그인 (or 로그아웃) and 탈퇴.
       body = (

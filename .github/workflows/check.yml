@@ -1,0 +1,58 @@
+name: check
+
+# docs/plan-maintenance-harness.md MH1: every PR and every push to main must
+# typecheck, test and build. Runs with no .env keys on purpose — CLAUDE.md
+# requires dev and tests to work without Kakao/Supabase/PostHog keys.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npx tsc -b
+
+      - name: Test
+        run: npx vitest run
+
+      - name: Build
+        run: npx vite build
+
+      # A sudden jump in bundle size shows up in the run summary.
+      - name: Bundle size
+        run: |
+          {
+            echo '### Bundle size (gzip)'
+            echo
+            echo '| file | gzip KB |'
+            echo '|---|---:|'
+            total=0
+            for f in dist/assets/*.js dist/assets/*.css; do
+              [ -f "$f" ] || continue
+              size=$(gzip -9 -c "$f" | wc -c)
+              total=$((total + size))
+              echo "| $(basename "$f") | $((size / 1024)) |"
+            done
+            echo "| **total** | **$((total / 1024))** |"
+          } >> "$GITHUB_STEP_SUMMARY"

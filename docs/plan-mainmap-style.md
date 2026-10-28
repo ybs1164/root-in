@@ -1,5 +1,7 @@
 # 본 지도에 TODAY 미니맵의 꾸밈 옮기기
 
+> **2026-10-28 수정**: 확대 시 지역과 주변 장소를 식별할 수 있도록 M9의 도로·공원 생략, 지역명 숨김을 변경했다. 현재 동작과 검증 범위는 [map-rendering.md](map-rendering.md)를 따른다.
+
 > 2026-10-20 작성. 대상: 📍 핀 탭의 전체 화면 지도(`CourseMap` — MapLibre·카카오 둘 다)와 We Now 그룹 지도.
 > 출발점: [plan-minimap-design.md](plan-minimap-design.md)(D1~D8 색·층·기울임·이름표), [plan-minimap-silhouette.md](plan-minimap-silhouette.md)(S0~S9 외곽선).
 > 작업 번호 **M0~M11**로 참조한다. **2026-10-22 M9로 단순화: 본 지도는 물·땅·옅은 동 틴트만, 구역은 읍면동까지**(아래 'M9').

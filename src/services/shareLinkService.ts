@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase, supabaseConfigured } from '../lib/supabase';
 import type { SharedCourse } from '../types/course';
 import { decodeSharedCourse, MAX_TOKEN_LENGTH } from './courseShareService';
+import { publicAppUrl } from '../lib/appUrl';
 
 // 짧은 공유 링크 (#s=<slug>) and how often each was opened. The server row
 // holds the very token a long #share= link carries, so what comes back is
@@ -40,7 +41,7 @@ export interface ShareLinkService {
   countAdd(slug: string): Promise<void>;
 }
 
-export function shortLinkUrl(slug: string, base = `${window.location.origin}${window.location.pathname}`): string {
+export function shortLinkUrl(slug: string, base = publicAppUrl()): string {
   return `${base}#${SLUG_KEY}=${slug}`;
 }
 

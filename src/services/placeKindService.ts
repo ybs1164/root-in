@@ -4,6 +4,7 @@ import { matchKind, type KindShop } from '../domain/placeMatch';
 import type { PlaceRef } from '../types/course';
 import { StaticAdminAreaService } from './adminAreaService';
 import { UNNAMED_SPOT } from './placeSearch/placeSearchService';
+import { mapDataRoot } from '../lib/mapData';
 
 /**
  * Fills in what kind of place a pin is when its source didn't say (a long
@@ -15,7 +16,7 @@ export interface PlaceKindService {
   lookup(place: PlaceRef, signal?: AbortSignal): Promise<PlaceKind | null>;
 }
 
-const BASE = `${import.meta.env.BASE_URL}korea/places/`;
+const BASE = `${mapDataRoot()}places/`;
 const FORMAT_VERSION = 1;
 const MAX_NAME = 40;
 
@@ -48,14 +49,18 @@ export class StaticPlaceKindService implements PlaceKindService {
     private readonly base: string = BASE,
   ) {}
 
-  private load(code: string): Promise<KindShop[] | null> {
+  loadShops(code: string): Promise<KindShop[] | null> {
     let entry = this.files.get(code);
     if (!entry) {
       // Not tied to one lookup's signal: closing a card must not poison the cache.
-      entry = fetch(`${this.base}${code}.json`)
+      entry = fetch(`${this.base}${code}.json`, { signal: AbortSignal.timeout(15000) })
         .then(async (response) => (response.ok ? parseKindShops(await response.json()) : null))
         .catch(() => null);
       entry.then((shops) => { if (!shops) this.files.delete(code); });
+      this.files.set(code, entry);
+      if (this.files.size > 12) this.files.delete(this.files.keys().next().value!);
+    } else {
+      this.files.delete(code);
       this.files.set(code, entry);
     }
     return entry;
@@ -65,7 +70,7 @@ export class StaticPlaceKindService implements PlaceKindService {
     try {
       const code = await this.areaCodeAt(place.center);
       if (!code || !/^\d{5}$/.test(code) || signal?.aborted) return null;
-      const shops = await this.load(code);
+      const shops = await this.loadShops(code);
       if (!shops || signal?.aborted) return null;
       const picked = isPickedSpot(place);
       // A picked spot is named by its building, or only by its address (or not

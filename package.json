@@ -11,7 +11,7 @@
     "test:watch": "vitest",
     "check": "tsc -b && vitest run",
     "shots": "node scripts/ui-shots.mjs",
-    "android:sync": "node scripts/native-sync.mjs android",
+    "android:sync": "node scripts/android-sync.mjs",
     "android:apk": "node scripts/android-apk.mjs",
     "ios:sync": "node scripts/native-sync.mjs ios",
     "ios:sim": "node scripts/ios-sim.mjs"
@@ -21,6 +21,7 @@
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.5.2",
     "@capacitor/filesystem": "^8.1.4",
+    "@capacitor/geolocation": "^8.2.4",
     "@capacitor/ios": "^8.5.3",
     "@capacitor/share": "^8.0.3",
     "@capacitor/status-bar": "^8.0.4",

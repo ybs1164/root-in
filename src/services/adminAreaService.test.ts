@@ -21,9 +21,9 @@ const files: Record<string, unknown> = {
   // Roads cut the first walk piece in two; the others have no road pieces.
   '/korea/admin/road/11140/1114051000.json': [area('1114051000-0-0-0-0', 127, 37.4, 0.006), area('1114051000-0-0-0-1', 127.006, 37.4, 0.006)],
 };
-const stubFiles = () => {
-  const fetcher = vi.fn(async (url: string) => (url in files
-    ? { ok: true, json: async () => files[url] }
+const stubFiles = (data = files) => {
+  const fetcher = vi.fn(async (url: string) => (url in data
+    ? { ok: true, json: async () => data[url] }
     : { ok: false, json: async () => null }));
   vi.stubGlobal('fetch', fetcher);
   return fetcher;
@@ -31,24 +31,51 @@ const stubFiles = () => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('administrative area files', () => {
-  it('splits the 시군구 at the center into 읍면동 and keeps neighbors whole', async () => {
+  it('loads all nearby districts across province borders without fetching dong files', async () => {
+    const fetcher = stubFiles();
+    const districts = await new StaticAdminAreaService().sggAreasInBounds({ west: 127.04, south: 37.4, east: 127.3, north: 37.6 });
+    expect(districts.map((a) => a.code).sort()).toEqual(['11140', '41110']);
+    expect(fetcher.mock.calls.some(([url]) => String(url).includes('/dong/'))).toBe(false);
+  });
+  it('splits areas at the viewport edges too, including across a 시도 border', async () => {
     const fetcher = stubFiles();
     const map = await new StaticAdminAreaService().fetchAreaMap({ bounds: { west: 127.04, south: 37.45, east: 127.15, north: 37.55 }, widthPx: 375 });
     expect(map?.focus.code).toBe('11140');
-    expect(map?.parts.map((a) => a.code)).toEqual(['1114051000', '1114052000']);
-    // Neighbors across the 시도 border too, but never the focus itself.
-    expect(map?.others.map((a) => a.code).sort()).toEqual(['11110', '41110']);
-    expect(fetcher.mock.calls.map(([url]) => url)).not.toContain('/korea/admin/dong/11110.json');
+    expect(map?.parts.map((a) => a.code).sort()).toEqual(['1111051000', '1114051000', '1114052000', '41110']);
+    expect(map?.others).toEqual([]);
+    expect(fetcher.mock.calls.map(([url]) => url)).toContain('/korea/admin/dong/11110.json');
   });
 
-  it('splits every 시도 reaching into the center range into 시군구 when zoomed out', async () => {
+  it('splits every visible 시도 into 시군구 when zoomed out', async () => {
     stubFiles();
-    // The default range (the middle 40% of 126..128) reaches into 경기 too.
+    // The entire viewport and a margin are included.
     const map = await new StaticAdminAreaService().fetchAreaMap({ bounds: { west: 126, south: 37, east: 128, north: 38 }, widthPx: 375 });
     expect(map?.focus.code).toBe('11');
     expect(map?.alsoFocus?.map((f) => f.code)).toEqual(['41']);
     expect(map?.parts.map((a) => a.code).sort()).toEqual(['11110', '11140', '41110']);
     expect(map?.others).toEqual([]);
+  });
+
+  it('draws more than four visible districts without leaving edge areas blank', async () => {
+    const districts = Array.from({ length: 6 }, (_, i) => area(`1111${i}`, 127 + i * 0.05, 37.4, 0.04));
+    const data: Record<string, unknown> = {
+      '/korea/admin/sido.json': { areas: [area('11', 126.5, 37.3, 1)] },
+      '/korea/admin/sgg/11.json': districts,
+    };
+    for (const [i, district] of districts.entries()) {
+      data[`/korea/admin/dong/${district.code}.json`] = [area(`${district.code}51000`, 127 + i * 0.05, 37.4, 0.04)];
+    }
+    stubFiles(data);
+    const map = await new StaticAdminAreaService().fetchAreaMap({ bounds: { west: 127, south: 37.4, east: 127.3, north: 37.44 }, widthPx: 375 });
+    expect(map?.parts.map((a) => a.code).sort()).toEqual(districts.map((a) => `${a.code}51000`).sort());
+    expect(map?.alsoFocus).toHaveLength(5);
+    expect(map?.others).toEqual([]);
+  });
+
+  it('keeps a parent shape visible when its child data cannot be loaded', async () => {
+    stubFiles();
+    const map = await new StaticAdminAreaService().fetchAreaMap({ bounds: { west: 127.23, south: 37.43, east: 127.28, north: 37.48 }, widthPx: 375 });
+    expect(map?.parts.map((a) => a.code)).toContain('41110');
   });
 
   it('splits only the 시도 under a narrow range', async () => {
@@ -72,7 +99,8 @@ describe('administrative area files', () => {
       const fetcher = stubFiles();
       const map = await new StaticAdminAreaService().fetchAreaMap(screenAt(127.012, 37.412, mpp));
       expect(map?.focus.code, `${mpp} m/px`).toBe('11140');
-      expect(map?.parts.map((a) => a.code)).toEqual(['1114051000', '1114052000']);
+      expect(map?.parts.map((a) => a.code)).toEqual(expect.arrayContaining(['1114051000', '1114052000']));
+      expect(map?.parts.every((a) => /^\d{10}$/.test(a.code))).toBe(true);
       const urls = fetcher.mock.calls.map(([url]) => url as string);
       expect(urls.filter((url) => /\/(section|block|walk|road)\//.test(url))).toEqual([]);
     }

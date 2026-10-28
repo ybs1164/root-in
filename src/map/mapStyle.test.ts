@@ -8,18 +8,26 @@ const areas: AreaShapes = { parts: [[ring]], others: [[ring], [ring]] };
 const withBase: AreaShapes = { ...areas, base: { land: [[ring]] } };
 
 describe('main map style', () => {
-  it('is only water, land, one shadow and the faint tint in four tones: no roads or parks', () => {
-    expect(MAP_LAYERS.map((l) => l.id)).toEqual(['area-cover', 'base-land', 'area-shadow', 'area-parts']);
-    expect(MAP_LAYERS.find((l) => l.id === 'area-shadow')!.type).toBe('line');
-    expect(MAP_LAYERS.find((l) => l.id === 'area-parts')!.tones).toEqual(['--map-tone-0', '--map-tone-1', '--map-tone-2', '--map-tone-3']);
+  it('draws roads and parks over the land and district tints', () => {
+    expect(MAP_LAYERS.map((l) => l.id)).toEqual(['area-cover', 'base-land', 'area-shadow', 'area-parts', 'base-parks', 'base-roads']);
+    expect(MAP_LAYERS.find((l) => l.id === 'base-roads')?.type).toBe('line');
+    expect(MAP_LAYERS.find((l) => l.id === 'area-shadow')!.source).toBe('area-drop');
+    expect(MAP_LAYERS.find((l) => l.id === 'area-parts')!.tones).toEqual(['--map-tone-0', '--map-tone-1', '--map-tone-2']);
     // Every layer's token is a map role (styles.css), so the dark scheme repaints them all.
     for (const layer of MAP_LAYERS) expect(layer.token).toMatch(/^--map-/);
   });
 
-  it('gives each part its tone and the shadow the one outline', () => {
-    const toned: AreaShapes = { ...withBase, parts: [[ring], [ring]], partTones: [2, 0], partsOutline: [[ring]] };
+  it('gives each part its tone and the shadow its own shape', () => {
+    const toned: AreaShapes = { ...withBase, parts: [[ring], [ring]], partTones: [2, 0], partsOutline: [[ring]], partsDrop: [[ring], [ring]] };
     expect(mapSourceData('area-parts', toned).features.map((f) => f.properties?.tone)).toEqual([2, 0]);
     expect(mapSourceData('area-outline', toned).features).toHaveLength(1);
+    expect(mapSourceData('area-drop', toned).features).toHaveLength(2);
+  });
+
+  it('sends park geometry and road widths to the renderer', () => {
+    const shapes: AreaShapes = { ...areas, base: { land: [[ring]], parks: [[ring]], roads: [{ path: ring, width: 4, tier: 4 }] } };
+    expect(mapSourceData('base-parks', shapes).features).toHaveLength(1);
+    expect(mapSourceData('base-roads', shapes).features[0]).toMatchObject({ properties: { width: 4 }, geometry: { type: 'LineString', coordinates: ring } });
   });
 
   it('covers the page with land only while there is no base map, so the screen is never all water', () => {

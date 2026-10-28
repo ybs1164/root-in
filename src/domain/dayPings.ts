@@ -60,6 +60,30 @@ export function todayCandidates<P extends { id: string; place: { center: [number
     .map(({ pin }) => pin);
 }
 
+/**
+ * Where a photo taken on TODAY goes, straight away with no questions: the
+ * nearest of your pins within 50m not in today yet; else today's own ping
+ * already within 50m (the photo joins it, no second ping for one place);
+ * else a new ping right where you are.
+ */
+export type PhotoPingTarget<P> = { kind: 'pin'; pin: P } | { kind: 'same'; pingId: string } | { kind: 'here'; center: [number, number] };
+
+export function photoPingTarget<P extends { id: string; place: { center: [number, number] } }>(
+  pins: readonly P[],
+  here: [number, number] | null,
+  today: readonly StoredPing[],
+): PhotoPingTarget<P> | null {
+  if (!here) return null;
+  const [pin] = todayCandidates(pins, here, today);
+  if (pin) return { kind: 'pin', pin };
+  const same = today
+    .map((ping) => ({ ping, m: haversineMeters(ping.center, here) }))
+    .filter(({ m }) => m <= TODAY_PING_RADIUS_M)
+    .sort((a, b) => a.m - b.m)[0];
+  if (same) return { kind: 'same', pingId: same.ping.id };
+  return { kind: 'here', center: here };
+}
+
 export const toDayPing = (ping: StoredPing): DayPing => ({
   id: ping.id,
   ...(ping.pinId ? { pinId: ping.pinId } : {}),

@@ -28,7 +28,7 @@ PostHog 프로젝트 설정에서 **Discard client IP data**를 켠다.
 | | `route_build_ready` | `stops` | 2곳이 되어 생성 창이 뜸 |
 | | `route_created` | `stops`, `has_note`, `in_folder` | 생성 |
 | | `route_build_cancelled` | `stops`(가장 많았던 수) | 만들지 않고 끝남 |
-| 공유 | `share_started` | `kind`: route · day | 공유 버튼 |
+| 공유 | `share_started` | `kind`: route · day · category(카테고리 링크) | 공유 버튼 |
 | | `share_blocked_need_home` | `kind` | 집 주소가 없어 프로필로 감 |
 | | `share_studio_opened` | `kind` | 꾸미기 화면이 뜸 |
 | | `share_completed` | `kind`, `method`: system_share · save_image · copy_link, `ok` | 버튼마다(시스템 공유 취소도 `ok: false`) |

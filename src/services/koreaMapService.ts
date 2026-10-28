@@ -1,5 +1,6 @@
 import { ROAD_TIERS, roadTierVisible, type BaseMap, type BaseRoad, type PolygonRings, type RoadTier } from '../domain/baseMap';
 import { metersPerPixel, type Bbox, type LonLat, type MapViewport, type Ring } from '../domain/districtMap';
+import { mapDataRoot } from '../lib/mapData';
 
 interface TileLevel { name: string; step: number; tiles: string[] }
 interface Manifest { version: number; levels: TileLevel[] }
@@ -23,7 +24,7 @@ export interface KoreaMapService {
 }
 const MAX_TILES = 48;
 const CACHE_LIMIT = 96;
-const BASE = `${import.meta.env.BASE_URL}korea/base/`;
+const BASE = `${mapDataRoot()}base/`;
 const LEVEL_NAMES = ['detail', 'city', 'region', 'country'];
 const LEVEL_STEPS = [.05, .2, 1, 4];
 

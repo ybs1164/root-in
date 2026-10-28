@@ -3,7 +3,7 @@ import type { AreaShapes } from '../domain/adminAreas';
 import type { Ring } from '../domain/districtMap';
 import type { KakaoMapsNamespace } from '../lib/kakaoSdk';
 import { KakaoCourseMap } from './kakaoCourseMap';
-import { KAKAO_LAND_LIMIT } from './mapStyle';
+import { KAKAO_LAND_LIMIT, SHADOW } from './mapStyle';
 
 interface Shape {
   kind: 'polygon' | 'polyline';
@@ -61,6 +61,21 @@ const polygons = (shapes: Shape[]) => shapes.filter((s) => s.kind === 'polygon')
 afterEach(() => vi.unstubAllGlobals());
 
 describe('Kakao map', () => {
+  it('draws parks and streets, reuses them on a pan, and clears them on teardown', () => {
+    const { kakao, shapes } = fakeKakao();
+    const detail = { ...withBase(), base: { land: [[ring(127)]], parks: [[ring(127.01)]], roads: [{ path: ring(127.02), width: 4, tier: 4 }] } };
+    kakao.setAreaMap(detail);
+    const street = shapes.find((s) => s.kind === 'polyline')!;
+    expect(street.options.strokeWeight).toBe(4);
+    const park = shapes.find((s) => s.options.fillColor && s.options.zIndex === Number(street.options.zIndex) - 1);
+    expect(park).toBeDefined();
+    const made = shapes.length;
+    kakao.setAreaMap({ ...detail, base: { ...detail.base, roads: [{ path: ring(127.03), width: 6, tier: 4 }] } });
+    expect(shapes).toHaveLength(made);
+    expect(street.options.strokeWeight).toBe(6);
+    kakao.setAreaMap(null);
+    expect(shapes.every((s) => !s.shown)).toBe(true);
+  });
   it('covers the tiles with land until the base map comes, then with water under its land', () => {
     const { kakao, shapes } = fakeKakao();
     kakao.setAreaMap(areas);
@@ -104,15 +119,15 @@ describe('Kakao map', () => {
     expect(polygons(shapes).filter((s) => s.shown)).toHaveLength(0);
   });
 
-  it('tints each part in its tone and lays the faint shadow under them, both off under a route', () => {
+  it('tints each part in its tone over a soft shadow, with no outlines, both off under a route', () => {
     const { kakao, shapes } = fakeKakao();
-    kakao.setAreaMap({ ...withBase(), parts: [[ring(127)], [ring(127.012)]], partTones: [0, 3], partsOutline: [[ring(127, 0.022)]] });
-    const [cover, land, shadow, tintA, tintB] = polygons(shapes);
+    kakao.setAreaMap({ ...withBase(), parts: [[ring(127)], [ring(127.012)]], partTones: [0, 2], partsOutline: [[ring(127, 0.022)]], partsDrop: [[ring(127.001)]] });
+    const [cover, land, shadow, tintA, tintB, extra] = polygons(shapes);
     expect(zOf(land)).toBeLessThan(zOf(shadow));
     expect(zOf(shadow)).toBeLessThan(zOf(tintA));
-    // Kakao has no blur: the outline moved a little down, faint.
-    expect(shadow.options.fillOpacity).toBeGreaterThan(0);
-    expect(shadow.options.fillOpacity).toBeLessThan(0.2);
+    expect(extra).toBeUndefined();
+    // The shadow is already cut to the outside: drawn as is.
+    expect(shadow.options.fillOpacity).toBe(SHADOW.opacity);
     expect(zOf(cover)).toBe(0);
     kakao.setAreaTint(false);
     expect([shadow, tintA, tintB].map((s) => s.options.fillOpacity)).toEqual([0, 0, 0]);

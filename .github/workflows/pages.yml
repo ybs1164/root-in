@@ -1,0 +1,85 @@
+name: pages
+
+# The web app at https://ybs1164.github.io/root-in/ — where share and invite
+# links point (VITE_PUBLIC_APP_URL), so a link made in the Android app opens
+# in any browser. The client keys are public by design (they ship in the
+# bundle) and live in the repository's Actions variables. The map data is
+# read from its own host (VITE_MAP_DATA_URL), so public/korea never goes in.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Read from Actions variables, or secrets when they were saved there instead.
+    env:
+      VITE_KAKAO_JS_KEY: ${{ vars.VITE_KAKAO_JS_KEY || secrets.VITE_KAKAO_JS_KEY }}
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_MAP_DATA_URL: ${{ vars.VITE_MAP_DATA_URL || secrets.VITE_MAP_DATA_URL || 'https://ybs1164.github.io/root-in-map-data/korea-20261022/' }}
+      VITE_POSTHOG_KEY: ${{ vars.VITE_POSTHOG_KEY || secrets.VITE_POSTHOG_KEY }}
+      VITE_PUBLIC_APP_URL: https://ybs1164.github.io/root-in/
+    steps:
+      # A key-less build still runs (no map, no login), so stop before publishing one.
+      - name: Check keys
+        run: |
+          missing=''
+          for name in VITE_KAKAO_JS_KEY VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository variables:$missing (Settings → Secrets and variables → Actions → Variables, at repository level, not under an environment)"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: npm ci
+
+      - name: Build
+        run: |
+          npx tsc -b
+          npx vite build --base=/root-in/
+          # Not read by the app (see scripts/android-sync.mjs).
+          rm -rf dist/overture dist/korea
+
+      # Full-size sticker PNGs are ~150MB; the same shrink as the APK.
+      - name: Shrink stickers
+        run: |
+          pip install pillow
+          python scripts/shrink-stickers.py dist/stickers
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

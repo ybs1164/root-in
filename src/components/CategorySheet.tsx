@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { PIN_LIMITS, PIN_SWATCHES, type CategoryProblem, type NewCategoryInput } from '../domain/pin';
 import type { Pin, PinCategory } from '../types/pin';
 import CategoryFormDialog, { type CategoryFormValue } from './CategoryFormDialog';
-import CategoryManager from './CategoryManager';
+import CategoryManager, { type CategorySharing } from './CategoryManager';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 
 interface CategorySheetProps {
@@ -17,6 +17,7 @@ interface CategorySheetProps {
   onDelete: (id: string) => void;
   /** A pin picked from a category's list; the sheet closes first. */
   onPickPin: (id: string) => void;
+  sharing?: CategorySharing;
   onClose: () => void;
 }
 
@@ -46,6 +47,7 @@ export default function CategorySheet({
   onDrop,
   onDelete,
   onPickPin,
+  sharing,
   onClose,
 }: CategorySheetProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
@@ -98,6 +100,7 @@ export default function CategorySheet({
           onDrop={onDrop}
           onDelete={onDelete}
           onStartEditing={() => setEditing(true)}
+          sharing={sharing}
           onPickPin={(id) => {
             dialogRef.current?.close();
             onPickPin(id);

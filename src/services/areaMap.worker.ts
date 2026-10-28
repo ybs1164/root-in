@@ -1,5 +1,5 @@
 import type { LabelCover } from '../domain/areaLabels';
-import type { Bbox, MapViewport } from '../domain/districtMap';
+import type { MapViewport } from '../domain/districtMap';
 import { StaticAdminAreaService } from './adminAreaService';
 import { AreaRenderer } from './areaRenderer';
 import { StaticKoreaMapService } from './koreaMapService';
@@ -13,7 +13,7 @@ import { StaticKoreaMapService } from './koreaMapService';
 let renderer: AreaRenderer | null = null;
 let latest = 0;
 
-type Message = { base: string; mapBase: string } | { id: number; viewport: MapViewport; focusRange?: Bbox; cover?: LabelCover };
+type Message = { base: string; mapBase: string } | { id: number; viewport: MapViewport; cover?: LabelCover };
 
 self.onmessage = async (event: MessageEvent<Message>) => {
   // First the page says where the area files and base map tiles are (absolute URLs).
@@ -22,10 +22,10 @@ self.onmessage = async (event: MessageEvent<Message>) => {
     return;
   }
   renderer ??= new AreaRenderer();
-  const { id, viewport, focusRange, cover } = event.data;
+  const { id, viewport, cover } = event.data;
   latest = id;
   try {
-    const update = await renderer.render(viewport, { focusRange, cover }, () => id === latest,
+    const update = await renderer.render(viewport, { cover }, () => id === latest,
       (draft) => self.postMessage({ id, update: draft }));
     if (update) self.postMessage({ id, update });
   } catch (error) {

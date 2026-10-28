@@ -34,6 +34,11 @@
 - **링크 끊기·추가 수** (2026-10-08, `20261011000000_shares_revoke.sql`): 루트를 지우면(지움 표시, 어느 기기에서든) 서버 트리거가 그 루트의 링크에 `revoked_at`을 찍어 끊음 — `open_share`가 아무것도 안 돌려줘 받는 쪽은 '공유 링크를 열 수 없어요'. 지운 루트가 되살아나도 링크는 끊긴 채이고, 링크 복사는 끊긴 링크를 다시 쓰지 않고 새로 만듦. 받은 루트 팝업의 '루트 추가'는 `count_share_add(slug)`로 `add_count`+1(주인 제외, 실패해도 추가는 됨, 같은 사람이 여러 번 누르면 여러 번 셈). 셀 때 `last_opened_at`도 찍음. `kind`(`route`·`day`·`pins`)는 나중의 하루·핀 묶음 짧은 링크용, 지금은 늘 `route`.
 - 보안: `shares`·`profiles`는 이제 **본인만 select**(목록으로 남의 공유·설정을 볼 수 없음). 남이 보는 건 `open_share`가 돌려주는 공개 정보뿐. 링크를 여러 브라우저로 열어 횟수를 부풀리는 것은 막지 않음(익명 열기라 막을 신원이 없음).
 
+## 카테고리 구독 (2026-10-23)
+- `20261023000000_category_shares.sql`: 핀 카테고리를 링크(`#c=<slug>`)로 공유하면 받는 사람이 **구독**해서 계속 따라감. 테이블 `category_shares`(slug·owner_id·category_id·snapshot·revoked_at, 카테고리당 살아 있는 링크 하나 — 부분 unique 인덱스), RLS는 주인만. 받는 쪽은 `open_category_share(slug)`(anon 가능) — 스냅샷·주인 닉네임·사진 경로·`mine`.
+- 스냅샷은 **주인 폰이 만들어 올림**(`{ v: 1, c: { n, ic, co }, p: [{ i, n, c, a?, y?, m? }] }`, 핀 500개까지): 제외 주소는 서버에 없으니 폰에서 빼고 올림. 공유 중인 카테고리의 핀·모양·제외 주소가 바뀌면 2초 뒤 다시 올림(`hooks/useCategoryShares.ts` `useSharedCategories`). 카테고리를 지우면(지움 표시, 어느 기기든) 트리거가 링크를 끊음. '공유 중지'도 `revoked_at`.
+- 구독은 **받는 폰에만** 저장(`goodroot:category-subs:v1` — slug·내 카테고리 id·주인 이름·주인 모양·구독이 넣은 장소 id). 카테고리와 핀은 평범한 내 것이라 그대로 동기화되지만, 다른 기기에서는 구독(자동 갱신)이 이어지지 않음. 앱을 열 때·앞으로 올 때·5분마다 다시 읽어 `domain/categoryShare.ts` `followCategory`로 맞춤.
+
 ## 처음 설정
 1. [supabase.com](https://supabase.com)에서 프로젝트 만들기 — 리전은 **Northeast Asia (Seoul)**.
 2. **대시보드 SQL Editor에는 한 번에 100줄까지만 붙여 넣어진다** — 그보다 긴 파일(init은 169줄)은 잘려서 이상한 오류가 난다.
@@ -58,6 +63,8 @@
    VITE_SUPABASE_URL=https://<ref>.supabase.co
    VITE_SUPABASE_ANON_KEY=<anon key>
    ```
+   새 공개 키는 `VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...`로 설정해도 된다(anon 키보다 우선).
+   Android 배포용 설정은 `.env.production.local`에 두고, `npm run android:sync`가 `/auth/v1/settings` 응답을 확인한 뒤 빌드한다. 설정이 빠졌거나 연결이 실패하면 APK 생성 전 중단한다. `android:apk`도 실제 번들에 현재 서버 설정이 들어 있는지 확인한다. 서버 없는 로컬 시험만 두 스크립트에 `--local-only`를 명시한다. 일반 웹 개발·CI는 키 없이도 그대로 실행된다. 빌드 설정 검사는 `node --test scripts/android-config.check.mjs`로 실행한다.
    **service_role 키는 절대 프론트(.env의 VITE_*)에 넣지 않는다.**
 4. 카카오 로그인
    - 카카오 개발자 콘솔 → 내 애플리케이션 → 카카오 로그인 활성화, Redirect URI에

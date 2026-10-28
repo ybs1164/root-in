@@ -3,7 +3,7 @@ import type { AdminArea, AreaMap } from '../domain/adminAreas';
 import type { MapViewport, Ring } from '../domain/districtMap';
 import type { BaseMap } from '../domain/baseMap';
 import type { AdminAreaService } from './adminAreaService';
-import { AreaRenderer as Renderer } from './areaRenderer';
+import { AREA_NAMES_SHOWN, AreaRenderer as Renderer } from './areaRenderer';
 import type { KoreaMapService } from './koreaMapService';
 
 const square = (code: string, west: number, south: number, size: number): AdminArea => {
@@ -41,6 +41,7 @@ describe('area renderer', () => {
     const renderer = new AreaRenderer(fakeService());
     const first = await renderer.render(at(127, 37));
     expect(first && 'shapes' in first && first.shapes.parts.length).toBe(2);
+    expect(AREA_NAMES_SHOWN).toBe(true);
     expect(first && 'shapes' in first && first.shapes.labels?.length).toBeGreaterThan(0);
     // A small pan: no new polygons (labels move only if they must).
     const panned = await renderer.render(at(127.003, 37.002));
@@ -110,13 +111,16 @@ describe('area renderer', () => {
 
   it('fetches the base map for the whole drawn region, wider than the screen', async () => {
     const base = fakeBase();
-    const renderer = new AreaRenderer(fakeService(), base);
+    const service = fakeService();
+    const renderer = new AreaRenderer(service, base);
     await renderer.render(at(127, 37));
     const [asked] = vi.mocked(base.fetchBaseMap).mock.calls[0];
     expect(asked.bounds.west).toBeLessThan(127);
     expect(asked.bounds.east).toBeGreaterThan(127.04);
     // Same pixel scale as the screen.
     expect((asked.bounds.east - asked.bounds.west) / asked.widthPx).toBeCloseTo(0.04 / 400, 8);
+    // The same padded region must have districts too when a later pan reuses it.
+    expect(vi.mocked(service.fetchAreaMap).mock.calls[0][1]).toEqual(asked.bounds);
   });
 
   it('draws the areas without a base map when it does not load', async () => {

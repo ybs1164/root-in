@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { addDays } from './calendar';
-import { classifyPress, dayTitle, EDGE_STYLES, edgeKey, latestPingIndex, layoutPings, pingCounts, pingKey, pinchOutcome, pinchProgress, pingsForDate, pingsLandedMs, todayCandidates, type DayPing, type StoredPing } from './dayPings';
+import { classifyPress, dayTitle, EDGE_STYLES, edgeKey, latestPingIndex, layoutPings, pingCounts, pingKey, pinchOutcome, pinchProgress, pingsForDate, pingsLandedMs, photoPingTarget, todayCandidates, type DayPing, type StoredPing } from './dayPings';
 
 const SAMPLE_TODAY_PINGS: DayPing[] = [
   { name: '성수연방', time: '10:30', center: [127.056, 37.5475] },
@@ -39,6 +39,17 @@ describe('calendar day screen', () => {
     const today = [{ ...stored('t', '2026-10-08', '09:00', '집 앞'), pinId: 'taken' }];
     expect(todayCandidates(pins, here, today).map((p) => p.id)).toEqual(['nearest', 'near']); // ~9m, ~27m; far is ~88m
     expect(todayCandidates(pins, null, [])).toEqual([]);
+  });
+
+  it('sends a TODAY photo to your nearest pin, else to the ping already there, else to the spot', () => {
+    const pin = (id: string, lon: number) => ({ id, place: { center: [lon, 37.5] as [number, number] } });
+    const here: [number, number] = [127, 37.5];
+    const at = (lon: number, pinId?: string) => ({ ...stored(`ping-${lon}`, '2026-10-08', '09:00', '집 앞'), center: [lon, 37.5] as [number, number], pinId });
+    expect(photoPingTarget([pin('far', 127.001), pin('near', 127.0003)], here, [])).toEqual({ kind: 'pin', pin: pin('near', 127.0003) });
+    // That pin is in today already: the photo joins its ping.
+    expect(photoPingTarget([pin('near', 127.0003)], here, [at(127.0003, 'near')])).toEqual({ kind: 'same', pingId: 'ping-127.0003' });
+    expect(photoPingTarget([pin('far', 127.001)], here, [at(127.002)])).toEqual({ kind: 'here', center: here });
+    expect(photoPingTarget([], null, [])).toBeNull();
   });
 
 

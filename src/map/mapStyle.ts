@@ -3,13 +3,14 @@ import type { PolygonRings } from '../domain/baseMap';
 
 /**
  * The main map's layers, bottom to top: the page is water, land lies on it,
- * the split 읍면동 in the middle of the screen cast one soft shadow as a
- * single silhouette, and each is tinted in one of four close tones so
- * neighbours differ (docs/plan-mainmap-style.md M9–M11). No roads, no parks.
+ * the split 읍면동 in the middle of the screen sit on it with one soft
+ * shadow under the group, each 동 in one of three faint paper tones 7:2:1
+ * (docs/plan-mainmap-style.md M9–M11, MZ draft). Neighborhood views add
+ * parks and roads, with local streets and footpaths revealed as you zoom in.
  * Kept apart from the MapLibre class so the stack and its data can be tested
  * without a WebGL canvas.
  */
-export type MapLayerId = 'area-cover' | 'base-land' | 'area-shadow' | 'area-parts';
+export type MapLayerId = 'area-cover' | 'base-land' | 'area-shadow' | 'area-parts' | 'base-parks' | 'base-roads';
 
 export interface MapLayerSpec {
   id: MapLayerId;
@@ -30,15 +31,17 @@ export const MAP_LAYERS: MapLayerSpec[] = [
   // no tiles): the screen is never a blank sheet of water.
   { id: 'area-cover', source: 'area-cover', type: 'fill', token: '--map-land', fallback: '#e7ecf3' },
   { id: 'base-land', source: 'base-land', type: 'fill', token: '--map-land', fallback: '#e7ecf3' },
-  // One soft shadow along the outside of the split 동 taken as one shape (per
-  // 동 it traced every border again — M7's experiment).
-  { id: 'area-shadow', source: 'area-outline', type: 'line', token: '--map-shadow', fallback: '#526b9d' },
+  // One soft shadow outside the split 동 taken as one shape (already cut to
+  // the outside in the worker, so it is a plain fill).
+  { id: 'area-shadow', source: 'area-drop', type: 'fill', token: '--map-drop', fallback: '#262d48' },
   // Translucent, so a river running through a 동 still shows as water.
   { id: 'area-parts', source: 'area-parts', type: 'fill', token: '--map-tint', fallback: 'rgba(108, 144, 216, 0.12)', tones: TONE_TOKENS },
+  { id: 'base-parks', source: 'base-parks', type: 'fill', token: '--map-park', fallback: '#b9d4c0' },
+  { id: 'base-roads', source: 'base-roads', type: 'line', token: '--map-road', fallback: '#f6f7fb' },
 ];
 
-/** The shadow: how far down it falls, how wide and soft, how strong (px, MapLibre). */
-export const SHADOW = { dy: 3, width: 8, blur: 6, opacity: 0.2 };
+/** How strong the hard shadow is. */
+export const SHADOW = { opacity: 0.14 };
 
 /** The page under everything: water. */
 export const WATER_TOKEN = { token: '--map-water', fallback: '#c9d2e4' };
@@ -60,8 +63,15 @@ export function mapSourceData(source: string, areas: AreaShapes | null): GeoJSON
       return collection(areas && !base ? [{ type: 'Feature', properties: {}, geometry: WORLD }] : []);
     case 'base-land':
       return collection(polygons(base?.land ?? []));
+    case 'base-parks':
+      return collection(polygons(base?.parks ?? []));
+    case 'base-roads':
+      return collection((base?.roads ?? []).map((road) => ({ type: 'Feature', properties: { width: road.width },
+        geometry: { type: 'LineString', coordinates: road.path } })));
     case 'area-outline':
       return collection(polygons(areas?.partsOutline ?? []));
+    case 'area-drop':
+      return collection(polygons(areas?.partsDrop ?? []));
     case 'area-parts':
       return collection(polygons(areas?.parts ?? [], areas?.partTones));
     default:
@@ -70,13 +80,13 @@ export function mapSourceData(source: string, areas: AreaShapes | null): GeoJSON
 }
 
 /** Sources whose data comes from the base map (re-sent only when it changes). */
-export const BASE_SOURCES = ['area-cover', 'base-land'];
+export const BASE_SOURCES = ['area-cover', 'base-land', 'base-parks', 'base-roads'];
 /**
  * Sources whose data comes from the admin areas. The neighbouring areas
  * (`others`) are not drawn: they are just land (2026-10-20 decision, §6-1),
  * and a filled 동 would cover the river running through it.
  */
-export const AREA_SOURCES = ['area-cover', 'area-outline', 'area-parts'];
+export const AREA_SOURCES = ['area-cover', 'area-drop', 'area-parts'];
 
 /**
  * How many land polygons the Kakao map gets at most: there, every polygon is

@@ -1,4 +1,4 @@
-import { GripVertical, Pencil, Trash2 } from 'lucide-react';
+import { GripVertical, Link2, Pencil, Rss, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { categoryStyle, isUncategorized, orderedCategories, UNCATEGORIZED, pinColorCss } from '../domain/pin';
 import type { Pin, PinCategory, PinTint } from '../types/pin';
@@ -22,6 +22,23 @@ interface CategoryManagerProps {
   onPickPin: (id: string) => void;
   /** A long press on a row out of 편집 상태 turns it on. */
   onStartEditing: () => void;
+  /** 카테고리 공유·구독; left out, a category's list has no share row. */
+  sharing?: CategorySharing;
+}
+
+export interface CategorySharing {
+  /** Sharing by link can work (Supabase keys present). */
+  available: boolean;
+  /** My categories with a live link. */
+  shared: ReadonlySet<string>;
+  /** Categories I follow → the sharer's name. */
+  followed: ReadonlyMap<string, string>;
+  /** 링크로 공유 / 링크 복사: makes the link if there's none, then copies it. */
+  onShare: (category: PinCategory) => void;
+  /** 공유 중지 (after its confirm). */
+  onStop: (category: PinCategory) => void;
+  /** 구독 취소 (after its confirm). */
+  onUnsubscribe: (category: PinCategory) => void;
 }
 
 /** Hold this long without moving to lift a row (moving sooner scrolls the list). */
@@ -55,10 +72,13 @@ export default function CategoryManager({
   onDelete,
   onPickPin,
   onStartEditing,
+  sharing,
 }: CategoryManagerProps) {
   const [open, setOpen] = useState<string | null>(null);
   // The category whose bin was tapped, waiting on the confirm.
   const [deleting, setDeleting] = useState<PinCategory | null>(null);
+  // 공유 중지 / 구독 취소, waiting on their confirm.
+  const [ending, setEnding] = useState<{ category: PinCategory; kind: 'stop' | 'unfollow' } | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
   const dragRef = useRef(drag);
   dragRef.current = drag;
@@ -206,6 +226,49 @@ export default function CategoryManager({
     );
   };
 
+  // Under a category's pins: who it's followed from (구독 취소), or its link (링크로 공유 · 링크 복사 · 공유 중지).
+  const shareRow = (category: PinCategory) => {
+    if (!sharing) return null;
+    const owner = sharing.followed.get(category.id);
+    if (owner !== undefined)
+      return (
+        <div className="cat-item__share">
+          <span className="cat-item__share-note">{owner || '익명'}님의 카테고리 · 구독 중</span>
+          <button className="cat-share-btn" onClick={() => setEnding({ category, kind: 'unfollow' })}>
+            구독 취소
+          </button>
+        </div>
+      );
+    if (!sharing.available) return null;
+    if (!sharing.shared.has(category.id))
+      return (
+        <div className="cat-item__share">
+          <button className="cat-share-btn is-accent" onClick={() => sharing.onShare(category)}>
+            <Link2 size={16} aria-hidden /> 링크로 공유
+          </button>
+        </div>
+      );
+    return (
+      <div className="cat-item__share">
+        <span className="cat-item__share-note">공유 중 · 바뀌면 구독자에게도 반영돼요</span>
+        <button className="cat-share-btn" onClick={() => sharing.onShare(category)}>
+          <Link2 size={16} aria-hidden /> 링크 복사
+        </button>
+        <button className="cat-share-btn is-danger" onClick={() => setEnding({ category, kind: 'stop' })}>
+          공유 중지
+        </button>
+      </div>
+    );
+  };
+
+  // A small mark after the name: shared by me, or followed from someone.
+  const shareMark = (id: string) =>
+    sharing?.followed.has(id) ? (
+      <Rss className="cat-item__mark" size={14} aria-label="구독 중" />
+    ) : sharing?.shared.has(id) ? (
+      <Link2 className="cat-item__mark" size={14} aria-label="공유 중" />
+    ) : null;
+
   const badge = (color: PinTint, icon: Parameters<typeof PinGlyph>[0]['icon']) => (
     <span className={`pin-badge ${color === 0 ? 'pin-badge--none' : ''}`} style={{ '--pin': pinColorCss(color) } as CSSProperties} aria-hidden>
       <PinGlyph icon={icon} />
@@ -301,11 +364,15 @@ export default function CategoryManager({
                   onClick={() => setOpen(expanded ? null : category.id)}
                 >
                   {badge(style.color, style.icon)}
-                  <span className="cat-item__name">{category.name}</span>
+                  <span className="cat-item__name">
+                    {category.name}
+                    {shareMark(category.id)}
+                  </span>
                   <span className="cat-item__count">{countLabel(category.id)}</span>
                 </button>
               )}
               {expanded && !editing && pinList(category.id)}
+              {expanded && !editing && shareRow(category)}
             </li>
           );
         })}
@@ -317,6 +384,21 @@ export default function CategoryManager({
           detail="핀은 모두 미분류로 옮겨져요."
           onConfirm={() => onDelete(deleting.id)}
           onClose={() => setDeleting(null)}
+        />
+      )}
+      {ending && (
+        <ConfirmDialog
+          label={ending.kind === 'stop' ? '공유 중지' : '구독 취소'}
+          message={
+            ending.kind === 'stop' ? `'${ending.category.name}' 카테고리 공유를 중지합니다.` : `'${ending.category.name}' 카테고리 구독을 취소합니다.`
+          }
+          detail={
+            ending.kind === 'stop'
+              ? '링크가 더 이상 열리지 않고, 구독한 사람들에게 바뀐 내용이 가지 않아요.'
+              : '지금까지 받은 장소는 그대로 남아요.'
+          }
+          onConfirm={() => (ending.kind === 'stop' ? sharing?.onStop(ending.category) : sharing?.onUnsubscribe(ending.category))}
+          onClose={() => setEnding(null)}
         />
       )}
     </div>

@@ -1,5 +1,9 @@
 import { AreaShapeCache, areaFocusKey, areaRenderWindow, renderAreaDraft, renderAreaMap, type AreaLabel, type AreaMap, type AreaShapes } from '../domain/adminAreas';
-import { placeAreaLabels, sameLabels, type LabelCover } from '../domain/areaLabels';
+import { placeAreaLabels as placeNames, sameLabels, type LabelCover } from '../domain/areaLabels';
+
+/** Names identify every visible district; nearby place icons are separate. */
+export const AREA_NAMES_SHOWN = true;
+const placeAreaLabels: typeof placeNames = (...args) => (AREA_NAMES_SHOWN ? placeNames(...args) : []);
 import { shapeBaseMap, type BaseShapes } from '../domain/baseShapes';
 import type { Bbox, MapViewport } from '../domain/districtMap';
 import { StaticAdminAreaService, type AdminAreaService } from './adminAreaService';
@@ -71,14 +75,14 @@ export class AreaRenderer {
    */
   async render(
     viewport: MapViewport,
-    at: { focusRange?: Bbox; cover?: LabelCover } = {},
+    at: { cover?: LabelCover } = {},
     isCurrent: () => boolean = () => true,
     onDraft?: (update: AreaUpdate) => void,
   ): Promise<AreaUpdate | null> {
     // The base map loads alongside the areas (its tiles are cached by the service).
     const window = drawWindow(viewport);
     const baseMap = this.baseMaps.fetchBaseMap(window).catch(() => null);
-    const map = await this.service.fetchAreaMap(viewport, at.focusRange);
+    const map = await this.service.fetchAreaMap(viewport, window.bounds);
     if (!map || !isCurrent()) return null;
     const last = this.drawn;
     if (last && last.focusCode === areaFocusKey(map) && inside(viewport.bounds, last.window) &&

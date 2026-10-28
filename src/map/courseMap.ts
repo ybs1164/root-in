@@ -4,6 +4,7 @@ import type { PlaceRef } from '../types/course';
 import { pinGlyphSvg } from '../lib/pinGlyphs';
 import type { PinIcon, PinTint } from '../types/pin';
 import { pinColorCss } from '../domain/pin';
+import { kindIcon } from '../domain/placeKinds';
 
 export interface MapPadding {
   top: number;
@@ -26,6 +27,8 @@ export interface CourseMap {
   setMyLocation(center: [number, number] | null): void;
   /** Saved pins, colored/iconed by category. Drawn under the course markers. */
   setPins(pins: PinMarker[]): void;
+  /** Public places visible at neighborhood scale, below saved pins. */
+  setNearbyPlaces(places: PlaceRef[]): void;
   /** We Now: a group's pings (dots, each member's latest as their face); [] clears them. Not tappable. */
   setGroupPings(marks: GroupPingMark[]): void;
   /** A faint dashed line (e.g. "이 카테고리 잇기"); not a saved course. */
@@ -93,6 +96,7 @@ export interface CourseMapOptions {
   center: [number, number];
   onStopClick?: (index: number) => void;
   onPinClick?: (id: string) => void;
+  onNearbyPlaceClick?: (place: PlaceRef) => void;
   /** Long-press (touch) on the map itself. */
   onLongPress?: (center: [number, number]) => void;
   /** The visible area, once the map settles after a pan/zoom (and at start). */
@@ -107,12 +111,11 @@ export const SEOUL_CENTER: [number, number] = [126.978, 37.5665];
 export const ADMIN_ATTRIBUTION = '행정경계: 통계청 SGIS · admdongkor';
 
 /** Shared marker DOM so both map providers look identical. */
-export function createMarkerElement(label: string, variant: 'stop' | 'preview', onClick?: () => void): HTMLElement {
+export function createMarkerElement(label: string, variant: 'stop' | 'preview', onClick?: () => void, icon: PinIcon = 'pin'): HTMLElement {
   const el = document.createElement('button');
   el.type = 'button';
   el.className = `map-marker map-marker--${variant}`;
-  // The place about to be pinned wears 미분류's plain pin (what it starts as).
-  if (variant === 'preview') el.innerHTML = pinGlyphSvg('pin');
+  if (variant === 'preview') el.innerHTML = pinGlyphSvg(icon);
   else el.textContent = label;
   el.setAttribute('aria-label', variant === 'stop' ? `${label}번 장소` : '선택한 장소');
   // Its place in the route, for the lines the app draws between stops.
@@ -126,6 +129,36 @@ export function createMarkerElement(label: string, variant: 'stop' | 'preview', 
     el.tabIndex = -1;
   }
   return el;
+}
+
+/** The preview and its card use the same place-kind icon before it is saved. */
+export function createPreviewElement(place: PlaceRef): HTMLElement {
+  return createMarkerElement('', 'preview', undefined, kindIcon(place.kind) ?? 'pin');
+}
+
+export function createNearbyPlaceElement(place: PlaceRef, onClick?: (place: PlaceRef) => void): HTMLElement {
+  const el = document.createElement('button');
+  el.type = 'button';
+  el.className = 'map-nearby-place';
+  el.dataset.kind = place.kind;
+  el.title = place.name;
+  el.setAttribute('aria-label', `${place.name}${place.category ? ` · ${place.category}` : ''}`);
+  el.innerHTML = pinGlyphSvg(kindIcon(place.kind) ?? 'pin');
+  const name = document.createElement('span');
+  name.textContent = place.name;
+  el.append(name);
+  el.addEventListener('click', (event) => { event.stopPropagation(); onClick?.(place); });
+  return el;
+}
+
+/** Reuse nearby markers across pans without disturbing pins or route stops. */
+export function syncNearbyPlaces<M>(
+  current: Map<string, M>, places: PlaceRef[],
+  ops: { create(place: PlaceRef): M; remove(marker: M): void },
+): void {
+  const wanted = new Set(places.map((p) => p.id));
+  for (const [id, marker] of current) if (!wanted.has(id)) { ops.remove(marker); current.delete(id); }
+  for (const place of places) if (!current.has(place.id)) current.set(place.id, ops.create(place));
 }
 
 /** Where you are: a dot with a soft ring. Taps go through to the map. */

@@ -8,6 +8,7 @@ coverage
 !.vscode/tasks.json
 ui-shots
 data/korea/
+data/map-data/
 __pycache__/
 public/korea/
 # Stray screenshots dropped at the repo root

@@ -135,12 +135,19 @@
   /* The 읍면동 in the middle of the screen: a faint see-through tint, so a
      river through it still shows as water. */
   --map-tint: color-mix(in srgb, var(--accent) 12%, transparent);
-  /* Its four tones, so neighbouring 동 differ a little (a four-colour map in
-     one hue, docs/plan-mainmap-style.md M11). */
-  --map-tone-0: color-mix(in srgb, var(--accent) 8%, transparent);
-  --map-tone-1: color-mix(in srgb, var(--accent) 12%, transparent);
-  --map-tone-2: color-mix(in srgb, var(--accent) 16%, transparent);
-  --map-tone-3: color-mix(in srgb, var(--accent) 20%, transparent);
+  /* Its three tones, covering the 동 7:2:1 (TONE_SHARES): the paper itself
+     with only a breath of colour, so neighbours differ without the map
+     shouting over the pins (the MZ draft's strong pink and yellow did, and a
+     zoomed-in screen became one loud colour): paper, faint butter, faint mint.
+     Nearly opaque — a river through a 동 still shows faintly. */
+  --map-pastel-0: color-mix(in srgb, var(--accent) 5%, var(--surface));
+  --map-pastel-1: color-mix(in srgb, var(--pin-7) 16%, var(--surface));
+  --map-pastel-2: color-mix(in srgb, var(--pin-6) 14%, var(--surface));
+  --map-tone-0: color-mix(in srgb, var(--map-pastel-0) 90%, transparent);
+  --map-tone-1: color-mix(in srgb, var(--map-pastel-1) 90%, transparent);
+  --map-tone-2: color-mix(in srgb, var(--map-pastel-2) 90%, transparent);
+  /* The soft shadow under the 동: the ink, kept faint (SHADOW.opacity). */
+  --map-drop: color-mix(in srgb, var(--text) 80%, var(--ink-black));
   /* A raised slab: its side under the top, its shadow further down. */
   --map-side: color-mix(in srgb, var(--map-land) 88%, var(--ink-black));
   --map-shadow: color-mix(in srgb, var(--accent) 70%, var(--ink-black));
@@ -188,6 +195,10 @@
     --dialog-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
     --park-green: #22402f;
     --round-icon: var(--ink-white);
+    /* The map's 동 tones on navy: the pin colours at the light scheme's share
+       turned muddy (butter → brown), so only a trace of them. */
+    --map-pastel-1: color-mix(in srgb, var(--pin-7) 7%, var(--surface));
+    --map-pastel-2: color-mix(in srgb, var(--pin-6) 7%, var(--surface));
     /* Logo, dark version: white pin, blue route (navy tile when shown). */
     --logo-tile: var(--logo-dark-tile);
     --logo-pin: var(--logo-dark-pin);
@@ -225,6 +236,8 @@
   --dialog-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
   --park-green: #22402f;
   --round-icon: var(--ink-white);
+  --map-pastel-1: color-mix(in srgb, var(--pin-7) 7%, var(--surface));
+  --map-pastel-2: color-mix(in srgb, var(--pin-6) 7%, var(--surface));
   --logo-tile: var(--logo-dark-tile);
   --logo-pin: var(--logo-dark-pin);
   --logo-ink: var(--logo-dark-ink);
@@ -936,6 +949,27 @@ button:disabled {
 }
 
 /* ---------- Place preview card ---------- */
+
+.map-nearby-place {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 76px;
+  padding: 3px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 10px;
+  line-height: 14px;
+  cursor: pointer;
+  text-shadow: 0 0 3px var(--map-land), 0 0 2px var(--map-land);
+}
+.map-nearby-place svg { width: 17px; height: 17px; filter: drop-shadow(0 0 2px var(--map-land)); }
+.map-nearby-place span { max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-nearby-place:hover, .map-nearby-place:focus-visible { color: var(--accent); }
+.app--pins-away .map-nearby-place { visibility: hidden; pointer-events: none; }
 
 .place-card {
   position: absolute;
@@ -6219,6 +6253,12 @@ button:disabled {
   min-height: 56px;
 }
 
+.terms__credit {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .alerts__row {
   display: flex;
   flex-direction: column;
@@ -6739,6 +6779,67 @@ button:disabled {
   font-size: 14px;
 }
 
+/* 카테고리 공유·구독: a small mark after a shared or followed category's name. */
+.cat-item__mark {
+  margin-left: 6px;
+  color: var(--muted);
+  vertical-align: -1px;
+}
+
+/* Under an opened category's pins: its link (or who it's followed from). */
+.cat-item__share {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 12px 46px;
+}
+
+.cat-item__share-note {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.cat-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+}
+
+.cat-share-btn.is-accent {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.cat-share-btn.is-danger {
+  color: var(--danger);
+}
+
+/* A received category link: the category under the sharer's name. */
+.shared-category__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.shared-category__count {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 400;
+}
+
 /* 핀 카테고리 생성 / 편집: a boarding pass (ticket-dialog). */
 .cat-form__main {
   display: flex;
@@ -6926,12 +7027,6 @@ button:disabled {
 
 .ticket-dialog__split > button:disabled {
   opacity: 0.45;
-}
-
-/* MapLibre fallback: keep attribution clear of the sheet on phones. */
-.maplibregl-ctrl-bottom-right,
-.maplibregl-ctrl-bottom-left {
-  bottom: calc(var(--sheet-peek) + var(--bar-h) + var(--safe-bottom) + 50px);
 }
 
 /* ---------- Tab pages (달력): full screens, no map ---------- */
@@ -7486,6 +7581,26 @@ button:disabled {
 
 .ping.is-pressed .ping__icon {
   transform: scale(0.9);
+}
+
+/* The photo taken there, tucked at the ping's top right like a snapshot.
+   Not pressable: the ping under it still takes the presses. */
+.ping__photo {
+  position: absolute;
+  top: calc(-10px * var(--k));
+  left: calc(50% + 6px * var(--k));
+  width: calc(30px * var(--k));
+  height: calc(30px * var(--k));
+  object-fit: cover;
+  border: 2px solid var(--polaroid);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  rotate: 8deg;
+  pointer-events: none;
+}
+
+.ping.is-dragging .ping__photo {
+  display: none;
 }
 
 .ping__hole {
@@ -9351,6 +9466,18 @@ button.group-photo-panel__photo {
 
 .settings__label {
   flex: 1;
+}
+
+.location-settings__note {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.location-settings__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .settings__chevron {

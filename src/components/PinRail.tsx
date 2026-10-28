@@ -1,4 +1,4 @@
-import { ChevronDown, MapPin, Plus, Route } from 'lucide-react';
+import { ChevronDown, LocateFixed, MapPin, Plus, Route } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { categoriesWithUncategorized, categoryStyle, UNCATEGORIZED, pinColorCss } from '../domain/pin';
 import { isAllPicked, railPage, railPageCount, type PinRailEntry, type PinRailMode } from '../domain/pinRail';
@@ -6,6 +6,9 @@ import type { PinCategory } from '../types/pin';
 import PinGlyph from './PinGlyph';
 
 interface PinRailProps {
+  onLocate: () => void;
+  locating: boolean;
+  locationOn: boolean;
   mode: PinRailMode;
   onAction: (entry: PinRailEntry) => void;
   categories: PinCategory[];
@@ -42,7 +45,7 @@ const ENTRIES: { entry: PinRailEntry; label: string; icon: ReactNode }[] = [
  * below that list; picking categories narrows the map to them, and the map
  * stays narrowed after 핀 closes. The list ends in + (핀 카테고리).
  */
-export default function PinRail({ mode, onAction, categories, counts, picked, hidden, onToggle, onAll, onCategories }: PinRailProps) {
+export default function PinRail({ mode, onAction, categories, counts, picked, hidden, onToggle, onAll, onCategories, onLocate, locating, locationOn }: PinRailProps) {
   // ALL is on while nothing that exists (미분류 included) is picked, and pins aren't all hidden.
   const allOn = !hidden && isAllPicked(picked, [UNCATEGORIZED.id, ...categories.map((c) => c.id)]);
   // The category list trails the mode so it can play out before unmounting.
@@ -93,6 +96,11 @@ export default function PinRail({ mode, onAction, categories, counts, picked, hi
 
   return (
     <nav className="pin-rail" aria-label="핀 메뉴">
+      <div className="pin-rail__slot">
+        <button className={`pin-rail__btn ${locationOn ? 'is-on' : ''}`} aria-label={locating ? '내 위치 찾는 중' : '내 위치'} aria-busy={locating} disabled={locating} onClick={onLocate}>
+          <LocateFixed aria-hidden />
+        </button>
+      </div>
       {entryButton(ENTRIES[0])}
 
       {listShown && (

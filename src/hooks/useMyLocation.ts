@@ -1,33 +1,91 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MyLocation } from '../domain/dayPings';
-import { watchPosition } from '../lib/geolocation';
+import { requestLocation, watchPosition, type LocationError } from '../lib/geolocation';
 import { inKorea } from '../services/pinShareService';
+import { onAppVisibility } from '../lib/native';
 
-/**
- * The phone's position while the app is in front (null until the first fix,
- * or when it's denied or outside Korea — the app only covers Korea). Stops
- * watching in the background so the GPS isn't kept on.
- */
-export function useMyLocation(): MyLocation | null {
+const KEY = 'goodroot:location:v1';
+const savedEnabled = () => {
+  try { return localStorage.getItem(KEY) === 'true'; } catch { return false; }
+};
+function saveEnabled(enabled: boolean) {
+  try { localStorage.setItem(KEY, String(enabled)); } catch { /* Available for this session. */ }
+}
+
+/** Opt-in foreground location, shared by the map, TODAY and photo sending. */
+export function useMyLocation() {
   const [me, setMe] = useState<MyLocation | null>(null);
+  const [enabled, setEnabled] = useState(savedEnabled);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<LocationError | null>(null);
+  const request = useRef(0);
+  const pending = useRef(false);
+  useEffect(() => () => { request.current += 1; }, []);
+
+  const enable = useCallback(async () => {
+    if (pending.current) return null;
+    pending.current = true;
+    const id = ++request.current;
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await requestLocation();
+      if (id !== request.current) return null;
+      if (!result.center) {
+        setError(result.error);
+        setMe(null);
+        setEnabled(false);
+        saveEnabled(false);
+        return null;
+      }
+      const fix = inKorea(result.center) ? { center: result.center, at: result.at } : null;
+      setMe(fix);
+      setEnabled(true);
+      saveEnabled(true);
+      return fix;
+    } finally {
+      pending.current = false;
+      if (id === request.current) setBusy(false);
+    }
+  }, []);
+
+  const disable = useCallback(() => {
+    request.current += 1;
+    setEnabled(false);
+    saveEnabled(false);
+    setBusy(false);
+    setMe(null);
+    setError(null);
+  }, []);
+
   useEffect(() => {
+    if (!enabled) return;
     let stop: (() => void) | null = null;
-    const start = () => {
-      stop ??= watchPosition((center, at) => setMe(inKorea(center) ? { center, at } : null));
-    };
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') start();
-      else {
+    const unlisten = onAppVisibility((active) => {
+      if (active) {
+        stop ??= watchPosition((center, at) => {
+          setMe(inKorea(center) ? { center, at } : null);
+          setError(null);
+        }, (failure) => {
+          setError(failure);
+          setMe(null);
+          if (failure === 'denied' || failure === 'disabled' || failure === 'unsupported') {
+            setEnabled(false);
+            saveEnabled(false);
+          }
+        });
+      } else {
         stop?.();
         stop = null;
+        setMe(null);
       }
-    };
-    onVisibility();
-    document.addEventListener('visibilitychange', onVisibility);
+    });
     return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
+      unlisten();
       stop?.();
     };
-  }, []);
-  return me;
+  }, [enabled]);
+  return { me, enabled, busy, error, enable, disable };
 }
+
+export type MyLocationControl = ReturnType<typeof useMyLocation>;

@@ -70,10 +70,8 @@ describe('the 동 tint', () => {
     adapter.setAreaTint(false);
     adapter.setAreaTint(false);
     adapter.setAreaTint(true);
-    // The tint and the shadow under it go together.
-    expect(map.setPaintProperty.mock.calls).toEqual([
-      ['area-parts', 'fill-opacity', 0], ['area-shadow', 'line-opacity', 0],
-      ['area-parts', 'fill-opacity', 1], ['area-shadow', 'line-opacity', SHADOW.opacity],
-    ]);
+    // The tint and its shadow go together.
+    const all = (on: boolean) => [['area-parts', 'fill-opacity', on ? 1 : 0], ['area-shadow', 'fill-opacity', on ? SHADOW.opacity : 0]];
+    expect(map.setPaintProperty.mock.calls).toEqual([...all(false), ...all(true)]);
   });
 });

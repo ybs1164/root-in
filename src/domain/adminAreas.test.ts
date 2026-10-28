@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { areaAt, areasInRange, AreaShapeCache, focusLevel, rectangleBearing, renderAreaDraft, renderAreaMap, SIDO_FOCUS_MIN_MPP, visibleCenter, visibleRange, type AdminArea } from './adminAreas';
+import { areaAt, areasInRange, AreaShapeCache, focusLevel, PART_TONES, rectangleBearing, renderAreaDraft, renderAreaMap, SIDO_FOCUS_MIN_MPP, TONE_SHARES, toneParts, visibleCenter, visibleRange, type AdminArea } from './adminAreas';
 import type { MapViewport, Ring } from './districtMap';
 import { screenProjection } from './districtRendering';
 
@@ -76,17 +76,34 @@ describe('administrative area map', () => {
     expect(gap).toBeLessThanOrEqual(3.2);
   });
 
-  it('gives neighbouring parts different tones and casts one outline around them all', () => {
+  it('tones the parts 7:2:1 by area and casts one outline around them all', () => {
     // A row of four touching squares and one apart.
     const parts = [0, 1, 2, 3].map((k) => square(`p${k}`, 127.005 + k * 0.006, 37.01, 0.006));
     const shapes = renderAreaMap({ focus: { code: 'f', name: 'f' }, parts: [...parts, square('far', 127.005, 37.03, 0.006)], others: [] }, viewport);
     const tones = shapes.partTones!;
     expect(tones).toHaveLength(5);
-    for (let k = 0; k < 3; k++) expect(tones[k], `p${k}/p${k + 1}`).not.toBe(tones[k + 1]);
-    expect(tones.every((t) => t >= 0 && t < 4)).toBe(true);
+    expect(tones.every((t) => t >= 0 && t < PART_TONES)).toBe(true);
     // The touching four make one silhouette (gaps closed, no little holes where gaps meet); the far one its own.
     expect(shapes.partsOutline).toHaveLength(2);
     expect(shapes.partsOutline!.every((polygon) => polygon.length === 1)).toBe(true);
+  });
+
+  it('tones a grid 7:2:1, the pastel and accent in one patch round the middle, never touching their own colour', () => {
+    // A 10 x 10 grid of equal parts, each touching the four beside it.
+    const size = 10;
+    const parts = Array.from({ length: size * size }, (_, k) => ({ index: k, key: `a${k}`, area: 1, at: { X: k % size, Y: Math.floor(k / size) } }));
+    const neighbours = new Map(parts.map((p) => [p.index, parts.filter((q) => Math.abs(q.at.X - p.at.X) + Math.abs(q.at.Y - p.at.Y) === 1).map((q) => q.index)]));
+    const tones = toneParts(parts, neighbours, { X: 4.5, Y: 4.5 });
+    TONE_SHARES.forEach((share, t) => {
+      expect(Math.abs(tones.filter((x) => x === t).length / parts.length - share), `tone ${t}`).toBeLessThanOrEqual(0.05);
+    });
+    for (const p of parts) {
+      if (tones[p.index] === 0) continue;
+      for (const j of neighbours.get(p.index)!) expect(tones[j], `${p.index}/${j}`).not.toBe(tones[p.index]);
+    }
+    // One patch round the middle: no coloured part far out.
+    for (const p of parts) if (tones[p.index]) expect(Math.hypot(p.at.X - 4.5, p.at.Y - 4.5), `${p.index}`).toBeLessThan(5);
+    expect(tones[44] || tones[45] || tones[54] || tones[55]).toBeGreaterThan(0);
   });
 
   it('merges a part too small for the screen into the neighbour it touches most', () => {
