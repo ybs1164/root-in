@@ -13,7 +13,7 @@
     "shots": "node scripts/ui-shots.mjs",
     "android:sync": "node scripts/android-sync.mjs",
     "android:apk": "node scripts/android-apk.mjs",
-    "ios:sync": "node scripts/native-sync.mjs ios",
+    "ios:sync": "node scripts/android-sync.mjs --ios",
     "ios:sim": "node scripts/ios-sim.mjs"
   },
   "dependencies": {
