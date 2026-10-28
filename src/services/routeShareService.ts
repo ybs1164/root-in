@@ -1,4 +1,5 @@
 import type { PlaceRef, SharedRoute } from '../types/travelRoute';
+import { publicAppUrl } from '../lib/appUrl';
 
 const SHARE_HASH_KEY = 'share';
 const PAYLOAD_VERSION = 1;
@@ -134,7 +135,7 @@ export function clearShareFromLocation(): void {
 }
 
 export class LinkRouteShareService implements RouteShareService {
-  constructor(private readonly baseUrl: () => string = () => `${window.location.origin}${window.location.pathname}`) {}
+  constructor(private readonly baseUrl: () => string = publicAppUrl) {}
 
   async createShareUrl(route: SharedRoute): Promise<string> {
     return `${this.baseUrl()}#${SHARE_HASH_KEY}=${encodeSharedRoute(route)}`;

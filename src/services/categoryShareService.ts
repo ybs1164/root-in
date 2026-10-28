@@ -4,6 +4,7 @@ import { PIN_LIMITS } from '../domain/pin';
 import { getSupabase, supabaseConfigured } from '../lib/supabase';
 import { parseCategory, parseWirePlace, wirePlace, type WireCategory, type WirePin } from './pinShareService';
 import { newSlug } from './shareLinkService';
+import { publicAppUrl } from '../lib/appUrl';
 
 // 카테고리 구독 links (#c=<slug>, supabase/migrations/20261023000000_category_shares.sql).
 // The owner's phone writes the category's snapshot to its row whenever it
@@ -46,7 +47,7 @@ export interface CategoryShareService {
   open(slug: string): Promise<OpenedCategory | null | 'error'>;
 }
 
-export function categoryLinkUrl(slug: string, base = `${window.location.origin}${window.location.pathname}`): string {
+export function categoryLinkUrl(slug: string, base = publicAppUrl()): string {
   return `${base}#${SLUG_KEY}=${slug}`;
 }
 

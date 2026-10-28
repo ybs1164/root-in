@@ -17,6 +17,8 @@ const backend = androidBackend(env, process.argv.includes('--local-only'));
 await checkAndroidBackend(backend);
 console.log(backend ? 'Backend connection verified.' : 'Local-only test APK: server features disabled.');
 const hosted = env.VITE_MAP_DATA_URL?.trim();
+// The WebView page is https://localhost; links made from it would open nowhere.
+if (!env.VITE_PUBLIC_APP_URL?.trim()) console.warn('경고: VITE_PUBLIC_APP_URL이 없어 앱에서 만든 공유·초대 링크가 https://localhost를 가리킵니다. .env.production.local에 웹 앱 주소를 넣으세요.');
 if (!process.argv.includes('--skip-build')) {
   run('npx tsc -b');
   // Avoid copying gigabytes of map files only to delete them immediately.

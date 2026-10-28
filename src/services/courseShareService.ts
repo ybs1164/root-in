@@ -2,6 +2,7 @@ import { isPlaceKind } from '../domain/placeKinds';
 import { COURSE_LIMITS, COURSE_THEMES, TRAVEL_MODES } from '../domain/course';
 import type { CourseStop, CourseTheme, PlaceRef, SharedCourse, TravelMode } from '../types/course';
 import { decodeSharedRoute, readShareToken, SHARE_LIMITS } from './routeShareService';
+import { publicAppUrl } from '../lib/appUrl';
 
 const SHARE_HASH_KEY = 'share';
 const PAYLOAD_VERSION = 2;
@@ -164,7 +165,7 @@ export function decodeSharedCourse(token: string): SharedCourse | null {
 }
 
 export class LinkCourseShareService implements CourseShareService {
-  constructor(private readonly baseUrl: () => string = () => `${window.location.origin}${window.location.pathname}`) {}
+  constructor(private readonly baseUrl: () => string = publicAppUrl) {}
 
   async createShareUrl(course: SharedCourse): Promise<string> {
     return `${this.baseUrl()}#${SHARE_HASH_KEY}=${encodeSharedCourse(course).token}`;

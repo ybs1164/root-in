@@ -4,6 +4,7 @@ import { fromBase64Url, toBase64Url } from '../lib/base64url';
 import type { PlaceRef } from '../types/course';
 import type { PinColor, PinIcon, SharedPin, SharedPinCategory, SharedPinSet } from '../types/pin';
 import { SHARE_LIMITS } from './routeShareService';
+import { publicAppUrl } from '../lib/appUrl';
 
 // Its own fragment key, next to `#share=` (course) and `#diary=` (day).
 export const PINS_HASH_KEY = 'pins';
@@ -177,7 +178,7 @@ export function clearPinsFromLocation(): void {
 }
 
 export class LinkPinShareService implements PinShareService {
-  constructor(private readonly baseUrl: () => string = () => `${window.location.origin}${window.location.pathname}`) {}
+  constructor(private readonly baseUrl: () => string = publicAppUrl) {}
 
   async createShareUrl(set: SharedPinSet): Promise<string> {
     return `${this.baseUrl()}#${PINS_HASH_KEY}=${encodeSharedPinSet(set).token}`;

@@ -5,6 +5,7 @@ import { inKorea } from './pinShareService';
 import { dataUrlToBlob } from './remoteProfileService';
 import { newSlug } from './shareLinkService';
 import { createGroupDemoService } from '../dev/groupDemoService';
+import { publicAppUrl } from '../lib/appUrl';
 
 // We Now groups (supabase/migrations/20261016000000_groups.sql). Everything
 // goes through the server's functions; what comes back is checked like any
@@ -62,7 +63,7 @@ export interface PhotoPing {
 const PHOTO_BUCKET = 'group-photos';
 const PHOTO_PATH = /^[0-9a-f-]{36}\/[A-Za-z0-9_-]{6,40}\.jpg$/;
 
-export function inviteUrl(slug: string, base = `${window.location.origin}${window.location.pathname}`): string {
+export function inviteUrl(slug: string, base = publicAppUrl()): string {
   return `${base}#${INVITE_KEY}=${slug}`;
 }
 

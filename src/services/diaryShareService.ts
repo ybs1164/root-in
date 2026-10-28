@@ -5,6 +5,7 @@ import { fromBase64Url, toBase64Url } from '../lib/base64url';
 import type { PlaceRef, TravelMode } from '../types/course';
 import type { DiaryMood, DiaryStop, SharedDiary } from '../types/diary';
 import { SHARE_LIMITS } from './routeShareService';
+import { publicAppUrl } from '../lib/appUrl';
 
 // A separate fragment key from course links (`#share=`), so each link type
 // has its own decoder and adding one never breaks the other.
@@ -157,7 +158,7 @@ export function clearDiaryFromLocation(): void {
 }
 
 export class LinkDiaryShareService implements DiaryShareService {
-  constructor(private readonly baseUrl: () => string = () => `${window.location.origin}${window.location.pathname}`) {}
+  constructor(private readonly baseUrl: () => string = publicAppUrl) {}
 
   async createShareUrl(diary: SharedDiary, options?: { includeText?: boolean }): Promise<string> {
     return `${this.baseUrl()}#${DIARY_HASH_KEY}=${encodeSharedDiary(diary, options).token}`;
