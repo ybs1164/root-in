@@ -382,6 +382,7 @@ export default function App() {
       }),
     };
   }, [tab, openGroupId, groupList, groupDay, pastGroups.groups, storedPings, myId]);
+  const groupOpen = !!openGroup;
   const [gallerySeq, setGallerySeq] = useState<number | null>(null);
   const galleryIds = useMemo(() => (galleryTab ? groupList.map((g) => g.id) : null), [galleryTab, groupList]);
   const gallery = useGalleryPhotos(galleryIds);
@@ -537,7 +538,8 @@ export default function App() {
   const isEditing = !!editRoute;
   // Pin markers: a received set as its sender styled it, or my pins on the home tab.
   const pinMarkers = useMemo<PinMarker[]>(() => {
-    if (!mapUi) return [];
+    // A group's map is its members' pings only: none of my pins under them.
+    if (!mapUi || openGroup) return [];
     // A saved route on show has the map to itself: every pin steps aside
     // (its stops, shaped or numbered, stand in for the places).
     // Editing it, they come back to be picked.
@@ -554,7 +556,7 @@ export default function App() {
         selected: pin.id === activePinId,
       };
     });
-  }, [mapUi, shownPins, categories, activePinId, shownRoute, isEditing, pinsGone]);
+  }, [mapUi, shownPins, categories, activePinId, shownRoute, isEditing, pinsGone, openGroup]);
 
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
   // 제외 주소 are located with the same place search (search failing just leaves the address text to match).
@@ -721,8 +723,9 @@ export default function App() {
   const refreshAim = useRef(() => {});
   useEffect(() => { refreshAim.current(); }, [nearbyPlaces, viewport]);
   useEffect(() => {
-    mapRef.current?.setNearbyPlaces(nearbyPlaces);
-  }, [nearbyPlaces, mapProvider]);
+    // Nor nearby places or landmarks on a group's map.
+    mapRef.current?.setNearbyPlaces(groupOpen ? [] : nearbyPlaces);
+  }, [nearbyPlaces, mapProvider, groupOpen]);
   useEffect(() => {
     mapRef.current?.setAreaMap(areaMap);
   }, [areaMap, mapProvider]);
@@ -745,14 +748,16 @@ export default function App() {
   const centeredOnMe = useRef(false);
   useEffect(() => {
     const map = mapRef.current;
-    map?.setMyLocation(me?.center ?? null);
-    if (!map || !me || centeredOnMe.current) return;
+    // My own dot stays off a group's map too: only the members' pings are on it.
+    map?.setMyLocation(groupOpen ? null : (me?.center ?? null));
+    // Nor does the first fix pull a group's map over to me (it's centred later, off the group).
+    if (!map || !me || centeredOnMe.current || groupOpen) return;
     centeredOnMe.current = true;
     // Not over something already on screen (a received route, a search result).
     // No padding: the pin button pins at the map's true center, so pressing it
     // right away lands on the dot.
     if (!shownRoute && !preview) map.focus(me.center);
-  }, [me, mapProvider]);
+  }, [me, mapProvider, groupOpen]);
 
   const stopsKey = shownStops.map((p) => p.id).join('|');
   useEffect(() => {
@@ -794,12 +799,12 @@ export default function App() {
 
   // An open group: every member's pings (their latest as their face), the
   // picked member's over the rest, everyone else stepping back; a few
-  // photos as ping heads (`photoPings`), the tapped ping marked for the panel.
+  // every photo as its ping's head (`photoPings`), the tapped ping marked for the panel.
   const groupMarks = useMemo(() => {
     if (!openGroup) return [];
     const together = sharedPlacePings(openGroup.members);
     return openGroup.members.flatMap((m) => {
-      const photos = photoPings(m, groupPicked, !!groupPing);
+      const photos = photoPings(m);
       return m.pings.map((p, i) => ({
         member: m.userId,
         seq: i,
@@ -871,10 +876,9 @@ export default function App() {
   // ping, photo or face (faded or not) puts the focus on them and opens that
   // place's photo panel; on bare map it goes back to ALL (panel and all).
   // The pings let taps through to the map, so they're found by where they are on screen.
-  const groupOnMap = !!openGroup;
   useEffect(() => {
     const el = mapEl.current;
-    if (!groupOnMap || !el) return;
+    if (!groupOpen || !el) return;
     let tap: { x: number; y: number; at: number } | null = null;
     const hit = (x: number, y: number): { member: string; seq: number } | null => {
       let found: { member: string; seq: number } | null = null;
@@ -916,7 +920,7 @@ export default function App() {
       document.removeEventListener('pointerdown', down, true);
       document.removeEventListener('pointerup', up, true);
     };
-  }, [groupOnMap]);
+  }, [groupOpen]);
 
   // Making or editing a route: a pin already in it steps aside (its numbered stop
   // stands in), and so does one the moment it's added; taken out, it's back.
@@ -1898,6 +1902,8 @@ export default function App() {
               newPings={(g) => newPingCount(g, myId, groupSeen[g.id])}
               photo={profile.photo}
               onProfile={() => setProfileOpen(true)}
+              onGallery={() => openGallery('my')}
+              onCamera={() => setCameraOpen(true)}
               onOpen={setOpenGroupId}
               onCreate={() => setGroupFormOpen(true)}
               onSignIn={account.signIn}
@@ -2081,7 +2087,7 @@ export default function App() {
           onPin={startPinning}
           onPeople={() => changeTab('people')}
           onCamera={() => setCameraOpen(true)}
-          onGallery={() => openGallery('my')}
+          onGallery={calendarZoom ? () => openGallery('my') : undefined}
         />
       </div>
 

@@ -138,43 +138,13 @@ export const groupPingKey = (member: GroupMember, ping: GroupPing): string => `$
 /** Every ping on the group's map right now: what opening it has seen. */
 export const groupPingKeys = (group: Group): string[] => group.members.flatMap((m) => m.pings.map((p) => groupPingKey(m, p)));
 
-/** At most this many of a member's photos are up on the map at once. */
-export const PHOTOS_PER_MEMBER = 3;
-
 /**
- * How many of a member's photos go up: at most `PHOTOS_PER_MEMBER`, and
- * with n places (n ≥ 3) at most n − 2 so some of the day stays plain pins;
- * a short day (n < 3) isn't held back. Never more than they have.
+ * Which of a member's pings show their photo on the map: every one that has
+ * a photo, always (2026-10-29 — the old caps of three, n − 2 and none while
+ * someone else is picked or the panel is open are gone).
  */
-export function photoLimit(places: number, photos: number): number {
-  return Math.min(PHOTOS_PER_MEMBER, places >= 3 ? places - 2 : places, photos);
-}
-
-/** A small stable hash: the "random" pick is the same every time the same day is drawn. */
-function hash(text: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
-  return h >>> 0;
-}
-
-/**
- * Which of a member's pings show their photo on the map (`photoLimit` of
- * them): always the latest place with a photo, the rest picked at random
- * among their other photos — stable for the same pings, so the map doesn't
- * reshuffle on every redraw. None while someone else is picked, nor while a
- * photo is open in the panel (`open`).
- */
-export function photoPings(member: GroupMember, picked: string | null, open = false): Set<number> {
-  if (open || (picked && picked !== member.userId)) return new Set();
-  const withPhoto = member.pings.flatMap((p, i) => (p.photo ? [i] : []));
-  const limit = photoLimit(member.pings.length, withPhoto.length);
-  if (limit === 0) return new Set();
-  const latest = withPhoto[withPhoto.length - 1];
-  const rest = withPhoto
-    .slice(0, -1)
-    .sort((a, b) => hash(groupPingKey(member, member.pings[a])) - hash(groupPingKey(member, member.pings[b])))
-    .slice(0, limit - 1);
-  return new Set([latest, ...rest]);
+export function photoPings(member: GroupMember): Set<number> {
+  return new Set(member.pings.flatMap((p, i) => (p.photo ? [i] : [])));
 }
 
 /**

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoLimit, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlacePings, withSentPhotos, readPingDays, withMyPingDays, dayPingers, type Group } from './groups';
+import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlacePings, withSentPhotos, readPingDays, withMyPingDays, dayPingers, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -141,39 +141,14 @@ describe('newMemberPings', () => {
 describe('photoPings', () => {
   const withPhotos = (n: number, photos: number[]) => {
     const m = member('ann', 0, Array.from({ length: n }, (_, k) => [126.9 + k * 0.01, 37.5] as [number, number]));
-    m.pings = m.pings.map((p, i) => (photos.includes(i) ? { ...p, at: `2026-10-24T${String(i).padStart(2, '0')}:00:00.000Z`, photo: `p${i}.jpg` } : { ...p, at: `2026-10-24T${String(i).padStart(2, '0')}:00:00.000Z` }));
+    m.pings = m.pings.map((p, i) => (photos.includes(i) ? { ...p, photo: `p${i}.jpg` } : p));
     return m;
   };
 
-  it('limits a member to three, and to n − 2 places from three places up', () => {
-    expect(photoLimit(1, 1)).toBe(1);
-    expect(photoLimit(2, 2)).toBe(2);
-    expect(photoLimit(3, 3)).toBe(1);
-    expect(photoLimit(4, 4)).toBe(2);
-    expect(photoLimit(5, 5)).toBe(3);
-    expect(photoLimit(9, 9)).toBe(3);
-    expect(photoLimit(9, 1)).toBe(1);
-  });
-
-  it('always shows the latest place with a photo, the rest stable picks among the others', () => {
-    const m = withPhotos(8, [0, 1, 2, 4, 6]);
-    const shown = photoPings(m, null);
-    expect(shown.size).toBe(3);
-    expect(shown.has(6)).toBe(true);
-    expect([...shown].every((i) => [0, 1, 2, 4, 6].includes(i))).toBe(true);
-    // The same day draws the same picks.
-    expect([...photoPings(m, null)]).toEqual([...shown]);
-  });
-
-  it('a short day shows its photos unheld', () => {
-    expect([...photoPings(withPhotos(2, [0, 1]), null)].sort()).toEqual([0, 1]);
-  });
-
-  it('none for someone else while a member is picked, nor while a photo is open', () => {
-    const m = withPhotos(5, [0, 3]);
-    expect(photoPings(m, 'ann').size).toBe(2);
-    expect(photoPings(m, 'bo').size).toBe(0);
-    expect(photoPings(m, 'ann', true).size).toBe(0);
+  it('shows every ping that has a photo, however many', () => {
+    expect([...photoPings(withPhotos(8, [0, 1, 2, 4, 6]))]).toEqual([0, 1, 2, 4, 6]);
+    expect([...photoPings(withPhotos(3, [0, 1, 2]))]).toEqual([0, 1, 2]);
+    expect(photoPings(withPhotos(3, [])).size).toBe(0);
   });
 });
 

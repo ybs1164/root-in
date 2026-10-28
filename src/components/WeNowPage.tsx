@@ -15,6 +15,8 @@ import { DEFAULT_PEN, EMPTY_DECOR } from '../domain/decor';
 import { removePing } from '../services/pingRepository';
 import { ProfileAvatar } from './ProfileSheet';
 import type { GroupsStatus } from '../hooks/useGroups';
+import { GalleryButton } from './PhotoGallery';
+import CameraButton from './CameraButton';
 
 /** A member's round profile photo in their colour's ring (the default picture without one). */
 export function MemberFace({ member, size }: { member: GroupMember; size: number }) {
@@ -203,6 +205,10 @@ interface WeNowPageProps {
   /** My profile photo, for the profile button top right (as on the map). */
   photo: string | null;
   onProfile(): void;
+  /** The gallery, right under the profile button. */
+  onGallery(): void;
+  /** The camera, an accent round low on the TODAY tile. */
+  onCamera(): void;
   onOpen(id: string): void;
   onCreate(): void;
   /** 카카오로 로그인 (only shown when We Now needs a login, VITE_GROUPS_NEED_LOGIN). */
@@ -216,7 +222,7 @@ interface WeNowPageProps {
  * tile for a new one. Signed out it asks for a Kakao login — reached only
  * when VITE_GROUPS_NEED_LOGIN is on; otherwise App signs in as a guest first.
  */
-export default function WeNowPage({ status, todayPings, pinLookOf, onToday, groups, newPings, photo, onProfile, onOpen, onCreate, onSignIn, onRetry }: WeNowPageProps) {
+export default function WeNowPage({ status, todayPings, pinLookOf, onToday, groups, newPings, photo, onProfile, onGallery, onCamera, onOpen, onCreate, onSignIn, onRetry }: WeNowPageProps) {
   const empty = (title: string, body: string, action?: { label: string; run: () => void }) => (
     <div className="we-now__empty">
       <span className="we-now__badge" aria-hidden>
@@ -260,9 +266,12 @@ export default function WeNowPage({ status, todayPings, pinLookOf, onToday, grou
       <button className="corner-btn corner-btn--profile" aria-label="프로필" onClick={onProfile}>
         <ProfileAvatar photo={photo} size={52} />
       </button>
+      <GalleryButton className="we-now__gallery" onOpen={onGallery} />
       <div className="we-now">
         <div className="we-now__today">
           <TodayTile pings={todayPings} pinLookOf={pinLookOf} onOpen={onToday} />
+          {/* Beside the tile, not in it: a press here isn't a press that opens TODAY. */}
+          <CameraButton className="we-now__camera" onOpen={onCamera} />
         </div>
         <AppLinksSection compact />
         {content}

@@ -37,7 +37,7 @@ interface GroupMapViewProps {
   /** The calendar under ⚙: the group's month, who pinged on each day. */
   onCalendar(): void;
   onCamera(): void;
-  /** The gallery at the bottom-left: every photo sent to this group, by day. */
+  /** The gallery under the calendar: every photo sent to this group, by day. */
   onGallery(): void;
 }
 
@@ -45,9 +45,9 @@ interface GroupMapViewProps {
  * A group opened from We Now: the map with every member's pings and lines
  * (App draws them), and over it ‹ back, the group's name (only the name —
  * the pass says who's picked),
- * ⚙ settings with the group's calendar under it, `<` `>` down the middle either side, a day back or forward
+ * ⚙ settings with the group's calendar and then the gallery under it, `<` `>` down the middle either side, a day back or forward
  * (no `>` on today) with the day under the name (name and day open the calendar too),
- * the gallery fixed at the bottom-left and the camera at the bottom-right, and the member row
+ * the gallery under the calendar, the camera at the bottom-right, and the member row
  * along the bottom: ALL then every member's face, each its own button with
  * a badge of their new pings since I last picked them, scrolled sideways when they don't fit. The picked
  * member's boarding pass rises over the row: photo, name, the day's places
@@ -82,6 +82,7 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
       <button className="group-view__btn group-view__btn--calendar" aria-label="그룹 달력" onClick={onCalendar}>
         <CalendarDays size={22} strokeWidth={2} />
       </button>
+      <GalleryButton className="group-view__btn group-view__btn--gallery" onOpen={onGallery} />
 
       <div className="group-view__title">
         {/* The name (and the day under it) opens the group's calendar, as TODAY's title opens its month. */}
@@ -104,7 +105,6 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
         </button>
       )}
 
-      <GalleryButton className="group-view__gallery" onOpen={onGallery} />
       <CameraButton className="group-view__camera" onOpen={onCamera} />
 
       {pickedMember && <MemberPass key={pickedMember.userId} member={pickedMember} mine={pickedMember.userId === me} day={label} />}

@@ -35,9 +35,9 @@ interface BottomBarProps {
   onDeletePing?: () => void;
   /** A ping is being dragged over the ✕. */
   deleteHot?: boolean;
-  /** The camera at the row's right end: the camera screen. */
+  /** TODAY: the camera at the bottom of its column (the camera screen). */
   onCamera?: () => void;
-  /** The gallery at the row's left end on every screen (every photo in my groups, by day). */
+  /** TODAY: the gallery in the bottom-right column, over the camera (every photo in my groups, by day). */
   onGallery?: () => void;
 }
 
@@ -47,8 +47,9 @@ interface BottomBarProps {
  * (`barSlot`; the calendar button is gone from it, test build 2026-10-19).
  * Pressing the side button slides the row toward it: it grows into the
  * centre and the centre one shrinks to the other side. The buttons stay
- * mounted so the swap is animated. On TODAY (`today`) the row is the big
- * calendar button and 공유 instead.
+ * mounted so the swap is animated. On TODAY (`today`) the row is one column
+ * at the bottom-right instead: 공유 (day screen), the calendar (day ⇄ month,
+ * ✕ while a ping is picked), the gallery, the camera.
  */
 export default function BottomBar({ tab, today = false, calendarMode, onCalendar, onMap, onPin, onPeople, onShare, onDeletePing, deleteHot = false, onCamera, onGallery }: BottomBarProps) {
   const cal = today;
@@ -133,14 +134,15 @@ export default function BottomBar({ tab, today = false, calendarMode, onCalendar
   return (
     <nav ref={nav} className={`bottom-bar ${map ? '' : 'bottom-bar--page'} ${cal ? 'bottom-bar--cal' : ''}`} aria-label="메뉴">
       {cal ? (
+        // TODAY: one column at the bottom-right, from the top 공유 · 달력 · 갤러리 · 카메라.
         <button
-          className={`bar-btn bar-slot-c bar-cal ${onDeletePing ? 'is-delete' : ''} ${onDeletePing && deleteHot ? 'is-hot' : ''}`}
+          className={`bar-col bar-col--cal bar-cal ${onDeletePing ? 'is-delete' : ''} ${onDeletePing && deleteHot ? 'is-hot' : ''}`}
           aria-label={onDeletePing ? '핑 삭제' : calendarMode === 'day' ? '월 달력' : '오늘'}
           onClick={onDeletePing ?? onCalendar}
         >
           {/* Shows where the press goes: the month grid from a day, today's date
               from the month; ✕ while a ping is picked (tap it or drop the ping on it). */}
-          {onDeletePing ? <X strokeWidth={2.4} aria-hidden /> : calendarMode === 'day' ? <CalendarDays strokeWidth={2.2} aria-hidden /> : <CalendarToday />}
+          {onDeletePing ? <X size={24} strokeWidth={2.4} aria-hidden /> : calendarMode === 'day' ? <CalendarDays size={24} strokeWidth={2.2} aria-hidden /> : <CalendarToday />}
         </button>
       ) : (
         <>
@@ -158,9 +160,9 @@ export default function BottomBar({ tab, today = false, calendarMode, onCalendar
           </button>
         </>
       )}
-      {onGallery && <GalleryButton className="bar-gallery" onOpen={onGallery} />}
-      {/* Every screen has the camera at the row's right end; TODAY's 공유 sits on top of it. */}
-      <CameraButton className="bar-camera" onOpen={onCamera} />
+      {cal && onGallery && <GalleryButton className="bar-col bar-col--gallery" onOpen={onGallery} />}
+      {/* Only TODAY has the camera in the row (its column stands on it): the map has none, We Now its own on the TODAY tile. */}
+      {cal && <CameraButton className="bar-camera" onOpen={onCamera} />}
       {onShare && (
         <button className="bar-share" aria-label="공유" onClick={onShare}>
           <Share size={24} strokeWidth={2.2} aria-hidden />
