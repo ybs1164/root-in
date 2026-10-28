@@ -60,14 +60,14 @@
 
 ## H4. 앱 올리기와 시험 (약 2시간)
 
-- 웹 앱: `VITE_MAP_DATA_URL=https://<데이터 주소>/korea-20261006/ npm run build` 뒤 **`dist`에서 `korea/`를 지운다**(`vite build`가 `public/`을 통째로 복사해서 데이터까지 들어감 — 안 지우면 3GB가 앱에 실림). `scripts/android-sync.mjs`가 이미 하는 정리를 공용 `scripts/prune-dist.mjs`로 빼서 웹·안드로이드가 같이 쓴다. Cloudflare Pages에 올리면 `https://<프로젝트>.pages.dev`.
+- 웹 앱: `VITE_MAP_DATA_URL=https://<데이터 주소>/korea-20261006/ npm run build` 뒤 **`dist`에서 `korea/`를 지운다**(`vite build`가 `public/`을 통째로 복사해서 데이터까지 들어감 — 안 지우면 3GB가 앱에 실림). `scripts/native-sync.mjs`가 이미 하는 정리를 공용 `scripts/prune-dist.mjs`로 빼서 웹·안드로이드·iOS가 같이 쓴다. Cloudflare Pages에 올리면 `https://<프로젝트>.pages.dev`.
 - 카카오 콘솔 Web 플랫폼에 그 주소를 등록해야 카카오 지도가 뜬다 (안 하면 MapLibre로 대체 — 데이터 시험에는 상관없음, 테스터에게 어느 쪽인지 알림).
 - 시험 매트릭스: PC 크롬(처음 열기, 새로고침으로 캐시 확인) · 안드로이드 크롬 · iOS 사파리 · LTE 회선. 각각 (a) 전국 → 서울 → 강남 역삼1동 확대 (b) 0.3m/px 도로 단계 (c) 시골(양평·부안) (d) 오프라인 전환 시 오류 없이 이미 받은 것만 보임.
 - 기준: 첫 화면(전국) 2초 안, 읍면동 → 도로 단계 확대에서 파일 받기 합쳐 1~2초 안, 가장 큰 도로 파일(3.7MB → gzip 약 0.7MB) 포함. 이 숫자를 이 문서에 적는다.
 
 ## H5. 안드로이드 테스터 (약 2시간)
 
-- `scripts/android-sync.mjs`: 빌드 때 `VITE_MAP_DATA_URL`이 설정돼 있으면 `korea/admin`·`korea/base`도 `dist`에서 지운다 → APK 수 MB. 설정이 없으면(로컬 개발) 지금처럼 번들한다고 경고만.
+- `scripts/native-sync.mjs`: 빌드 때 `VITE_MAP_DATA_URL`이 설정돼 있으면 `korea/admin`·`korea/base`도 `dist`에서 지운다 → APK·iOS 앱 수 MB. 설정이 없으면(로컬 개발) 지금처럼 번들한다고 경고만.
 - WebView 출처가 `https://localhost`라 H3의 CORS에 이미 포함돼 있어야 한다. 안 되면 지도가 빈 채로 콘솔에 CORS 오류 — `chrome://inspect`로 확인(디버그 빌드에서만 켜짐).
 - 배포: 디버그 APK를 파일로 전달(가장 단순) → 이후 Firebase App Distribution 또는 Play 내부 테스트(AAB 150MB 한도는 데이터를 뺐으니 통과).
 - 앱 첫 실행에 네트워크가 없으면 빈 지도 — 오프라인은 목표 아님(`CLAUDE.md`). 대신 "지도 데이터를 불러오지 못했어요" 한 줄을 화면에 띄울지 H1에서 같이 정한다 (지금은 조용히 빈 배경).

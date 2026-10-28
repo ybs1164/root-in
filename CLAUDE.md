@@ -22,6 +22,10 @@ React 19 + Vite 7 + TypeScript. 지도는 **카카오맵 JS SDK**(키 없으면 
 - 하드웨어 뒤로가기는 `hooks/useBackButton.ts` + `lib/native.ts`: 열린 `<dialog>` → 꾸미기 화면 → 검색 → 카드 → 경로 → 핀·경로 줄 → 달력 → 앱 종료 순으로 한 겹씩 닫는다. 새 오버레이를 만들면 `App.tsx`의 뒤로가기 목록에 넣을 것.
 - 아직 안 한 것: 공유 이미지 저장·시스템 공유(네이티브 플러그인 어댑터), 딥링크(App Links), 웹폰트 번들, 데이터 원격 호스팅.
 
+## iOS (Capacitor, 2026-10-28)
+- `ios/` 셸(WKWebView, origin `capacitor://localhost` — iOS는 https 스킴을 못 씀, 카카오 콘솔이 이 주소를 받아 주는지는 미확인; 안 되면 MapLibre로 대체). 번들 ID `app.rootin.ios`(capacitor.config의 `appId`는 안드로이드용이라 Xcode 프로젝트에서 따로 둠). `npm run ios:sync`(웹 빌드 → 옛 `public/korea` 폴더 제외 → `cap sync ios`, `scripts/native-sync.mjs`를 안드로이드와 같이 씀) 다음 `npm run ios:sim`으로 시뮬레이터용 빌드(`ios/build/Build/Products/Debug-iphonesimulator/App.app`, 서명 없음). xcode-select가 Command Line Tools를 가리켜도 스크립트가 `DEVELOPER_DIR`로 Xcode.app을 씀(`scripts/xcode-env.mjs`). 권한 문구(카메라·위치·사진첩)는 `ios/App/App/Info.plist`. 시뮬레이터 런타임은 Xcode → Settings → Components(약 8GB). 지도 데이터 1.6GB가 앱에 들어가 시뮬레이터 설치에 몇 분 걸림. 실제 아이폰은 Xcode에서 Apple ID 서명 후 실행.
+- 아직 확인 못 한 것: 이 Mac의 시뮬레이터에서 앱 화면(2026-10-28 — 앱은 실행되지만 시뮬레이터 WebKit이 Safari까지 못 그리는 상태였음).
+
 ## 카카오 키
 - `.env.local`에 `VITE_KAKAO_JS_KEY=<JavaScript 키>` (예시: `.env.example`). `.env.local`은 커밋하지 않는다.
 - 카카오 개발자 콘솔 → 플랫폼 → Web에 `http://localhost:5188`과 배포 도메인을 등록해야 SDK가 동작한다.
