@@ -182,4 +182,40 @@ describe('groupService', () => {
       expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).sendPhoto([G1], ping, photo)).toBe(0);
     });
   });
+
+  describe('photos', () => {
+    const P = `${U2}/Abc123Abc123.jpg`;
+    function tableClient(answer: { data?: unknown; error?: unknown }) {
+      const calls: unknown[][] = [];
+      const query = {
+        select: (...a: unknown[]) => (calls.push(['select', ...a]), query),
+        in: (...a: unknown[]) => (calls.push(['in', ...a]), query),
+        order: (...a: unknown[]) => (calls.push(['order', ...a]), query),
+        limit: async (...a: unknown[]) => (calls.push(['limit', ...a]), { data: null, error: null, ...answer }),
+      };
+      const client = {
+        from: (table: string) => (calls.push(['from', table]), query),
+        storage: { from: () => ({ getPublicUrl: (path: string) => ({ data: { publicUrl: `https://cdn/${path}` } }) }) },
+      } as unknown as SupabaseClient;
+      return { client, calls };
+    }
+
+    it("reads my groups' photo rows, newest first, dropping bad ones", async () => {
+      const good = { id: G1, group_id: G1, user_id: U2, day: '2026-10-27', at: '2026-10-27T03:00:00Z', name: ' 성수 ', path: P };
+      const fake = tableClient({ data: [good, { ...good, path: '../x.jpg' }, { ...good, day: 'yesterday' }, null] });
+      const photos = await createSupabaseGroupService(async () => fake.client, true).photos([G1, G1, 'bad']);
+      expect(photos).toEqual([{ id: G1, groupId: G1, userId: U2, day: '2026-10-27', at: '2026-10-27T03:00:00.000Z', name: '성수', path: P, url: `https://cdn/${P}` }]);
+      expect(fake.calls).toContainEqual(['from', 'group_photos']);
+      expect(fake.calls).toContainEqual(['in', 'group_id', [G1]]);
+      expect(fake.calls).toContainEqual(['order', 'at', { ascending: false }]);
+    });
+
+    it('asks nothing for no groups; error when the server fails; never rejects', async () => {
+      const fake = tableClient({ error: { message: 'x' } });
+      const service = createSupabaseGroupService(async () => fake.client, true);
+      expect(await service.photos([])).toEqual([]);
+      expect(await service.photos([G1])).toBe('error');
+      expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).photos([G1])).toBe('error');
+    });
+  });
 });

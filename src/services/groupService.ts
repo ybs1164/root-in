@@ -5,6 +5,7 @@ import { inKorea } from './pinShareService';
 import { dataUrlToBlob } from './remoteProfileService';
 import { newSlug } from './shareLinkService';
 import { createGroupDemoService } from '../dev/groupDemoService';
+import type { GalleryPhoto } from '../domain/gallery';
 import { publicAppUrl } from '../lib/appUrl';
 
 // We Now groups (supabase/migrations/20261016000000_groups.sql). Everything
@@ -49,7 +50,12 @@ export interface GroupService {
    * groups got it (0: none, e.g. the upload failed).
    */
   sendPhoto(groupIds: string[], ping: PhotoPing, photo: string): Promise<number>;
+  /** Every photo sent to `groupIds` (I'm a member of), newest first; 'error' when the server couldn't be asked. */
+  photos(groupIds: string[]): Promise<GalleryPhoto[] | 'error'>;
 }
+
+/** How many photos a gallery reads at most (the newest). */
+export const GALLERY_LIMIT = 600;
 
 /** Where a camera photo was taken: the ping that goes with it. */
 export interface PhotoPing {
@@ -107,6 +113,21 @@ function readMember(raw: unknown, photoUrl: (path: string) => string | null, pin
     .sort((a, b) => a.at.localeCompare(b.at))
     .slice(-GROUP_LIMITS.pingsPerMember);
   return { userId: r.user_id, slot: r.slot, nickname, alias, photo: path ? photoUrl(path) : null, pings };
+}
+
+/** A group_photos row, checked; null when anything's off. */
+export function readGalleryPhoto(raw: unknown, photoUrl: (path: string) => string | null): GalleryPhoto | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.id !== 'string' || !UUID.test(r.id) || typeof r.group_id !== 'string' || !UUID.test(r.group_id)) return null;
+  if (typeof r.user_id !== 'string' || !UUID.test(r.user_id)) return null;
+  if (typeof r.day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(r.day)) return null;
+  if (typeof r.at !== 'string' || Number.isNaN(Date.parse(r.at))) return null;
+  if (typeof r.path !== 'string' || !PHOTO_PATH.test(r.path)) return null;
+  const url = photoUrl(r.path);
+  if (!url) return null;
+  const name = typeof r.name === 'string' && r.name.trim() ? r.name.trim().slice(0, 80) : '이름 없는 곳';
+  return { id: r.id, groupId: r.group_id, userId: r.user_id, day: r.day, at: new Date(r.at).toISOString(), name, path: r.path, url };
 }
 
 /**
@@ -269,6 +290,27 @@ export function createSupabaseGroupService(
         return data;
       } catch {
         return 0;
+      }
+    },
+
+    async photos(groupIds) {
+      try {
+        const ids = [...new Set(groupIds)].filter((id) => UUID.test(id)).slice(0, 30);
+        if (!ids.length) return [];
+        const client = await getClient();
+        if (!client) return 'error';
+        // Read straight from the table: its policy lets members read their groups' rows.
+        const { data, error } = await client
+          .from('group_photos')
+          .select('id, group_id, user_id, day, at, name, path')
+          .in('group_id', ids)
+          .order('at', { ascending: false })
+          .limit(GALLERY_LIMIT);
+        if (error || !Array.isArray(data)) return 'error';
+        const url = (path: string) => client.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl || null;
+        return data.map((r) => readGalleryPhoto(r, url)).filter((p): p is GalleryPhoto => !!p);
+      } catch {
+        return 'error';
       }
     },
   };

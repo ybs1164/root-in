@@ -8428,11 +8428,11 @@ button:disabled {
   align-items: center;
   gap: 10px;
   /* Room for the shadows, the picked ring and the count badges inside the
-     scroll box (it clips them). Centred on the screen; the camera, above
-     the row, covers its right end when it scrolls. */
-  padding: 10px 16px;
+     scroll box (it clips them), and on either end for the gallery and the
+     camera on the row's line, so no face starts or ends under them. */
+  padding: 10px 76px;
   overflow-x: auto;
-  scroll-padding: 0 16px;
+  scroll-padding: 0 76px;
   scrollbar-width: none;
 }
 
@@ -9615,3 +9615,189 @@ button.group-photo-panel__photo {
 .app-link-entry__open { background: var(--accent); color: var(--on-accent); }
 .app-link-entry__card button { background: var(--surface); color: var(--text); }
 .app-link-entry__card small { color: var(--muted); line-height: 1.6; }
+
+/* The gallery (PhotoGallery): every photo sent to a group (or, from TODAY,
+   to any of mine), over the whole screen, a heading per day over a grid of
+   squares. Its button sits bottom-left, the camera's twin. */
+.bar-gallery {
+  position: absolute;
+  left: 16px;
+  bottom: -8px;
+}
+
+.group-view__gallery {
+  position: fixed;
+  left: 16px;
+  bottom: calc(var(--safe-bottom) + 44px);
+  z-index: 21;
+}
+
+.gallery {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  animation: veil-in 0.2s ease both;
+}
+
+.gallery__head {
+  position: relative;
+  flex: none;
+  display: grid;
+  justify-items: center;
+  padding: calc(var(--safe-top) + 12px) 72px 10px;
+}
+
+.gallery__back {
+  position: absolute;
+  top: calc(var(--safe-top) + 12px);
+  left: 12px;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+}
+
+.gallery__title {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.gallery__title h2 {
+  margin: 0;
+  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+  font-size: 40px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  line-height: 1;
+}
+
+.gallery__title span {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gallery__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 16px calc(var(--safe-bottom) + 32px);
+}
+
+.gallery__day {
+  max-width: 720px;
+  margin: 0 auto 22px;
+}
+
+.gallery__date {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+}
+
+.gallery__date small {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+@media (min-width: 768px) {
+  .gallery__grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.gallery__photo {
+  position: relative;
+  aspect-ratio: 1;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.gallery__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gallery__photo:active {
+  opacity: 0.8;
+}
+
+/* Who sent it, in the corner, ringed in their colour. */
+.gallery__face {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  display: grid;
+  border: 2px solid var(--member);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.gallery__note {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  margin: 48px 0;
+  color: var(--muted);
+  font-size: 15px;
+  text-align: center;
+}
+
+.gallery__retry {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+}
+
+.gallery__empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin: 72px 16px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.gallery__empty p {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-size: 17px;
+}
+
+.gallery__empty small {
+  font-size: 13px;
+}
