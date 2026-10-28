@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import packsFile from './stickerPacks.json';
-import { layOutSheet, packsDocument, peelFold, readPacks, STICKER_SHEETS } from './stickerSheets';
+import packsText from './stickerPacks.json?raw';
+import { formatPacks, layOutSheet, packsDocument, peelFold, readPacks, STICKER_SHEETS } from './stickerSheets';
 
 describe('sticker packs', () => {
   it('reads the app\'s pack file as it is (nothing dropped or changed)', () => {
@@ -54,5 +55,19 @@ describe('sticker packs', () => {
     expect(fold.mx).toBeCloseTo(-32);
     expect(fold.progress).toBeCloseTo(20 / 60);
     expect(peelFold(0, 0, 100, 0, 200)!.progress).toBe(1);
+  });
+});
+
+describe('formatPacks', () => {
+  it('reads back as the same document, one line per slot, extra fields kept', () => {
+    const doc = { ...packsDocument(STICKER_SHEETS), savedAt: '2026-10-28T00:00:00.000Z' };
+    const text = formatPacks(doc);
+    expect(JSON.parse(text)).toEqual(JSON.parse(JSON.stringify(doc)));
+    const slots = STICKER_SHEETS.reduce((n, p) => n + p.slots.length, 0);
+    expect(text.split('\n').filter((l) => l.trim().startsWith('{"stickerId"'))).toHaveLength(slots);
+  });
+
+  it('is how the packs file is kept', () => {
+    expect(packsText).toBe(formatPacks(JSON.parse(packsText)));
   });
 });

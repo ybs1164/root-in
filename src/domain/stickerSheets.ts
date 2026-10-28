@@ -117,6 +117,22 @@ export function readPacks(raw: unknown): StickerSheet[] {
 /** The file the editor hands over and the app reads. */
 export const packsDocument = (packs: StickerSheet[]) => ({ version: 1, packs });
 
+/**
+ * A pack file as text, compact but still readable in a diff: a pack's own
+ * fields on one line, then one line per sticker slot (about half the size of
+ * an indent-everything JSON.stringify). Extra top-level fields (the editor's
+ * savedAt) come after the packs.
+ */
+export function formatPacks(doc: { version: number; packs: StickerSheet[]; [key: string]: unknown }): string {
+  const { version, packs, ...rest } = doc;
+  const body = packs.map(({ slots, ...head }) => {
+    const rows = slots.map((s) => `        ${JSON.stringify(s)}`).join(',\n');
+    return `    {\n      ${JSON.stringify(head).slice(1, -1)},\n      "slots": [\n${rows}\n      ]\n    }`;
+  });
+  const extra = Object.entries(rest).map(([k, v]) => `,\n  ${JSON.stringify(k)}: ${JSON.stringify(v)}`).join('');
+  return `{\n  "version": ${version},\n  "packs": [\n${body.join(',\n')}\n  ]${extra}\n}\n`;
+}
+
 /** A small seeded random source (mulberry32), so a tidy-up lays out the same every time. */
 function seeded(text: string): () => number {
   let a = [...text].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261) >>> 0;

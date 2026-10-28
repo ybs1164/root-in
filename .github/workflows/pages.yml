@@ -64,9 +64,11 @@ jobs:
           # Not read by the app (see scripts/android-sync.mjs).
           rm -rf dist/overture dist/korea
 
-      # Full-size sticker PNGs are ~150MB; the same shrink as the APK.
-      - name: Shrink stickers
+      # As for the APK: only the stickers a pack uses, shrunk (a no-op for
+      # public/stickers, already shrunk; it catches any full-size art added since).
+      - name: Prune and shrink stickers
         run: |
+          node scripts/prune-stickers.mjs dist/stickers
           pip install pillow
           python scripts/shrink-stickers.py dist/stickers
 

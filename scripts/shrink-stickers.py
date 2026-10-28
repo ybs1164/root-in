@@ -1,13 +1,15 @@
-"""Shrinks the built sticker PNGs (dist/stickers) for the Android APK.
+"""Shrinks sticker PNGs in place: public/stickers itself (done 2026-10-28,
+~150MB -> ~34MB) and, for anything added since, the built copies.
 
-The originals are ~1254px and ~150MB in all, but a sticker is never drawn
-wider than 0.6 of the 1400px share scene (~840px), so 768px is plenty. Flat
-art (doodles, stationery, pixel) also survives a 256-colour palette; painted
-and chrome art bands, so it stays full colour. Which way each one goes is
-measured, not listed: the palette version is kept only if it is close to the
-resized original (PSNR on visible pixels). public/stickers is never touched.
+The originals were ~1254px, but a sticker is never drawn wider than 0.6 of
+the 1400px share scene (~840px), so 768px is plenty. Flat art (doodles,
+stationery, pixel) also survives a 256-colour palette; painted and chrome
+art bands, so it stays full colour. Which way each one goes is measured, not
+listed: the palette version is kept only if it is close to the resized
+original (PSNR on visible pixels). A file it can't make smaller is left as
+it is, so a second run settles it and later runs change nothing.
 
-  python scripts/shrink-stickers.py [dir]   (default dist/stickers)
+  python scripts/shrink-stickers.py [dir]   (default dist/stickers; new art: public/stickers)
 """
 import io
 import math

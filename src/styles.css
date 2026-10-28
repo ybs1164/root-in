@@ -2449,7 +2449,8 @@ button:disabled {
   background: none;
   pointer-events: auto;
   cursor: pointer;
-  touch-action: manipulation;
+  /* It's dragged up (StickerSheets moves the pack), so the page mustn't take the touch. */
+  touch-action: none;
 }
 
 /* Tucked down: only the pack's band shows at the bottom of the screen. */

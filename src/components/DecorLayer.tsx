@@ -617,7 +617,13 @@ export default function DecorLayer({
             } as CSSProperties}
             onPointerDown={onStickerDown(s.id)}
           >
-            <img src={sticker.src} alt={sticker.label} draggable={false} />
+            <img
+              src={sticker.src}
+              alt={sticker.label}
+              draggable={false}
+              // A sticker no pack uses isn't in the build (scripts/prune-stickers.mjs): hidden, not a broken image. The day keeps it.
+              onError={(e) => ((e.currentTarget.parentElement as HTMLElement).style.display = 'none')}
+            />
           </span>
         );
       })}
