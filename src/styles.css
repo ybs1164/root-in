@@ -10206,12 +10206,15 @@ button.group-photo-panel__photo {
 }
 
 .gallery__tools {
-  /* A line's room under the tabs before the first day (the switches sit in it, on the right). */
+  /* The switches on the right, over the first day's heading a little (the
+     photos sit higher, 2026-11-02); above it so they stay tappable. */
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: flex-end;
   gap: 8px;
   max-width: 720px;
-  margin: 0 auto 22px;
+  margin: 0 auto -12px;
 }
 
 .gallery__filter {

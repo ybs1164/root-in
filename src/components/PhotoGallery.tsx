@@ -45,8 +45,8 @@ const goneMember = (userId: string): GroupMember => ({ userId, slot: 0, color: 0
  *
  * Over the days, two switches (both may be on): 즐겨찾기 — only the photos
  * I starred (★ beside the big photo's caption; mine alone, on this phone) —
- * and 만난 날 — every photo of a day I met someone from a group (in MY) or
- * two of the group met (its tab), where they pinged the same place. A
+ * and 만난 날 — every photo of a day I met someone from a group (any in MY,
+ * that one in its tab): we pinged the same place. A
  * heart beside the star (on someone else's photo) tells its sender; how many
  * a photo has is never shown.
  */
