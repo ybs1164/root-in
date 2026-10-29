@@ -86,10 +86,12 @@ export interface GroupPingMark {
   faded?: boolean;
   /** The place's name under it (the picked member's pings only). */
   label?: string;
-  /** The photo sent from there, shown as the ping's head (a few per member at a time, App picks). */
-  photo?: string;
+  /** The photos sent from there, oldest first, stacked as the ping's head: the newest on top. */
+  photos?: string[];
   /** The ping tapped on (its place is in the panel under the group's title). */
   selected?: boolean;
+  /** Of a selected ping's stacked photos, the one in the panel (none = the newest). */
+  selectedPhoto?: number;
   /** Someone else in the group pinged the same place: an aurora edge instead of the member's colour. */
   together?: boolean;
 }
@@ -218,7 +220,7 @@ const DEFAULT_FACE_SVG =
 
 export function createGroupPingElement(mark: GroupPingMark): HTMLElement {
   const el = document.createElement('div');
-  el.className = `group-ping${mark.face ? ' group-ping--face' : ' group-ping--pin'}${mark.faded ? ' is-faded' : ''}${mark.selected ? ' is-selected' : ''}${mark.photo ? ' has-photo' : ''}${mark.together ? ' is-together' : ''}`;
+  el.className = `group-ping${mark.face ? ' group-ping--face' : ' group-ping--pin'}${mark.faded ? ' is-faded' : ''}${mark.selected ? ' is-selected' : ''}${mark.photos?.length ? ' has-photo' : ''}${mark.together ? ' is-together' : ''}`;
   el.style.setProperty('--member', mark.color);
   el.dataset.member = mark.member;
   el.dataset.seq = String(mark.seq);
@@ -240,17 +242,23 @@ export function createGroupPingElement(mark: GroupPingMark): HTMLElement {
     pin.innerHTML = pinGlyphSvg('pin');
     el.append(pin);
   }
-  if (mark.photo) {
-    // The photo over the ping: a small rounded print in the member's colour on top of its pin (or face, if it's their latest).
+  // The photos over the ping: small rounded prints in the member's colour on
+  // top of its pin (or face, if it's their latest), one over the other with
+  // room between — each later one above the one before.
+  (mark.photos ?? []).forEach((photo, i) => {
     const head = document.createElement('span');
     head.className = 'group-ping__photo';
+    head.style.setProperty('--stack', String(i));
+    // Which of the place's photos a tap on it opens.
+    head.dataset.photo = String(i);
+    if (mark.selected && i === (mark.selectedPhoto ?? (mark.photos?.length ?? 0) - 1)) head.classList.add('is-picked');
     const img = document.createElement('img');
-    img.src = mark.photo;
+    img.src = photo;
     img.alt = '';
     img.draggable = false;
     head.append(img);
     el.append(head);
-  }
+  });
   if (mark.label) {
     const label = document.createElement('span');
     label.className = 'group-ping__label';

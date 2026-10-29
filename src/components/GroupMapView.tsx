@@ -1,6 +1,6 @@
 import { CalendarDays, Camera, ChevronLeft, ChevronRight, Settings, X } from 'lucide-react';
 import { useEffect, useRef, type CSSProperties } from 'react';
-import { memberColor, passRoute, type Group, type GroupMember } from '../domain/groups';
+import { memberColor, passRoute, pingPhotos, type Group, type GroupMember, type GroupPing } from '../domain/groups';
 import { addDays } from '../domain/calendar';
 import { dateKey } from '../domain/diary';
 import { galleryDayLabel } from '../domain/gallery';
@@ -26,8 +26,8 @@ interface GroupMapViewProps {
   newPings(member: GroupMember): number;
   onPick(memberId: string | null): void;
   /** The ping tapped on the map (its photo and place in the panel under the title); null = none. */
-  place: { member: string; seq: number } | null;
-  onPlace(place: { member: string; seq: number } | null): void;
+  place: GroupPlace | null;
+  onPlace(place: GroupPlace | null): void;
   /** The panel's photo opened big over the whole screen (App holds it, for the back button). */
   photoBig: boolean;
   onPhotoBig(open: boolean): void;
@@ -55,6 +55,23 @@ interface GroupMapViewProps {
  * the place, who, n / N with ‹ › through their day, tied to the ping by a
  * faint thread.
  */
+/**
+ * A ping picked on a group's map: whose, which place in their day, and —
+ * for a place with stacked photos — which of them was tapped (oldest = 0;
+ * none = the newest).
+ */
+export interface GroupPlace {
+  member: string;
+  seq: number;
+  photo?: number;
+}
+
+/** The photo a picked place shows: the tapped one of its stack, else its newest. */
+const shownPhoto = (ping: GroupPing | undefined, photo?: number): string | undefined => {
+  const all = ping ? pingPhotos(ping) : [];
+  return (photo !== undefined ? all[photo] : undefined) ?? ping?.photo;
+};
+
 export default function GroupMapView({ group, day, onDay, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onGallery }: GroupMapViewProps) {
   const pickedMember = group.members.find((m) => m.userId === picked) ?? null;
   const today = dateKey();
@@ -94,13 +111,18 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
         </button>
       </div>
 
-      <button className="route-step route-step--prev group-view__step" aria-label="전날" onClick={() => onDay(addDays(shown, -1))}>
-        <ChevronLeft size={34} strokeWidth={2.4} />
-      </button>
-      {shown < today && (
-        <button className="route-step route-step--next group-view__step" aria-label="다음 날" onClick={() => onDay(addDays(shown, 1))}>
-          <ChevronRight size={34} strokeWidth={2.4} />
-        </button>
+      {/* Days page only from ALL: with a member or a photo in focus the arrows are gone. */}
+      {!picked && !place && (
+        <>
+          <button className="route-step route-step--prev group-view__step" aria-label="전날" onClick={() => onDay(addDays(shown, -1))}>
+            <ChevronLeft size={34} strokeWidth={2.4} />
+          </button>
+          {shown < today && (
+            <button className="route-step route-step--next group-view__step" aria-label="다음 날" onClick={() => onDay(addDays(shown, 1))}>
+              <ChevronRight size={34} strokeWidth={2.4} />
+            </button>
+          )}
+        </>
       )}
 
 
@@ -110,13 +132,20 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
         const step = (dir: -1 | 1) => onPlace({ member: pickedMember.userId, seq: (place.seq + dir + pickedMember.pings.length) % pickedMember.pings.length });
         return (
           <>
-            <PhotoPanel member={pickedMember} seq={place.seq} onStep={step} onOpen={() => onPhotoBig(true)} onClose={() => onPlace(null)} />
+            <PhotoPanel member={pickedMember} seq={place.seq} photo={shownPhoto(pickedMember.pings[place.seq], place.photo)} onStep={step} onOpen={() => onPhotoBig(true)} onClose={() => onPlace(null)} />
             {photoBig && (
               <PhotoViewer
-                items={pickedMember.pings.map((p) => ({ photo: p.photo, name: placeName(p.name), who: pickedMember.nickname, face: <MemberFace member={pickedMember} size={32} /> }))}
+                items={pickedMember.pings.map((p, i) => ({
+                  photo: shownPhoto(p, i === place.seq ? place.photo : undefined),
+                  name: placeName(p.name),
+                  // The member's name alone, no n / N.
+                  who: pickedMember.nickname,
+                  face: <MemberFace member={pickedMember} size={32} />,
+                }))}
                 seq={place.seq}
                 onSeq={(seq) => onPlace({ member: pickedMember.userId, seq })}
                 onClose={() => onPhotoBig(false)}
+                counted={false}
               />
             )}
           </>
@@ -135,7 +164,7 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
               data-member={m.userId}
               className={`group-rail__member ${picked === m.userId ? 'is-on' : ''}`}
               aria-pressed={picked === m.userId}
-              style={{ '--member': memberColor(m.slot), ...stagger(i + 1) } as CSSProperties}
+              style={{ '--member': memberColor(m.color), ...stagger(i + 1) } as CSSProperties}
               aria-label={fresh ? `${m.nickname}, 새 핑 ${fresh}개` : m.nickname}
               onClick={() => onPick(picked === m.userId ? null : m.userId)}
             >
@@ -154,7 +183,7 @@ function MemberPass({ member, mine, day }: { member: GroupMember; mine: boolean;
   const today = day === 'TODAY';
   const route = passRoute(member.pings.map((p) => placeName(p.name)));
   return (
-    <section className="member-pass" style={{ '--member': memberColor(member.slot) } as CSSProperties} aria-label={`${member.nickname}의 ${today ? '오늘' : day}`}>
+    <section className="member-pass" style={{ '--member': memberColor(member.color) } as CSSProperties} aria-label={`${member.nickname}의 ${today ? '오늘' : day}`}>
       <div className="member-pass__ticket">
         <div className="member-pass__main">
           <div className="member-pass__who">
@@ -193,7 +222,7 @@ function MemberPass({ member, mine, day }: { member: GroupMember; mine: boolean;
  * thread in their colour runs from the panel down to the ping on the map,
  * redrawn every frame from the marker so it follows pans and zooms.
  */
-function PhotoPanel({ member, seq, onStep, onOpen, onClose }: { member: GroupMember; seq: number; onStep(dir: -1 | 1): void; onOpen(): void; onClose(): void }) {
+function PhotoPanel({ member, seq, photo, onStep, onOpen, onClose }: { member: GroupMember; seq: number; photo?: string; onStep(dir: -1 | 1): void; onOpen(): void; onClose(): void }) {
   const ping = member.pings[seq];
   const panel = useRef<HTMLElement>(null);
   const thread = useRef<HTMLSpanElement>(null);
@@ -217,12 +246,12 @@ function PhotoPanel({ member, seq, onStep, onOpen, onClose }: { member: GroupMem
   }, [member.userId, seq]);
   return (
     <>
-      <span ref={thread} className="group-photo-thread" style={{ '--member': memberColor(member.slot) } as CSSProperties} aria-hidden />
-      <section ref={panel} className="group-photo-panel" style={{ '--member': memberColor(member.slot) } as CSSProperties} aria-label={`${placeName(ping.name)} 사진`}>
-        {ping.photo ? (
+      <span ref={thread} className="group-photo-thread" style={{ '--member': memberColor(member.color) } as CSSProperties} aria-hidden />
+      <section ref={panel} className="group-photo-panel" style={{ '--member': memberColor(member.color) } as CSSProperties} aria-label={`${placeName(ping.name)} 사진`}>
+        {photo ? (
           // Tap the photo to see it big.
-          <button key={seq} className="group-photo-panel__photo" aria-label="사진 크게 보기" onClick={onOpen}>
-            <img src={ping.photo} alt="" draggable={false} />
+          <button key={`${seq}|${photo}`} className="group-photo-panel__photo" aria-label="사진 크게 보기" onClick={onOpen}>
+            <img src={photo} alt="" draggable={false} />
           </button>
         ) : (
           <div key={seq} className="group-photo-panel__photo is-empty">

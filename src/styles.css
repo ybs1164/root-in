@@ -120,6 +120,31 @@
   --pin-8: #9ea6ad;
   /* 미분류: the plain pin in whatever the accent is (a day theme included). */
   --pin-0: var(--accent);
+  /* The gallery's 즐겨찾기 star and heart, filled. */
+  --star: #f6c544;
+  --heart: #ff6b81;
+  /* We Now member colours (domain/groups.ts MEMBER_COLORS), one per place in
+     a group so no two members share one: the pin colours first, then twelve more. */
+  --member-0: var(--pin-1);
+  --member-1: var(--pin-2);
+  --member-2: var(--pin-3);
+  --member-3: var(--pin-4);
+  --member-4: var(--pin-5);
+  --member-5: var(--pin-6);
+  --member-6: var(--pin-7);
+  --member-7: var(--pin-8);
+  --member-8: #4fb3c4;
+  --member-9: #a4c75a;
+  --member-10: #5b6fc4;
+  --member-11: #d0627e;
+  --member-12: #a87b5e;
+  --member-13: #8ccbe8;
+  --member-14: #c49be0;
+  --member-15: #8f9a52;
+  --member-16: #f2a07f;
+  --member-17: #4f9c6b;
+  --member-18: #9b5f9e;
+  --member-19: #c9a43a;
   /* Map colour roles (docs/plan-mainmap-style.md M1), shared by the main map
      and TODAY's 미니맵 (MiniMap, share image) and made from the theme's own
      colours, so every 꾸미기 theme and the dark scheme fit without their own
@@ -9312,9 +9337,12 @@ button.group-photo-panel__photo {
    standing on top of the ping's own shape (the pin stays), its tail on the
    pin's head — or on the face, for their latest. The tapped one swells a little. */
 .group-ping__photo {
+  /* Several from one place stack upwards (`--stack`, 0 = the oldest, nearest
+     the ping): 56px prints, their tails in the 14px between. */
+  --stack-step: 70px;
   position: absolute;
   left: -28px;
-  top: -96px;
+  top: calc(-96px - var(--stack, 0) * var(--stack-step));
   width: 56px;
   height: 56px;
   padding: 3px;
@@ -9346,14 +9374,14 @@ button.group-photo-panel__photo {
 }
 
 .group-ping--face .group-ping__photo {
-  top: -126px;
+  top: calc(-126px - var(--stack, 0) * var(--stack-step));
 }
 
 .group-ping.is-selected {
   z-index: 5;
 }
 
-.group-ping.is-selected .group-ping__photo {
+.group-ping.is-selected .group-ping__photo.is-picked {
   scale: 1.18;
 }
 
@@ -9580,6 +9608,96 @@ button.group-photo-panel__photo {
 
 .group-form__label--first {
   margin-top: 0;
+}
+
+/* 그룹 설정's PROFILE: 통합 | 개별, two halves of one pill. */
+.group-form__modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.group-form__modes button {
+  min-height: 40px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+}
+
+.group-form__modes button.is-on {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* 개별 프로필: the group's photo (the profile popup's, smaller) over its nickname. */
+.group-form__own {
+  display: flex;
+  flex-direction: column;
+  margin-top: 16px;
+  animation: unfold 0.18s ease-out both;
+}
+
+.profile__photo.group-form__photo {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 0;
+}
+
+/* 그룹 설정's COLOR: the pen tray's round swatches, ten across; a colour
+   another member has can't be picked (dimmed, struck through). */
+.group-form__colors {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  justify-items: center;
+}
+
+.group-form__colors button {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  max-width: 44px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.group-form__colors span {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.group-form__colors button.is-on span {
+  box-shadow:
+    0 0 0 3px var(--surface),
+    0 0 0 5px var(--text);
+}
+
+.group-form__colors button:disabled span {
+  opacity: 0.28;
+}
+
+.group-form__colors button:disabled span::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -2px;
+  right: -2px;
+  height: 2px;
+  margin-top: -1px;
+  border-radius: 1px;
+  background: var(--text);
+  transform: rotate(-45deg);
 }
 
 .group-form__fold {
@@ -10085,6 +10203,72 @@ button.group-photo-panel__photo {
   overflow-y: auto;
   padding: 16px 16px calc(var(--safe-bottom) + 32px);
   background: var(--surface);
+}
+
+.gallery__tools {
+  /* A line's room under the tabs before the first day (the switches sit in it, on the right). */
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 720px;
+  margin: 0 auto 22px;
+}
+
+.gallery__filter {
+  display: grid;
+  place-items: center;
+  min-width: 52px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.gallery__filter.is-on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.gallery__filter.is-on .lucide-star {
+  fill: currentColor;
+}
+
+/* Beside the big photo's caption, where ‹ › were: the heart, then the star —
+   white outlines, filled (pink, yellow) once on. */
+.gallery__marks {
+  display: flex;
+  flex: none;
+}
+
+.gallery__mark {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tray-fg);
+}
+
+.gallery__mark.is-on svg {
+  fill: currentColor;
+}
+
+.gallery__star.is-on {
+  color: var(--star);
+}
+
+.gallery__heart.is-on {
+  color: var(--heart);
+}
+
+.gallery__heart.is-on svg,
+.gallery__star.is-on svg {
+  animation: pop-in 0.28s var(--pop-ease) both;
 }
 
 .gallery__day {

@@ -272,7 +272,7 @@ export class KakaoCourseMap implements CourseMap {
           content: createGroupPingElement(mark),
           yAnchor: 0.5,
           // Faces over the dots, photos over those, the picked member's over everyone else's, the tapped one over all.
-          zIndex: (mark.face ? 3 : 2) + (mark.photo ? 2 : 0) + (mark.faded ? 0 : 4) + (mark.selected ? 8 : 0),
+          zIndex: (mark.face ? 3 : 2) + (mark.photos?.length ? 2 : 0) + (mark.faded ? 0 : 4) + (mark.selected ? 8 : 0),
           map: this.map,
         }),
     );

@@ -7,7 +7,7 @@ import { dateKey } from '../domain/diary';
 const groups: Group[] = [
   { id: 'other', name: '친구들', cover: 0, inviteSlug: 'friends0', mine: true, members: [] },
   { id: 'mine', name: '마이그룹', cover: 0, inviteSlug: 'mygroup0', mine: true, members: [
-    { userId: 'me', slot: 2, nickname: '나', alias: null, photo: null, pings: [{ at: '2026-10-17T00:00:00Z', center: [127, 37.5] }] },
+    { userId: 'me', slot: 2, color: 2, nickname: '나', alias: null, photo: null, pings: [{ at: '2026-10-17T00:00:00Z', center: [127, 37.5] }] },
   ] },
 ];
 
@@ -20,8 +20,10 @@ describe('local group demo members', () => {
     expect(new Set(result[1].members.map((m) => m.slot)).size).toBe(3);
     expect(result[1].members.slice(1).map((m) => m.nickname)).toEqual(['더미 유저 1', '더미 유저 2']);
     expect(result[1].members[1].pings[0]).toMatchObject({ at: '2026-10-18T00:30:00.000Z', center: [127.002, 37.501], name: '광화문' });
-    // Stand-in photos on all but each member's last place.
-    expect(result[1].members[1].pings.map((p) => !!p.photo)).toEqual([true, true, false]);
+    // Stand-in photos on all but each member's last place; the first one's
+    // first place twice in a row (its photos stack once merged).
+    expect(result[1].members[1].pings.map((p) => !!p.photo)).toEqual([true, true, true, false]);
+    expect(result[1].members[1].pings[1]).toMatchObject({ at: '2026-10-18T00:50:00.000Z', center: [127.002, 37.501], name: '광화문' });
     expect(withGroupDemoMembers(result, '2026-10-19')[1].members).toHaveLength(3);
     // Ten days back at most, and not every one of those.
     expect(withGroupDemoMembers(groups, '2026-10-01', '2026-10-18')[1].members).toHaveLength(1);

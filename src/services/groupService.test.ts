@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import { createSupabaseGroupService, inviteUrl, readGroups, readInviteSlug } from './groupService';
+import { createSupabaseGroupService, inviteUrl, readGroups, readInviteSlug, readMetPairs, readHeartNews } from './groupService';
 
 const G1 = '11111111-1111-1111-1111-111111111111';
 const U1 = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
@@ -111,12 +111,24 @@ describe('groupService', () => {
 
   it("shows a member's 별명 instead of their nickname, and sets / clears it", async () => {
     const [g] = readGroups([{ ...row, members: [{ user_id: U1, slot: 0, nickname: '민수', alias: '  막내  ', pings: [] }] }], () => null);
+    // No colour from an older server: it followed the slot.
+    expect(g.members[0].color).toBe(0);
+    expect(readGroups([{ ...row, members: [{ user_id: U1, slot: 0, color: 13, pings: [] }] }], () => null)[0].members[0].color).toBe(13);
+    expect(readGroups([{ ...row, members: [{ user_id: U1, slot: 2, color: 99, pings: [] }] }], () => null)[0].members[0].color).toBe(2);
     expect(g.members[0]).toMatchObject({ nickname: '막내', alias: '막내' });
     const fake = fakeClient((fn) => ({ data: fn === 'set_group_alias' || fn === 'delete_group' }));
     const service = createSupabaseGroupService(async () => fake.client, true);
     expect(await service.setAlias(G1, ' 막내 ')).toBe(true);
     expect(fake.rpc).toHaveBeenLastCalledWith('set_group_alias', { gid: G1, new_alias: '막내' });
     expect(await service.remove(G1)).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('delete_group', { gid: G1 });
+    const colors = fakeClient((fn) => ({ data: fn === 'set_group_color' }));
+    const colored = createSupabaseGroupService(async () => colors.client, true);
+    expect(await colored.setColor(G1, 12)).toBe(true);
+    expect(colors.rpc).toHaveBeenLastCalledWith('set_group_color', { gid: G1, new_color: 12 });
+    // Out of the palette never reaches the server.
+    expect(await colored.setColor(G1, 20)).toBe(false);
+    expect(colors.rpc).toHaveBeenCalledTimes(1);
     expect(fake.rpc).toHaveBeenLastCalledWith('delete_group', { gid: G1 });
     expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).remove(G1)).toBe(false);
   });
@@ -217,5 +229,55 @@ describe('groupService', () => {
       expect(await service.photos([G1])).toBe('error');
       expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).photos([G1])).toBe('error');
     });
+  });
+
+  it("reads 만난 날's pairs, skipping anything off, and asks only for groups and days that make sense", async () => {
+    const row = { group_id: G1, day: '2026-10-28', user_a: U1, user_b: U1.replace(/.$/, '9') };
+    expect(readMetPairs([row, { ...row, day: 'soon' }, { ...row, user_a: 'x' }, null])).toEqual([{ groupId: G1, day: '2026-10-28', users: [row.user_a, row.user_b] }]);
+    expect(readMetPairs('nope')).toEqual([]);
+    const fake = fakeClient(() => ({ data: [row] }));
+    const service = createSupabaseGroupService(async () => fake.client, true);
+    expect(await service.metDays([G1, 'bad'], ['2026-10-28', '2026-10-28', 'x'])).toHaveLength(1);
+    expect(fake.rpc).toHaveBeenLastCalledWith('group_met_days', { gids: [G1], days: ['2026-10-28'] });
+    expect(await service.metDays([], ['2026-10-28'])).toEqual([]);
+    expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).metDays([G1], ['2026-10-28'])).toBe('error');
+  });
+
+  it('hearts a photo by its path, and reads the news on mine, checked', async () => {
+    const path = `${U1}/AbCdEf123456.jpg`;
+    const fake = fakeClient((fn) => ({ data: fn === 'heart_photo' ? true : fn === 'heart_news' ? [{ path, from_user: U1, nickname: ' 민수 ', place: '카페', at: '2026-11-02T01:00:00Z' }, { path: '../x', from_user: U1, at: 'x' }] : null }));
+    const service = createSupabaseGroupService(async () => fake.client, true);
+    expect(await service.heart(path, true)).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('heart_photo', { photo_path: path, heart: true });
+    expect(await service.heart('demo/x', true)).toBe(false);
+    expect(await service.heartNews()).toEqual([{ path, fromUser: U1, nickname: '민수', place: '카페', at: '2026-11-02T01:00:00Z' }]);
+    expect(await service.heartsSeen('2026-11-02T01:00:00Z')).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('hearts_seen', { upto: '2026-11-02T01:00:00Z' });
+    expect(readHeartNews('nope')).toEqual([]);
+    expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).heartNews()).toEqual([]);
+  });
+
+  it("reads a member's 개별 프로필, and my row's stored one", () => {
+    const own = `${U1}/gAbCdEf123456.jpg`;
+    const [g] = readGroups([{ ...row, members: [
+      { user_id: U1, slot: 0, nickname: '민수', own_profile: true, alias: '막내', avatar_path: own, group_alias: '막내', group_photo: own, pings: [] },
+      { user_id: U2, slot: 1, nickname: '지은', own_profile: false, alias: null, avatar_path: `${U2}/gnope.png`, pings: [] },
+    ] }], (path) => `https://cdn/${path}`);
+    expect(g.members[0]).toMatchObject({ nickname: '막내', ownProfile: true, photo: `https://cdn/${own}`, groupProfile: { alias: '막내', photo: `https://cdn/${own}` } });
+    expect(g.members[1]).toMatchObject({ nickname: '지은', photo: null });
+    expect(g.members[1].ownProfile).toBeUndefined();
+    expect(g.members[1].groupProfile).toBeUndefined();
+  });
+
+  it('switches my profile in a group without a photo to upload', async () => {
+    const fake = fakeClient((fn) => ({ data: fn === 'set_group_profile' ? { ok: true, old_photo: null } : null }));
+    const service = createSupabaseGroupService(async () => fake.client, true);
+    expect(await service.setProfile(G1, false, '민수')).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('set_group_profile', { gid: G1, own: false, new_alias: '민수', new_photo: null });
+    expect(await service.setProfile(G1, true, ' 막내 ', null)).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('set_group_profile', { gid: G1, own: true, new_alias: '막내', new_photo: '' });
+    // 개별 needs a name.
+    expect(await service.setProfile(G1, true, '  ')).toBe(false);
+    expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).setProfile(G1, false, 'a')).toBe(false);
   });
 });

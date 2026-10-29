@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlacePings, withSentPhotos, readPingDays, withMyPingDays, dayPingers, type Group } from './groups';
+import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlacePings, withSentPhotos, mergeSamePlace, pingPhotos, metPairs, readPingDays, withMyPingDays, dayPingers, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
   slot,
+  color: slot,
   nickname: `n${slot}`,
   alias: null,
   photo: null,
@@ -20,10 +21,24 @@ const group = (id: string, members = [member('a', 0, [[126.9, 37.5], [127.0, 37.
 });
 
 describe('groups', () => {
-  it('colours members by slot from the pin palette, repeating past eight', () => {
-    expect(memberColor(0)).toBe('var(--pin-1)');
-    expect(memberColor(7)).toBe('var(--pin-8)');
-    expect(memberColor(8)).toBe('var(--pin-1)');
+  it('has a colour of its own for each of a group\'s 20 places', () => {
+    expect(MEMBER_COLORS).toHaveLength(20);
+    expect(MEMBER_COLOR_NAMES).toHaveLength(20);
+    expect(new Set(MEMBER_COLOR_NAMES).size).toBe(20);
+    expect(memberColor(0)).toBe('var(--member-0)');
+    expect(memberColor(19)).toBe('var(--member-19)');
+  });
+
+  it('gives a joiner the first colour nobody has, and none when all are taken', () => {
+    expect(firstFreeColor([])).toBe(0);
+    expect(firstFreeColor([{ color: 0 }, { color: 1 }, { color: 3 }])).toBe(2);
+    expect(firstFreeColor(MEMBER_COLORS.map((color) => ({ color })))).toBeNull();
+  });
+
+  it("blocks the other members' colours, not mine", () => {
+    const g = group('g', [{ ...member('a', 0, []), color: 4 }, { ...member('b', 1, []), color: 9 }]);
+    expect([...takenColors(g, 'a')]).toEqual([9]);
+    expect([...takenColors(g, null)].sort()).toEqual([4, 9]);
   });
 
   it("takes a nickname's first letter (a whole character, not half of one)", () => {
@@ -86,7 +101,7 @@ describe('newPingCount', () => {
     cover: 0,
     inviteSlug: 's',
     mine: false,
-    members: Object.entries(pings).map(([userId, ats], slot) => ({ userId, slot, nickname: userId, alias: null, photo: null, pings: ats.map((at) => ({ at, center: [127, 37.5] as [number, number] })) })),
+    members: Object.entries(pings).map(([userId, ats], slot) => ({ userId, slot, color: slot, nickname: userId, alias: null, photo: null, pings: ats.map((at) => ({ at, center: [127, 37.5] as [number, number] })) })),
   });
 
   it('counts other members\' pings that were not there when I opened the group', () => {
@@ -99,6 +114,48 @@ describe('newPingCount', () => {
 
   it('a group never opened counts all of their pings', () => {
     expect(newPingCount(group({ me: ['a'], ann: ['b', 'c'] }), 'me', undefined)).toBe(2);
+  });
+});
+
+describe('metPairs', () => {
+  it('pairs the members who were at the same place, each pair once', () => {
+    const members = [member('a', 0, [[127, 37.5], [127.1, 37.6]]), member('b', 1, [[127.0002, 37.5001]]), member('c', 2, [[127.3, 37.7]])];
+    expect(metPairs(members)).toEqual([['a', 'b']]);
+    expect(metPairs([members[0], members[2]])).toEqual([]);
+  });
+});
+
+describe('mergeSamePlace', () => {
+  const at = (h: number) => `2026-10-29T0${h}:00:00.000Z`;
+  const here: [number, number] = [127, 37.5];
+  const near: [number, number] = [127.0002, 37.5001]; // ~20 m
+  const away: [number, number] = [127.01, 37.51];
+
+  it('makes photos sent from one place in a row one ping, the newest on top', () => {
+    const merged = mergeSamePlace([
+      { at: at(1), center: here, name: '카페', photo: 'a.jpg' },
+      { at: at(2), center: near, name: '카페', photo: 'b.jpg' },
+      { at: at(3), center: here, name: '카페', photo: 'c.jpg' },
+    ]);
+    expect(merged).toEqual([{ at: at(3), center: here, name: '카페', photo: 'c.jpg', photos: ['a.jpg', 'b.jpg', 'c.jpg'] }]);
+    expect(pingPhotos(merged[0])).toEqual(['a.jpg', 'b.jpg', 'c.jpg']);
+  });
+
+  it('takes a TODAY ping and the photos after it at that place together', () => {
+    expect(mergeSamePlace([{ at: at(1), center: here, name: '카페' }, { at: at(2), center: here, name: '카페', photo: 'a.jpg' }])).toEqual([
+      { at: at(2), center: here, name: '카페', photo: 'a.jpg' },
+    ]);
+  });
+
+  it('keeps another place, a differently named one next door, and coming back as their own pings', () => {
+    const pings = [
+      { at: at(1), center: here, name: '카페', photo: 'a.jpg' },
+      { at: at(2), center: near, name: '서점', photo: 'b.jpg' },
+      { at: at(3), center: away, name: '공원' },
+      { at: at(4), center: here, name: '카페', photo: 'c.jpg' },
+    ];
+    expect(mergeSamePlace(pings).map((p) => p.at)).toEqual([at(1), at(2), at(3), at(4)]);
+    expect(pingPhotos({ at: at(1), center: here })).toEqual([]);
   });
 });
 
@@ -201,7 +258,7 @@ describe('group calendar days', () => {
   it('adds my own days and picks faces in the group order', () => {
     const days = withMyPingDays({ '2026-10-27': ['b'] }, 'me', ['2026-10-27', '2026-10-28']);
     expect(days).toEqual({ '2026-10-27': ['b', 'me'], '2026-10-28': ['me'] });
-    const face = (userId: string, slot: number) => ({ userId, slot, nickname: userId, alias: null, photo: null, pings: [] });
+    const face = (userId: string, slot: number) => ({ userId, slot, color: slot, nickname: userId, alias: null, photo: null, pings: [] });
     const group = { id: 'g', name: 'g', cover: 0, inviteSlug: 'abcdefgh', mine: true, members: [face('me', 0), face('b', 1), face('c', 2)] };
     expect(dayPingers(group, days['2026-10-27']).map((m) => m.userId)).toEqual(['me', 'b']);
     expect(dayPingers(group, undefined)).toEqual([]);

@@ -35,6 +35,7 @@ export default function PhotoViewer({
   prevLabel = '이전 장소',
   nextLabel = '다음 장소',
   counted = true,
+  side,
 }: {
   items: ViewerItem[];
   seq: number;
@@ -44,6 +45,8 @@ export default function PhotoViewer({
   nextLabel?: string;
   /** `n / N` after who (the gallery leaves it out). */
   counted?: boolean;
+  /** In place of the ‹ › beside the caption (the gallery's 즐겨찾기 star; paging is by drag and the arrow keys). */
+  side?: ReactNode;
 }) {
   const ping = items[seq];
   const count = items.length;
@@ -148,7 +151,7 @@ export default function PhotoViewer({
               {counted && ` · ${seq + 1} / ${count}`}
             </span>
           </span>
-          {count > 1 && (
+          {side ?? (count > 1 && (
             <span className="group-photo-viewer__nav">
               <button aria-label={prevLabel} disabled={seq === 0} onClick={() => go(-1)}>
                 <ChevronLeft size={26} strokeWidth={2.4} />
@@ -157,7 +160,7 @@ export default function PhotoViewer({
                 <ChevronRight size={26} strokeWidth={2.4} />
               </button>
             </span>
-          )}
+          ))}
         </figcaption>
       </figure>
     </div>

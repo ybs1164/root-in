@@ -56,13 +56,14 @@ import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
 import { useGroups, useGroupsOnDay } from './hooks/useGroups';
 import { groupsNeedLogin, inviteUrl } from './services/groupService';
-import { focusPoints, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, newPingCount, photoPings, sharedPlacePings, withSentPhotos, type GroupMember } from './domain/groups';
+import { focusPoints, mergeSamePlace, pingPhotos as groupPingPhotos, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, newPingCount, photoPings, sharedPlacePings, withSentPhotos, type GroupMember } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
 import { loadGroupSeen, loadMemberSeen, memberSeenKey, saveGroupSeen, saveMemberSeen, type GroupSeen, type MemberSeen } from './services/groupSeenRepository';
 import { useStoredPings } from './hooks/useStoredPings';
 import { dateKey } from './domain/diary';
-import GroupMapView from './components/GroupMapView';
+import GroupMapView, { type GroupPlace } from './components/GroupMapView';
 import PhotoGallery from './components/PhotoGallery';
+import { useHeartNews } from './hooks/useHeartNews';
 import { useGalleryPhotos } from './hooks/useGalleryPhotos';
 import { usePingPhotos } from './hooks/usePingPhotos';
 import { localGalleryPhotos, type GalleryTab } from './domain/gallery';
@@ -315,6 +316,8 @@ export default function App() {
   // null = closed; the photo open big in it. Every group's photos are read at once,
   // for every tab — so the groups are read while it (or 설정, for 그룹 알림) is open, off We Now too.
   const [galleryTab, setGalleryTab] = useState<GalleryTab | null>(null);
+  // Someone hearted a photo of mine in the gallery: say so (in-app; no push yet).
+  useHeartNews(account.user, notify);
   const groups = useGroups(account.user, tab === 'people' || galleryTab !== null || settingsOpen, {
     onJoined: (id) => {
       changeTab('people');
@@ -338,8 +341,16 @@ export default function App() {
     () =>
       groups.groups.map((g) => ({
         ...g,
+        // A place pinged again and again in a row (photo after photo there) is one ping with its photos stacked.
         members: g.members.map((m) =>
-          m.userId === myId ? { ...m, photo: profile.photo ?? m.photo, nickname: m.alias ?? (getDisplayName().trim() || m.nickname), pings: withSentPhotos(myPings, m.pings) } : m,
+          m.userId === myId
+            ? {
+                ...m,
+                // 통합 프로필: this phone's photo and nickname (fresher than the server's); 개별: the group's own.
+                ...(m.ownProfile ? {} : { photo: profile.photo ?? m.photo, nickname: m.alias ?? (getDisplayName().trim() || m.nickname) }),
+                pings: mergeSamePlace(withSentPhotos(myPings, m.pings)),
+              }
+            : { ...m, pings: mergeSamePlace(m.pings) },
         ),
       })),
     [groups.groups, myId, profile.photo, myPings],
@@ -377,7 +388,7 @@ export default function App() {
       ...live,
       members: live.members.map((m) => {
         const pings = then?.members.find((t) => t.userId === m.userId)?.pings ?? [];
-        return { ...m, pings: m.userId === myId ? withSentPhotos(mine, pings) : pings };
+        return { ...m, pings: mergeSamePlace(m.userId === myId ? withSentPhotos(mine, pings) : pings) };
       }),
     };
   }, [tab, openGroupId, groupList, groupDay, pastGroups.groups, storedPings, myId]);
@@ -389,7 +400,7 @@ export default function App() {
   const myMember = useMemo<GroupMember>(
     () =>
       groupList.flatMap((g) => g.members).find((m) => m.userId === myId) ?? {
-        userId: myId ?? 'me', slot: 0, nickname: getDisplayName().trim() || '나', alias: null, photo: profile.photo ?? null, pings: [],
+        userId: myId ?? 'me', slot: 0, color: 0, nickname: getDisplayName().trim() || '나', alias: null, photo: profile.photo ?? null, pings: [],
       },
     [groupList, myId, profile.photo],
   );
@@ -421,7 +432,7 @@ export default function App() {
   }, [tab]);
   useEffect(() => setGroupPicked(null), [openGroupId]);
   // The ping tapped on a group's map (its place is in the photo panel under the title); it goes with its member's focus.
-  const [groupPing, setGroupPing] = useState<{ member: string; seq: number } | null>(null);
+  const [groupPing, setGroupPing] = useState<GroupPlace | null>(null);
   useEffect(() => {
     if (groupPing && groupPing.member !== groupPicked) setGroupPing(null);
   }, [groupPicked, groupPing]);
@@ -808,13 +819,14 @@ export default function App() {
         member: m.userId,
         seq: i,
         center: p.center,
-        color: memberColor(m.slot),
+        color: memberColor(m.color),
         face: i === m.pings.length - 1 ? { photo: m.photo } : undefined,
         faded: !!groupPicked && groupPicked !== m.userId,
         // The picked member's places by name; nobody's while ALL.
         label: groupPicked === m.userId ? p.name : undefined,
-        photo: photos.has(i) ? p.photo : undefined,
+        photos: photos.has(i) ? groupPingPhotos(p) : undefined,
         selected: groupPing?.member === m.userId && groupPing.seq === i,
+        selectedPhoto: groupPing?.member === m.userId && groupPing.seq === i ? groupPing.photo : undefined,
         together: together.has(groupPingKey(m, p)),
       }));
     });
@@ -823,7 +835,7 @@ export default function App() {
     () =>
       (openGroup?.members ?? [])
         .filter((m) => m.pings.length > 1)
-        .map((m) => ({ member: m.userId, color: memberColor(m.slot), count: m.pings.length, faded: !!groupPicked && groupPicked !== m.userId })),
+        .map((m) => ({ member: m.userId, color: memberColor(m.color), count: m.pings.length, faded: !!groupPicked && groupPicked !== m.userId })),
     [openGroup, groupPicked],
   );
   useEffect(() => {
@@ -881,16 +893,18 @@ export default function App() {
     if (!groupOpen || !el) return;
     let tap: { x: number; y: number; at: number } | null = null;
     const hit = (x: number, y: number): { member: string; seq: number } | null => {
-      let found: { member: string; seq: number } | null = null;
+      let found: GroupPlace | null = null;
       for (const p of document.querySelectorAll<HTMLElement>('.group-ping')) {
         if (!p.dataset.member) continue;
         const parts = [...p.querySelectorAll<HTMLElement>('.group-ping__photo, .group-ping__face, .group-ping__pin')].filter((c) => getComputedStyle(c).visibility !== 'hidden');
-        const on = parts.some((c) => {
+        const within = (c: HTMLElement) => {
           const r = c.getBoundingClientRect();
           return x >= r.left - 6 && x <= r.right + 6 && y >= r.top - 6 && y <= r.bottom + 6;
-        });
-        if (!on) continue;
-        found = { member: p.dataset.member, seq: Number(p.dataset.seq) };
+        };
+        if (!parts.some(within)) continue;
+        // One of a place's stacked photos: that photo, not just the newest.
+        const photo = parts.find((c) => c.dataset.photo !== undefined && within(c));
+        found = { member: p.dataset.member, seq: Number(p.dataset.seq), ...(photo ? { photo: Number(photo.dataset.photo) } : {}) };
         // A photo or a face is over the pins around it.
         if (p.classList.contains('has-photo') || p.classList.contains('group-ping--face')) break;
       }
@@ -1981,7 +1995,10 @@ export default function App() {
           onRename={(name) => groups.rename(openGroup.id, name)}
           me={myId}
           onKick={setKicking}
-          onAlias={(alias) => groups.setAlias(openGroup.id, alias)}
+          onColor={(color) => groups.setColor(openGroup.id, color)}
+          onProfile={(own, alias, photo) => groups.setProfile(openGroup.id, own, alias, photo)}
+          profileNickname={getDisplayName().trim()}
+          profilePhoto={profile.photo ?? null}
           onDelete={() => setGroupDeleting(true)}
           onLeave={() => setGroupLeaving(true)}
           onClose={() => setGroupSettingsOpen(false)}
