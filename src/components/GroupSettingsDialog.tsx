@@ -230,6 +230,7 @@ export default function GroupSettingsDialog({ group, me, onRename, onProfile, pr
     >
       <div className="ticket-dialog__main group-form__main">
         <h3 className="group-form__title">그룹 설정</h3>
+        {owner && <p className="group-form__label group-form__label--first">GROUP NAME</p>}
         {owner && (
           <label className="group-form__name">
             <input

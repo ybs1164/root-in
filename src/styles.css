@@ -8745,12 +8745,6 @@ button:disabled {
   translate: 0 -50%;
 }
 
-/* With a member or a photo in focus the days don't page. */
-.route-step.group-view__step:disabled {
-  opacity: 0.3;
-  pointer-events: none;
-}
-
 /* The member row along the bottom (where the other screens have their
    bottom row): ALL then every member's face, each its own round, scrolled
    sideways when they don't all fit, centred when they do. */

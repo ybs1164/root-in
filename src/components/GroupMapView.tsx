@@ -111,14 +111,18 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
         </button>
       </div>
 
-      {/* Days page only from ALL: with a member or a photo in focus they're off. */}
-      <button className="route-step route-step--prev group-view__step" aria-label="전날" disabled={!!picked || !!place} onClick={() => onDay(addDays(shown, -1))}>
-        <ChevronLeft size={34} strokeWidth={2.4} />
-      </button>
-      {shown < today && (
-        <button className="route-step route-step--next group-view__step" aria-label="다음 날" disabled={!!picked || !!place} onClick={() => onDay(addDays(shown, 1))}>
-          <ChevronRight size={34} strokeWidth={2.4} />
-        </button>
+      {/* Days page only from ALL: with a member or a photo in focus the arrows are gone. */}
+      {!picked && !place && (
+        <>
+          <button className="route-step route-step--prev group-view__step" aria-label="전날" onClick={() => onDay(addDays(shown, -1))}>
+            <ChevronLeft size={34} strokeWidth={2.4} />
+          </button>
+          {shown < today && (
+            <button className="route-step route-step--next group-view__step" aria-label="다음 날" onClick={() => onDay(addDays(shown, 1))}>
+              <ChevronRight size={34} strokeWidth={2.4} />
+            </button>
+          )}
+        </>
       )}
 
 
