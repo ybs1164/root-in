@@ -124,27 +124,29 @@
   --star: #f6c544;
   --heart: #ff6b81;
   /* We Now member colours (domain/groups.ts MEMBER_COLORS), one per place in
-     a group so no two members share one: the pin colours first, then twelve more. */
-  --member-0: var(--pin-1);
-  --member-1: var(--pin-2);
-  --member-2: var(--pin-3);
-  --member-3: var(--pin-4);
-  --member-4: var(--pin-5);
-  --member-5: var(--pin-6);
-  --member-6: var(--pin-7);
-  --member-7: var(--pin-8);
-  --member-8: #4fb3c4;
-  --member-9: #a4c75a;
-  --member-10: #5b6fc4;
-  --member-11: #d0627e;
-  --member-12: #a87b5e;
-  --member-13: #8ccbe8;
-  --member-14: #c49be0;
-  --member-15: #8f9a52;
-  --member-16: #f2a07f;
-  --member-17: #4f9c6b;
-  --member-18: #9b5f9e;
-  --member-19: #c9a43a;
+     a group so no two members share one. In the order a group hands them
+     out (the first free one), 2026-10-30: sky, pink, yellow, lilac, lime,
+     grey, coral, teal, indigo, purple, rose, mint, blue, then the rest. */
+  --member-0: #8ccbe8;
+  --member-1: var(--pin-5);
+  --member-2: var(--pin-7);
+  --member-3: #c49be0;
+  --member-4: #a4c75a;
+  --member-5: var(--pin-8);
+  --member-6: var(--pin-2);
+  --member-7: #4fb3c4;
+  --member-8: #5b6fc4;
+  --member-9: var(--pin-3);
+  --member-10: #d0627e;
+  --member-11: var(--pin-6);
+  --member-12: var(--pin-4);
+  --member-13: #4f9c6b;
+  --member-14: #f2a07f;
+  --member-15: var(--pin-1);
+  --member-16: #9b5f9e;
+  --member-17: #8f9a52;
+  --member-18: #c9a43a;
+  --member-19: #a87b5e;
   /* Map colour roles (docs/plan-mainmap-style.md M1), shared by the main map
      and TODAY's 미니맵 (MiniMap, share image) and made from the theme's own
      colours, so every 꾸미기 theme and the dark scheme fit without their own

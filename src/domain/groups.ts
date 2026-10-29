@@ -86,8 +86,8 @@ export const MEMBER_COLORS = Array.from({ length: GROUP_LIMITS.members }, (_, i)
 
 /** Each member colour's name (for screen readers), in `MEMBER_COLORS` order. */
 export const MEMBER_COLOR_NAMES = [
-  '갈색', '산호', '보라', '파랑', '분홍', '민트', '노랑', '회색', '청록', '연두',
-  '남색', '장미', '고동', '하늘', '라일락', '올리브', '살구', '초록', '자두', '황금',
+  '하늘', '분홍', '노랑', '라일락', '연두', '회색', '산호', '청록', '남색', '보라',
+  '장미', '민트', '파랑', '초록', '살구', '갈색', '자두', '올리브', '황금', '고동',
 ] as const;
 
 /** A member's colour, as CSS. */
