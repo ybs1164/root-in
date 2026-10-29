@@ -23,12 +23,14 @@ interface MonthCalendarProps {
   marks?: (key: string) => { node: ReactNode; label: string } | null;
   /** Days that can't be opened (a group's calendar: the days to come). */
   isDisabled?: (key: string) => boolean;
+  /** Days whose date stands on a yellow star (a group's calendar: its birthday, every year), with the words for its label. */
+  starred?: (key: string) => string | null;
 }
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 /** Month grid; dots under a day = places that day, one dot each (5 a row, 10 at most). */
-export default function MonthCalendar({ counts, plans, onPick, view: controlled, onView, marks, isDisabled }: MonthCalendarProps) {
+export default function MonthCalendar({ counts, plans, onPick, view: controlled, onView, marks, isDisabled, starred }: MonthCalendarProps) {
   const today = dateKey();
   const [own, setOwn] = useState<MonthView>(() => {
     const now = new Date();
@@ -61,7 +63,8 @@ export default function MonthCalendar({ counts, plans, onPick, view: controlled,
         {days.map((d) => {
           const count = counts.get(d.key) ?? 0;
           const mark = marks?.(d.key) ?? null;
-          const label = `${d.key}${mark ? `, ${mark.label}` : count ? `, ${count}곳` : ''}${plans.has(d.key) ? ', 계획' : ''}`;
+          const star = starred?.(d.key) ?? null;
+          const label = `${d.key}${star ? `, ${star}` : ''}${mark ? `, ${mark.label}` : count ? `, ${count}곳` : ''}${plans.has(d.key) ? ', 계획' : ''}`;
           return (
             <button
               key={d.key}
@@ -77,7 +80,7 @@ export default function MonthCalendar({ counts, plans, onPick, view: controlled,
               disabled={isDisabled?.(d.key)}
               onClick={() => onPick(d.key)}
             >
-              <span>{d.day}</span>
+              <span className={star ? 'born-day' : undefined}>{d.day}</span>
               {mark ? (
                 <span className="calendar__marks" aria-hidden>
                   {mark.node}

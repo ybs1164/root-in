@@ -1,5 +1,6 @@
 import { haversineMeters } from './geo';
 import type { StoredPing } from './dayPings';
+import { dateKey } from './diary';
 /** We Now: a group whose members see each other's TODAY pings on one map. */
 export interface GroupPing {
   at: string;
@@ -10,6 +11,8 @@ export interface GroupPing {
   photo?: string;
   /** Every photo sent from this place in a row (`mergeSamePlace`), oldest first; only when there are two or more. */
   photos?: string[];
+  /** When each of its photos (`pingPhotos`) was taken, same order; set on merged places, whose `at` is their last ping's. */
+  photoAts?: string[];
 }
 
 export interface GroupMember {
@@ -40,6 +43,8 @@ export interface Group {
   /** Whether I made it (only the maker renames it). */
   mine: boolean;
   members: GroupMember[];
+  /** When it was made (ISO), if the server said: its day wears a yellow star in the 대화's calendar. */
+  createdAt?: string;
 }
 
 export const GROUP_LIMITS = { name: 12, alias: 20, members: 20, pingsPerMember: 200, covers: 4 } as const;
@@ -81,8 +86,8 @@ export const MEMBER_COLORS = Array.from({ length: GROUP_LIMITS.members }, (_, i)
 
 /** Each member colour's name (for screen readers), in `MEMBER_COLORS` order. */
 export const MEMBER_COLOR_NAMES = [
-  '갈색', '산호', '보라', '파랑', '분홍', '민트', '노랑', '회색', '청록', '연두',
-  '남색', '장미', '고동', '하늘', '라일락', '올리브', '살구', '초록', '자두', '황금',
+  '하늘', '분홍', '노랑', '라일락', '연두', '회색', '산호', '청록', '남색', '보라',
+  '장미', '민트', '파랑', '초록', '살구', '갈색', '자두', '올리브', '황금', '고동',
 ] as const;
 
 /** A member's colour, as CSS. */
@@ -127,19 +132,50 @@ export function mergeSamePlace(pings: readonly GroupPing[]): GroupPing[] {
       out.push({ ...p });
       continue;
     }
-    const photos = [...(last.photos ?? (last.photo ? [last.photo] : [])), ...(p.photos ?? (p.photo ? [p.photo] : []))];
+    const photos = [...pingPhotos(last), ...pingPhotos(p)];
+    const photoAts = [...pingPhotoAts(last), ...pingPhotoAts(p)];
     const merged: GroupPing = { at: p.at, center: last.center };
     const name = last.name ?? p.name;
     if (name) merged.name = name;
-    if (photos.length) merged.photo = photos[photos.length - 1];
+    if (photos.length) merged.photo = photos[photos.length - 1], merged.photoAts = photoAts;
     if (photos.length > 1) merged.photos = photos;
     out[out.length - 1] = merged;
   }
   return out;
 }
 
+/**
+ * A group photo's path (what stars and hearts go by, as in the gallery)
+ * from the address a ping carries: the group-photos bucket's
+ * <uuid>/<id>.jpg at its end. The dev demo members' drawn photos get a
+ * `demo/` key of their own; any other address, none.
+ */
+export function photoKey(url: string | undefined): string | null {
+  if (!url) return null;
+  const path = /\/group-photos\/([0-9a-f-]{36}\/[A-Za-z0-9_-]{6,40}\.jpg)(?:[?#]|$)/.exec(url);
+  if (path) return path[1];
+  if (!url.startsWith('data:')) return null;
+  let h = 2166136261;
+  for (let i = 0; i < url.length; i++) h = Math.imul(h ^ url.charCodeAt(i), 16777619);
+  return `demo/u${(h >>> 0).toString(36)}`;
+}
+
 /** The photos to draw over a ping, oldest first: all of them, or its one. */
 export const pingPhotos = (ping: GroupPing): string[] => ping.photos ?? (ping.photo ? [ping.photo] : []);
+
+/** When each of `pingPhotos(ping)` was taken. */
+const pingPhotoAts = (ping: GroupPing): string[] => ping.photoAts ?? (ping.photo ? [ping.at] : []);
+
+/**
+ * The time a picked place shows (HH:MM, local): its tapped photo's when it
+ * has several, else the ping's own (its newest photo's, or when they were there).
+ */
+export function placeTime(ping: GroupPing, photo?: number): string {
+  const ats = ping.photoAts;
+  const at = (ats?.length ? ats[photo ?? ats.length - 1] : undefined) ?? ping.at;
+  const d = new Date(at);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
 
 /** The first letter of a nickname, for a member without a photo. */
 export const memberInitial = (nickname: string): string => [...nickname.trim()][0] ?? '?';
@@ -308,4 +344,14 @@ export function withMyPingDays(days: PingDays, userId: string, mine: Iterable<st
 export function dayPingers(group: Group, ids: readonly string[] | undefined): GroupMember[] {
   if (!ids?.length) return [];
   return group.members.filter((m) => ids.includes(m.userId));
+}
+
+/**
+ * Whether `day` ('YYYY-MM-DD') is the group's birthday: the day it was made
+ * (`createdAt`, ISO) and the same date every year after.
+ */
+export function isGroupBirthday(day: string, createdAt: string | undefined): boolean {
+  if (!createdAt) return false;
+  const born = dateKey(new Date(createdAt));
+  return day >= born && day.slice(5) === born.slice(5);
 }

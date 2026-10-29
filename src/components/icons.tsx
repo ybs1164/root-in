@@ -39,3 +39,23 @@ export function HighFive({ size = 24 }: { size?: number }) {
     </svg>
   );
 }
+
+/**
+ * A group's 대화 (bottom-right on its map): two speech bubbles side by side,
+ * their tails turned toward each other's speaker — the left one a little
+ * higher, as if it spoke first.
+ */
+export function TalkBubbles({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M7 3.2c-3.3 0-5.8 2.1-5.8 4.8 0 1.5.8 2.8 2 3.7l-.7 2.6 3-1.6c.5.1 1 .1 1.5.1 3.3 0 5.8-2.1 5.8-4.8S10.3 3.2 7 3.2Z" />
+      <path
+        d="M17 8.6c3.3 0 5.8 2.1 5.8 4.8 0 1.5-.8 2.8-2 3.7l.7 2.6-3-1.6c-.5.1-1 .1-1.5.1-3.3 0-5.8-2.1-5.8-4.8s2.5-4.8 5.8-4.8Z"
+        // A gap in the button's colour where the right one overlaps the left.
+        stroke="var(--accent)"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}

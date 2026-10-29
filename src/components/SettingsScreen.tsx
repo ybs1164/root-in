@@ -2,14 +2,14 @@ import { Bell, ChevronLeft, ChevronRight, FileText, Link, LocateFixed, MapPinOff
 import { Capacitor } from '@capacitor/core';
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { PING_ALERT_HOURS } from '../domain/profile';
+import { GROUP_ALERT_KINDS, GROUP_ALERT_LABELS, groupAlertOn, PING_ALERT_HOURS, toggleGroupAlert, toggleGroupAlertsAll } from '../domain/profile';
 import type { Group } from '../domain/groups';
 import type { Account } from '../hooks/useAccount';
 import type { ColorScheme, Profile } from '../services/profileRepository';
 import { clearAppData } from '../services/settingsRepository';
 import { SWIPE, swipeCommits } from '../domain/appTabs';
 import { ADMIN_ATTRIBUTION } from '../map/courseMap';
-import AlertBoard from './AlertBoard';
+import AlertBoard, { FlipCell } from './AlertBoard';
 import { GroupCover } from './WeNowPage';
 import Logo from './Logo';
 import PrivacySection from './PrivacySection';
@@ -347,50 +347,43 @@ export default function SettingsScreen({ profile, onChange, account, privacy, lo
 }
 
 /**
- * 알림 설정 → 그룹 알림: every group of mine down the page, each with its own
- * switch (on until switched off), and 전체 at the head as on the board above —
- * no 랜덤. Switches of groups I've left are kept off as they were.
+ * 알림 설정 → 그룹 알림: every group of mine down the page, each with 전체
+ * beside its name and under it a board like 투데이 알림's — one flip cell per
+ * kind (새로운 루트 · 하트 · 댓글 · 채팅, GROUP_ALERT_KINDS), each on until
+ * switched off. No 전체 for every group at the head, and no 랜덤. Cells of
+ * groups I've left are kept as they were.
  */
 function GroupAlerts({ groups, off, onChange }: { groups: readonly Pick<Group, 'id' | 'name' | 'cover'>[]; off: readonly string[]; onChange: (off: string[]) => void }) {
-  const allOn = groups.every((g) => !off.includes(g.id));
-  const ids = groups.map((g) => g.id);
   return (
-    <div className="alerts__row" role="group" aria-label="그룹 알림">
+    <div className="alerts__row alerts__row--groups" role="group" aria-label="그룹 알림">
       <div className="alerts__head">
         <span className="alerts__label">그룹 알림</span>
-        {groups.length > 0 && (
-          <button
-            className="alerts__all"
-            aria-label="그룹 알림 전체"
-            onClick={() => onChange(allOn ? [...new Set([...off, ...ids])] : off.filter((id) => !ids.includes(id)))}
-          >
-            전체
-          </button>
-        )}
       </div>
       {groups.length === 0 ? (
         <p className="alerts__empty">아직 그룹이 없어요.</p>
       ) : (
         <ul className="alerts__groups">
-          {groups.map((g) => {
-            const on = !off.includes(g.id);
-            return (
-              <li key={g.id}>
-                <button
-                  className="settings__row alerts__group"
-                  role="switch"
-                  aria-checked={on}
-                  onClick={() => onChange(on ? [...off, g.id] : off.filter((id) => id !== g.id))}
-                >
-                  <svg className="alerts__cover" viewBox="0 0 100 100" aria-hidden>
-                    <GroupCover cover={g.cover} />
-                  </svg>
-                  <span className="settings__label alerts__group-name">{g.name}</span>
-                  <span className={`settings__switch ${on ? 'is-on' : ''}`} aria-hidden />
+          {groups.map((g) => (
+            // Each group: its cover and name with 전체 at the right, then its board — one flip cell per kind.
+            <li key={g.id} className="alerts__group" role="group" aria-label={`${g.name} 알림`}>
+              <div className="alerts__group-head">
+                <svg className="alerts__cover" viewBox="0 0 100 100" aria-hidden>
+                  <GroupCover cover={g.cover} />
+                </svg>
+                <span className="settings__label alerts__group-name">{g.name}</span>
+                <button className="alerts__all" aria-label={`${g.name} 알림 전체`} onClick={() => onChange(toggleGroupAlertsAll(off, [g.id]))}>
+                  전체
                 </button>
-              </li>
-            );
-          })}
+              </div>
+              <div className="alerts__hours alerts__kinds">
+                {GROUP_ALERT_KINDS.map((kind) => (
+                  <FlipCell key={kind} lit={groupAlertOn(off, g.id, kind)} label={`${g.name} ${GROUP_ALERT_LABELS[kind]} 알림`} onClick={() => onChange(toggleGroupAlert(off, g.id, kind))}>
+                    {GROUP_ALERT_LABELS[kind]}
+                  </FlipCell>
+                ))}
+              </div>
+            </li>
+          ))}
         </ul>
       )}
     </div>

@@ -6,7 +6,7 @@ import { inKorea } from './pinShareService';
 import { localWrote } from './syncBus';
 
 /**
- * TODAY's pings: pins you were at, added from the day screen (the 후보군).
+ * TODAY's pings: pins you were at, pinged by a photo taken on the day screen.
  * A record of places visited, so it stays apart from the pins (which can be
  * renamed, recategorized or deleted without touching the days).
  */

@@ -1,4 +1,6 @@
 import type { StoredPing } from './dayPings';
+import type { GroupAlertKind } from './profile';
+import type { DayDecor } from './decor';
 
 /** A photo sent to a group from the camera, as the gallery lists it. */
 export interface GalleryPhoto {
@@ -120,3 +122,61 @@ export function filterGallery(days: readonly GalleryDay[], filter: { stars?: Rea
     .map((d) => (filter.stars ? { ...d, photos: d.photos.filter((p) => filter.stars!.has(p.path)) } : d))
     .filter((d) => d.photos.length > 0);
 }
+
+/** A comment under a photo opened big. */
+export interface PhotoComment {
+  id: string;
+  /** Their name in a group we share, else their nickname. */
+  nickname: string;
+  body: string;
+  at: string;
+  mine: boolean;
+}
+
+/** How long a comment may be. */
+export const COMMENT_MAX = 200;
+
+/**
+ * One line of a group's 대화: a photo sent to it (with its place), a
+ * comment on one of those photos, or a message written in the 대화.
+ */
+export interface FeedItem {
+  kind: 'photo' | 'comment' | 'message';
+  id: string;
+  userId: string;
+  at: string;
+  mine: boolean;
+  /** A comment's or message's text. */
+  body?: string;
+  /** The photo it is, or the comment is on: its upload path (stars, hearts, comments go by it) and address. */
+  path?: string;
+  photo?: string;
+  /** Where that photo was taken. */
+  place?: string;
+}
+
+/**
+ * Which of 그룹 알림's kinds a line of a group's 대화 alerts me as, if any:
+ * never my own; a photo someone posted is a new place (route); a comment on
+ * a photo of mine (`myPhotos`, by path) is 댓글; anyone else's message, or
+ * their comment on a photo that isn't mine, is 채팅. (Hearts and pings
+ * without a photo never come through the 대화: they're 하트 and 새로운 루트.)
+ */
+export function feedAlertKind(item: FeedItem, myPhotos: ReadonlySet<string>): GroupAlertKind | null {
+  if (item.mine) return null;
+  if (item.kind === 'photo') return 'route';
+  if (item.kind === 'comment' && item.path && myPhotos.has(item.path)) return 'comment';
+  return 'chat';
+}
+
+/** One member's doodles on a group photo (pen, stickers, text in their colour). */
+export interface PhotoDecorLayer {
+  userId: string;
+  decor: DayDecor;
+  mine: boolean;
+  /** Their colour where they doodled it (`member-N`): their stickers' die-cut edge. */
+  ink?: string;
+}
+
+/** A doodler's colour as stored with their layer: a member colour token, nothing else. */
+export const isMemberInk = (v: unknown): v is string => typeof v === 'string' && /^member-(1?\d)$/.test(v);

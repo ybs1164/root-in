@@ -13,7 +13,7 @@ export interface Profile {
   sound: boolean;
   /** 알림 설정 → 투데이 알림: the hours switched on (PING_ALERT_HOURS), all until switched off. */
   pingAlerts: number[];
-  /** 알림 설정 → 그룹 알림: the groups switched off (ids); every other group, joined before or after, is on. */
+  /** 알림 설정 → 그룹 알림: the cells switched off, `<group id>:<kind>` (GROUP_ALERT_KINDS); everything else, groups joined later too, is on. */
   groupAlertsOff: string[];
   /** 디스플레이 및 언어 → 디스플레이: 기본 (light) or 다크. Null until picked: the phone's own setting decides. */
   scheme: ColorScheme | null;

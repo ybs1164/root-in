@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayPosters, filterGallery, metDays, galleryDayLabel, galleryDays, galleryTabDays, localGalleryPhotos, viewerOrder, type GalleryPhoto } from './gallery';
+import { dayPosters, feedAlertKind, filterGallery, metDays, galleryDayLabel, galleryDays, galleryTabDays, localGalleryPhotos, viewerOrder, type GalleryPhoto } from './gallery';
 import type { StoredPing } from './dayPings';
 
 const photo = (id: string, groupId: string, day: string, time: string, path = `p/${id}`): GalleryPhoto => ({
@@ -82,5 +82,17 @@ describe('만난 날 and 즐겨찾기', () => {
     expect(filterGallery(days, { stars: new Set(['p/c']) }).map((d) => d.photos.map((p) => p.id))).toEqual([['c']]);
     expect(filterGallery(days, { stars: new Set(['p/c']), met: new Set(['2026-10-28']) })).toEqual([]);
     expect(filterGallery(days, {})).toEqual(days);
+  });
+});
+
+describe('feedAlertKind', () => {
+  const line = (kind: 'photo' | 'comment' | 'message', more: object = {}) => ({ kind, id: 'x', userId: 'u2', at: '2026-10-30T01:00:00Z', mine: false, ...more });
+  const mine = new Set(['me/a.jpg']);
+  it("sorts the 대화's lines into 새로운 루트, 댓글 and 채팅; never my own", () => {
+    expect(feedAlertKind(line('photo', { path: 'u2/b.jpg' }), mine)).toBe('route');
+    expect(feedAlertKind(line('comment', { path: 'me/a.jpg', body: '어디가?' }), mine)).toBe('comment');
+    expect(feedAlertKind(line('comment', { path: 'u3/c.jpg', body: '여행!' }), mine)).toBe('chat');
+    expect(feedAlertKind(line('message', { body: '나도' }), mine)).toBe('chat');
+    expect(feedAlertKind(line('message', { body: '나도', mine: true }), mine)).toBeNull();
   });
 });

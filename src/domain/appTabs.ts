@@ -10,10 +10,10 @@ export type BarButton = 'pins' | 'people';
 /** Where a button sits in the row: left, the big one in the centre, or right. */
 export type BarSlot = 'l' | 'c' | 'r';
 
-/** The slot `button` takes on `tab`'s screen: map = 핑(big) 사람, people = 핑 사람(big). */
+/** The slot `button` takes on `tab`'s screen: people = 사람(big) 핑, map = 사람 핑(big) — the map is to the right. */
 export function barSlot(button: BarButton, tab: AppTab): BarSlot {
   if (button === tab) return 'c';
-  return tab === 'pins' ? 'r' : 'l';
+  return tab === 'pins' ? 'l' : 'r';
 }
 
 /**
@@ -22,7 +22,7 @@ export function barSlot(button: BarButton, tab: AppTab): BarSlot {
  */
 export function barTurn(from: AppTab, to: AppTab): -1 | 0 | 1 {
   if (from === to) return 0;
-  return to === 'people' ? -1 : 1;
+  return to === 'people' ? 1 : -1;
 }
 
 /**
@@ -48,11 +48,11 @@ export function showsPage(tab: AppTab, mapNeeded: boolean): boolean {
 
 /**
  * Where a sideways swipe on a page goes: `left` for a right-to-left swipe
- * (the page slides off to the left), `right` for left-to-right. We Now →
- * 핀(map). The map itself has no swipe.
+ * (the page slides off to the left), `right` for left-to-right. We Now ←
+ * 핀(map), the map being to its right. The map itself has no swipe.
  */
 export function pageSwipes(tab: AppTab): { left: AppTab | null; right: AppTab | null } {
-  if (tab === 'people') return { left: null, right: 'pins' };
+  if (tab === 'people') return { left: 'pins', right: null };
   return { left: null, right: null };
 }
 

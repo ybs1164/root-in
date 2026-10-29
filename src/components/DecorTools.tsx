@@ -208,6 +208,11 @@ interface DecorTrayProps {
   layoutPreviews?: Partial<Record<PolaroidLayout, string>>;
   /** Dragged all the way down by its top edge: put the tool away. */
   onClose?: () => void;
+  /**
+   * The one ink there is (a group photo's doodles: the doodler's colour in
+   * the group): the pen and text sheets have no colour row at all.
+   */
+  onlyInk?: string;
 }
 
 /** The sheets of cards (themes, patterns, layouts) can be pulled up to nearly full screen, or down shut. */
@@ -429,7 +434,7 @@ export function DecorTray(p: DecorTrayProps) {
               </button>
             ))}
           </div>
-          <div className="decor-tray__row decor-tray__row--colors">{colorButtons}</div>
+          {!p.onlyInk && <div className="decor-tray__row decor-tray__row--colors">{colorButtons}</div>}
           <div className="decor-tray__row">
             <button className="decor-tray__undo" aria-label="되돌리기" disabled={!p.canUndo} onClick={p.onUndo}>
               <Undo2 size={22} aria-hidden />
@@ -494,7 +499,7 @@ export function DecorTray(p: DecorTrayProps) {
               );
             })}
           </div>
-          <div className="decor-tray__row">{colorButtons}</div>
+          {!p.onlyInk && <div className="decor-tray__row">{colorButtons}</div>}
           {picker}
         </div>
       )}

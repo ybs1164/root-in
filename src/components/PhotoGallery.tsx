@@ -1,15 +1,14 @@
-import { ChevronLeft, Heart, Images, Star } from 'lucide-react';
+import { ChevronLeft, Images, Star } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { dayPosters, filterGallery, galleryDayLabel, galleryTabDays, metDays, viewerOrder, type GalleryItem, type GalleryPhoto, type GalleryTab } from '../domain/gallery';
 import { memberColor, type Group, type GroupMember } from '../domain/groups';
 import { centeredScrollLeft } from '../domain/routeFolders';
 import { useMetDays, type GalleryState } from '../hooks/useGalleryPhotos';
-import { groupService } from '../services/groupService';
-import { loadGalleryStars, saveGalleryStars } from '../services/galleryStarRepository';
+import { usePhotoMarks } from '../hooks/usePhotoMarks';
 import { HighFive } from './icons';
 import { dateKey } from '../domain/diary';
 import { MemberFace } from './WeNowPage';
-import PhotoViewer from './PhotoViewer';
+import PhotoViewer, { PhotoMarkButtons } from './PhotoViewer';
 
 interface PhotoGalleryProps {
   /** Every group I'm in: a tab each, after MY. */
@@ -58,36 +57,8 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
   );
   const [starsOn, setStarsOn] = useState(false);
   const [metOn, setMetOn] = useState(false);
-  const [stars, setStars] = useState(() => new Set(loadGalleryStars()));
-  const toggleStar = (path: string) =>
-    setStars((now) => {
-      const next = new Set(now);
-      if (!next.delete(path)) next.add(path);
-      saveGalleryStars([...next]);
-      return next;
-    });
-  // Hearts: on other people's photos, telling the sender (no count shown anywhere).
-  const [hearts, setHearts] = useState<Set<string>>(new Set());
-  useEffect(() => {
-    let live = true;
-    void groupService.hearted().then((paths) => live && paths !== 'error' && setHearts(new Set(paths)));
-    return () => {
-      live = false;
-    };
-  }, []);
-  const toggleHeart = (path: string) => {
-    const on = !hearts.has(path);
-    const flip = (want: boolean) =>
-      setHearts((now) => {
-        const next = new Set(now);
-        if (want) next.add(path);
-        else next.delete(path);
-        return next;
-      });
-    flip(on);
-    // Didn't go through: back as it was.
-    void groupService.heart(path, on).then((ok) => ok || flip(!on));
-  };
+  const marks = usePhotoMarks();
+  const { stars } = marks;
   // While a photo is open big, 즐겨찾기 keeps what it showed when it opened:
   // taking a star off doesn't pull the photo out from under the finger.
   const [viewStars, setViewStars] = useState<Set<string> | null>(null);
@@ -253,34 +224,16 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
           prevLabel="이전 사진"
           nextLabel="다음 사진"
           counted={false}
+          commentPath={viewer[seq].path}
+          // The doodles show here, but aren't drawn on (that's on the group's map or 대화).
+          decorPath={viewer[seq].path.startsWith('ping:') ? null : viewer[seq].path}
           side={
-            <span className="gallery__marks">
-              {/* Hearts go to someone else's photo sent to a group: never mine, nor one that stayed on this phone. */}
-              {viewer[seq].userId !== me && viewer[seq].userId !== meMember.userId && viewer[seq].groupIds.length > 0 && (
-                <button
-                  className={`gallery__mark gallery__heart ${hearts.has(viewer[seq].path) ? 'is-on' : ''}`}
-                  aria-label="하트"
-                  aria-pressed={hearts.has(viewer[seq].path)}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleHeart(viewer[seq].path);
-                  }}
-                >
-                  <Heart size={27} strokeWidth={2} aria-hidden />
-                </button>
-              )}
-              <button
-                className={`gallery__mark gallery__star ${stars.has(viewer[seq].path) ? 'is-on' : ''}`}
-                aria-label="즐겨찾기"
-                aria-pressed={stars.has(viewer[seq].path)}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleStar(viewer[seq].path);
-                }}
-              >
-                <Star size={28} strokeWidth={2} aria-hidden />
-              </button>
-            </span>
+            // Hearts go to someone else's photo sent to a group: never mine, nor one that stayed on this phone.
+            <PhotoMarkButtons
+              path={viewer[seq].path}
+              heart={viewer[seq].userId !== me && viewer[seq].userId !== meMember.userId && viewer[seq].groupIds.length > 0}
+              marks={marks}
+            />
           }
         />
       )}

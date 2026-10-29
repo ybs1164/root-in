@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlacePings, withSentPhotos, mergeSamePlace, pingPhotos, metPairs, readPingDays, withMyPingDays, dayPingers, type Group } from './groups';
+import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlacePings, withSentPhotos, mergeSamePlace, pingPhotos, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -137,14 +137,21 @@ describe('mergeSamePlace', () => {
       { at: at(2), center: near, name: '카페', photo: 'b.jpg' },
       { at: at(3), center: here, name: '카페', photo: 'c.jpg' },
     ]);
-    expect(merged).toEqual([{ at: at(3), center: here, name: '카페', photo: 'c.jpg', photos: ['a.jpg', 'b.jpg', 'c.jpg'] }]);
+    expect(merged).toEqual([{ at: at(3), center: here, name: '카페', photo: 'c.jpg', photos: ['a.jpg', 'b.jpg', 'c.jpg'], photoAts: [at(1), at(2), at(3)] }]);
     expect(pingPhotos(merged[0])).toEqual(['a.jpg', 'b.jpg', 'c.jpg']);
+    // Each photo keeps its own time: the tapped one's, else the newest's.
+    const clock = (iso: string) => `${String(new Date(iso).getHours()).padStart(2, '0')}:00`;
+    expect(placeTime(merged[0], 0)).toBe(clock(at(1)));
+    expect(placeTime(merged[0])).toBe(clock(at(3)));
   });
 
   it('takes a TODAY ping and the photos after it at that place together', () => {
     expect(mergeSamePlace([{ at: at(1), center: here, name: '카페' }, { at: at(2), center: here, name: '카페', photo: 'a.jpg' }])).toEqual([
-      { at: at(2), center: here, name: '카페', photo: 'a.jpg' },
+      { at: at(2), center: here, name: '카페', photo: 'a.jpg', photoAts: [at(2)] },
     ]);
+    // A photo, then the TODAY ping it put there later: the photo's time, not the ping's.
+    const [later] = mergeSamePlace([{ at: at(1), center: here, name: '카페', photo: 'a.jpg' }, { at: at(2), center: here, name: '카페' }]);
+    expect(placeTime(later)).toBe(placeTime({ at: at(1), center: here }));
   });
 
   it('keeps another place, a differently named one next door, and coming back as their own pings', () => {
@@ -262,5 +269,29 @@ describe('group calendar days', () => {
     const group = { id: 'g', name: 'g', cover: 0, inviteSlug: 'abcdefgh', mine: true, members: [face('me', 0), face('b', 1), face('c', 2)] };
     expect(dayPingers(group, days['2026-10-27']).map((m) => m.userId)).toEqual(['me', 'b']);
     expect(dayPingers(group, undefined)).toEqual([]);
+  });
+});
+
+describe('photoKey', () => {
+  it('reads the bucket path off a sent photo\'s address, as the gallery keys stars and hearts', () => {
+    const path = '0f8a2c1e-1111-4222-8333-944455556666/abcdef1234.jpg';
+    expect(photoKey(`https://x.supabase.co/storage/v1/object/public/group-photos/${path}`)).toBe(path);
+    expect(photoKey(`https://x.supabase.co/storage/v1/object/public/group-photos/${path}?v=1`)).toBe(path);
+    expect(photoKey('https://elsewhere.example/a.jpg')).toBeNull();
+    expect(photoKey(undefined)).toBeNull();
+    const demo = photoKey('data:image/png;base64,AAAA');
+    expect(demo).toMatch(/^demo\/u[0-9a-z]+$/);
+    expect(photoKey('data:image/png;base64,AAAA')).toBe(demo);
+  });
+});
+
+describe('isGroupBirthday', () => {
+  it('is the day the group was made and the same date every year after', () => {
+    const made = new Date(2026, 9, 28, 15).toISOString();
+    expect(isGroupBirthday('2026-10-28', made)).toBe(true);
+    expect(isGroupBirthday('2027-10-28', made)).toBe(true);
+    expect(isGroupBirthday('2025-10-28', made)).toBe(false);
+    expect(isGroupBirthday('2026-10-29', made)).toBe(false);
+    expect(isGroupBirthday('2026-10-28', undefined)).toBe(false);
   });
 });
