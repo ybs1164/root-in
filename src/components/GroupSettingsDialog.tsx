@@ -56,10 +56,10 @@ function Section({ title, id, children }: { title: string; id: string; children:
  * COLOR: my colour in the group, as the pen tray's swatches. The ones the
  * other members have can't be picked — no two members share a colour.
  */
-function ColorRow({ color, taken, first, onPick }: { color: number; taken: Set<number>; first: boolean; onPick(color: number): void }) {
+function ColorRow({ color, taken, onPick }: { color: number; taken: Set<number>; onPick(color: number): void }) {
   return (
     <>
-      <p className={`group-form__label ${first ? 'group-form__label--first' : ''}`}>COLOR</p>
+      <p className="group-form__label">COLOR</p>
       <div className="group-form__colors" role="radiogroup" aria-label="내 색">
         {MEMBER_COLORS.map((c) => {
           const theirs = taken.has(c);
@@ -87,10 +87,10 @@ function ColorRow({ color, taken, first, onPick }: { color: number; taken: Set<n
  * ⚙ on a group, as a boarding pass (`ticket-dialog`) with 닫기 | 저장 below.
  * Its maker gets the group's name, the invite link (tap to copy), 그룹원 관리
  * (every member, 추방 on the others) and 그룹 관리 → 그룹 삭제; a member gets
- * 그룹 관리 → 그룹 나가기. Everyone picks their colour (COLOR — the maker's
- * under the group's name) and, under it, PROFILE: 통합 프로필 사용 (the
- * profile's photo and nickname, following it) or 개별 프로필 사용, which opens
- * a photo and a nickname for this group alone.
+ * 그룹 관리 → 그룹 나가기. Everyone has PROFILE (the maker's under the group's
+ * name) — 통합 프로필 사용 (the profile's photo and nickname, following it) or
+ * 개별 프로필 사용, which opens a photo and a nickname for this group alone —
+ * and under it picks their colour (COLOR).
  */
 export default function GroupSettingsDialog({ group, me, onRename, onProfile, profileNickname, profilePhoto, onColor, onKick, onDelete, onLeave, onClose }: GroupSettingsDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
@@ -147,7 +147,6 @@ export default function GroupSettingsDialog({ group, me, onRename, onProfile, pr
     <ColorRow
       color={color}
       taken={taken}
-      first={!owner}
       onPick={(c) => {
         setColor(c);
         setProblem(null);
@@ -156,7 +155,7 @@ export default function GroupSettingsDialog({ group, me, onRename, onProfile, pr
   );
   const profileRow = mine && (
     <>
-      <p className="group-form__label">PROFILE</p>
+      <p className={`group-form__label ${owner ? '' : 'group-form__label--first'}`}>PROFILE</p>
       <div className="group-form__modes" role="radiogroup" aria-label="이 그룹의 프로필">
         <button role="radio" aria-checked={!own} className={!own ? 'is-on' : ''} onClick={() => pickOwn(false)}>
           통합 프로필 사용
@@ -251,8 +250,8 @@ export default function GroupSettingsDialog({ group, me, onRename, onProfile, pr
             </small>
           </label>
         )}
-        {colorRow}
         {profileRow}
+        {colorRow}
         {owner && (
           <>
             <p className="group-form__label">INVITE</p>
