@@ -58,6 +58,9 @@
    `20261027000000_group_photos.sql` — 카메라 사진 전송: 공개 버킷 `group-photos`(1MB JPEG, 자기 `<uid>/` 폴더에만 쓰기) · `group_photos`(그룹마다 한 줄 — 고른 그룹만 봄, 모임원만 select) · `send_group_photo(gids, on_day, at_time, ping_center, place_name, photo_path)`(내가 속한 그룹에만 넣고 넣은 수를 돌려줌) · `my_groups`가 그룹원 핑에 그 그룹으로 보낸 사진 핑(`photo` = 버킷 경로)을 섞어 보냄. 80줄.
    `20261029000000_avatar_select.sql` — `avatars` 버킷에 자기 폴더 select 정책(upsert가 이걸 요구 — 없으면 프로필 사진 올리기가 실패해 다른 그룹원에게 사진이 안 보였음).
    `20261030000000_group_ping_days.sql` — 그룹 달력: `group_ping_days(gid, from_day, to_day)`(모임원만, 62일까지)가 그 기간 날마다 핑을 찍은(또는 그 그룹에 사진을 보낸) 그룹원 id만 `{ day, user_id }`로 돌려줌 — 장소·시각은 안 보냄. 없으면 클라이언트가 날마다 `my_groups`로 대신 읽음.
+   `20261031000000_group_member_color.sql` — 그룹원 색: `group_members.color`(0~19, 그룹 안에서 겹치지 않음 `unique (group_id, color)`; 있던 그룹원은 `slot` 값 그대로), 들어올 때 아무도 안 쓰는 가장 앞 색(`add_group_member`), `set_group_color(gid, new_color)`는 내 색만 바꾸고 다른 그룹원이 쓰는 색이면 false, `my_groups`가 `color`를 같이 보냄. 없으면 클라이언트는 색을 `slot`으로 침.
+   `20261101000000_group_met_days.sql` — 갤러리 만난 날: `group_met_days(gids, days)`(내가 속한 그룹만, 30그룹·400일까지)가 그날 같은 장소(50m 안)에 핑이나 보낸 사진이 있는 그룹원 쌍을 `{ group_id, day, user_a, user_b }`로 — 장소·시각은 안 보냄. 없으면 클라이언트가 날마다 `my_groups`로 대신 셈. 즐겨찾기는 서버에 없음(이 폰에만).
+   `20261102000000_photo_hearts.sql` — 갤러리 하트: `photo_hearts`(사진 `path`·보낸 사람·받는 사람·`seen_at`, 내가 누른 것만 읽을 수 있음), `heart_photo(path, heart)`(그 사진이 내 그룹에 있고 내 사진이 아닐 때만 — 넣기/빼기), `heart_news()`(아직 안 보여 준 내 사진의 하트, 누른 사람 이름·장소 이름, 50개), `hearts_seen(upto)`. 개수는 어디로도 안 보냄.
    **이 마이그레이션들을 먼저 적용하고 나서 클라이언트를 배포**할 것 — 새 클라이언트는 이 열을 읽어서, 적용 전 DB에서는 동기화가 실패(프로필 창 안내)한다.
    지움 표시는 30일 뒤 지운다: Integrations → Cron(pg_cron)에 매일 `select public.purge_sync_tombstones();` 등록. 그 전까지 지운 핀·루트의 내용이 서버에 남아 있음.
 3. Project Settings → API의 Project URL과 **anon(public)** 키를 `.env.local`에:

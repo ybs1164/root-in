@@ -15,6 +15,7 @@ export interface Groups {
   leave(id: string): Promise<boolean>;
   kick(id: string, userId: string): Promise<boolean>;
   setAlias(id: string, alias: string): Promise<boolean>;
+  setColor(id: string, color: number): Promise<boolean>;
   remove(id: string): Promise<boolean>;
   /** A camera photo and where it was taken, to each of `groupIds`; how many got it. */
   sendPhoto(groupIds: string[], ping: PhotoPing, photo: string): Promise<number>;
@@ -153,6 +154,16 @@ export function useGroups(
     },
     [service, refresh],
   );
+  const setColor = useCallback(
+    async (id: string, color: number) => {
+      const ok = await service.setColor(id, color);
+      // At once, so the map and the faces change before the next read.
+      if (ok) setGroups((list) => list.map((g) => (g.id === id ? { ...g, members: g.members.map((m) => (m.userId === userId ? { ...m, color } : m)) } : g)));
+      refresh();
+      return ok;
+    },
+    [service, refresh, userId],
+  );
   const remove = useCallback(
     async (id: string) => {
       const ok = await service.remove(id);
@@ -171,7 +182,7 @@ export function useGroups(
     [service, refresh],
   );
 
-  return { status, groups, refresh, create, rename, leave, kick, setAlias, remove, sendPhoto };
+  return { status, groups, refresh, create, rename, leave, kick, setAlias, setColor, remove, sendPhoto };
 }
 
 export type GroupDayStatus = 'loading' | 'ready' | 'error';

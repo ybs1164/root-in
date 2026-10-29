@@ -19,7 +19,7 @@ import type { GroupsStatus } from '../hooks/useGroups';
 /** A member's round profile photo in their colour's ring (the default picture without one). */
 export function MemberFace({ member, size }: { member: GroupMember; size: number }) {
   return (
-    <span className={`member-face ${member.photo ? '' : 'member-face--default'}`} style={{ '--member': memberColor(member.slot), width: size, height: size } as CSSProperties}>
+    <span className={`member-face ${member.photo ? '' : 'member-face--default'}`} style={{ '--member': memberColor(member.color), width: size, height: size } as CSSProperties}>
       {member.photo ? <img src={member.photo} alt="" /> : <UserRound size={Math.round(size * 0.6)} aria-hidden />}
     </span>
   );

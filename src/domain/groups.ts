@@ -6,14 +6,18 @@ export interface GroupPing {
   center: [number, number];
   /** The place's name (shown while its member is picked); missing from older servers. */
   name?: string;
-  /** The photo sent with it from the camera (its address; the dev demo members' are drawn data URLs). */
+  /** The photo sent with it from the camera (its address; the dev demo members' are drawn data URLs) — the newest, with several. */
   photo?: string;
+  /** Every photo sent from this place in a row (`mergeSamePlace`), oldest first; only when there are two or more. */
+  photos?: string[];
 }
 
 export interface GroupMember {
   userId: string;
-  /** The member's colour slot in the group (0..19), kept while they stay. */
+  /** The member's place in the group's order (0..19), kept while they stay. */
   slot: number;
+  /** Their colour (`MEMBER_COLORS` index, 0..19): picked in 그룹 설정, never two the same in a group. */
+  color: number;
   /** The name shown in the group: their 별명 there, else their profile nickname. */
   nickname: string;
   /** Their own name for this group (내 별명), null = the profile nickname. */
@@ -64,8 +68,74 @@ export function sharedPlacePings(members: readonly GroupMember[]): Set<string> {
   return shared;
 }
 
-/** A member's colour: the pin palette in turn (it repeats past eight). */
-export const memberColor = (slot: number): string => `var(--pin-${(slot % 8) + 1})`;
+/**
+ * The member colours, one for each of a group's 20 places so no two members
+ * share one (2026-10-31): the eight pin colours first (what members had
+ * before), then twelve more. A joiner gets the first one nobody has.
+ */
+export const MEMBER_COLORS = Array.from({ length: GROUP_LIMITS.members }, (_, i) => i);
+
+/** Each member colour's name (for screen readers), in `MEMBER_COLORS` order. */
+export const MEMBER_COLOR_NAMES = [
+  '갈색', '산호', '보라', '파랑', '분홍', '민트', '노랑', '회색', '청록', '연두',
+  '남색', '장미', '고동', '하늘', '라일락', '올리브', '살구', '초록', '자두', '황금',
+] as const;
+
+/** A member's colour, as CSS. */
+export const memberColor = (color: number): string => `var(--member-${Math.abs(Math.trunc(color)) % GROUP_LIMITS.members})`;
+
+/** The colours the other members of `group` have (mine is mine to change). */
+export function takenColors(group: Group, me: string | null): Set<number> {
+  return new Set(group.members.filter((m) => m.userId !== me).map((m) => m.color));
+}
+
+/** The first colour nobody in `members` has (what joining gives); null when all 20 are taken. */
+export function firstFreeColor(members: readonly Pick<GroupMember, 'color'>[]): number | null {
+  const used = new Set(members.map((m) => m.color));
+  return MEMBER_COLORS.find((c) => !used.has(c)) ?? null;
+}
+
+/** Every pair of members who were at the same place (`SAME_PLACE_M`) on the day of `members`' pings, each pair once. */
+export function metPairs(members: readonly GroupMember[]): [string, string][] {
+  const pairs: [string, string][] = [];
+  members.forEach((a, ai) => {
+    for (const b of members.slice(ai + 1)) {
+      if (b.userId === a.userId) continue;
+      if (a.pings.some((pa) => b.pings.some((pb) => haversineMeters(pa.center, pb.center) <= SAME_PLACE_M))) pairs.push([a.userId, b.userId]);
+    }
+  });
+  return pairs;
+}
+
+/**
+ * One member's day with a place pinged several times in a row (photos sent
+ * from the camera one after another there, say) as one ping: the latest
+ * time — so a new photo still counts as new — the place's name, and every
+ * photo, oldest first (drawn stacked, the newest on top). Going away and
+ * coming back is another visit, so only pings next to each other merge.
+ */
+export function mergeSamePlace(pings: readonly GroupPing[]): GroupPing[] {
+  const out: GroupPing[] = [];
+  for (const p of pings) {
+    const last = out[out.length - 1];
+    const same = last && haversineMeters(last.center, p.center) <= SAME_PLACE_M && (!last.name || !p.name || last.name === p.name);
+    if (!same) {
+      out.push({ ...p });
+      continue;
+    }
+    const photos = [...(last.photos ?? (last.photo ? [last.photo] : [])), ...(p.photos ?? (p.photo ? [p.photo] : []))];
+    const merged: GroupPing = { at: p.at, center: last.center };
+    const name = last.name ?? p.name;
+    if (name) merged.name = name;
+    if (photos.length) merged.photo = photos[photos.length - 1];
+    if (photos.length > 1) merged.photos = photos;
+    out[out.length - 1] = merged;
+  }
+  return out;
+}
+
+/** The photos to draw over a ping, oldest first: all of them, or its one. */
+export const pingPhotos = (ping: GroupPing): string[] => ping.photos ?? (ping.photo ? [ping.photo] : []);
 
 /** The first letter of a nickname, for a member without a photo. */
 export const memberInitial = (nickname: string): string => [...nickname.trim()][0] ?? '?';
@@ -97,7 +167,7 @@ export function focusPoints(group: Group, memberId: string | null): [number, num
 export function tilePaths(group: Group, size: number, margin = size * 0.16): { color: string; points: [number, number][] }[] {
   const at = tileProjection(group.members.flatMap((m) => m.pings.map((p) => p.center)), size, margin);
   if (!at) return [];
-  return group.members.filter((m) => m.pings.length).map((m) => ({ color: memberColor(m.slot), points: m.pings.map((p) => at(p.center)) }));
+  return group.members.filter((m) => m.pings.length).map((m) => ({ color: memberColor(m.color), points: m.pings.map((p) => at(p.center)) }));
 }
 
 /** Lng/lat → tile coordinates fitting every point in, north up; null without points. */

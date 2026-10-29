@@ -1,9 +1,13 @@
-import { ChevronLeft, Images } from 'lucide-react';
-import { useEffect, useMemo, useRef, type CSSProperties } from 'react';
-import { dayPosters, galleryDayLabel, galleryTabDays, viewerOrder, type GalleryItem, type GalleryPhoto, type GalleryTab } from '../domain/gallery';
+import { ChevronLeft, Heart, Images, Star } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { dayPosters, filterGallery, galleryDayLabel, galleryTabDays, metDays, viewerOrder, type GalleryItem, type GalleryPhoto, type GalleryTab } from '../domain/gallery';
 import { memberColor, type Group, type GroupMember } from '../domain/groups';
 import { centeredScrollLeft } from '../domain/routeFolders';
-import type { GalleryState } from '../hooks/useGalleryPhotos';
+import { useMetDays, type GalleryState } from '../hooks/useGalleryPhotos';
+import { groupService } from '../services/groupService';
+import { loadGalleryStars, saveGalleryStars } from '../services/galleryStarRepository';
+import { HighFive } from './icons';
+import { FlipCell } from './AlertBoard';
 import { dateKey } from '../domain/diary';
 import { MemberFace } from './WeNowPage';
 import PhotoViewer from './PhotoViewer';
@@ -29,7 +33,7 @@ interface PhotoGalleryProps {
 }
 
 /** Someone no longer in the group: no face, a neutral name. */
-const goneMember = (userId: string): GroupMember => ({ userId, slot: 0, nickname: '나간 그룹원', alias: null, photo: null, pings: [] });
+const goneMember = (userId: string): GroupMember => ({ userId, slot: 0, color: 0, nickname: '나간 그룹원', alias: null, photo: null, pings: [] });
 
 /**
  * The camera's photos over the whole screen: ‹ back and GALLERY, then index
@@ -39,12 +43,66 @@ const goneMember = (userId: string): GroupMember => ({ userId, slot: 0, nickname
  * A photo sent to several groups shows once in MY. Tapping one opens it big;
  * there the newest is furthest right and paging back runs on through the
  * days before, the day over the photo.
+ *
+ * Over the days, two switches (both may be on): 즐겨찾기 — only the photos
+ * I starred (★ beside the big photo's caption; mine alone, on this phone) —
+ * and 만난 날 — every photo of a day I met someone from a group (in MY) or
+ * two of the group met (its tab), where they pinged the same place. A
+ * heart beside the star (on someone else's photo) tells its sender; how many
+ * a photo has is never shown.
  */
 export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, onRetry, local, seq, onSeq, onClose }: PhotoGalleryProps) {
   const ready = state.status === 'ready' || tab === 'my';
-  const days = useMemo(
+  const allDays = useMemo(
     () => galleryTabDays(tab, state.status === 'ready' ? state.photos : [], me, local),
     [tab, state, me, local],
+  );
+  const [starsOn, setStarsOn] = useState(false);
+  const [metOn, setMetOn] = useState(false);
+  const [stars, setStars] = useState(() => new Set(loadGalleryStars()));
+  const toggleStar = (path: string) =>
+    setStars((now) => {
+      const next = new Set(now);
+      if (!next.delete(path)) next.add(path);
+      saveGalleryStars([...next]);
+      return next;
+    });
+  // Hearts: on other people's photos, telling the sender (no count shown anywhere).
+  const [hearts, setHearts] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    let live = true;
+    void groupService.hearted().then((paths) => live && paths !== 'error' && setHearts(new Set(paths)));
+    return () => {
+      live = false;
+    };
+  }, []);
+  const toggleHeart = (path: string) => {
+    const on = !hearts.has(path);
+    const flip = (want: boolean) =>
+      setHearts((now) => {
+        const next = new Set(now);
+        if (want) next.add(path);
+        else next.delete(path);
+        return next;
+      });
+    flip(on);
+    // Didn't go through: back as it was.
+    void groupService.heart(path, on).then((ok) => ok || flip(!on));
+  };
+  // While a photo is open big, 즐겨찾기 keeps what it showed when it opened:
+  // taking a star off doesn't pull the photo out from under the finger.
+  const [viewStars, setViewStars] = useState<Set<string> | null>(null);
+  useEffect(() => setViewStars((v) => (seq === null ? null : (v ?? stars))), [seq, stars]);
+  const groupIds = useMemo(() => groups.map((g) => g.id), [groups]);
+  const met = useMetDays(
+    groupIds,
+    useMemo(() => allDays.map((d) => d.day), [allDays]),
+    metOn,
+  );
+  const metSet = useMemo(() => (metOn ? metDays(met.pairs, tab, me) : undefined), [metOn, met.pairs, tab, me]);
+  const days = useMemo(
+    () => filterGallery(allDays, { stars: starsOn ? (viewStars ?? stars) : undefined, met: metOn ? metSet : undefined }),
+    [allDays, starsOn, viewStars, stars, metOn, metSet],
   );
   const viewer = useMemo(() => viewerOrder(days), [days]);
   const byGroup = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
@@ -56,10 +114,6 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
     }
     return goneMember(item.userId);
   };
-  // Where it went: this tab's group, or (MY) every group it was sent to; TODAY for one that stayed on the phone.
-  const where = (item: GalleryItem) =>
-    tab !== 'my' ? (byGroup.get(tab)?.name ?? '') : item.groupIds.length ? item.groupIds.map((id) => byGroup.get(id)?.name).filter(Boolean).join(', ') : 'TODAY';
-
   useEffect(() => {
     if (seq !== null) return;
     const key = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -111,7 +165,33 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
             </button>
           </p>
         )}
-        {ready && !days.length && (
+        {ready && allDays.length > 0 && (
+          <div className="gallery__tools">
+            {/* 알림 설정's board: two flip cells, icons only. */}
+            <div className="alerts__hours gallery__board" role="group" aria-label="사진 거르기">
+              <FlipCell lit={starsOn} label="즐겨찾기" className="gallery__switch" onClick={() => setStarsOn((on) => !on)}>
+                <Star size={16} strokeWidth={2.2} aria-hidden />
+              </FlipCell>
+              <FlipCell lit={metOn} label="만난 날" className="gallery__switch" onClick={() => setMetOn((on) => !on)}>
+                <HighFive size={19} />
+              </FlipCell>
+            </div>
+          </div>
+        )}
+        {ready && allDays.length > 0 && !days.length && (
+          <p className="gallery__note">
+            {metOn && met.status === 'loading'
+              ? '만난 날을 찾는 중…'
+              : metOn && met.status === 'error'
+                ? '만난 날을 불러오지 못했어요.'
+                : starsOn && metOn
+                  ? '만난 날에 즐겨찾기한 사진이 없어요.'
+                  : starsOn
+                    ? '즐겨찾기한 사진이 없어요. 큰 사진의 ☆를 눌러 보세요.'
+                    : '아직 만난 날이 없어요. 같은 곳에서 핑을 찍으면 만난 날이 돼요.'}
+          </p>
+        )}
+        {ready && !allDays.length && (
           <div className="gallery__empty">
             <Images size={34} strokeWidth={1.8} aria-hidden />
             <p>{tab === 'my' ? '아직 내 사진이 없어요' : '아직 주고받은 사진이 없어요'}</p>
@@ -127,7 +207,7 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
                 {dayPosters(d.photos).map((id) => {
                   const member = who(d.photos.find((p) => p.userId === id)!);
                   return (
-                    <span key={id} className="gallery__poster" title={member.nickname} style={{ '--member': memberColor(member.slot) } as CSSProperties}>
+                    <span key={id} className="gallery__poster" title={member.nickname} style={{ '--member': memberColor(member.color) } as CSSProperties}>
                       <MemberFace member={member} size={24} />
                     </span>
                   );
@@ -141,7 +221,7 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
                   <button
                     key={p.path}
                     className="gallery__photo"
-                    style={{ '--member': memberColor(member.slot) } as CSSProperties}
+                    style={{ '--member': memberColor(member.color) } as CSSProperties}
                     aria-label={`${p.name}, ${member.nickname}`}
                     onClick={() => onSeq(viewer.indexOf(p))}
                   >
@@ -161,11 +241,11 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
         <PhotoViewer
           items={viewer.map((p) => {
             const member = who(p);
-            const to = where(p);
+            // Who sent it, by name only — not the group it went to.
             return {
               photo: p.url,
               name: p.name,
-              who: to ? `${member.nickname} | ${to}` : member.nickname,
+              who: member.nickname,
               face: <MemberFace member={member} size={32} />,
               date: galleryDayLabel(p.day, today),
             };
@@ -176,6 +256,35 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
           prevLabel="이전 사진"
           nextLabel="다음 사진"
           counted={false}
+          side={
+            <span className="gallery__marks">
+              {/* Hearts go to someone else's photo sent to a group: never mine, nor one that stayed on this phone. */}
+              {viewer[seq].userId !== me && viewer[seq].userId !== meMember.userId && viewer[seq].groupIds.length > 0 && (
+                <button
+                  className={`gallery__mark gallery__heart ${hearts.has(viewer[seq].path) ? 'is-on' : ''}`}
+                  aria-label="하트"
+                  aria-pressed={hearts.has(viewer[seq].path)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleHeart(viewer[seq].path);
+                  }}
+                >
+                  <Heart size={27} strokeWidth={2} aria-hidden />
+                </button>
+              )}
+              <button
+                className={`gallery__mark gallery__star ${stars.has(viewer[seq].path) ? 'is-on' : ''}`}
+                aria-label="즐겨찾기"
+                aria-pressed={stars.has(viewer[seq].path)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleStar(viewer[seq].path);
+                }}
+              >
+                <Star size={28} strokeWidth={2} aria-hidden />
+              </button>
+            </span>
+          }
         />
       )}
     </div>

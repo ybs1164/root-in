@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayPosters, galleryDayLabel, galleryDays, galleryTabDays, localGalleryPhotos, viewerOrder, type GalleryPhoto } from './gallery';
+import { dayPosters, filterGallery, metDays, galleryDayLabel, galleryDays, galleryTabDays, localGalleryPhotos, viewerOrder, type GalleryPhoto } from './gallery';
 import type { StoredPing } from './dayPings';
 
 const photo = (id: string, groupId: string, day: string, time: string, path = `p/${id}`): GalleryPhoto => ({
@@ -58,5 +58,27 @@ describe('gallery tabs', () => {
   it('pages the viewer oldest first, the newest last, across days', () => {
     const days = galleryDays([photo('a', 'g', '2026-10-27', '01:00'), photo('b', 'g', '2026-10-28', '01:00'), photo('c', 'g', '2026-10-28', '05:00')]);
     expect(viewerOrder(days).map((p) => p.id)).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('만난 날 and 즐겨찾기', () => {
+  const pairs = [
+    { groupId: 'g1', day: '2026-10-28', users: ['me', 'a'] as [string, string] },
+    { groupId: 'g1', day: '2026-10-26', users: ['a', 'b'] as [string, string] },
+    { groupId: 'g2', day: '2026-10-25', users: ['b', 'me'] as [string, string] },
+  ];
+
+  it('keeps the days I met someone in MY, and the days two of a group met in its tab', () => {
+    expect([...metDays(pairs, 'my', 'me')].sort()).toEqual(['2026-10-25', '2026-10-28']);
+    expect([...metDays(pairs, 'g1', 'me')].sort()).toEqual(['2026-10-26', '2026-10-28']);
+    expect(metDays(pairs, 'my', null).size).toBe(0);
+  });
+
+  it('shows a met day whole, only starred photos, or both', () => {
+    const days = galleryDays([photo('a', 'g1', '2026-10-28', '01:00'), photo('b', 'g1', '2026-10-28', '02:00'), photo('c', 'g1', '2026-10-27', '01:00')]);
+    expect(filterGallery(days, { met: new Set(['2026-10-28']) }).map((d) => d.photos.map((p) => p.id))).toEqual([['b', 'a']]);
+    expect(filterGallery(days, { stars: new Set(['p/c']) }).map((d) => d.photos.map((p) => p.id))).toEqual([['c']]);
+    expect(filterGallery(days, { stars: new Set(['p/c']), met: new Set(['2026-10-28']) })).toEqual([]);
+    expect(filterGallery(days, {})).toEqual(days);
   });
 });

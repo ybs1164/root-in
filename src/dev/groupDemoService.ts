@@ -1,8 +1,9 @@
 import { dateKey } from '../domain/diary';
-import type { Group, GroupMember } from '../domain/groups';
-import { GROUP_LIMITS } from '../domain/groups';
+import type { Group, GroupMember, GroupPing } from '../domain/groups';
+import { GROUP_LIMITS, firstFreeColor } from '../domain/groups';
 import type { GalleryPhoto } from '../domain/gallery';
 import type { GroupService } from '../services/groupService';
+import type { MetPair } from '../domain/gallery';
 
 const DEMO_IDS = ['dev-group-user-1', 'dev-group-user-2'];
 const DEMO_PLACES = [['광화문', '서촌 카페', '통인시장'], ['명동성당', '남대문시장', '을지로 노가리골목']];
@@ -75,18 +76,20 @@ export function withGroupDemoMembers(groups: Group[], day: string, today: string
   const center = members.flatMap((m) => m.pings)[0]?.center ?? [126.978, 37.5665];
   const used = new Set(members.map((m) => m.slot));
   const demos: GroupMember[] = [];
+  const colors: number[] = [];
   for (let i = 0; i < 2 && members.length + demos.length < GROUP_LIMITS.members; i++) {
     const slot = Array.from({ length: GROUP_LIMITS.members }, (_, n) => n).find((n) => !used.has(n));
     if (slot === undefined) break;
     used.add(slot);
+    // Like joining: the first colour nobody has.
+    const color = firstFreeColor([...members, ...colors.map((c) => ({ color: c }))]) ?? slot;
+    colors.push(color);
     // Its colour stays its own on the days it's away.
     if (!demoWalked(i, day, today)) continue;
     // Each day its own: the walk drifts and shortens, so paging a group's days shows a change.
     const shift = dayNumber(day) % 4;
     const steps = [0, 1, 2].slice(0, 3 - ((shift + i) % 3));
-    demos.push({
-      userId: DEMO_IDS[i], slot, nickname: `더미 유저 ${i + 1}`, alias: null, photo: null,
-      pings: steps.map((step) => ({
+    const pings: GroupPing[] = steps.map((step) => ({
         at: new Date(`${day}T${['09:30', '11:00', '14:00'][step]}:00+09:00`).toISOString(),
         center: [
           center[0] + (i === 0 ? 1 : -1) * (0.002 + step * 0.003) + shift * 0.003,
@@ -94,14 +97,20 @@ export function withGroupDemoMembers(groups: Group[], day: string, today: string
         ],
         name: DEMO_PLACES[i][(step + shift) % 3],
         photo: demoPhoto(i, step),
-      })),
-    });
+      }));
+    // The first one sends a second photo from their first place twenty
+    // minutes on: the same place, so its photos stack on one ping.
+    const first = pings[0];
+    if (i === 0 && first?.photo) pings.splice(1, 0, { ...first, at: new Date(Date.parse(first.at) + 20 * 60_000).toISOString(), photo: demoPhoto(i, 3) });
+    demos.push({ userId: DEMO_IDS[i], slot, color, nickname: `더미 유저 ${i + 1}`, alias: null, photo: null, pings });
   }
   return groups.map((g) => g.id === target.id ? { ...g, members: [...members, ...demos] } : g);
 }
 
 export function createGroupDemoService(service: GroupService): GroupService {
   const hidden = new Set<string>();
+  // Hearts on the demo members' drawn photos stay here (the server has no such photos).
+  const demoHearts = new Set<string>();
   let target: { id: string; day: string } | null = null;
   return {
     ...service,
@@ -131,6 +140,28 @@ export function createGroupDemoService(service: GroupService): GroupService {
         if (ids.length) days[day] = [...(days[day] ?? []), ...ids];
       }
       return days;
+    },
+    async metDays(groupIds, days) {
+      const result = await service.metDays(groupIds, days);
+      if (result === 'error' || !target || !groupIds.includes(target.id)) return result;
+      // Today the first one met me (the group's first real member); three days back the two of them met.
+      const me = (await service.list(target.day));
+      const real = me === 'error' ? null : demoTarget(me)?.members[0]?.userId;
+      const demo = [
+        real ? { groupId: target.id, day: target.day, users: [real, DEMO_IDS[0]] as [string, string] } : null,
+        { groupId: target.id, day: daysBefore(target.day, 3), users: [DEMO_IDS[0], DEMO_IDS[1]] as [string, string] },
+      ].filter((p): p is MetPair => !!p && days.includes(p.day) && p.users.every((u) => !hidden.has(`${target!.id}:${u}`)));
+      return [...result, ...demo];
+    },
+    async heart(path, on) {
+      if (!path.startsWith('demo/')) return service.heart(path, on);
+      if (on) demoHearts.add(path);
+      else demoHearts.delete(path);
+      return true;
+    },
+    async hearted() {
+      const result = await service.hearted();
+      return result === 'error' ? [...demoHearts] : [...result, ...demoHearts];
     },
     async kick(id, userId) {
       if (!DEMO_IDS.includes(userId)) return service.kick(id, userId);

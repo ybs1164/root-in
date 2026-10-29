@@ -1,6 +1,6 @@
 import { ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { GROUP_LIMITS, type Group, type GroupMember } from '../domain/groups';
+import { GROUP_LIMITS, MEMBER_COLORS, MEMBER_COLOR_NAMES, memberColor, takenColors, type Group, type GroupMember } from '../domain/groups';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import { inviteUrl } from '../services/groupService';
 import InviteLinkField from './InviteLinkField';
@@ -15,6 +15,8 @@ interface GroupSettingsDialogProps {
   onRename(name: string): Promise<boolean>;
   /** A member: their own name in this group ('' = back to the nickname). */
   onAlias(alias: string): Promise<boolean>;
+  /** My colour in this group (resolves false when someone else has it now). */
+  onColor(color: number): Promise<boolean>;
   /** 추방 pressed on a member's row (App asks first). */
   onKick(member: GroupMember): void;
   /** 그룹 삭제 (the maker) — App asks first. */
@@ -43,19 +45,54 @@ function Section({ title, id, children }: { title: string; id: string; children:
 }
 
 /**
+ * COLOR: my colour in the group, as the pen tray's swatches. The ones the
+ * other members have can't be picked — no two members share a colour.
+ */
+function ColorRow({ color, taken, first, onPick }: { color: number; taken: Set<number>; first: boolean; onPick(color: number): void }) {
+  return (
+    <>
+      <p className={`group-form__label ${first ? 'group-form__label--first' : ''}`}>COLOR</p>
+      <div className="group-form__colors" role="radiogroup" aria-label="내 색">
+        {MEMBER_COLORS.map((c) => {
+          const theirs = taken.has(c);
+          return (
+            <button
+              key={c}
+              role="radio"
+              className={c === color ? 'is-on' : ''}
+              style={{ color: memberColor(c) }}
+              aria-checked={c === color}
+              aria-label={theirs ? `${MEMBER_COLOR_NAMES[c]} (다른 그룹원의 색)` : MEMBER_COLOR_NAMES[c]}
+              disabled={theirs}
+              onClick={() => onPick(c)}
+            >
+              <span aria-hidden />
+            </button>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+/**
  * ⚙ on a group, as a boarding pass (`ticket-dialog`) with 닫기 | 저장 below.
  * Its maker gets the group's name, the invite link (tap to copy), 그룹원 관리
  * (every member, 추방 on the others) and 그룹 관리 → 그룹 삭제. A member gets
  * Nickname (their name in this group — their profile nickname when they
- * joined, until they change it) and 그룹 관리 → 그룹 나가기.
+ * joined, until they change it) and 그룹 관리 → 그룹 나가기. Everyone picks
+ * their colour (COLOR) — the maker under the group's name, a member above
+ * Nickname.
  */
-export default function GroupSettingsDialog({ group, me, onRename, onAlias, onKick, onDelete, onLeave, onClose }: GroupSettingsDialogProps) {
+export default function GroupSettingsDialog({ group, me, onRename, onAlias, onColor, onKick, onDelete, onLeave, onClose }: GroupSettingsDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const backdrop = useBackdropTap(dialogRef);
   const owner = group.mine;
   const mine = group.members.find((m) => m.userId === me) ?? null;
   const initial = owner ? group.name : (mine?.nickname ?? '');
   const [text, setText] = useState(initial);
+  const [color, setColor] = useState(mine?.color ?? 0);
+  const taken = takenColors(group, me);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   useEffect(() => {
@@ -66,14 +103,29 @@ export default function GroupSettingsDialog({ group, me, onRename, onAlias, onKi
   const limit = owner ? GROUP_LIMITS.name : GROUP_LIMITS.alias;
   const save = async () => {
     const next = text.trim();
-    // Neither the group's name nor a nickname can be emptied: nothing to save.
-    if (next === initial.trim() || !next) return dialogRef.current?.close();
+    // Neither the group's name nor a nickname can be emptied: that's no change.
+    const renamed = !!next && next !== initial.trim();
+    const recolored = !!mine && color !== mine.color;
+    if (!renamed && !recolored) return dialogRef.current?.close();
     setBusy(true);
-    const ok = owner ? await onRename(next) : await onAlias(next);
+    const named = !renamed || (owner ? await onRename(next) : await onAlias(next));
+    const colored = !recolored || (await onColor(color));
     setBusy(false);
-    if (ok) dialogRef.current?.close();
-    else setProblem(owner ? '이름을 바꾸지 못했어요.' : '별명을 바꾸지 못했어요.');
+    if (named && colored) dialogRef.current?.close();
+    else if (!named) setProblem(owner ? '이름을 바꾸지 못했어요.' : '별명을 바꾸지 못했어요.');
+    else setProblem('색을 바꾸지 못했어요. 다른 그룹원이 먼저 골랐을 수 있어요.');
   };
+  const colorRow = mine && (
+    <ColorRow
+      color={color}
+      taken={taken}
+      first={!owner}
+      onPick={(c) => {
+        setColor(c);
+        setProblem(null);
+      }}
+    />
+  );
 
   return (
     <dialog
@@ -94,7 +146,8 @@ export default function GroupSettingsDialog({ group, me, onRename, onAlias, onKi
     >
       <div className="ticket-dialog__main group-form__main">
         <h3 className="group-form__title">그룹 설정</h3>
-        {!owner && <p className="group-form__label group-form__label--first">NICKNAME</p>}
+        {!owner && colorRow}
+        {!owner && <p className="group-form__label">NICKNAME</p>}
         <label className="group-form__name">
           <input
             value={text}
@@ -113,6 +166,7 @@ export default function GroupSettingsDialog({ group, me, onRename, onAlias, onKi
             {[...text].length}/{limit}
           </small>
         </label>
+        {owner && colorRow}
         {owner && (
           <>
             <p className="group-form__label">INVITE</p>

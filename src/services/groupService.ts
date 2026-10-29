@@ -5,7 +5,7 @@ import { inKorea } from './pinShareService';
 import { dataUrlToBlob } from './remoteProfileService';
 import { newSlug } from './shareLinkService';
 import { createGroupDemoService } from '../dev/groupDemoService';
-import type { GalleryPhoto } from '../domain/gallery';
+import type { GalleryPhoto, MetPair } from '../domain/gallery';
 import { publicAppUrl } from '../lib/appUrl';
 
 // We Now groups (supabase/migrations/20261016000000_groups.sql). Everything
@@ -43,6 +43,8 @@ export interface GroupService {
   kick(id: string, userId: string): Promise<boolean>;
   /** 내 별명 in this group; '' clears it. */
   setAlias(id: string, alias: string): Promise<boolean>;
+  /** My colour in this group (`MEMBER_COLORS` index); false when it's someone else's or the server said no. */
+  setColor(id: string, color: number): Promise<boolean>;
   /** 그룹 삭제, for everyone (the group's maker only). */
   remove(id: string): Promise<boolean>;
   /**
@@ -59,6 +61,31 @@ export interface GroupService {
    * 'error' when the server couldn't be asked.
    */
   pingDays(groupId: string, from: string, to: string): Promise<PingDays | 'error'>;
+  /**
+   * The gallery's 만난 날: on each of `days`, every pair of members of
+   * `groupIds` who were at the same place (a ping or a photo each, within
+   * `SAME_PLACE_M`); 'error' when the server couldn't be asked.
+   */
+  metDays(groupIds: string[], days: string[]): Promise<MetPair[] | 'error'>;
+  /** A heart on a photo (by its upload `path`), or taken back; tells its sender. False when the server said no. */
+  heart(path: string, on: boolean): Promise<boolean>;
+  /** The photos I hearted (their paths); 'error' when the server couldn't be asked. */
+  hearted(): Promise<string[] | 'error'>;
+  /** Hearts on my photos not yet shown, newest first ([] when it couldn't ask). */
+  heartNews(): Promise<HeartNews[]>;
+  /** Shown: the hearts up to `upto` (an `at`) stop coming back. */
+  heartsSeen(upto: string): Promise<boolean>;
+}
+
+/** Someone hearted one of my photos. */
+export interface HeartNews {
+  path: string;
+  fromUser: string;
+  /** Their name in a group we share, else their nickname. */
+  nickname: string;
+  /** Where the photo was taken, when known. */
+  place: string | null;
+  at: string;
 }
 
 /** How many photos a gallery reads at most (the newest). */
@@ -119,7 +146,37 @@ function readMember(raw: unknown, photoUrl: (path: string) => string | null, pin
     .filter((p): p is GroupPing => !!p)
     .sort((a, b) => a.at.localeCompare(b.at))
     .slice(-GROUP_LIMITS.pingsPerMember);
-  return { userId: r.user_id, slot: r.slot, nickname, alias, photo: path ? photoUrl(path) : null, pings };
+  // Before the colour had its own column it followed the slot.
+  const color = typeof r.color === 'number' && Number.isInteger(r.color) && r.color >= 0 && r.color < GROUP_LIMITS.members ? r.color : r.slot;
+  return { userId: r.user_id, slot: r.slot, color, nickname, alias, photo: path ? photoUrl(path) : null, pings };
+}
+
+/** heart_news' rows, checked; anything off is skipped. */
+export function readHeartNews(data: unknown): HeartNews[] {
+  if (!Array.isArray(data)) return [];
+  const news: HeartNews[] = [];
+  for (const row of data.slice(0, 50)) {
+    const r = (row ?? {}) as Record<string, unknown>;
+    if (typeof r.path !== 'string' || !PHOTO_PATH.test(r.path) || typeof r.from_user !== 'string' || !UUID.test(r.from_user)) continue;
+    if (typeof r.at !== 'string' || Number.isNaN(Date.parse(r.at))) continue;
+    const nickname = typeof r.nickname === 'string' && r.nickname.trim() ? r.nickname.trim().slice(0, 20) : '누군가';
+    const place = typeof r.place === 'string' && r.place.trim() ? r.place.trim().slice(0, 80) : null;
+    news.push({ path: r.path, fromUser: r.from_user, nickname, place, at: r.at });
+  }
+  return news;
+}
+
+/** group_met_days' rows, checked; anything off is skipped. */
+export function readMetPairs(data: unknown): MetPair[] {
+  if (!Array.isArray(data)) return [];
+  const pairs: MetPair[] = [];
+  for (const row of data.slice(0, 30 * 400 * 10)) {
+    const r = (row ?? {}) as Record<string, unknown>;
+    const ids = [r.group_id, r.user_a, r.user_b];
+    if (!ids.every((id) => typeof id === 'string' && UUID.test(id)) || typeof r.day !== 'string' || !DAY.test(r.day)) continue;
+    pairs.push({ groupId: r.group_id as string, day: r.day, users: [r.user_a as string, r.user_b as string] });
+  }
+  return pairs;
 }
 
 /** A group_photos row, checked; null when anything's off. */
@@ -261,6 +318,17 @@ export function createSupabaseGroupService(
       }
     },
 
+    async setColor(id, color) {
+      try {
+        const client = await getClient();
+        if (!client || !Number.isInteger(color) || color < 0 || color >= GROUP_LIMITS.members) return false;
+        const { data, error } = await client.rpc('set_group_color', { gid: id, new_color: color });
+        return !error && data === true;
+      } catch {
+        return false;
+      }
+    },
+
     async remove(id) {
       try {
         const client = await getClient();
@@ -297,6 +365,69 @@ export function createSupabaseGroupService(
         return data;
       } catch {
         return 0;
+      }
+    },
+
+    async metDays(groupIds, days) {
+      try {
+        const gids = groupIds.filter((id) => UUID.test(id)).slice(0, 30);
+        const asked = [...new Set(days.filter((d) => DAY.test(d)))].slice(0, 400);
+        if (!gids.length || !asked.length) return [];
+        const client = await getClient();
+        if (!client) return 'error';
+        const { data, error } = await client.rpc('group_met_days', { gids, days: asked });
+        if (error) return 'error';
+        return readMetPairs(data);
+      } catch {
+        return 'error';
+      }
+    },
+
+    async heart(path, on) {
+      try {
+        if (!PHOTO_PATH.test(path)) return false;
+        const client = await getClient();
+        if (!client) return false;
+        const { data, error } = await client.rpc('heart_photo', { photo_path: path, heart: on });
+        return !error && data === true;
+      } catch {
+        return false;
+      }
+    },
+
+    async hearted() {
+      try {
+        const client = await getClient();
+        if (!client) return 'error';
+        // Its policy only lets me read my own hearts.
+        const { data, error } = await client.from('photo_hearts').select('path').limit(2000);
+        if (error || !Array.isArray(data)) return 'error';
+        return data.map((r) => (r as { path?: unknown }).path).filter((p): p is string => typeof p === 'string' && PHOTO_PATH.test(p));
+      } catch {
+        return 'error';
+      }
+    },
+
+    async heartNews() {
+      try {
+        const client = await getClient();
+        if (!client) return [];
+        const { data, error } = await client.rpc('heart_news');
+        return error ? [] : readHeartNews(data);
+      } catch {
+        return [];
+      }
+    },
+
+    async heartsSeen(upto) {
+      try {
+        if (Number.isNaN(Date.parse(upto))) return false;
+        const client = await getClient();
+        if (!client) return false;
+        const { error } = await client.rpc('hearts_seen', { upto });
+        return !error;
+      } catch {
+        return false;
       }
     },
 

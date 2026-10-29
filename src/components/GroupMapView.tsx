@@ -135,7 +135,7 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
               data-member={m.userId}
               className={`group-rail__member ${picked === m.userId ? 'is-on' : ''}`}
               aria-pressed={picked === m.userId}
-              style={{ '--member': memberColor(m.slot), ...stagger(i + 1) } as CSSProperties}
+              style={{ '--member': memberColor(m.color), ...stagger(i + 1) } as CSSProperties}
               aria-label={fresh ? `${m.nickname}, 새 핑 ${fresh}개` : m.nickname}
               onClick={() => onPick(picked === m.userId ? null : m.userId)}
             >
@@ -154,7 +154,7 @@ function MemberPass({ member, mine, day }: { member: GroupMember; mine: boolean;
   const today = day === 'TODAY';
   const route = passRoute(member.pings.map((p) => placeName(p.name)));
   return (
-    <section className="member-pass" style={{ '--member': memberColor(member.slot) } as CSSProperties} aria-label={`${member.nickname}의 ${today ? '오늘' : day}`}>
+    <section className="member-pass" style={{ '--member': memberColor(member.color) } as CSSProperties} aria-label={`${member.nickname}의 ${today ? '오늘' : day}`}>
       <div className="member-pass__ticket">
         <div className="member-pass__main">
           <div className="member-pass__who">
@@ -217,8 +217,8 @@ function PhotoPanel({ member, seq, onStep, onOpen, onClose }: { member: GroupMem
   }, [member.userId, seq]);
   return (
     <>
-      <span ref={thread} className="group-photo-thread" style={{ '--member': memberColor(member.slot) } as CSSProperties} aria-hidden />
-      <section ref={panel} className="group-photo-panel" style={{ '--member': memberColor(member.slot) } as CSSProperties} aria-label={`${placeName(ping.name)} 사진`}>
+      <span ref={thread} className="group-photo-thread" style={{ '--member': memberColor(member.color) } as CSSProperties} aria-hidden />
+      <section ref={panel} className="group-photo-panel" style={{ '--member': memberColor(member.color) } as CSSProperties} aria-label={`${placeName(ping.name)} 사진`}>
         {ping.photo ? (
           // Tap the photo to see it big.
           <button key={seq} className="group-photo-panel__photo" aria-label="사진 크게 보기" onClick={onOpen}>

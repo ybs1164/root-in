@@ -91,3 +91,30 @@ export function galleryTabDays(tab: GalleryTab, photos: readonly GalleryPhoto[],
  * right) and paging back goes on through the days before.
  */
 export const viewerOrder = (days: readonly GalleryDay[]): GalleryItem[] => days.flatMap((d) => d.photos).reverse();
+
+/** Two members of a group who pinged (or sent a photo from) the same place on a day: they met. */
+export interface MetPair {
+  groupId: string;
+  day: string;
+  users: [string, string];
+}
+
+/**
+ * The days 만난 날 keeps: in a group's tab, every day two of its members met;
+ * in MY, every day I met someone, in any of my groups.
+ */
+export function metDays(pairs: readonly MetPair[], tab: GalleryTab, me: string | null): Set<string> {
+  const days = new Set<string>();
+  for (const p of pairs) {
+    if (tab === 'my' ? !!me && p.users.includes(me) : p.groupId === tab) days.add(p.day);
+  }
+  return days;
+}
+
+/** What the gallery shows with its switches on: 즐겨찾기 only starred photos, 만난 날 every photo of a day that was one (both: both). */
+export function filterGallery(days: readonly GalleryDay[], filter: { stars?: ReadonlySet<string>; met?: ReadonlySet<string> }): GalleryDay[] {
+  return days
+    .filter((d) => !filter.met || filter.met.has(d.day))
+    .map((d) => (filter.stars ? { ...d, photos: d.photos.filter((p) => filter.stars!.has(p.path)) } : d))
+    .filter((d) => d.photos.length > 0);
+}

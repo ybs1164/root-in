@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { randomAlerts, toggleAlert, toggleAllAlerts } from '../domain/profile';
 
 interface AlertBoardProps {
@@ -17,75 +17,64 @@ interface AlertBoardProps {
  * are lit, puts them all out).
  */
 export default function AlertBoard({ label, steps, on, onChange }: AlertBoardProps) {
-  // Cells mid-flip: the face each one flips from, keyed to restart on a quick second tap.
-  const [flips, setFlips] = useState<Record<number, { from: boolean; key: number }>>({});
   const values = steps.map((step) => step.value);
-
-  /** Saves `next`, turning over every cell it changes. */
-  const apply = (next: number[]) => {
-    const changed = values.filter((v) => on.includes(v) !== next.includes(v));
-    setFlips((all) => {
-      const flipped = { ...all };
-      for (const v of changed) flipped[v] = { from: on.includes(v), key: (all[v]?.key ?? 0) + 1 };
-      return flipped;
-    });
-    onChange(next);
-  };
-
   return (
     <div className="alerts__row" role="group" aria-label={label}>
       <div className="alerts__head">
         <span className="alerts__label">{label}</span>
-        <button className="alerts__all" aria-label={`${label} 랜덤`} onClick={() => apply(randomAlerts(on, values))}>
+        <button className="alerts__all" aria-label={`${label} 랜덤`} onClick={() => onChange(randomAlerts(on, values))}>
           랜덤
         </button>
-        <button className="alerts__all" aria-label={`${label} 전체`} onClick={() => apply(toggleAllAlerts(on, values))}>
+        <button className="alerts__all" aria-label={`${label} 전체`} onClick={() => onChange(toggleAllAlerts(on, values))}>
           전체
         </button>
       </div>
       <div className="alerts__hours">
-        {steps.map(({ value, text }) => {
-          const lit = on.includes(value);
-          const flip = flips[value];
-          return (
-            <button
-              key={value}
-              className={`alerts__hour ${lit ? 'is-on' : ''}`}
-              aria-pressed={lit}
-              onClick={() => apply(toggleAlert(on, value, values))}
-            >
-              {text}
-              {flip && (
-                // The split-flap turn: the top and bottom halves each spin on their own
-                // axis, old face out and new face in, the bottom just behind the top.
-                <span key={flip.key} className="alerts__flip" aria-hidden>
-                  {(['top', 'bottom'] as const).flatMap((half) => [
-                    <span key={`${half}-old`} className={`alerts__face alerts__face--${half} alerts__face--out ${flip.from ? 'is-on' : ''}`}>
-                      {text}
-                    </span>,
-                    <span
-                      key={`${half}-new`}
-                      className={`alerts__face alerts__face--${half} alerts__face--in ${lit ? 'is-on' : ''}`}
-                      onAnimationEnd={
-                        half === 'bottom'
-                          ? () =>
-                              setFlips((all) => {
-                                if (all[value]?.key !== flip.key) return all;
-                                const { [value]: _done, ...rest } = all;
-                                return rest;
-                              })
-                          : undefined
-                      }
-                    >
-                      {text}
-                    </span>,
-                  ])}
-                </span>
-              )}
-            </button>
-          );
-        })}
+        {steps.map(({ value, text }) => (
+          <FlipCell key={value} lit={on.includes(value)} onClick={() => onChange(toggleAlert(on, value, values))}>
+            {text}
+          </FlipCell>
+        ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * One cell of the board (알림 설정's, the gallery's switches): navy, lit
+ * blue. Whenever `lit` changes it turns like a split-flap — the top and
+ * bottom halves each spin on their own axis, old face out and new face in,
+ * the bottom just behind the top.
+ */
+export function FlipCell({ lit, label, className = '', onClick, children }: { lit: boolean; label?: string; className?: string; onClick(): void; children: ReactNode }) {
+  // Mid-flip: the face it flips from, keyed to restart on a quick second tap.
+  const [flip, setFlip] = useState<{ from: boolean; key: number } | null>(null);
+  const was = useRef(lit);
+  useEffect(() => {
+    if (was.current === lit) return;
+    const from = was.current;
+    was.current = lit;
+    setFlip((f) => ({ from, key: (f?.key ?? 0) + 1 }));
+  }, [lit]);
+  return (
+    <button className={`alerts__hour ${lit ? 'is-on' : ''} ${className}`} aria-pressed={lit} aria-label={label} onClick={onClick}>
+      {children}
+      {flip && (
+        <span key={flip.key} className="alerts__flip" aria-hidden>
+          {(['top', 'bottom'] as const).flatMap((half) => [
+            <span key={`${half}-old`} className={`alerts__face alerts__face--${half} alerts__face--out ${flip.from ? 'is-on' : ''}`}>
+              {children}
+            </span>,
+            <span
+              key={`${half}-new`}
+              className={`alerts__face alerts__face--${half} alerts__face--in ${lit ? 'is-on' : ''}`}
+              onAnimationEnd={half === 'bottom' ? () => setFlip((f) => (f?.key === flip.key ? null : f)) : undefined}
+            >
+              {children}
+            </span>,
+          ])}
+        </span>
+      )}
+    </button>
   );
 }
