@@ -256,4 +256,28 @@ describe('groupService', () => {
     expect(readHeartNews('nope')).toEqual([]);
     expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).heartNews()).toEqual([]);
   });
+
+  it("reads a member's 개별 프로필, and my row's stored one", () => {
+    const own = `${U1}/gAbCdEf123456.jpg`;
+    const [g] = readGroups([{ ...row, members: [
+      { user_id: U1, slot: 0, nickname: '민수', own_profile: true, alias: '막내', avatar_path: own, group_alias: '막내', group_photo: own, pings: [] },
+      { user_id: U2, slot: 1, nickname: '지은', own_profile: false, alias: null, avatar_path: `${U2}/gnope.png`, pings: [] },
+    ] }], (path) => `https://cdn/${path}`);
+    expect(g.members[0]).toMatchObject({ nickname: '막내', ownProfile: true, photo: `https://cdn/${own}`, groupProfile: { alias: '막내', photo: `https://cdn/${own}` } });
+    expect(g.members[1]).toMatchObject({ nickname: '지은', photo: null });
+    expect(g.members[1].ownProfile).toBeUndefined();
+    expect(g.members[1].groupProfile).toBeUndefined();
+  });
+
+  it('switches my profile in a group without a photo to upload', async () => {
+    const fake = fakeClient((fn) => ({ data: fn === 'set_group_profile' ? { ok: true, old_photo: null } : null }));
+    const service = createSupabaseGroupService(async () => fake.client, true);
+    expect(await service.setProfile(G1, false, '민수')).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('set_group_profile', { gid: G1, own: false, new_alias: '민수', new_photo: null });
+    expect(await service.setProfile(G1, true, ' 막내 ', null)).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('set_group_profile', { gid: G1, own: true, new_alias: '막내', new_photo: '' });
+    // 개별 needs a name.
+    expect(await service.setProfile(G1, true, '  ')).toBe(false);
+    expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).setProfile(G1, false, 'a')).toBe(false);
+  });
 });

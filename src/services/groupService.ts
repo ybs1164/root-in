@@ -43,6 +43,12 @@ export interface GroupService {
   kick(id: string, userId: string): Promise<boolean>;
   /** 내 별명 in this group; '' clears it. */
   setAlias(id: string, alias: string): Promise<boolean>;
+  /**
+   * My profile in this group: 통합 (`own` false — the profile's photo and
+   * name) or 개별 (`alias` and `photo` of its own). `photo`: a new square
+   * JPEG data URL, null to take it off, undefined to keep it.
+   */
+  setProfile(id: string, own: boolean, alias: string, photo?: string | null): Promise<boolean>;
   /** My colour in this group (`MEMBER_COLORS` index); false when it's someone else's or the server said no. */
   setColor(id: string, color: number): Promise<boolean>;
   /** 그룹 삭제, for everyone (the group's maker only). */
@@ -101,6 +107,10 @@ export interface PhotoPing {
 }
 
 const PHOTO_BUCKET = 'group-photos';
+const AVATAR_BUCKET = 'avatars';
+/** A group's own profile photo: <uuid>/g<random>.jpg in the avatars bucket. */
+const GROUP_AVATAR = /^[0-9a-f-]{36}\/g[A-Za-z0-9_-]{6,40}\.jpg$/;
+const AVATAR_PATH = /^[0-9a-f-]{36}\/(avatar|g[A-Za-z0-9_-]{6,40})\.jpg$/;
 const PHOTO_PATH = /^[0-9a-f-]{36}\/[A-Za-z0-9_-]{6,40}\.jpg$/;
 
 export function inviteUrl(slug: string, base = publicAppUrl()): string {
@@ -139,8 +149,8 @@ function readMember(raw: unknown, photoUrl: (path: string) => string | null, pin
   if (typeof r.slot !== 'number' || !Number.isInteger(r.slot) || r.slot < 0 || r.slot >= GROUP_LIMITS.members) return null;
   const alias = typeof r.alias === 'string' && r.alias.trim() ? r.alias.trim().slice(0, GROUP_LIMITS.alias) : null;
   const nickname = alias ?? (typeof r.nickname === 'string' && r.nickname.trim() ? r.nickname.trim().slice(0, 20) : '익명');
-  // Only a photo in the avatars bucket's own <uuid>/avatar.jpg shape.
-  const path = typeof r.avatar_path === 'string' && /^[0-9a-f-]{36}\/avatar\.jpg$/.test(r.avatar_path) ? r.avatar_path : null;
+  // Only a photo in the avatars bucket's own shapes: <uuid>/avatar.jpg, or a group's <uuid>/g<random>.jpg.
+  const path = typeof r.avatar_path === 'string' && AVATAR_PATH.test(r.avatar_path) ? r.avatar_path : null;
   const pings = (Array.isArray(r.pings) ? r.pings : [])
     .map((p) => readPing(p, pingPhotoUrl))
     .filter((p): p is GroupPing => !!p)
@@ -148,7 +158,15 @@ function readMember(raw: unknown, photoUrl: (path: string) => string | null, pin
     .slice(-GROUP_LIMITS.pingsPerMember);
   // Before the colour had its own column it followed the slot.
   const color = typeof r.color === 'number' && Number.isInteger(r.color) && r.color >= 0 && r.color < GROUP_LIMITS.members ? r.color : r.slot;
-  return { userId: r.user_id, slot: r.slot, color, nickname, alias, photo: path ? photoUrl(path) : null, pings };
+  const member: GroupMember = { userId: r.user_id, slot: r.slot, color, nickname, alias, photo: path ? photoUrl(path) : null, pings };
+  if (r.own_profile === true) member.ownProfile = true;
+  // Sent for my own row alone.
+  if ('group_alias' in r || 'group_photo' in r) {
+    const stored = typeof r.group_alias === 'string' && r.group_alias.trim() ? r.group_alias.trim().slice(0, GROUP_LIMITS.alias) : null;
+    const photo = typeof r.group_photo === 'string' && GROUP_AVATAR.test(r.group_photo) ? photoUrl(r.group_photo) : null;
+    member.groupProfile = { alias: stored, photo };
+  }
+  return member;
 }
 
 /** heart_news' rows, checked; anything off is skipped. */
@@ -313,6 +331,40 @@ export function createSupabaseGroupService(
         if (!client) return false;
         const { data, error } = await client.rpc('set_group_alias', { gid: id, new_alias: alias.trim().slice(0, GROUP_LIMITS.alias) });
         return !error && data === true;
+      } catch {
+        return false;
+      }
+    },
+
+    async setProfile(id, own, alias, photo) {
+      try {
+        const name = alias.trim().slice(0, GROUP_LIMITS.alias);
+        if (!UUID.test(id) || (own && !name)) return false;
+        const client = await getClient();
+        if (!client) return false;
+        const bucket = client.storage.from(AVATAR_BUCKET);
+        let path: string | null = null;
+        if (photo) {
+          const blob = dataUrlToBlob(photo);
+          const { data: session } = await client.auth.getSession();
+          const userId = session.session?.user.id;
+          if (!blob || !userId) return false;
+          // A new name each time, so no one's cached copy of the old one shows.
+          path = `${userId}/g${slug()}${slug()}.jpg`;
+          const { error } = await bucket.upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
+          if (error) return false;
+        }
+        const { data, error } = await client.rpc('set_group_profile', {
+          gid: id, own, new_alias: name, new_photo: photo === undefined ? null : (path ?? ''),
+        });
+        const ok = !error && !!data && (data as { ok?: unknown }).ok === true;
+        if (!ok) {
+          if (path) await bucket.remove([path]);
+          return false;
+        }
+        const old = (data as { old_photo?: unknown }).old_photo;
+        if (typeof old === 'string' && GROUP_AVATAR.test(old)) await bucket.remove([old]);
+        return true;
       } catch {
         return false;
       }

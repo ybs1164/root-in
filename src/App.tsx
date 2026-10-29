@@ -61,7 +61,7 @@ import WeNowPage from './components/WeNowPage';
 import { loadGroupSeen, loadMemberSeen, memberSeenKey, saveGroupSeen, saveMemberSeen, type GroupSeen, type MemberSeen } from './services/groupSeenRepository';
 import { useStoredPings } from './hooks/useStoredPings';
 import { dateKey } from './domain/diary';
-import GroupMapView from './components/GroupMapView';
+import GroupMapView, { type GroupPlace } from './components/GroupMapView';
 import PhotoGallery from './components/PhotoGallery';
 import { useHeartNews } from './hooks/useHeartNews';
 import { useGalleryPhotos } from './hooks/useGalleryPhotos';
@@ -344,7 +344,12 @@ export default function App() {
         // A place pinged again and again in a row (photo after photo there) is one ping with its photos stacked.
         members: g.members.map((m) =>
           m.userId === myId
-            ? { ...m, photo: profile.photo ?? m.photo, nickname: m.alias ?? (getDisplayName().trim() || m.nickname), pings: mergeSamePlace(withSentPhotos(myPings, m.pings)) }
+            ? {
+                ...m,
+                // 통합 프로필: this phone's photo and nickname (fresher than the server's); 개별: the group's own.
+                ...(m.ownProfile ? {} : { photo: profile.photo ?? m.photo, nickname: m.alias ?? (getDisplayName().trim() || m.nickname) }),
+                pings: mergeSamePlace(withSentPhotos(myPings, m.pings)),
+              }
             : { ...m, pings: mergeSamePlace(m.pings) },
         ),
       })),
@@ -427,7 +432,7 @@ export default function App() {
   }, [tab]);
   useEffect(() => setGroupPicked(null), [openGroupId]);
   // The ping tapped on a group's map (its place is in the photo panel under the title); it goes with its member's focus.
-  const [groupPing, setGroupPing] = useState<{ member: string; seq: number } | null>(null);
+  const [groupPing, setGroupPing] = useState<GroupPlace | null>(null);
   useEffect(() => {
     if (groupPing && groupPing.member !== groupPicked) setGroupPing(null);
   }, [groupPicked, groupPing]);
@@ -821,6 +826,7 @@ export default function App() {
         label: groupPicked === m.userId ? p.name : undefined,
         photos: photos.has(i) ? groupPingPhotos(p) : undefined,
         selected: groupPing?.member === m.userId && groupPing.seq === i,
+        selectedPhoto: groupPing?.member === m.userId && groupPing.seq === i ? groupPing.photo : undefined,
         together: together.has(groupPingKey(m, p)),
       }));
     });
@@ -887,16 +893,18 @@ export default function App() {
     if (!groupOpen || !el) return;
     let tap: { x: number; y: number; at: number } | null = null;
     const hit = (x: number, y: number): { member: string; seq: number } | null => {
-      let found: { member: string; seq: number } | null = null;
+      let found: GroupPlace | null = null;
       for (const p of document.querySelectorAll<HTMLElement>('.group-ping')) {
         if (!p.dataset.member) continue;
         const parts = [...p.querySelectorAll<HTMLElement>('.group-ping__photo, .group-ping__face, .group-ping__pin')].filter((c) => getComputedStyle(c).visibility !== 'hidden');
-        const on = parts.some((c) => {
+        const within = (c: HTMLElement) => {
           const r = c.getBoundingClientRect();
           return x >= r.left - 6 && x <= r.right + 6 && y >= r.top - 6 && y <= r.bottom + 6;
-        });
-        if (!on) continue;
-        found = { member: p.dataset.member, seq: Number(p.dataset.seq) };
+        };
+        if (!parts.some(within)) continue;
+        // One of a place's stacked photos: that photo, not just the newest.
+        const photo = parts.find((c) => c.dataset.photo !== undefined && within(c));
+        found = { member: p.dataset.member, seq: Number(p.dataset.seq), ...(photo ? { photo: Number(photo.dataset.photo) } : {}) };
         // A photo or a face is over the pins around it.
         if (p.classList.contains('has-photo') || p.classList.contains('group-ping--face')) break;
       }
@@ -1987,8 +1995,10 @@ export default function App() {
           onRename={(name) => groups.rename(openGroup.id, name)}
           me={myId}
           onKick={setKicking}
-          onAlias={(alias) => groups.setAlias(openGroup.id, alias)}
           onColor={(color) => groups.setColor(openGroup.id, color)}
+          onProfile={(own, alias, photo) => groups.setProfile(openGroup.id, own, alias, photo)}
+          profileNickname={getDisplayName().trim()}
+          profilePhoto={profile.photo ?? null}
           onDelete={() => setGroupDeleting(true)}
           onLeave={() => setGroupLeaving(true)}
           onClose={() => setGroupSettingsOpen(false)}

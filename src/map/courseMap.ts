@@ -90,6 +90,8 @@ export interface GroupPingMark {
   photos?: string[];
   /** The ping tapped on (its place is in the panel under the group's title). */
   selected?: boolean;
+  /** Of a selected ping's stacked photos, the one in the panel (none = the newest). */
+  selectedPhoto?: number;
   /** Someone else in the group pinged the same place: an aurora edge instead of the member's colour. */
   together?: boolean;
 }
@@ -247,6 +249,9 @@ export function createGroupPingElement(mark: GroupPingMark): HTMLElement {
     const head = document.createElement('span');
     head.className = 'group-ping__photo';
     head.style.setProperty('--stack', String(i));
+    // Which of the place's photos a tap on it opens.
+    head.dataset.photo = String(i);
+    if (mark.selected && i === (mark.selectedPhoto ?? (mark.photos?.length ?? 0) - 1)) head.classList.add('is-picked');
     const img = document.createElement('img');
     img.src = photo;
     img.alt = '';

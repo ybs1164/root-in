@@ -7,7 +7,6 @@ import { useMetDays, type GalleryState } from '../hooks/useGalleryPhotos';
 import { groupService } from '../services/groupService';
 import { loadGalleryStars, saveGalleryStars } from '../services/galleryStarRepository';
 import { HighFive } from './icons';
-import { FlipCell } from './AlertBoard';
 import { dateKey } from '../domain/diary';
 import { MemberFace } from './WeNowPage';
 import PhotoViewer from './PhotoViewer';
@@ -167,15 +166,13 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
         )}
         {ready && allDays.length > 0 && (
           <div className="gallery__tools">
-            {/* 알림 설정's board: two flip cells, icons only. */}
-            <div className="alerts__hours gallery__board" role="group" aria-label="사진 거르기">
-              <FlipCell lit={starsOn} label="즐겨찾기" className="gallery__switch" onClick={() => setStarsOn((on) => !on)}>
-                <Star size={16} strokeWidth={2.2} aria-hidden />
-              </FlipCell>
-              <FlipCell lit={metOn} label="만난 날" className="gallery__switch" onClick={() => setMetOn((on) => !on)}>
-                <HighFive size={19} />
-              </FlipCell>
-            </div>
+            {/* Icons only; switched on, the accent. */}
+            <button className={`gallery__filter ${starsOn ? 'is-on' : ''}`} aria-label="즐겨찾기" aria-pressed={starsOn} onClick={() => setStarsOn((on) => !on)}>
+              <Star size={18} strokeWidth={2.2} aria-hidden />
+            </button>
+            <button className={`gallery__filter ${metOn ? 'is-on' : ''}`} aria-label="만난 날" aria-pressed={metOn} onClick={() => setMetOn((on) => !on)}>
+              <HighFive size={21} />
+            </button>
           </div>
         )}
         {ready && allDays.length > 0 && !days.length && (

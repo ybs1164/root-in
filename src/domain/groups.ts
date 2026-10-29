@@ -22,8 +22,12 @@ export interface GroupMember {
   nickname: string;
   /** Their own name for this group (내 별명), null = the profile nickname. */
   alias: string | null;
-  /** Public URL of their profile photo, or null. */
+  /** Public URL of the photo the group shows (their 개별 one, else the profile's), or null. */
   photo: string | null;
+  /** 개별 프로필: this group shows its own photo and name for them, not their profile's. */
+  ownProfile?: boolean;
+  /** My own row only: the group's photo (URL) and name as stored, shown in 그룹 설정 even while I use 통합. */
+  groupProfile?: { alias: string | null; photo: string | null };
   /** Today's pings, oldest first. */
   pings: GroupPing[];
 }

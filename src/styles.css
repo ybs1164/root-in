@@ -8745,6 +8745,12 @@ button:disabled {
   translate: 0 -50%;
 }
 
+/* With a member or a photo in focus the days don't page. */
+.route-step.group-view__step:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
 /* The member row along the bottom (where the other screens have their
    bottom row): ALL then every member's face, each its own round, scrolled
    sideways when they don't all fit, centred when they do. */
@@ -9381,7 +9387,7 @@ button.group-photo-panel__photo {
   z-index: 5;
 }
 
-.group-ping.is-selected .group-ping__photo {
+.group-ping.is-selected .group-ping__photo.is-picked {
   scale: 1.18;
 }
 
@@ -9608,6 +9614,46 @@ button.group-photo-panel__photo {
 
 .group-form__label--first {
   margin-top: 0;
+}
+
+/* 그룹 설정's PROFILE: 통합 | 개별, two halves of one pill. */
+.group-form__modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.group-form__modes button {
+  min-height: 40px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+}
+
+.group-form__modes button.is-on {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* 개별 프로필: the group's photo (the profile popup's, smaller) over its nickname. */
+.group-form__own {
+  display: flex;
+  flex-direction: column;
+  margin-top: 16px;
+  animation: unfold 0.18s ease-out both;
+}
+
+.profile__photo.group-form__photo {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 0;
 }
 
 /* 그룹 설정's COLOR: the pen tray's round swatches, ten across; a colour
@@ -10174,19 +10220,25 @@ button.group-photo-panel__photo {
   margin: 0 auto 22px;
 }
 
-/* 알림 설정's board, two cells wide. */
-.gallery__board {
-  grid-template-columns: repeat(2, 52px);
-}
-
-.gallery__switch,
-.gallery__switch .alerts__face {
+.gallery__filter {
   display: grid;
   place-items: center;
+  min-width: 52px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
 }
 
-.gallery__switch.is-on .lucide-star,
-.gallery__switch .alerts__face.is-on .lucide-star {
+.gallery__filter.is-on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.gallery__filter.is-on .lucide-star {
   fill: currentColor;
 }
 
@@ -10220,7 +10272,8 @@ button.group-photo-panel__photo {
   color: var(--heart);
 }
 
-.gallery__heart.is-on svg {
+.gallery__heart.is-on svg,
+.gallery__star.is-on svg {
   animation: pop-in 0.28s var(--pop-ease) both;
 }
 
