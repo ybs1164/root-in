@@ -188,7 +188,7 @@ export default function PhotoViewer({
             </span>
           ))}
         </figcaption>
-        {commentPath !== undefined && <PhotoCommentList path={commentPath} writing={writing && !!commentPath} />}
+        {commentPath !== undefined && <PhotoCommentList path={commentPath} writing={writing && !!commentPath} onSent={() => setWriting(false)} />}
       </figure>
     </div>
   );
@@ -244,9 +244,10 @@ export function OpenPhotoMarks({ path, heart, hearts = true }: { path: string | 
  * Under the big photo's caption: its comments one under another as speech
  * bubbles (mine on the right, in the accent colour; others' on the left
  * with their name), oldest first, scrolled to the newest. While `writing`,
- * a line to write one at the bottom (Enter or ↑ sends).
+ * a line to write one at the bottom (Enter or ↑ sends); once one is sent
+ * the line goes (`onSent`) until 💬 is pressed again.
  */
-function PhotoCommentList({ path, writing }: { path: string | null; writing: boolean }) {
+function PhotoCommentList({ path, writing, onSent }: { path: string | null; writing: boolean; onSent(): void }) {
   const { comments, failed, add } = usePhotoComments(path);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -267,7 +268,9 @@ function PhotoCommentList({ path, writing }: { path: string | null; writing: boo
     const ok = await add(text);
     setSending(false);
     setError(!ok);
-    if (ok) setText('');
+    if (!ok) return;
+    setText('');
+    onSent();
   };
   return (
     <div className="photo-comments">

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import { createSupabaseGroupService, inviteUrl, readGroups, readInviteSlug, readMetPairs, readHeartNews, readComments } from './groupService';
+import { createSupabaseGroupService, inviteUrl, readGroups, readInviteSlug, readMetPairs, readHeartNews, readComments, readFeed } from './groupService';
 
 const G1 = '11111111-1111-1111-1111-111111111111';
 const U1 = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
@@ -273,6 +273,38 @@ describe('groupService', () => {
     expect(await service.comments(path)).toEqual([{ id: C1, nickname: '민수', body: '좋다', at: '2026-11-02T01:00:00Z', mine: false }]);
     expect(await service.comments('ping:abc')).toBe('error');
     expect(readComments('nope')).toEqual([]);
+  });
+
+  it("reads a group's 대화 oldest first, checked, and sends a message", async () => {
+    const path = `${U1}/AbCdEf123456.jpg`;
+    const C1 = '11111111-2222-4333-8444-555555555555';
+    const C2 = '11111111-2222-4333-8444-555555555556';
+    const C3 = '11111111-2222-4333-8444-555555555557';
+    const rows = [
+      { kind: 'message', id: C3, user_id: U2, at: '2026-10-30T03:00:00Z', body: ' 나도 놀러가고 싶다 ', mine: true },
+      { kind: 'comment', id: C2, user_id: U2, at: '2026-10-30T02:00:00Z', body: '어디가?', path, place: '서울고속버스터미널' },
+      { kind: 'photo', id: C1, user_id: U1, at: '2026-10-30T01:00:00Z', path, place: ' 서울고속버스터미널 ' },
+      { kind: 'photo', id: C1, user_id: U1, at: '2026-10-30T01:00:00Z', path: '../x' },
+      { kind: 'message', id: C1, user_id: U1, at: '2026-10-30T01:00:00Z', body: '  ' },
+      { kind: 'poll', id: C1, user_id: U1, at: '2026-10-30T01:00:00Z' },
+    ];
+    const feed = readFeed(rows, (p) => `https://cdn/${p}`);
+    expect(feed.map((i) => i.kind)).toEqual(['photo', 'comment', 'message']);
+    expect(feed[0]).toEqual({ kind: 'photo', id: C1, userId: U1, at: '2026-10-30T01:00:00.000Z', mine: false, path, photo: `https://cdn/${path}`, place: '서울고속버스터미널' });
+    expect(feed[2]).toMatchObject({ body: '나도 놀러가고 싶다', mine: true });
+    expect(readFeed('nope', () => null)).toEqual([]);
+
+    const fake = fakeClient((fn) => ({ data: fn === 'send_group_message' ? C1 : null }));
+    const service = createSupabaseGroupService(async () => fake.client, true);
+    expect(await service.sendMessage(G1, ' 안녕 ')).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('send_group_message', { gid: G1, message: '안녕' });
+    expect(await service.sendMessage(G1, '  ')).toBe(false);
+    expect(await service.sendMessage('bad', 'hi')).toBe(false);
+  });
+
+  it("keeps the day a group was made, when the server says it", () => {
+    expect(readGroups([{ ...row, created_at: '2026-10-16T03:00:00Z' }], () => null)[0].createdAt).toBe('2026-10-16T03:00:00.000Z');
+    expect(readGroups([{ ...row, created_at: 'soon' }], () => null)[0].createdAt).toBeUndefined();
   });
 
   it("reads a member's 개별 프로필, and my row's stored one", () => {

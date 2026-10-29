@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultHandle, handleProblem, isValidHandle, sanitizeHandleInput, shareCountLabel, PING_ALERT_HOURS, randomAlerts, toggleAlert, toggleAllAlerts } from './profile';
+import { defaultHandle, handleProblem, isValidHandle, sanitizeHandleInput, shareCountLabel, PING_ALERT_HOURS, randomAlerts, toggleAlert, toggleAllAlerts, groupAlertOn, toggleGroupAlert, toggleGroupAlertsAll } from './profile';
 
 describe('profile handle', () => {
   it('keeps only URL-safe characters while typing, lower-cased and capped', () => {
@@ -52,5 +52,22 @@ describe('alert steps', () => {
     const again = [...tosses, 0.9, 0.9, 0.9, 0.9, 0.9, 0.1];
     i = 0;
     expect(randomAlerts([7, 12, 20], PING_ALERT_HOURS, () => again[i++])).toEqual([23]);
+  });
+});
+
+describe('그룹 알림 kinds', () => {
+  it('switches one cell of a group, then 전체 for a group and for every group', () => {
+    let off = toggleGroupAlert([], 'g1', 'heart');
+    expect(groupAlertOn(off, 'g1', 'heart')).toBe(false);
+    expect(groupAlertOn(off, 'g1', 'chat')).toBe(true);
+    expect(groupAlertOn(off, 'g2', 'heart')).toBe(true);
+    // Not all on: 전체 lights the group's every cell.
+    off = toggleGroupAlertsAll(off, ['g1']);
+    expect(off).toEqual([]);
+    // All on: 전체 puts them out.
+    off = toggleGroupAlertsAll(off, ['g1']);
+    expect(['route', 'heart', 'comment', 'chat'].every((k) => !groupAlertOn(off, 'g1', k as 'route'))).toBe(true);
+    expect(toggleGroupAlertsAll(off, ['g1', 'g2'])).toEqual([]);
+    expect(toggleGroupAlert(off, 'g1', 'chat')).not.toContain('g1:chat');
   });
 });

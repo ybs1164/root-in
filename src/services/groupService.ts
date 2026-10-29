@@ -5,7 +5,7 @@ import { inKorea } from './pinShareService';
 import { dataUrlToBlob } from './remoteProfileService';
 import { newSlug } from './shareLinkService';
 import { createGroupDemoService } from '../dev/groupDemoService';
-import { COMMENT_MAX, type GalleryPhoto, type MetPair, type PhotoComment } from '../domain/gallery';
+import { COMMENT_MAX, type FeedItem, type GalleryPhoto, type MetPair, type PhotoComment } from '../domain/gallery';
 import { publicAppUrl } from '../lib/appUrl';
 
 // We Now groups (supabase/migrations/20261016000000_groups.sql). Everything
@@ -85,6 +85,10 @@ export interface GroupService {
   comments(path: string): Promise<PhotoComment[] | 'error'>;
   /** A comment on a photo of a group of mine; false when the server said no. */
   comment(path: string, body: string): Promise<boolean>;
+  /** A group's 대화 (its photos, their comments, its messages), oldest first; 'error' when the server couldn't be asked. */
+  feed(groupId: string): Promise<FeedItem[] | 'error'>;
+  /** A message in a group's 대화; false when the server said no. */
+  sendMessage(groupId: string, body: string): Promise<boolean>;
 }
 
 
@@ -203,6 +207,32 @@ export function readComments(data: unknown): PhotoComment[] {
   return comments;
 }
 
+/** group_feed's rows (newest first), checked and turned oldest first; anything off is skipped. */
+export function readFeed(data: unknown, photoUrl: (path: string) => string | null): FeedItem[] {
+  if (!Array.isArray(data)) return [];
+  const items: FeedItem[] = [];
+  for (const row of data.slice(0, 300)) {
+    const r = (row ?? {}) as Record<string, unknown>;
+    if (r.kind !== 'photo' && r.kind !== 'comment' && r.kind !== 'message') continue;
+    if (typeof r.id !== 'string' || !UUID.test(r.id) || typeof r.user_id !== 'string' || !UUID.test(r.user_id)) continue;
+    if (typeof r.at !== 'string' || Number.isNaN(Date.parse(r.at))) continue;
+    const item: FeedItem = { kind: r.kind, id: r.id, userId: r.user_id, at: new Date(r.at).toISOString(), mine: r.mine === true };
+    if (r.kind !== 'photo') {
+      if (typeof r.body !== 'string' || !r.body.trim()) continue;
+      item.body = r.body.trim().slice(0, COMMENT_MAX);
+    }
+    if (r.kind !== 'message') {
+      if (typeof r.path !== 'string' || !PHOTO_PATH.test(r.path)) continue;
+      item.path = r.path;
+      const url = photoUrl(r.path);
+      if (url) item.photo = url;
+      if (typeof r.place === 'string' && r.place.trim()) item.place = r.place.trim().slice(0, 80);
+    }
+    items.push(item);
+  }
+  return items.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+}
+
 /** group_met_days' rows, checked; anything off is skipped. */
 export function readMetPairs(data: unknown): MetPair[] {
   if (!Array.isArray(data)) return [];
@@ -250,7 +280,9 @@ export function readGroups(raw: unknown, photoUrl: (path: string) => string | nu
       .map((m) => readMember(m, photoUrl, pingPhotoUrl))
       .filter((m): m is GroupMember => !!m && !seen.has(m.userId) && !!seen.add(m.userId))
       .sort((a, b) => a.slot - b.slot);
-    groups.push({ id: r.id, name: name || '이름 없는 그룹', cover, inviteSlug: r.invite_slug, mine: r.mine === true, members });
+    const group: Group = { id: r.id, name: name || '이름 없는 그룹', cover, inviteSlug: r.invite_slug, mine: r.mine === true, members };
+    if (typeof r.created_at === 'string' && !Number.isNaN(Date.parse(r.created_at))) group.createdAt = new Date(r.created_at).toISOString();
+    groups.push(group);
   }
   return groups;
 }
@@ -521,6 +553,32 @@ export function createSupabaseGroupService(
         const client = await getClient();
         if (!client) return false;
         const { data, error } = await client.rpc('comment_photo', { photo_path: path, comment: text });
+        return !error && typeof data === 'string';
+      } catch {
+        return false;
+      }
+    },
+
+    async feed(groupId) {
+      try {
+        if (!UUID.test(groupId)) return 'error';
+        const client = await getClient();
+        if (!client) return 'error';
+        const { data, error } = await client.rpc('group_feed', { gid: groupId });
+        if (error) return 'error';
+        return readFeed(data, (path) => client.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl || null);
+      } catch {
+        return 'error';
+      }
+    },
+
+    async sendMessage(groupId, body) {
+      try {
+        const text = body.trim();
+        if (!UUID.test(groupId) || !text || text.length > COMMENT_MAX) return false;
+        const client = await getClient();
+        if (!client) return false;
+        const { data, error } = await client.rpc('send_group_message', { gid: groupId, message: text });
         return !error && typeof data === 'string';
       } catch {
         return false;

@@ -58,14 +58,53 @@ export function sanitizeAlerts(value: unknown, steps: readonly number[]): number
 }
 
 /**
- * 알림 설정 → 그룹 알림 keeps the groups switched *off* (so a group joined
- * later starts on): stored ids, kept only if they're short strings, once each.
+ * 알림 설정 → 그룹 알림: per group, four kinds of alert, each on its own
+ * cell of the group's board —
+ * - route (새로운 루트): another member pinged a new place (with a photo or not);
+ * - heart (하트): someone hearted a photo of mine;
+ * - comment (댓글): someone commented on a photo of mine;
+ * - chat (채팅): in the group's 대화, someone else's message, or their
+ *   comment on a photo that isn't mine. A photo posted there alerts only
+ *   as a new route, a comment on mine only as 댓글.
  */
-export const GROUP_ALERTS_MAX = 100;
+export const GROUP_ALERT_KINDS = ['route', 'heart', 'comment', 'chat'] as const;
+export type GroupAlertKind = (typeof GROUP_ALERT_KINDS)[number];
+export const GROUP_ALERT_LABELS: Record<GroupAlertKind, string> = { route: '새로운 루트', heart: '하트', comment: '댓글', chat: '채팅' };
+
+/**
+ * What's kept is what's switched *off* (so a group joined later starts with
+ * everything on): `<group id>:<kind>`, once each. A bare group id — the one
+ * switch a group had before the kinds — means all four off.
+ */
+export const GROUP_ALERTS_MAX = 30 * GROUP_ALERT_KINDS.length;
+const offKey = (groupId: string, kind: GroupAlertKind) => `${groupId}:${kind}`;
 export function sanitizeGroupIds(value: unknown): string[] | null {
   if (!Array.isArray(value)) return null;
-  const ids = value.filter((id): id is string => typeof id === 'string' && id.length > 0 && id.length <= 64);
-  return [...new Set(ids)].slice(0, GROUP_ALERTS_MAX);
+  const keys = value
+    .filter((id): id is string => typeof id === 'string' && id.length > 0 && id.length <= 64)
+    .flatMap((id) => {
+      const at = id.lastIndexOf(':');
+      const kind = id.slice(at + 1);
+      if (at > 0 && (GROUP_ALERT_KINDS as readonly string[]).includes(kind)) return [id];
+      return id.includes(':') ? [] : GROUP_ALERT_KINDS.map((k) => offKey(id, k));
+    });
+  return [...new Set(keys)].slice(0, GROUP_ALERTS_MAX);
+}
+
+/** Whether `kind` alerts are on for the group. */
+export const groupAlertOn = (off: readonly string[], groupId: string, kind: GroupAlertKind): boolean => !off.includes(offKey(groupId, kind));
+
+/** One cell of a group's board switched the other way. */
+export function toggleGroupAlert(off: readonly string[], groupId: string, kind: GroupAlertKind): string[] {
+  const key = offKey(groupId, kind);
+  return off.includes(key) ? off.filter((k) => k !== key) : [...off, key];
+}
+
+/** 전체, for `groupIds` (one group's, or every group's): all their cells on — or, when they already all are, all off. */
+export function toggleGroupAlertsAll(off: readonly string[], groupIds: readonly string[]): string[] {
+  const keys = groupIds.flatMap((id) => GROUP_ALERT_KINDS.map((k) => offKey(id, k)));
+  const allOn = keys.every((k) => !off.includes(k));
+  return allOn ? [...new Set([...off, ...keys])] : off.filter((k) => !keys.includes(k));
 }
 
 /** The steps with `step` switched the other way. */

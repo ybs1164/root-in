@@ -1,6 +1,6 @@
 import { ChevronLeft } from 'lucide-react';
 import { useMemo, useState, type CSSProperties } from 'react';
-import { dayPingers, withMyPingDays, type Group } from '../domain/groups';
+import { dayPingers, isGroupBirthday, withMyPingDays, type Group } from '../domain/groups';
 import { dateKey } from '../domain/diary';
 import { useGroupPingDays } from '../hooks/useGroups';
 import type { AuthUser } from '../services/authService';
@@ -74,6 +74,7 @@ export default function GroupCalendar({ group, user, me, myDays, day, onPick, on
           view={view}
           onView={setView}
           isDisabled={(key) => key > today}
+          starred={(key) => (isGroupBirthday(key, group.createdAt) ? '그룹이 생긴 날' : null)}
           onPick={(key) => key <= today && onPick(key)}
           marks={(key) => {
             const faces = dayPingers(group, days[key]);

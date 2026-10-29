@@ -6452,6 +6452,11 @@ button:disabled {
   margin-top: 4px;
 }
 
+/* 그룹 알림 stands a little further from 투데이 알림 above it. */
+.alerts__row--groups {
+  margin-top: 30px;
+}
+
 .alerts__head {
   display: flex;
   align-items: center;
@@ -6467,10 +6472,31 @@ button:disabled {
 .alerts__groups {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* A group: its cover, name and 전체, then its four-cell board. */
+.alerts__group {
+  display: grid;
+  gap: 6px;
+}
+
+.alerts__group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+
+.alerts__group-head .alerts__group-name {
+  flex: 1;
+}
+
+.alerts__hours.alerts__kinds {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .alerts__cover {
@@ -8877,20 +8903,15 @@ button:disabled {
   white-space: nowrap;
 }
 
-.group-photo-panel__nav {
-  display: flex;
+/* When the photo was taken, where ‹ › were (HH:MM). */
+.group-photo-panel__time {
   flex: none;
-}
-
-.group-photo-panel__nav button {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 44px;
-  padding: 0;
-  border: 0;
-  background: none;
+  padding-right: 4px;
   color: var(--muted);
+  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  line-height: 1;
 }
 
 button.group-photo-panel__photo {
@@ -10209,6 +10230,382 @@ button.group-photo-panel__photo {
 .gallery__heart.is-on svg,
 .gallery__star.is-on svg {
   animation: pop-in 0.28s var(--pop-ease) both;
+}
+
+/* A group's 대화 button: bottom-right on its map, level with the member
+   row's faces (their middle 70px up), a blue circle with two white bubbles. */
+.group-view__chat {
+  position: fixed;
+  right: 14px;
+  bottom: calc(var(--safe-bottom) + 44px);
+  z-index: 21;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: var(--round-btn-shadow);
+  color: var(--on-accent);
+  transition: scale 0.12s ease;
+  animation: pop-in 0.28s var(--pop-ease) both;
+}
+
+.group-view__chat:active {
+  scale: 0.92;
+}
+
+/* The 대화 itself (GroupChat): over the group's map like the gallery — ‹ and
+   TALK up top, the thread, the line to write at the bottom. */
+.group-chat {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  animation: veil-in 0.2s ease both;
+}
+
+.group-chat__head {
+  position: relative;
+  flex: none;
+  display: grid;
+  justify-items: center;
+  padding: calc(var(--safe-top) + 64px) 72px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.group-chat__title {
+  margin: 0;
+  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+  font-size: 40px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  line-height: 48px;
+}
+
+.group-chat__group {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.group-chat__list {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px 16px 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.group-chat__day {
+  align-self: center;
+}
+
+/* The day's pill, a button (44px to press around it) that opens the small calendar to jump between days. */
+.group-chat__day button {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.group-chat__day button span {
+  padding: 2px 12px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+}
+
+/* The small calendar under a day pill (GroupChat): only days with talk press. */
+.chat-days__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+}
+
+.chat-days {
+  position: fixed;
+  z-index: 56;
+  padding: 8px 8px 10px;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--dialog-shadow);
+  animation: rise-in 0.18s ease both;
+}
+
+.chat-days__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chat-days__head strong {
+  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+.chat-days__head button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+}
+
+.chat-days__head button:disabled {
+  opacity: 0.25;
+}
+
+.chat-days__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  justify-items: center;
+}
+
+.chat-days__weekday {
+  padding: 2px 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.chat-days__day {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.chat-days__day:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.chat-days__day:disabled {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* Faint, but not the star under it. */
+.chat-days__day:disabled .chat-days__num {
+  color: color-mix(in srgb, var(--muted) 45%, transparent);
+}
+
+/* A group's birthday (the day it was made, every year): its date stands on
+   a yellow star (the group calendar and the 대화's day calendar). */
+.born-day {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: var(--text);
+}
+
+.born-day::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  z-index: -1;
+  background: var(--star);
+  clip-path: polygon(50% 2%, 62% 36%, 98% 37%, 69% 59%, 80% 94%, 50% 73%, 20% 94%, 31% 59%, 2% 37%, 38% 36%);
+}
+
+
+.chat-days__day.is-today {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.chat-days__day.is-on {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* A line: the face, then the name over a bubble whose tail points at it. */
+.group-chat__line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.group-chat__line.is-mine {
+  justify-content: flex-end;
+}
+
+.group-chat__line.is-mine .group-chat__said {
+  justify-items: end;
+}
+
+/* The bubble with its time at its foot, outside it (left of mine). */
+.group-chat__row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.group-chat__line.is-mine .group-chat__row {
+  flex-direction: row-reverse;
+}
+
+.group-chat__time {
+  flex: none;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.group-chat__line > .member-face {
+  flex: none;
+  margin-top: 16px;
+}
+
+.group-chat__said {
+  display: grid;
+  justify-items: start;
+  gap: 3px;
+  min-width: 0;
+  max-width: 82%;
+}
+
+.group-chat__who {
+  padding-left: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.group-chat__bubble {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 4px 16px 16px 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.group-chat__line.is-mine .group-chat__bubble {
+  border-radius: 16px 4px 16px 16px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.group-chat__text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* A photo sent to the group: its place over it. */
+.group-chat__photo {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+}
+
+.group-chat__photo strong {
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.group-chat__photo img {
+  display: block;
+  width: min(180px, 52vw);
+  aspect-ratio: 1;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+/* A comment's photo: a small copy and its place, over the comment. */
+.group-chat__quote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 0 6px;
+  border: 0;
+  border-bottom: 1px dashed currentColor;
+  background: none;
+  color: inherit;
+  font-size: 12px;
+  opacity: 0.75;
+  text-align: left;
+}
+
+.group-chat__quote img {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.group-chat__form {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 10px 16px calc(var(--safe-bottom) + 14px);
+}
+
+.group-chat__input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+}
+
+.group-chat__fail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  margin: 0;
+  color: var(--danger);
+  font-size: 13px;
+  text-align: center;
 }
 
 /* The big photo's comments (PhotoViewer): speech bubbles one under

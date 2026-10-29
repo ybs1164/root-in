@@ -1,9 +1,9 @@
 import { dateKey } from '../domain/diary';
 import type { Group, GroupMember, GroupPing } from '../domain/groups';
-import { GROUP_LIMITS, firstFreeColor } from '../domain/groups';
+import { GROUP_LIMITS, firstFreeColor, photoKey } from '../domain/groups';
 import type { GalleryPhoto } from '../domain/gallery';
 import type { GroupService } from '../services/groupService';
-import { COMMENT_MAX, type MetPair, type PhotoComment } from '../domain/gallery';
+import { COMMENT_MAX, type FeedItem, type MetPair } from '../domain/gallery';
 import { getDisplayName } from '../lib/currentUser';
 
 const DEMO_IDS = ['dev-group-user-1', 'dev-group-user-2'];
@@ -108,12 +108,37 @@ export function withGroupDemoMembers(groups: Group[], day: string, today: string
   return groups.map((g) => g.id === target.id ? { ...g, members: [...members, ...demos] } : g);
 }
 
+/** The demo members' first photos as the demo 대화 shows them (the same drawings as on the map, so comments match). */
+function demoFeedPhotos() {
+  return [0, 1].map((i) => {
+    const photo = demoPhoto(i, 0)!;
+    return { id: `demo-f${i}`, userId: DEMO_IDS[i], at: new Date(Date.now() - (60 - i * 10) * 60_000).toISOString(), photo, path: photoKey(photo), place: DEMO_PLACES[i][0] };
+  });
+}
+
 export function createGroupDemoService(service: GroupService): GroupService {
   const hidden = new Set<string>();
   // Hearts on the demo members' drawn photos stay here (the server has no such photos).
   const demoHearts = new Set<string>();
-  // The demo photos' comments, in memory only.
-  const demoComments = new Map<string, PhotoComment[]>();
+  // The demo photos' comments and the demo 대화's messages, in memory only
+  // (userId null = mine). Seeded with a little talk about the first photos.
+  type Said = { id: string; userId: string | null; body: string; at: string };
+  const demoComments = new Map<string, Said[]>();
+  // A little from the days before too, so the 대화 has more than one day to jump between.
+  const demoMessages: Said[] = [
+    { id: 'demo-m-old-a', userId: DEMO_IDS[1], body: '이번 주말에 뭐 해?', at: new Date(Date.now() - 3 * 86_400_000).toISOString() },
+    { id: 'demo-m-old-b', userId: DEMO_IDS[0], body: '광화문 갈 거야', at: new Date(Date.now() - 3 * 86_400_000 + 5 * 60_000).toISOString() },
+    { id: 'demo-m-old-c', userId: DEMO_IDS[1], body: '내일 사진 꼭 보내 줘', at: new Date(Date.now() - 86_400_000).toISOString() },
+  ];
+  const feedPhotos = demoFeedPhotos();
+  const ago = (min: number) => new Date(Date.now() - min * 60_000).toISOString();
+  if (feedPhotos[0].path) {
+    demoComments.set(feedPhotos[0].path, [
+      { id: 'demo-c-a', userId: DEMO_IDS[1], body: '어디가?', at: ago(40) },
+      { id: 'demo-c-b', userId: DEMO_IDS[0], body: '여행!', at: ago(35) },
+    ]);
+  }
+  const nameOf = (userId: string | null) => (userId === null ? getDisplayName() : `더미 유저 ${DEMO_IDS.indexOf(userId) + 1}`);
   let target: { id: string; day: string } | null = null;
   return {
     ...service,
@@ -168,13 +193,33 @@ export function createGroupDemoService(service: GroupService): GroupService {
     },
     async comments(path) {
       if (!path.startsWith('demo/')) return service.comments(path);
-      return [...(demoComments.get(path) ?? [])];
+      return (demoComments.get(path) ?? []).map((c) => ({ id: c.id, nickname: nameOf(c.userId), body: c.body, at: c.at, mine: c.userId === null }));
     },
     async comment(path, body) {
       if (!path.startsWith('demo/')) return service.comment(path, body);
       const list = demoComments.get(path) ?? [];
-      list.push({ id: `demo-c${list.length}`, nickname: getDisplayName(), body: body.trim().slice(0, COMMENT_MAX), at: new Date().toISOString(), mine: true });
+      list.push({ id: `demo-c${list.length}-${Date.now()}`, userId: null, body: body.trim().slice(0, COMMENT_MAX), at: new Date().toISOString() });
       demoComments.set(path, list);
+      return true;
+    },
+    async feed(groupId) {
+      const result = await service.feed(groupId);
+      if (!target || groupId !== target.id) return result;
+      // My own lines carry my id in the real feed; here the app finds them by `mine`.
+      const said = (kind: 'comment' | 'message', c: Said, photo?: (typeof feedPhotos)[number]): FeedItem => ({
+        kind, id: c.id, userId: c.userId ?? 'me', at: c.at, mine: c.userId === null, body: c.body,
+        ...(photo ? { path: photo.path ?? undefined, photo: photo.photo, place: photo.place } : {}),
+      });
+      const demo: FeedItem[] = [
+        ...feedPhotos.map((p) => ({ kind: 'photo' as const, id: p.id, userId: p.userId, at: p.at, mine: false, path: p.path ?? undefined, photo: p.photo, place: p.place })),
+        ...feedPhotos.flatMap((p) => (p.path ? (demoComments.get(p.path) ?? []).map((c) => said('comment', c, p)) : [])),
+        ...demoMessages.map((m) => said('message', m)),
+      ].filter((i) => !hidden.has(`${groupId}:${i.userId}`));
+      return [...(result === 'error' ? [] : result), ...demo].sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+    },
+    async sendMessage(groupId, body) {
+      if (!target || groupId !== target.id) return service.sendMessage(groupId, body);
+      demoMessages.push({ id: `demo-m${demoMessages.length}-${Date.now()}`, userId: null, body: body.trim().slice(0, COMMENT_MAX), at: new Date().toISOString() });
       return true;
     },
     async kick(id, userId) {

@@ -1,12 +1,13 @@
 import { CalendarDays, Camera, ChevronLeft, ChevronRight, Settings, X } from 'lucide-react';
 import { useEffect, useRef, type CSSProperties } from 'react';
-import { memberColor, passRoute, photoKey, pingPhotos, type Group, type GroupMember, type GroupPing } from '../domain/groups';
+import { memberColor, passRoute, photoKey, pingPhotos, placeTime, type Group, type GroupMember, type GroupPing } from '../domain/groups';
 import { addDays } from '../domain/calendar';
 import { dateKey } from '../domain/diary';
 import { galleryDayLabel } from '../domain/gallery';
 import { MemberFace } from './WeNowPage';
 import PhotoViewer, { OpenPhotoMarks } from './PhotoViewer';
 import { GalleryButton } from './PhotoGallery';
+import { TalkBubbles } from './icons';
 
 /** Per-button delay index, capped as on the pin rail. */
 const stagger = (i: number): CSSProperties => ({ '--i': Math.min(i, 8) }) as CSSProperties;
@@ -37,6 +38,8 @@ interface GroupMapViewProps {
   onCalendar(): void;
   /** The gallery under the calendar: every photo sent to this group, by day. */
   onGallery(): void;
+  /** The 대화 at the bottom-right: the group's photos, their comments and messages in one thread. */
+  onChat(): void;
 }
 
 /**
@@ -72,7 +75,7 @@ const shownPhoto = (ping: GroupPing | undefined, photo?: number): string | undef
   return (photo !== undefined ? all[photo] : undefined) ?? ping?.photo;
 };
 
-export default function GroupMapView({ group, day, onDay, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onGallery }: GroupMapViewProps) {
+export default function GroupMapView({ group, day, onDay, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onGallery, onChat }: GroupMapViewProps) {
   const pickedMember = group.members.find((m) => m.userId === picked) ?? null;
   const today = dateKey();
   const shown = day ?? today;
@@ -98,6 +101,10 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
         <CalendarDays size={22} strokeWidth={2} />
       </button>
       <GalleryButton className="group-view__btn group-view__btn--gallery" onOpen={onGallery} />
+      {/* Bottom-right, level with the member row (where the camera once stood). */}
+      <button className="group-view__chat" aria-label="대화" onClick={onChat}>
+        <TalkBubbles size={30} />
+      </button>
 
       <div className="group-view__title">
         {/* The name (and the day under it) opens the group's calendar, as TODAY's title opens its month. */}
@@ -129,10 +136,9 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
       {pickedMember && <MemberPass key={pickedMember.userId} member={pickedMember} mine={pickedMember.userId === me} day={label} />}
 
       {pickedMember && place?.member === pickedMember.userId && pickedMember.pings[place.seq] && (() => {
-        const step = (dir: -1 | 1) => onPlace({ member: pickedMember.userId, seq: (place.seq + dir + pickedMember.pings.length) % pickedMember.pings.length });
         return (
           <>
-            <PhotoPanel member={pickedMember} seq={place.seq} photo={shownPhoto(pickedMember.pings[place.seq], place.photo)} onStep={step} onOpen={() => onPhotoBig(true)} onClose={() => onPlace(null)} />
+            <PhotoPanel member={pickedMember} seq={place.seq} photo={shownPhoto(pickedMember.pings[place.seq], place.photo)} time={placeTime(pickedMember.pings[place.seq], place.photo)} onOpen={() => onPhotoBig(true)} onClose={() => onPlace(null)} />
             {photoBig && (
               <PhotoViewer
                 items={pickedMember.pings.map((p, i) => ({
@@ -227,7 +233,7 @@ function MemberPass({ member, mine, day }: { member: GroupMember; mine: boolean;
  * thread in their colour runs from the panel down to the ping on the map,
  * redrawn every frame from the marker so it follows pans and zooms.
  */
-function PhotoPanel({ member, seq, photo, onStep, onOpen, onClose }: { member: GroupMember; seq: number; photo?: string; onStep(dir: -1 | 1): void; onOpen(): void; onClose(): void }) {
+function PhotoPanel({ member, seq, photo, time, onOpen, onClose }: { member: GroupMember; seq: number; photo?: string; time: string; onOpen(): void; onClose(): void }) {
   const ping = member.pings[seq];
   const panel = useRef<HTMLElement>(null);
   const thread = useRef<HTMLSpanElement>(null);
@@ -279,16 +285,8 @@ function PhotoPanel({ member, seq, photo, onStep, onOpen, onClose }: { member: G
               <MemberFace member={member} size={22} />
               {member.nickname}
             </span>
-            {member.pings.length > 1 && (
-              <span className="group-photo-panel__nav">
-                <button aria-label="이전 장소" onClick={() => onStep(-1)}>
-                  <ChevronLeft size={22} strokeWidth={2.4} />
-                </button>
-                <button aria-label="다음 장소" onClick={() => onStep(1)}>
-                  <ChevronRight size={22} strokeWidth={2.4} />
-                </button>
-              </span>
-            )}
+            {/* When the photo was taken (or they were there), where ‹ › used to be. */}
+            <time className="group-photo-panel__time">{time}</time>
           </div>
         </div>
       </section>

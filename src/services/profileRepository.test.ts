@@ -12,8 +12,8 @@ describe('profileRepository', () => {
   });
 
   it('round-trips a saved profile, its switches too', () => {
-    saveProfile({ handle: 'rootin', photo: 'data:image/jpeg;base64,AAAA', sound: false, pingAlerts: [9, 20], groupAlertsOff: ['g1'], scheme: 'dark' });
-    expect(loadProfile()).toEqual({ handle: 'rootin', photo: 'data:image/jpeg;base64,AAAA', sound: false, pingAlerts: [9, 20], groupAlertsOff: ['g1'], scheme: 'dark' });
+    saveProfile({ handle: 'rootin', photo: 'data:image/jpeg;base64,AAAA', sound: false, pingAlerts: [9, 20], groupAlertsOff: ['g1:chat'], scheme: 'dark' });
+    expect(loadProfile()).toEqual({ handle: 'rootin', photo: 'data:image/jpeg;base64,AAAA', sound: false, pingAlerts: [9, 20], groupAlertsOff: ['g1:chat'], scheme: 'dark' });
   });
 
   it('keeps the switches on for a profile saved before they existed', () => {
@@ -45,8 +45,9 @@ describe('profileRepository', () => {
   it('keeps only known alert steps', () => {
     window.localStorage.setItem('goodroot:profile:v1', JSON.stringify({ handle: 'rootin', photo: null, pingAlerts: [23, 3, 'x', 7, 7] }));
     expect(loadProfile().pingAlerts).toEqual([7, 23]);
-    window.localStorage.setItem('goodroot:profile:v1', JSON.stringify({ handle: 'rootin', photo: null, shareAlerts: [10], groupAlertsOff: ['g1', 7, 'g1', '', 'g2'] }));
-    expect(loadProfile().groupAlertsOff).toEqual(['g1', 'g2']);
+    // A bare group id (the one switch a group had) turns into all four kinds off; unknown kinds go.
+    window.localStorage.setItem('goodroot:profile:v1', JSON.stringify({ handle: 'rootin', photo: null, shareAlerts: [10], groupAlertsOff: ['g1', 7, 'g1', '', 'g2:heart', 'g2:poke'] }));
+    expect(loadProfile().groupAlertsOff).toEqual(['g1:route', 'g1:heart', 'g1:comment', 'g1:chat', 'g2:heart']);
     expect(loadProfile()).not.toHaveProperty('shareAlerts');
   });
 });

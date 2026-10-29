@@ -8,11 +8,13 @@ import { captureFrame, openCamera, stopCamera, type Facing } from '../lib/camera
  * over the view with 다시 찍기 and 전송, which hands it to `onSend` (App asks
  * which groups, then sends it with a ping of where I am).
  */
-export default function CameraScreen({ onSend, onClose }: { onSend: (photo: string) => void; onClose: () => void }) {
+export default function CameraScreen({ onSend, onClose }: { onSend: (photo: string, takenAt: Date) => void; onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const [facing, setFacing] = useState<Facing>('environment');
   const [state, setState] = useState<'starting' | 'live' | 'failed'>('starting');
   const [shot, setShot] = useState<string | null>(null);
+  // When the shutter went: the photo's time wherever it's shown, however long 전송 takes.
+  const takenAt = useRef(new Date());
   const [flash, setFlash] = useState(0);
 
   // A new stream for each camera; the old one is stopped so the light goes off.
@@ -55,6 +57,7 @@ export default function CameraScreen({ onSend, onClose }: { onSend: (photo: stri
     const url = captureFrame(el, { width: side, height: side }, facing === 'user');
     if (!url) return;
     setFlash((n) => n + 1);
+    takenAt.current = new Date();
     setShot(url);
   };
 
@@ -84,7 +87,7 @@ export default function CameraScreen({ onSend, onClose }: { onSend: (photo: stri
             <button type="button" className="camera__btn" aria-label="다시 찍기" onClick={() => setShot(null)}>
               <RotateCcw size={22} strokeWidth={2.2} />
             </button>
-            <button type="button" className="camera__send" onClick={() => onSend(shot)}>
+            <button type="button" className="camera__send" onClick={() => onSend(shot, takenAt.current)}>
               <Send size={20} strokeWidth={2.4} aria-hidden />
               전송
             </button>

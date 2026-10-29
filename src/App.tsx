@@ -62,6 +62,7 @@ import { loadGroupSeen, loadMemberSeen, memberSeenKey, saveGroupSeen, saveMember
 import { useStoredPings } from './hooks/useStoredPings';
 import { dateKey } from './domain/diary';
 import GroupMapView, { type GroupPlace } from './components/GroupMapView';
+import GroupChat from './components/GroupChat';
 import PhotoGallery from './components/PhotoGallery';
 import { useHeartNews } from './hooks/useHeartNews';
 import { useGalleryPhotos } from './hooks/useGalleryPhotos';
@@ -165,6 +166,8 @@ export default function App() {
   const [cameraOpen, setCameraOpen] = useState(false);
   // A shot from the camera waiting for its groups (the 그룹에 보내기 popup is up).
   const [cameraShot, setCameraShot] = useState<string | null>(null);
+  // When it was taken: the photo ping's time (and day) is the shutter's, not 전송's.
+  const cameraShotAt = useRef(new Date());
   // Where that shot can say it was taken (null while still looking), or why there's nowhere.
   const [cameraSpots, setCameraSpots] = useState<{ places: PlaceRef[] | null; problem: string | null }>({ places: null, problem: null });
   const cameraLookup = useRef(0);
@@ -446,6 +449,13 @@ export default function App() {
   useEffect(() => setGroupPing(null), [groupDay]);
   // The panel's photo opened big over everything; it goes when the panel does.
   const [groupPhotoBig, setGroupPhotoBig] = useState(false);
+  // The open group's 대화, and the photo open big in it.
+  const [groupChat, setGroupChat] = useState(false);
+  const [chatPhoto, setChatPhoto] = useState<number | null>(null);
+  useEffect(() => {
+    setGroupChat(false);
+    setChatPhoto(null);
+  }, [openGroupId]);
   useEffect(() => {
     if (!groupPing) setGroupPhotoBig(false);
   }, [groupPing]);
@@ -1366,6 +1376,8 @@ export default function App() {
     if (galleryTab) return closeGallery(), true;
     if (groupCalendar) return setGroupCalendar(false), true;
     if (studio) return setStudio(null), true;
+    if (chatPhoto !== null) return setChatPhoto(null), true;
+    if (groupChat) return setGroupChat(false), true;
     if (groupPhotoBig) return setGroupPhotoBig(false), true;
     if (openGroupId) return setOpenGroupId(null), true;
     if (todayPhoto !== null) return setTodayPhoto(null), true;
@@ -1424,7 +1436,7 @@ export default function App() {
   };
   const sendCameraShot = async (groupIds: string[], photo: string, place: PlaceRef, today: boolean): Promise<string | null> => {
     if (isExcluded(place, privacy.excluded)) return '제외 주소 근처에서는 보낼 수 없어요.';
-    const sent = groupIds.length ? await groups.sendPhoto(groupIds, { day: dateKey(), at: new Date().toISOString(), center: place.center, name: place.name }, photo) : 0;
+    const sent = groupIds.length ? await groups.sendPhoto(groupIds, { day: dateKey(cameraShotAt.current), at: cameraShotAt.current.toISOString(), center: place.center, name: place.name }, photo) : 0;
     if (groupIds.length && !sent) return '보내지 못했어요. 잠시 뒤에 다시 시도해 주세요.';
     const pinged = today && (await pingShotOnToday(photo, place));
     if (today && !pinged && !sent) return 'TODAY에 핑을 찍지 못했어요.';
@@ -1950,8 +1962,13 @@ export default function App() {
             onSettings={() => setGroupSettingsOpen(true)}
             onCalendar={() => setGroupCalendar(true)}
             onGallery={() => openGallery(openGroup.id)}
+            onChat={() => setGroupChat(true)}
           />
         </>
+      )}
+
+      {groupChat && openGroup && (
+        <GroupChat group={openGroup} me={myId} photoSeq={chatPhoto} onPhotoSeq={setChatPhoto} onClose={() => setGroupChat(false)} />
       )}
 
       {groupCalendar && openGroup && (
@@ -2210,7 +2227,8 @@ export default function App() {
           so leaving 설정 goes back to the screen under it, with no grey left over. */}
       {cameraOpen && (
         <CameraScreen
-          onSend={(photo) => {
+          onSend={(photo, takenAt) => {
+            cameraShotAt.current = takenAt;
             setCameraShot(photo);
             groups.refresh();
             void findCameraSpots();
