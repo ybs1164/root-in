@@ -68,9 +68,11 @@ describe('만난 날 and 즐겨찾기', () => {
     { groupId: 'g2', day: '2026-10-25', users: ['b', 'me'] as [string, string] },
   ];
 
-  it('keeps the days I met someone in MY, and the days two of a group met in its tab', () => {
+  it('keeps only the days I met someone: from any group in MY, from that group in its tab', () => {
     expect([...metDays(pairs, 'my', 'me')].sort()).toEqual(['2026-10-25', '2026-10-28']);
-    expect([...metDays(pairs, 'g1', 'me')].sort()).toEqual(['2026-10-26', '2026-10-28']);
+    // a and b meeting without me on the 26th isn't one.
+    expect([...metDays(pairs, 'g1', 'me')]).toEqual(['2026-10-28']);
+    expect([...metDays(pairs, 'g2', 'me')]).toEqual(['2026-10-25']);
     expect(metDays(pairs, 'my', null).size).toBe(0);
   });
 

@@ -100,13 +100,15 @@ export interface MetPair {
 }
 
 /**
- * The days 만난 날 keeps: in a group's tab, every day two of its members met;
- * in MY, every day I met someone, in any of my groups.
+ * The days 만난 날 keeps: every day I met someone from a group — in MY from
+ * any of my groups, in a group's tab from that group. Two others meeting
+ * without me isn't one.
  */
 export function metDays(pairs: readonly MetPair[], tab: GalleryTab, me: string | null): Set<string> {
   const days = new Set<string>();
+  if (!me) return days;
   for (const p of pairs) {
-    if (tab === 'my' ? !!me && p.users.includes(me) : p.groupId === tab) days.add(p.day);
+    if (p.users.includes(me) && (tab === 'my' || p.groupId === tab)) days.add(p.day);
   }
   return days;
 }
