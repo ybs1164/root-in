@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import { createSupabaseGroupService, inviteUrl, readGroups, readInviteSlug, readMetPairs, readHeartNews, readComments, readFeed } from './groupService';
+import { createSupabaseGroupService, inviteUrl, readGroups, readInviteSlug, readMetPairs, readHeartNews, readComments, readFeed, readDecorLayers } from './groupService';
 
 const G1 = '11111111-1111-1111-1111-111111111111';
 const U1 = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
@@ -300,6 +300,30 @@ describe('groupService', () => {
     expect(fake.rpc).toHaveBeenLastCalledWith('send_group_message', { gid: G1, message: '안녕' });
     expect(await service.sendMessage(G1, '  ')).toBe(false);
     expect(await service.sendMessage('bad', 'hi')).toBe(false);
+  });
+
+  it("reads every member's doodles on a photo, pieces only, and saves mine (nothing on it: taken off)", async () => {
+    const path = `${U1}/AbCdEf123456.jpg`;
+    const stroke = { tool: 'pen', color: 'member-3', width: 'medium', points: [[0.1, 0.2], [0.3, 0.4]] };
+    const layers = readDecorLayers([
+      { user_id: U1, decor: { strokes: [stroke, { ...stroke, color: 'url(x)' }], stickers: [], theme: 'sky', ink: 'member-3' }, mine: true },
+      { user_id: U2, decor: { strokes: [stroke], stickers: [], ink: 'red' } },
+      { user_id: 'nope', decor: { strokes: [stroke], stickers: [] } },
+    ]);
+    // The doodler's colour comes along (their stickers' edge); anything but a member colour is dropped.
+    expect(layers).toEqual([
+      { userId: U1, decor: { strokes: [stroke], stickers: [] }, mine: true, ink: 'member-3' },
+      { userId: U2, decor: { strokes: [stroke], stickers: [] }, mine: false },
+    ]);
+    expect(readDecorLayers('nope')).toEqual([]);
+
+    const fake = fakeClient((fn) => ({ data: fn === 'set_photo_decor' ? true : null }));
+    const service = createSupabaseGroupService(async () => fake.client, true);
+    expect(await service.setDecor(path, { strokes: [stroke as never], stickers: [] }, 'member-3')).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('set_photo_decor', { photo_path: path, decor: { strokes: [stroke], stickers: [], ink: 'member-3' } });
+    expect(await service.setDecor(path, { strokes: [], stickers: [] })).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('set_photo_decor', { photo_path: path, decor: null });
+    expect(await service.setDecor('demo/x', { strokes: [], stickers: [] })).toBe(false);
   });
 
   it("keeps the day a group was made, when the server says it", () => {

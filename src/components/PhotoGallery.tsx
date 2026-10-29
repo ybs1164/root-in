@@ -225,6 +225,8 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
           nextLabel="다음 사진"
           counted={false}
           commentPath={viewer[seq].path}
+          // The doodles show here, but aren't drawn on (that's on the group's map or 대화).
+          decorPath={viewer[seq].path.startsWith('ping:') ? null : viewer[seq].path}
           side={
             // Hearts go to someone else's photo sent to a group: never mine, nor one that stayed on this phone.
             <PhotoMarkButtons

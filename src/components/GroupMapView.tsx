@@ -1,6 +1,6 @@
 import { CalendarDays, Camera, ChevronLeft, ChevronRight, Settings, X } from 'lucide-react';
 import { useEffect, useRef, type CSSProperties } from 'react';
-import { memberColor, passRoute, photoKey, pingPhotos, placeTime, type Group, type GroupMember, type GroupPing } from '../domain/groups';
+import { GROUP_LIMITS, memberColor, passRoute, photoKey, pingPhotos, placeTime, type Group, type GroupMember, type GroupPing } from '../domain/groups';
 import { addDays } from '../domain/calendar';
 import { dateKey } from '../domain/diary';
 import { galleryDayLabel } from '../domain/gallery';
@@ -77,6 +77,9 @@ const shownPhoto = (ping: GroupPing | undefined, photo?: number): string | undef
 
 export default function GroupMapView({ group, day, onDay, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onGallery, onChat }: GroupMapViewProps) {
   const pickedMember = group.members.find((m) => m.userId === picked) ?? null;
+  // My colour here, as the doodle tools' one ink (`member-N`).
+  const mine = group.members.find((m) => m.userId === me);
+  const myColor = mine ? `member-${mine.color % GROUP_LIMITS.members}` : null;
   const today = dateKey();
   const shown = day ?? today;
   const label = galleryDayLabel(shown, today);
@@ -153,6 +156,9 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
                 onClose={() => onPhotoBig(false)}
                 counted={false}
                 commentPath={photoKey(shownPhoto(pickedMember.pings[place.seq], place.photo))}
+                // Doodled on in my colour in this group (kept on the photo: the gallery shows them too).
+                decorPath={photoKey(shownPhoto(pickedMember.pings[place.seq], place.photo))}
+                decorColor={myColor}
                 // ♥ ★ as in the gallery in place of ‹ › (paging by drag and the arrow keys); no ♥ on my own.
                 side={
                   <OpenPhotoMarks path={photoKey(shownPhoto(pickedMember.pings[place.seq], place.photo))} heart={pickedMember.userId !== me} />
@@ -281,11 +287,7 @@ function PhotoPanel({ member, seq, photo, time, onOpen, onClose }: { member: Gro
           </div>
           <strong className="group-photo-panel__name">{placeName(ping.name)}</strong>
           <div className="group-photo-panel__foot">
-            <span className="group-photo-panel__who">
-              <MemberFace member={member} size={22} />
-              {member.nickname}
-            </span>
-            {/* When the photo was taken (or they were there), where ‹ › used to be. */}
+            {/* When the photo was taken (or they were there); who it is, the pass below says. */}
             <time className="group-photo-panel__time">{time}</time>
           </div>
         </div>

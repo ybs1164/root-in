@@ -5,6 +5,7 @@ import type { GalleryPhoto } from '../domain/gallery';
 import type { GroupService } from '../services/groupService';
 import { COMMENT_MAX, type FeedItem, type MetPair } from '../domain/gallery';
 import { getDisplayName } from '../lib/currentUser';
+import type { DayDecor } from '../domain/decor';
 
 const DEMO_IDS = ['dev-group-user-1', 'dev-group-user-2'];
 const DEMO_PLACES = [['광화문', '서촌 카페', '통인시장'], ['명동성당', '남대문시장', '을지로 노가리골목']];
@@ -61,7 +62,8 @@ export function demoGalleryPhotos(groupId: string, day: string): GalleryPhoto[] 
         photos.push({
           id: `demo-${back}-${i}-${step}`, groupId, userId: DEMO_IDS[i], day: on,
           at: new Date(`${on}T${['09:30', '11:00', '14:00'][step]}:00+09:00`).toISOString(),
-          name: DEMO_PLACES[i][step], path: `demo/${back}-${i}-${step}`, url,
+          // Keyed like the map keys the same drawing, so its comments and doodles follow it here.
+          name: DEMO_PLACES[i][step], path: photoKey(url) ?? `demo/${back}-${i}-${step}`, url,
         });
       }
     }
@@ -125,6 +127,8 @@ export function createGroupDemoService(service: GroupService): GroupService {
   type Said = { id: string; userId: string | null; body: string; at: string };
   const demoComments = new Map<string, Said[]>();
   // A little from the days before too, so the 대화 has more than one day to jump between.
+  // My doodles on the demo photos, in memory only.
+  const demoDecor = new Map<string, { decor: DayDecor; ink?: string }>();
   const demoMessages: Said[] = [
     { id: 'demo-m-old-a', userId: DEMO_IDS[1], body: '이번 주말에 뭐 해?', at: new Date(Date.now() - 3 * 86_400_000).toISOString() },
     { id: 'demo-m-old-b', userId: DEMO_IDS[0], body: '광화문 갈 거야', at: new Date(Date.now() - 3 * 86_400_000 + 5 * 60_000).toISOString() },
@@ -216,6 +220,16 @@ export function createGroupDemoService(service: GroupService): GroupService {
         ...demoMessages.map((m) => said('message', m)),
       ].filter((i) => !hidden.has(`${groupId}:${i.userId}`));
       return [...(result === 'error' ? [] : result), ...demo].sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+    },
+    async decors(path) {
+      if (!path.startsWith('demo/')) return service.decors(path);
+      const mine = demoDecor.get(path);
+      return mine ? [{ userId: 'me', decor: mine.decor, mine: true, ...(mine.ink ? { ink: mine.ink } : {}) }] : [];
+    },
+    async setDecor(path, decor, ink) {
+      if (!path.startsWith('demo/')) return service.setDecor(path, decor, ink);
+      demoDecor.set(path, { decor, ink });
+      return true;
     },
     async sendMessage(groupId, body) {
       if (!target || groupId !== target.id) return service.sendMessage(groupId, body);

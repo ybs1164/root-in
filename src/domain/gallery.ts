@@ -1,5 +1,6 @@
 import type { StoredPing } from './dayPings';
 import type { GroupAlertKind } from './profile';
+import type { DayDecor } from './decor';
 
 /** A photo sent to a group from the camera, as the gallery lists it. */
 export interface GalleryPhoto {
@@ -167,3 +168,15 @@ export function feedAlertKind(item: FeedItem, myPhotos: ReadonlySet<string>): Gr
   if (item.kind === 'comment' && item.path && myPhotos.has(item.path)) return 'comment';
   return 'chat';
 }
+
+/** One member's doodles on a group photo (pen, stickers, text in their colour). */
+export interface PhotoDecorLayer {
+  userId: string;
+  decor: DayDecor;
+  mine: boolean;
+  /** Their colour where they doodled it (`member-N`): their stickers' die-cut edge. */
+  ink?: string;
+}
+
+/** A doodler's colour as stored with their layer: a member colour token, nothing else. */
+export const isMemberInk = (v: unknown): v is string => typeof v === 'string' && /^member-(1?\d)$/.test(v);

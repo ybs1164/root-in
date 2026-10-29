@@ -1,4 +1,5 @@
 import { ArrowUp, Camera, ChevronLeft, ChevronRight, Heart, MessageCircle, Star, X } from 'lucide-react';
+import { usePhotoDoodle } from './PhotoDoodle';
 import { usePhotoMarks, type PhotoMarks } from '../hooks/usePhotoMarks';
 import { usePhotoComments } from '../hooks/usePhotoComments';
 import { COMMENT_MAX } from '../domain/gallery';
@@ -40,6 +41,8 @@ export default function PhotoViewer({
   counted = true,
   side,
   commentPath,
+  decorPath,
+  decorColor,
 }: {
   items: ViewerItem[];
   seq: number;
@@ -57,8 +60,21 @@ export default function PhotoViewer({
    * photo that can't have any (no path); left out: no comments here at all.
    */
   commentPath?: string | null;
+  /**
+   * The shown photo's path, for its doodles (every member's pen, stickers
+   * and text, drawn over it). Left out: none here; null: a photo with no path.
+   */
+  decorPath?: string | null;
+  /**
+   * My colour in this group (`member-N`): the tools (펜 · 스티커 · 텍스트) show
+   * over the photo and draw in it, only inside the photo. Absent: the
+   * doodles are only shown (the gallery).
+   */
+  decorColor?: string | null;
 }) {
   const [writing, setWriting] = useState(false);
+  const doodle = usePhotoDoodle(decorPath ?? null, decorColor ?? null);
+  const tool = doodle.active;
   const ping = items[seq];
   const count = items.length;
   // Which way the new photo slides in from (1 = from the right, after a drag or › to the next).
@@ -71,9 +87,13 @@ export default function PhotoViewer({
   };
   const goRef = useRef(go);
   goRef.current = go;
+  const toolRef = useRef(tool);
+  toolRef.current = tool;
+  const putAway = useRef(doodle.putAway);
+  putAway.current = doodle.putAway;
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') toolRef.current ? putAway.current() : onClose();
       // Typing a comment: the arrows move in the text, not between photos.
       else if ((e.target as HTMLElement | null)?.closest?.('input, textarea')) return;
       else if (e.key === 'ArrowLeft') goRef.current(-1);
@@ -95,7 +115,8 @@ export default function PhotoViewer({
     el.style.translate = dx ? `${dx}px 0` : '';
   };
   const onDown = (e: React.PointerEvent) => {
-    if (!e.isPrimary) return;
+    // A tool out: the finger doodles, it doesn't page.
+    if (!e.isPrimary || tool) return;
     drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), dx: 0, on: false };
   };
   const onMove = (e: React.PointerEvent) => {
@@ -136,6 +157,7 @@ export default function PhotoViewer({
       </button>
       <figure className={`group-photo-viewer__figure ${commentPath !== undefined ? 'has-comments' : ''}`} onClick={(e) => e.stopPropagation()}>
         {ping.date && <p className="group-photo-viewer__date">{ping.date}</p>}
+        {ping.photo && doodle.tools}
         <div
           ref={photo}
           className="group-photo-viewer__drag"
@@ -144,9 +166,12 @@ export default function PhotoViewer({
           onPointerUp={onUp}
           onPointerCancel={onUp}
         >
-          <div key={seq} className={`group-photo-viewer__photo ${ping.photo ? '' : 'is-empty'}`} data-from={from || undefined}>
+          <div key={seq} className={`group-photo-viewer__photo ${ping.photo ? '' : 'is-empty'} ${decorPath !== undefined && ping.photo ? 'has-doodles' : ''}`} data-from={from || undefined}>
             {ping.photo ? (
-              <img src={ping.photo} alt="" draggable={false} />
+              <>
+                <img src={ping.photo} alt="" draggable={false} />
+                {doodle.layers}
+              </>
             ) : (
               <>
                 <Camera size={34} strokeWidth={2} aria-hidden />
@@ -188,6 +213,7 @@ export default function PhotoViewer({
             </span>
           ))}
         </figcaption>
+        {doodle.tray}
         {commentPath !== undefined && <PhotoCommentList path={commentPath} writing={writing && !!commentPath} onSent={() => setWriting(false)} />}
       </figure>
     </div>

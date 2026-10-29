@@ -8892,21 +8892,14 @@ button:disabled {
   -webkit-box-orient: vertical;
 }
 
-.group-photo-panel__who {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 13px;
-  white-space: nowrap;
+/* When the photo was taken (HH:MM): at the foot's right, kept in a little from the panel's edges. */
+.group-photo-panel__foot {
+  justify-content: flex-end;
 }
 
-/* When the photo was taken, where ‹ › were (HH:MM). */
 .group-photo-panel__time {
   flex: none;
-  padding-right: 4px;
+  padding: 0 10px 8px 0;
   color: var(--muted);
   font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
   font-size: 22px;
@@ -10606,6 +10599,79 @@ button.group-photo-panel__photo {
   color: var(--danger);
   font-size: 13px;
   text-align: center;
+}
+
+/* Doodles on a group photo (PhotoViewer): the photo a square (sent photos
+   are), every member's layer over it, cut to it. */
+.group-photo-viewer__photo.has-doodles {
+  position: relative;
+  /* Not cut off: a sticker or text box dragged off the photo shows the trash under it. */
+  overflow: visible;
+  aspect-ratio: 1;
+  width: min(100%, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 200px));
+  margin: 0 auto;
+}
+
+.group-photo-viewer__figure.has-comments .group-photo-viewer__photo.has-doodles {
+  width: min(100%, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 330px));
+}
+
+.group-photo-viewer__photo.has-doodles img {
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  object-fit: cover;
+}
+
+.photo-doodle,
+.photo-doodle__layer {
+  position: absolute;
+  inset: 0;
+}
+
+/* One member's layer (it carries their sticker edge colour); only the tools' own surface takes touches. */
+.photo-doodle__layer {
+  pointer-events: none;
+}
+
+/* Pen lines stay on the photo, cut to its rounded corners. */
+.photo-doodle .decor__ink {
+  clip-path: inset(0 round 18px);
+}
+
+/* 펜 · 스티커 · 텍스트 over the photo's top right; the one out is in my colour. */
+.photo-doodle__tools {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: -4px;
+}
+
+.photo-doodle__tool {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--tray-hi);
+  color: var(--tray-fg);
+}
+
+.photo-doodle__tool.is-on {
+  background: var(--doodle);
+  color: var(--on-accent);
+}
+
+.photo-doodle__tool:disabled {
+  opacity: 0.35;
+}
+
+/* The tool sheets (on the body) over the big photo's veil. */
+.photo-doodle__tray {
+  position: relative;
+  z-index: 62;
 }
 
 /* The big photo's comments (PhotoViewer): speech bubbles one under
