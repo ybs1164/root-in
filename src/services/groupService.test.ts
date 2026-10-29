@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import { createSupabaseGroupService, inviteUrl, readGroups, readInviteSlug, readMetPairs, readHeartNews } from './groupService';
+import { createSupabaseGroupService, inviteUrl, readGroups, readInviteSlug, readMetPairs, readHeartNews, readComments } from './groupService';
 
 const G1 = '11111111-1111-1111-1111-111111111111';
 const U1 = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
@@ -255,6 +255,24 @@ describe('groupService', () => {
     expect(fake.rpc).toHaveBeenLastCalledWith('hearts_seen', { upto: '2026-11-02T01:00:00Z' });
     expect(readHeartNews('nope')).toEqual([]);
     expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).heartNews()).toEqual([]);
+  });
+
+  it('reads and writes a photo\'s comments by its path, checked', async () => {
+    const path = `${U1}/AbCdEf123456.jpg`;
+    const C1 = '11111111-2222-4333-8444-555555555555';
+    const fake = fakeClient((fn) => ({
+      data: fn === 'comment_photo' ? C1 : fn === 'photo_comments'
+        ? [{ id: C1, user_id: U1, nickname: ' 민수 ', body: ' 좋다 ', at: '2026-11-02T01:00:00Z', mine: false }, { id: 'x', body: 'no' }, { id: C1, body: '   ', at: '2026-11-02T01:00:00Z' }]
+        : null,
+    }));
+    const service = createSupabaseGroupService(async () => fake.client, true);
+    expect(await service.comment(path, '  안녕  ')).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('comment_photo', { photo_path: path, comment: '안녕' });
+    expect(await service.comment(path, '   ')).toBe(false);
+    expect(await service.comment('demo/x', 'hi')).toBe(false);
+    expect(await service.comments(path)).toEqual([{ id: C1, nickname: '민수', body: '좋다', at: '2026-11-02T01:00:00Z', mine: false }]);
+    expect(await service.comments('ping:abc')).toBe('error');
+    expect(readComments('nope')).toEqual([]);
   });
 
   it("reads a member's 개별 프로필, and my row's stored one", () => {

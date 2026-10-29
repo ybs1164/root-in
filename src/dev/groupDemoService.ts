@@ -3,7 +3,8 @@ import type { Group, GroupMember, GroupPing } from '../domain/groups';
 import { GROUP_LIMITS, firstFreeColor } from '../domain/groups';
 import type { GalleryPhoto } from '../domain/gallery';
 import type { GroupService } from '../services/groupService';
-import type { MetPair } from '../domain/gallery';
+import { COMMENT_MAX, type MetPair, type PhotoComment } from '../domain/gallery';
+import { getDisplayName } from '../lib/currentUser';
 
 const DEMO_IDS = ['dev-group-user-1', 'dev-group-user-2'];
 const DEMO_PLACES = [['광화문', '서촌 카페', '통인시장'], ['명동성당', '남대문시장', '을지로 노가리골목']];
@@ -111,6 +112,8 @@ export function createGroupDemoService(service: GroupService): GroupService {
   const hidden = new Set<string>();
   // Hearts on the demo members' drawn photos stay here (the server has no such photos).
   const demoHearts = new Set<string>();
+  // The demo photos' comments, in memory only.
+  const demoComments = new Map<string, PhotoComment[]>();
   let target: { id: string; day: string } | null = null;
   return {
     ...service,
@@ -162,6 +165,17 @@ export function createGroupDemoService(service: GroupService): GroupService {
     async hearted() {
       const result = await service.hearted();
       return result === 'error' ? [...demoHearts] : [...result, ...demoHearts];
+    },
+    async comments(path) {
+      if (!path.startsWith('demo/')) return service.comments(path);
+      return [...(demoComments.get(path) ?? [])];
+    },
+    async comment(path, body) {
+      if (!path.startsWith('demo/')) return service.comment(path, body);
+      const list = demoComments.get(path) ?? [];
+      list.push({ id: `demo-c${list.length}`, nickname: getDisplayName(), body: body.trim().slice(0, COMMENT_MAX), at: new Date().toISOString(), mine: true });
+      demoComments.set(path, list);
+      return true;
     },
     async kick(id, userId) {
       if (!DEMO_IDS.includes(userId)) return service.kick(id, userId);

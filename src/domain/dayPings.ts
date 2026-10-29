@@ -33,7 +33,7 @@ export interface StoredPing {
   local?: boolean;
 }
 
-/** Pins this close to where you are can be added to TODAY (the 후보군). */
+/** How close a pin (or today's ping) must be for a photo taken here to ping it. */
 export const TODAY_PING_RADIUS_M = 50;
 
 export interface MyLocation {
@@ -43,8 +43,8 @@ export interface MyLocation {
 }
 
 /**
- * TODAY's 후보군: your pins within 50m of where you are that aren't in today
- * yet (one already recorded today isn't offered again), nearest first.
+ * Your pins within 50m of where you are that aren't in today yet (one
+ * already recorded today isn't pinged again), nearest first.
  */
 export function todayCandidates<P extends { id: string; place: { center: [number, number] } }>(
   pins: readonly P[],

@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, Share } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type TouchEvent } from 'react';
-import { dayTitle, edgeKey, photoPingTarget, PINCH, pinchOutcome, pinchProgress, pingCounts, pingKey, pingsForDate, pingsLandedMs, todayCandidates, type DayPing } from '../domain/dayPings';
+import { createPortal } from 'react-dom';
+import { dayTitle, edgeKey, photoPingTarget, PINCH, pinchOutcome, pinchProgress, pingCounts, pingKey, pingsForDate, pingsLandedMs, type DayPing } from '../domain/dayPings';
 import { useStoredPings } from '../hooks/useStoredPings';
 import { loadPings, recordPing, recordPlacePing, removePing, todayPingOfPin } from '../services/pingRepository';
 import { PING_PHOTO_PX, savePingPhoto } from '../services/pingPhotoRepository';
@@ -11,7 +12,8 @@ import { pinStyle, UNCATEGORIZED } from '../domain/pin';
 import type { Pin, PinCategory } from '../types/pin';
 import type { PlaceRef } from '../types/course';
 import ConfirmDialog from './ConfirmDialog';
-import PlacePickDialog from './PlacePickDialog';
+import PhotoViewer, { OpenPhotoMarks } from './PhotoViewer';
+import { galleryDayLabel } from '../domain/gallery';
 import { addDays } from '../domain/calendar';
 import {
   canUndo,
@@ -109,7 +111,7 @@ interface CalendarZoomProps {
   onDayPattern: (pattern: PatternId) => void;
   /** 제외 주소: pings there are left out of the shared card (and added ones stay on this phone). */
   excluded: ExcludedPlace[];
-  /** Where you are (null: unknown); TODAY offers your pins within 50m of it. */
+  /** Where you are (null: unknown): a TODAY photo pings there. */
   here: [number, number] | null;
   pins: Pin[];
   categories: PinCategory[];
@@ -124,12 +126,18 @@ interface CalendarZoomProps {
   nameAt?: (center: [number, number]) => Promise<PlaceRef | null>;
   /** A short line at the bottom (the photo's ping, or why there isn't one). */
   onToast?: (text: string) => void;
+  /**
+   * The day's photo open big (its place among the day's pings with a photo),
+   * null = none. The app holds it, for the back button.
+   */
+  photoSeq?: number | null;
+  onPhotoSeq?: (seq: number | null) => void;
 }
 
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
 
-export default function CalendarZoom({ command, onMode, onDecorating, onPingPicked, pingDropZone, onPingDropHover, onDayTheme, onDayPattern, excluded, here, pins, categories, holdIntro = false, onCamera, nameAt, onToast }: CalendarZoomProps) {
+export default function CalendarZoom({ command, onMode, onDecorating, onPingPicked, pingDropZone, onPingDropHover, onDayTheme, onDayPattern, excluded, here, pins, categories, holdIntro = false, onCamera, nameAt, onToast, photoSeq = null, onPhotoSeq }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
   const [date, setDate] = useState(today);
@@ -205,12 +213,9 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
   // drop in once the zoom lands, like every other way of opening a day.
   const stored = useStoredPings();
   const pings = preview || holdIntro ? [] : pingsForDate(shownDate, stored);
-  // TODAY's 후보군: your pins within 50m not in today yet. One see-through ping
-  // stands for them (at the pin when there's one, else where you are).
-  const candidates = todayCandidates(pins, here, stored.filter((p) => p.day === today));
-  const [choosing, setChoosing] = useState(false);
-  const addToToday = (pin: Pin) => recordPing(pin, excluded);
   const photos = usePingPhotos();
+  // The day's pings with a photo, in order: what the big photo pages through.
+  const shots = pings.filter((p) => p.id && photos[p.id]);
   // 카메라: a photo taken on TODAY pings where you are at once — your pin
   // there if there is one (no 위치 선택 to answer), or the spot itself.
   const camera = useRef<HTMLInputElement | null>(null);
@@ -713,6 +718,8 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
               }
               pinLookOf={pinLookOf}
               photoOf={(ping) => (ping.id ? photos[ping.id] : undefined)}
+              // One tap and it's big at once (the group's map goes by its panel first).
+              onPhoto={(ping) => onPhotoSeq?.(shots.findIndex((p) => p.id === ping.id))}
               onDelete={(ping) => ping.id && setDeleting(ping)}
               onPickedChange={(ping) => onPingPicked?.(ping?.id ? () => setDeleting(ping) : null)}
               dropZone={pingDropZone}
@@ -720,14 +727,6 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
               pressable={() => gesture.current === null && !toolRef.current}
               showNames={!dayDecor.hideNames}
               showTimes={!dayDecor.hideTimes}
-              ghost={
-                shownDate === today && mode === 'day' && !preview && !holdIntro && !tool && candidates.length
-                  ? candidates.length === 1
-                    ? candidates[0].place.center
-                    : here
-                  : null
-              }
-              onGhost={() => (candidates.length === 1 ? addToToday(candidates[0]) : setChoosing(true))}
             >
               {!holdIntro && (
                 <DecorLayer
@@ -769,6 +768,29 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
         />
       )}
 
+      {/* On the body: over the app's bottom row, which stands over the calendar page. */}
+      {photoSeq !== null && shots[photoSeq] && createPortal(
+        <PhotoViewer
+          items={shots.map((p) => ({
+            photo: photos[p.id!],
+            name: p.name,
+            who: p.time,
+            face: null,
+            date: galleryDayLabel(shownDate, today),
+          }))}
+          seq={photoSeq}
+          onSeq={(seq) => onPhotoSeq?.(seq)}
+          onClose={() => onPhotoSeq?.(null)}
+          prevLabel="이전 사진"
+          nextLabel="다음 사진"
+          counted={false}
+          commentPath={`ping:${shots[photoSeq].id}`}
+          // My own photos: ★ only (the same 즐겨찾기 as the gallery's MY), no ♥.
+          side={<OpenPhotoMarks path={`ping:${shots[photoSeq].id}`} heart={false} hearts={false} />}
+        />,
+        document.body,
+      )}
+
       {/* The phone's camera straight away (a file picker on desktop). */}
       <input
         ref={camera}
@@ -784,10 +806,6 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
           if (file) void photoPing(file);
         }}
       />
-
-      {choosing && candidates.length > 0 && (
-        <PlacePickDialog places={candidates} categories={categories} onPick={addToToday} onClose={() => setChoosing(false)} />
-      )}
 
       {trayTool && (
         <DecorTray

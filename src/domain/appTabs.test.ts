@@ -29,20 +29,20 @@ describe('bottom-bar tabs', () => {
     expect(calendarAgain('month')).toBe('today');
   });
 
-  it('We Now slides off to the right to uncover the map', () => {
-    expect(pageSwipes('people')).toEqual({ left: null, right: 'pins' });
+  it('We Now slides off to the left to uncover the map on its right', () => {
+    expect(pageSwipes('people')).toEqual({ left: 'pins', right: null });
   });
 
-  it('the row has no calendar button: 핑(big) 사람 on the map, 핑 사람(big) on We Now', () => {
+  it('the row has no calendar button: 사람 핑(big) on the map, 사람(big) 핑 on We Now', () => {
     const row = (tab: AppTab) =>
       (['pins', 'people'] as BarButton[]).map((b) => barSlot(b, tab));
-    expect(row('pins')).toEqual(['c', 'r']);
-    expect(row('people')).toEqual(['l', 'c']);
+    expect(row('pins')).toEqual(['c', 'l']);
+    expect(row('people')).toEqual(['r', 'c']);
   });
 
   it('pressing the left button turns the row right, the right button left', () => {
-    expect(barTurn('people', 'pins')).toBe(1);
-    expect(barTurn('pins', 'people')).toBe(-1);
+    expect(barTurn('people', 'pins')).toBe(-1);
+    expect(barTurn('pins', 'people')).toBe(1);
     expect(barTurn('pins', 'pins')).toBe(0);
   });
 });

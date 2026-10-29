@@ -138,6 +138,22 @@ export function mergeSamePlace(pings: readonly GroupPing[]): GroupPing[] {
   return out;
 }
 
+/**
+ * A group photo's path (what stars and hearts go by, as in the gallery)
+ * from the address a ping carries: the group-photos bucket's
+ * <uuid>/<id>.jpg at its end. The dev demo members' drawn photos get a
+ * `demo/` key of their own; any other address, none.
+ */
+export function photoKey(url: string | undefined): string | null {
+  if (!url) return null;
+  const path = /\/group-photos\/([0-9a-f-]{36}\/[A-Za-z0-9_-]{6,40}\.jpg)(?:[?#]|$)/.exec(url);
+  if (path) return path[1];
+  if (!url.startsWith('data:')) return null;
+  let h = 2166136261;
+  for (let i = 0; i < url.length; i++) h = Math.imul(h ^ url.charCodeAt(i), 16777619);
+  return `demo/u${(h >>> 0).toString(36)}`;
+}
+
 /** The photos to draw over a ping, oldest first: all of them, or its one. */
 export const pingPhotos = (ping: GroupPing): string[] => ping.photos ?? (ping.photo ? [ping.photo] : []);
 

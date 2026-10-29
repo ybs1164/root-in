@@ -245,13 +245,16 @@ export function createGroupPingElement(mark: GroupPingMark): HTMLElement {
   // The photos over the ping: small rounded prints in the member's colour on
   // top of its pin (or face, if it's their latest), one over the other with
   // room between — each later one above the one before.
+  const picked = mark.selected ? (mark.selectedPhoto ?? (mark.photos?.length ?? 0) - 1) : -1;
   (mark.photos ?? []).forEach((photo, i) => {
     const head = document.createElement('span');
     head.className = 'group-ping__photo';
     head.style.setProperty('--stack', String(i));
     // Which of the place's photos a tap on it opens.
     head.dataset.photo = String(i);
-    if (mark.selected && i === (mark.selectedPhoto ?? (mark.photos?.length ?? 0) - 1)) head.classList.add('is-picked');
+    if (i === picked) head.classList.add('is-picked');
+    // The picked one swells upward: the ones stacked over it step up out of its way.
+    else if (picked >= 0 && i > picked) head.classList.add('is-lifted');
     const img = document.createElement('img');
     img.src = photo;
     img.alt = '';

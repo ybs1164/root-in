@@ -5,7 +5,7 @@ import { inKorea } from './pinShareService';
 import { dataUrlToBlob } from './remoteProfileService';
 import { newSlug } from './shareLinkService';
 import { createGroupDemoService } from '../dev/groupDemoService';
-import type { GalleryPhoto, MetPair } from '../domain/gallery';
+import { COMMENT_MAX, type GalleryPhoto, type MetPair, type PhotoComment } from '../domain/gallery';
 import { publicAppUrl } from '../lib/appUrl';
 
 // We Now groups (supabase/migrations/20261016000000_groups.sql). Everything
@@ -81,7 +81,12 @@ export interface GroupService {
   heartNews(): Promise<HeartNews[]>;
   /** Shown: the hearts up to `upto` (an `at`) stop coming back. */
   heartsSeen(upto: string): Promise<boolean>;
+  /** A photo's comments (by its upload `path`), oldest first; 'error' when the server couldn't be asked. */
+  comments(path: string): Promise<PhotoComment[] | 'error'>;
+  /** A comment on a photo of a group of mine; false when the server said no. */
+  comment(path: string, body: string): Promise<boolean>;
 }
+
 
 /** Someone hearted one of my photos. */
 export interface HeartNews {
@@ -182,6 +187,20 @@ export function readHeartNews(data: unknown): HeartNews[] {
     news.push({ path: r.path, fromUser: r.from_user, nickname, place, at: r.at });
   }
   return news;
+}
+
+/** photo_comments' rows, checked; anything off is skipped. */
+export function readComments(data: unknown): PhotoComment[] {
+  if (!Array.isArray(data)) return [];
+  const comments: PhotoComment[] = [];
+  for (const row of data.slice(0, 200)) {
+    const r = (row ?? {}) as Record<string, unknown>;
+    if (typeof r.id !== 'string' || !UUID.test(r.id) || typeof r.body !== 'string' || !r.body.trim()) continue;
+    if (typeof r.at !== 'string' || Number.isNaN(Date.parse(r.at))) continue;
+    const nickname = typeof r.nickname === 'string' && r.nickname.trim() ? r.nickname.trim().slice(0, 20) : '누군가';
+    comments.push({ id: r.id, nickname, body: r.body.trim().slice(0, COMMENT_MAX), at: r.at, mine: r.mine === true });
+  }
+  return comments;
 }
 
 /** group_met_days' rows, checked; anything off is skipped. */
@@ -478,6 +497,31 @@ export function createSupabaseGroupService(
         if (!client) return false;
         const { error } = await client.rpc('hearts_seen', { upto });
         return !error;
+      } catch {
+        return false;
+      }
+    },
+
+    async comments(path) {
+      try {
+        if (!PHOTO_PATH.test(path)) return 'error';
+        const client = await getClient();
+        if (!client) return 'error';
+        const { data, error } = await client.rpc('photo_comments', { photo_path: path });
+        return error ? 'error' : readComments(data);
+      } catch {
+        return 'error';
+      }
+    },
+
+    async comment(path, body) {
+      try {
+        const text = body.trim();
+        if (!PHOTO_PATH.test(path) || !text || text.length > COMMENT_MAX) return false;
+        const client = await getClient();
+        if (!client) return false;
+        const { data, error } = await client.rpc('comment_photo', { photo_path: path, comment: text });
+        return !error && typeof data === 'string';
       } catch {
         return false;
       }

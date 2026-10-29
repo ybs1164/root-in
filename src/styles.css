@@ -4497,89 +4497,6 @@ button:disabled {
   font-weight: 700;
 }
 
-/* 위치 선택 (TODAY, more than one pin within 50m): the list on a ticket. */
-.place-pick {
-  width: min(320px, calc(100vw - 48px));
-}
-
-.place-pick .ticket-dialog__main {
-  padding: 26px 18px 18px;
-}
-
-.place-pick__title {
-  margin: 0;
-  font-size: 19px;
-  text-align: center;
-}
-
-.place-pick__lead {
-  margin: 8px 0 16px;
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.5;
-  text-align: center;
-  word-break: keep-all;
-}
-
-.place-pick__list {
-  max-height: min(320px, 45dvh);
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  list-style: none;
-}
-
-.place-pick__item {
-  border-radius: 14px;
-}
-
-.place-pick__item.is-picked {
-  background: var(--accent-soft);
-}
-
-.place-pick__opt {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 52px;
-  padding: 8px 10px;
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  text-align: left;
-}
-
-.place-pick__opt:focus {
-  outline: none;
-}
-
-.place-pick__opt:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-  border-radius: 14px;
-}
-
-.place-pick__name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  font-size: 16px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* The picked place opens a little: its 한 줄 메모, lined up with the name. */
-.place-pick__memo {
-  margin: 0;
-  padding: 0 12px 12px 58px;
-  color: var(--muted);
-  font-size: 14px;
-  overflow-wrap: anywhere;
-  animation: unfold 0.2s ease both;
-}
-
 /* 그룹에 보내기 from the camera: every group I'm in with its cover, tap to pick several. */
 .group-send {
   width: min(340px, calc(100vw - 32px));
@@ -7821,20 +7738,8 @@ button:disabled {
   opacity: 0.6;
 }
 
-/* TODAY's 후보군: one see-through ping held where a ping drops from, not
-   joined to the others, waiting for a tap. No intro: it's just there. */
-.ping--ghost {
-  animation: none;
-  opacity: 0.45;
-  translate: 0 -36px;
-}
-
-/* A ping added after the day opened (the ghost picked): it drops from the
-   ghost's spot and look at once, then its line draws (.pings__reveal--late). */
-.ping--late {
-  --drop-from: 0.45;
-}
-
+/* A ping added after the day opened (a photo's): it drops in on its own,
+   then its line draws (.pings__reveal--late). */
 .pings__reveal--late {
   animation-duration: 0.45s;
   animation-delay: var(--drop-time);
@@ -7884,20 +7789,46 @@ button:disabled {
   transform: scale(0.9);
 }
 
-/* The photo taken there, tucked at the ping's top right like a snapshot.
-   Not pressable: the ping under it still takes the presses. */
+/* The photo taken there: a small rounded print in the accent colour over
+   the ping, its tail on the icon's head — as a group's map shows a sent
+   photo. Its own button: a tap opens it big. */
 .ping__photo {
   position: absolute;
-  top: calc(-10px * var(--k));
-  left: calc(50% + 6px * var(--k));
-  width: calc(30px * var(--k));
-  height: calc(30px * var(--k));
+  left: 50%;
+  top: -67px;
+  z-index: 1;
+  width: 52px;
+  height: 52px;
+  padding: 3px;
+  border: 0;
+  border-radius: 15px;
+  background: var(--accent);
+  box-shadow: var(--pin-shadow);
+  translate: -50% 0;
+  cursor: pointer;
+  animation: pop-in 0.28s var(--pop-ease) both;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+.ping__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
   object-fit: cover;
-  border: 2px solid var(--polaroid);
-  border-radius: 6px;
-  box-shadow: var(--shadow-sm);
-  rotate: 8deg;
   pointer-events: none;
+}
+
+.ping__photo::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -11px;
+  translate: -50% 0;
+  border: 7px solid transparent;
+  border-top: 12px solid var(--accent);
+  border-bottom: 0;
 }
 
 .ping.is-dragging .ping__photo {
@@ -9350,7 +9281,7 @@ button.group-photo-panel__photo {
   background: var(--member);
   box-shadow: var(--pin-shadow);
   transform-origin: 50% calc(100% + 14px);
-  transition: scale 0.2s ease;
+  transition: scale 0.2s ease, translate 0.2s ease;
   animation: pop-in 0.28s var(--pop-ease) both;
 }
 
@@ -9383,6 +9314,12 @@ button.group-photo-panel__photo {
 
 .group-ping.is-selected .group-ping__photo.is-picked {
   scale: 1.18;
+}
+
+/* Over the swollen one, the rest of the stack steps up by what it grew
+   (56px + its 14px tail, × 0.18), so they never overlap. */
+.group-ping.is-selected .group-ping__photo.is-lifted {
+  translate: 0 -13px;
 }
 
 .group-ping.is-faded {
@@ -10272,6 +10209,114 @@ button.group-photo-panel__photo {
 .gallery__heart.is-on svg,
 .gallery__star.is-on svg {
   animation: pop-in 0.28s var(--pop-ease) both;
+}
+
+/* The big photo's comments (PhotoViewer): speech bubbles one under
+   another under the caption — others' white on the left with their name,
+   mine in the accent colour on the right — then the line to write one. */
+.group-photo-viewer__figure.has-comments .group-photo-viewer__photo {
+  max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 330px);
+}
+
+.photo-comments {
+  display: grid;
+  gap: 8px;
+  margin-top: -6px;
+}
+
+.photo-comments__list {
+  display: grid;
+  gap: 6px;
+  max-height: 150px;
+  margin: 0;
+  padding: 2px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+
+.photo-comments__item {
+  display: grid;
+  justify-items: start;
+  gap: 2px;
+}
+
+.photo-comments__item.is-mine {
+  justify-items: end;
+}
+
+.photo-comments__who {
+  padding: 0 10px;
+  color: var(--tray-dim);
+  font-size: 12px;
+}
+
+.photo-comments__bubble {
+  position: relative;
+  max-width: 80%;
+  margin: 0;
+  padding: 7px 12px;
+  border-radius: 16px 16px 16px 4px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.photo-comments__item.is-mine .photo-comments__bubble {
+  border-radius: 16px 16px 4px 16px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.photo-comments__note {
+  margin: 0;
+  color: var(--tray-dim);
+  font-size: 13px;
+  text-align: center;
+}
+
+.photo-comments__form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: rise-in 0.18s ease both;
+}
+
+.photo-comments__input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--tray-hi);
+  color: var(--tray-fg);
+  font: inherit;
+  font-size: 16px;
+}
+
+.photo-comments__input::placeholder {
+  color: var(--tray-dim);
+}
+
+.photo-comments__send {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.photo-comments__send:disabled {
+  opacity: 0.4;
 }
 
 .gallery__day {

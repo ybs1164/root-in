@@ -120,3 +120,16 @@ export function filterGallery(days: readonly GalleryDay[], filter: { stars?: Rea
     .map((d) => (filter.stars ? { ...d, photos: d.photos.filter((p) => filter.stars!.has(p.path)) } : d))
     .filter((d) => d.photos.length > 0);
 }
+
+/** A comment under a photo opened big. */
+export interface PhotoComment {
+  id: string;
+  /** Their name in a group we share, else their nickname. */
+  nickname: string;
+  body: string;
+  at: string;
+  mine: boolean;
+}
+
+/** How long a comment may be. */
+export const COMMENT_MAX = 200;

@@ -1,11 +1,11 @@
 import { CalendarDays, Camera, ChevronLeft, ChevronRight, Settings, X } from 'lucide-react';
 import { useEffect, useRef, type CSSProperties } from 'react';
-import { memberColor, passRoute, pingPhotos, type Group, type GroupMember, type GroupPing } from '../domain/groups';
+import { memberColor, passRoute, photoKey, pingPhotos, type Group, type GroupMember, type GroupPing } from '../domain/groups';
 import { addDays } from '../domain/calendar';
 import { dateKey } from '../domain/diary';
 import { galleryDayLabel } from '../domain/gallery';
 import { MemberFace } from './WeNowPage';
-import PhotoViewer from './PhotoViewer';
+import PhotoViewer, { OpenPhotoMarks } from './PhotoViewer';
 import { GalleryButton } from './PhotoGallery';
 
 /** Per-button delay index, capped as on the pin rail. */
@@ -146,6 +146,11 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
                 onSeq={(seq) => onPlace({ member: pickedMember.userId, seq })}
                 onClose={() => onPhotoBig(false)}
                 counted={false}
+                commentPath={photoKey(shownPhoto(pickedMember.pings[place.seq], place.photo))}
+                // ♥ ★ as in the gallery in place of ‹ › (paging by drag and the arrow keys); no ♥ on my own.
+                side={
+                  <OpenPhotoMarks path={photoKey(shownPhoto(pickedMember.pings[place.seq], place.photo))} heart={pickedMember.userId !== me} />
+                }
               />
             )}
           </>

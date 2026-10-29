@@ -158,7 +158,8 @@ export default function App() {
   const course = useCourses();
   const { incoming: incomingCourse, dismiss: dismissCourse } = useIncomingCourse();
 
-  const [tab, setTab] = useState<AppTab>('pins');
+  // The app opens on We Now (the groups); the map is one step to its right.
+  const [tab, setTab] = useState<AppTab>('people');
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -297,6 +298,11 @@ export default function App() {
   const [openGroupId, setOpenGroupId] = useState<string | null>(null);
   // Test build: We Now's TODAY tile opens TODAY itself, full screen, without the bottom row.
   const [todayOpen, setTodayOpen] = useState(false);
+  // TODAY's photo open big (its place among the day's photos); closed with TODAY.
+  const [todayPhoto, setTodayPhoto] = useState<number | null>(null);
+  useEffect(() => {
+    if (!todayOpen) setTodayPhoto(null);
+  }, [todayOpen]);
   const storedPings = useStoredPings();
   const todayPings = useMemo(() => pingsForDate(dateKey(), storedPings), [storedPings]);
   const [groupPicked, setGroupPicked] = useState<string | null>(null);
@@ -473,8 +479,7 @@ export default function App() {
     if (!needLogin && tab === 'people' && account.available && !account.user && guest === 'idle') startGuest();
   }, [needLogin, tab, account.available, account.user, guest, startGuest]);
   const onPage = showsPage(tab, Boolean(searchOpen || preview || openGroup));
-  // Swiping a page sideways slides it off toward another screen: 달력 ← 핀,
-  // → We Now; We Now ← 달력, → 핀 (pageSwipes).
+  // Swiping We Now right-to-left slides it off to the map on its right (pageSwipes).
   const swipeTo = onPage && !decorating && !studio && !todayOpen ? pageSwipes(tab) : { left: null, right: null };
   const swipe = usePageSwipe(
     swipeTo.left ? () => changeTab(swipeTo.left!) : null,
@@ -1363,6 +1368,7 @@ export default function App() {
     if (studio) return setStudio(null), true;
     if (groupPhotoBig) return setGroupPhotoBig(false), true;
     if (openGroupId) return setOpenGroupId(null), true;
+    if (todayPhoto !== null) return setTodayPhoto(null), true;
     if (todayOpen) return setTodayOpen(false), true;
     if (searchOpen) return setSearchOpen(false), setQuery(''), searchInput.current?.blur(), true;
     if (preview) return setPreview(null), true;
@@ -1372,7 +1378,7 @@ export default function App() {
     if (building) return setBuilding(null), true;
     if (shownRouteId) return setShownRouteId(null), true;
     if (railMode !== 'menu') return railAction(railMode), true;
-    if (tab !== 'pins') return changeTab('pins'), true;
+    if (tab !== 'people') return changeTab('people'), true;
     return false;
   });
 
@@ -1538,32 +1544,36 @@ export default function App() {
     };
   }, [aimable, searchService]);
 
-  // We Now is a page on top of the map: the phone's back button goes back to
-  // the map. Opening it pushes a history entry; leaving some other way takes
-  // that entry back off, so back on the map leaves the app as before.
+  // We Now's list is home. The map, or a group or TODAY open on We Now, pushes
+  // a history entry so the browser's back comes home first; leaving some
+  // other way takes that entry back off, so back at home leaves the app.
+  const awayFromHome = tab === 'pins' || Boolean(openGroup) || todayOpen;
   const pageEntry = useRef(false);
   useEffect(() => {
-    if (tab !== 'pins' && !pageEntry.current) {
+    if (awayFromHome && !pageEntry.current) {
       pageEntry.current = true;
       history.pushState({ rootIn: tab }, '');
-    } else if (tab === 'pins' && pageEntry.current) {
+    } else if (!awayFromHome && pageEntry.current) {
       pageEntry.current = false;
       history.back();
     }
-  }, [tab]);
+  }, [awayFromHome, tab]);
   useEffect(() => {
     const pop = () => {
       if (!pageEntry.current) return;
-      if (openGroup || todayOpen) {
-        setOpenGroupId(null);
-        setTodayOpen(false);
+      // A photo open big on TODAY goes first; TODAY stays (its entry back in place).
+      if (todayPhoto !== null) {
+        setTodayPhoto(null);
         history.pushState({ rootIn: tab }, '');
         return;
       }
       pageEntry.current = false;
-      // Back goes to the map, the page sliding off toward the side the map is on.
-      if (onPage && (swipeTo.left === 'pins' || swipeTo.right === 'pins')) swipe.leave(swipeTo.left === 'pins' ? -1 : 1);
-      else changeTab('pins');
+      if (openGroup || todayOpen) {
+        setOpenGroupId(null);
+        setTodayOpen(false);
+        return;
+      }
+      changeTab('people');
     };
     window.addEventListener('popstate', pop);
     return () => window.removeEventListener('popstate', pop);
@@ -1888,6 +1898,8 @@ export default function App() {
               onDayTheme={setDayTheme}
               onDayPattern={setDayPattern}
               onMode={setCalendarMode}
+              photoSeq={todayPhoto}
+              onPhotoSeq={setTodayPhoto}
             />
           ) : null}
           {calendarZoom && tab === 'people' && (

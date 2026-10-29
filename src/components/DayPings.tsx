@@ -47,8 +47,12 @@ interface DayPingsProps {
   onEdgeStyle: (from: DayPing, to: DayPing, style: LineLook) => void;
   /** The place's own pin icon and colour, shown when its ping is set to 투명. */
   pinLookOf?: (ping: DayPing) => { icon: PinIcon; color: PinTint };
-  /** The photo taken there on TODAY, if any: pinned beside the ping like a snapshot. */
+  /**
+   * The photo taken there on TODAY, if any: a small print in a speech bubble
+   * over the ping (as on a group's map). Tapped, `onPhoto` opens it big.
+   */
   photoOf?: (ping: DayPing) => string | undefined;
+  onPhoto?: (ping: DayPing) => void;
   /** The ✕ on a ping whose picker is open (or a ping dropped on `dropZone`): takes the place out of the day. */
   onDelete?: (ping: DayPing) => void;
   /** Which ping is picked (its picker open), or null: the app turns its calendar button into ✕. */
@@ -64,13 +68,6 @@ interface DayPingsProps {
   /** The day's 텍스트 / 시간 switches: the place names and visit times under the pings. */
   showNames?: boolean;
   showTimes?: boolean;
-  /**
-   * TODAY's 후보군 waiting to be added: one see-through ping at this place,
-   * hanging where a ping drops from, not joined to the others. Laid out with
-   * the day's pings, so it lands on the same spot once added.
-   */
-  ghost?: [number, number] | null;
-  onGhost?: () => void;
 }
 
 /** What a press is on: a ping, or the line leaving ping `index` for the next one. */
@@ -107,24 +104,21 @@ function EdgeSample({ style }: { style: EdgeStyle }) {
  * again. Long-press a ping to change its shape, or a line to change its
  * style; a short tap on a ping is reported through `onTap`.
  */
-export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, pinLookOf, photoOf, onDelete, onPickedChange, dropZone, onDropHover, pressable, children, showNames = true, showTimes = true, ghost = null, onGhost }: DayPingsProps) {
+export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, pinLookOf, photoOf, onPhoto, onDelete, onPickedChange, dropZone, onDropHover, pressable, children, showNames = true, showTimes = true }: DayPingsProps) {
   const latest = latestPingIndex(pings);
   // The real map behind the pings; the stops are fitted with its areas.
   const centers = pings.map((p) => p.center);
   const { shapes: terrain, ready } = useTerrain(centers, true);
   // While it is being fetched nothing of it (and no pin) shows: the stops are laid out on it once it is here.
   // No data for these stops: the pings stand on the page with no map.
-  // The 후보군 ghost is laid out with the day's pings (as the latest, drawn as it), so it lands on the same spot once added.
-  const stops = ghost ? [...centers, ghost] : centers;
-  const stopsKey = `${stops.map((c) => c.join(',')).join(' ')}|${latest}`;
+  const stopsKey = `${centers.map((c) => c.join(',')).join(' ')}|${latest}`;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const day = useMemo(() => dayMap(terrain, stops, ghost ? pings.length : latest), [stopsKey, terrain]);
+  const day = useMemo(() => dayMap(terrain, centers, latest), [stopsKey, terrain]);
   const mapParts = day.parts;
   const mapped = mapParts.length > 0;
-  const points = day.points.slice(0, pings.length);
-  const ghostAt = ghost ? day.points[pings.length] : null;
+  const points = day.points;
   // Pings there when this drawing mounted play the visit's intro together;
-  // ones added after (a 후보군 picked) drop on their own and draw their line.
+  // ones added after (a photo's ping) drop on their own and draw their line.
   const atMount = useRef(pings.length);
   const settled = Math.min(atMount.current, pings.length);
   const maskId = `pings-reveal-${useId().replace(/:/g, '')}`;
@@ -346,8 +340,10 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
       {pings.map((ping, i) => {
         const shape = shapeOf(ping);
         const own = shape === 'transparent' ? (pinLookOf?.(ping) ?? { icon: 'pin' as PinIcon, color: 0 as PinTint }) : null;
-        const { side, name, time } = labels[i];
         const photo = photoOf?.(ping);
+        const { name, time } = labels[i];
+        // The photo's bubble stands over the ping: its name never goes up under it.
+        const side = photo && labels[i].side.startsWith('above') ? 'below' : labels[i].side;
         return (
           <div
             key={`${ping.time}-${ping.name}`}
@@ -382,7 +378,20 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
                 <PingIcon shape={shape as PingShape} className="ping__icon" />
               )}
             </button>
-            {photo && <img className="ping__photo" src={photo} alt="" draggable={false} />}
+            {photo && (
+              <button
+                className="ping__photo"
+                aria-label={`${ping.name} 사진 크게 보기`}
+                // Its own press: never the ping's picker or a drag.
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (pressable()) onPhoto?.(ping);
+                }}
+              >
+                <img src={photo} alt="" draggable={false} />
+              </button>
+            )}
             {(showNames || showTimes) && (
               <span className="ping__label" aria-hidden>
                 {name}
@@ -392,15 +401,6 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
           </div>
         );
       })}
-
-      {ghostAt && (
-        // Drawn as the newest it'll become (bigger), see-through and held up.
-        <div className="ping ping--pin ping--latest ping--ghost" style={{ left: `${ghostAt.x * 100}%`, top: `${ghostAt.y * 100}%` }}>
-          <button className="ping__hit" aria-label="여기 있는 장소를 오늘에 추가" onClick={() => pressable() && onGhost?.()}>
-            <PingIcon shape="pin" className="ping__icon" />
-          </button>
-        </div>
-      )}
 
       {children}
 

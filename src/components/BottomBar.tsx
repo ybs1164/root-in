@@ -40,7 +40,7 @@ interface BottomBarProps {
 
 /**
  * The row along the bottom of every screen: the current screen's button big
- * in the dead centre, the other small beside it — map 핑 사람, people 핑 사람
+ * in the dead centre, the other small beside it — people 사람 핑, map 사람 핑
  * (`barSlot`; the calendar button is gone from it, test build 2026-10-19).
  * Pressing the side button slides the row toward it: it grows into the
  * centre and the centre one shrinks to the other side. The buttons stay

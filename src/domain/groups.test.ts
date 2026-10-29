@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlacePings, withSentPhotos, mergeSamePlace, pingPhotos, metPairs, readPingDays, withMyPingDays, dayPingers, type Group } from './groups';
+import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlacePings, withSentPhotos, mergeSamePlace, pingPhotos, metPairs, photoKey, readPingDays, withMyPingDays, dayPingers, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -262,5 +262,18 @@ describe('group calendar days', () => {
     const group = { id: 'g', name: 'g', cover: 0, inviteSlug: 'abcdefgh', mine: true, members: [face('me', 0), face('b', 1), face('c', 2)] };
     expect(dayPingers(group, days['2026-10-27']).map((m) => m.userId)).toEqual(['me', 'b']);
     expect(dayPingers(group, undefined)).toEqual([]);
+  });
+});
+
+describe('photoKey', () => {
+  it('reads the bucket path off a sent photo\'s address, as the gallery keys stars and hearts', () => {
+    const path = '0f8a2c1e-1111-4222-8333-944455556666/abcdef1234.jpg';
+    expect(photoKey(`https://x.supabase.co/storage/v1/object/public/group-photos/${path}`)).toBe(path);
+    expect(photoKey(`https://x.supabase.co/storage/v1/object/public/group-photos/${path}?v=1`)).toBe(path);
+    expect(photoKey('https://elsewhere.example/a.jpg')).toBeNull();
+    expect(photoKey(undefined)).toBeNull();
+    const demo = photoKey('data:image/png;base64,AAAA');
+    expect(demo).toMatch(/^demo\/u[0-9a-z]+$/);
+    expect(photoKey('data:image/png;base64,AAAA')).toBe(demo);
   });
 });
