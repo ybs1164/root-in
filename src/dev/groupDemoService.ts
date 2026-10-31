@@ -6,8 +6,12 @@ import type { GroupService } from '../services/groupService';
 import { COMMENT_MAX, type FeedItem, type MetPair } from '../domain/gallery';
 import { getDisplayName } from '../lib/currentUser';
 import type { DayDecor } from '../domain/decor';
+import type { LiveEvent, LiveNote } from '../services/groupLive';
 
 const DEMO_IDS = ['dev-group-user-1', 'dev-group-user-2'];
+/** What a demo member says back a moment after I write (so the live 대화 and comments can be seen with one phone). */
+const DEMO_REPLIES = ['좋다!', 'ㅋㅋㅋ', '나도 갈래', '사진 더 보내 줘', '어디야?'];
+const DEMO_REPLY_MS = 2500;
 const DEMO_PLACES = [['광화문', '서촌 카페', '통인시장'], ['명동성당', '남대문시장', '을지로 노가리골목']];
 
 /**
@@ -144,8 +148,33 @@ export function createGroupDemoService(service: GroupService): GroupService {
   }
   const nameOf = (userId: string | null) => (userId === null ? getDisplayName() : `더미 유저 ${DEMO_IDS.indexOf(userId) + 1}`);
   let target: { id: string; day: string } | null = null;
+  // Who listens to the demo's lines (`group:<id>`, `photo:demo/…`): the demo has no server to send notes.
+  const listeners = new Map<string, Set<(event: LiveEvent) => void>>();
+  const tell = (name: string, note: LiveNote) => listeners.get(name)?.forEach((l) => l(note));
+  let replies = 0;
+  const replyLater = (userId: string, write: (said: Said) => void, names: string[], path?: string) => {
+    setTimeout(() => {
+      if (target && hidden.has(`${target.id}:${userId}`)) return;
+      const said: Said = { id: `demo-r${replies}-${Date.now()}`, userId, body: DEMO_REPLIES[replies++ % DEMO_REPLIES.length], at: new Date().toISOString() };
+      write(said);
+      for (const name of names) tell(name, path ? { kind: 'comment', id: said.id, by: userId, path } : { kind: 'message', id: said.id, by: userId });
+    }, DEMO_REPLY_MS);
+  };
   return {
     ...service,
+    watch(topic, listener) {
+      const stop = service.watch(topic, listener);
+      const name = 'group' in topic ? `group:${topic.group}` : topic.photo.startsWith('demo/') ? `photo:${topic.photo}` : null;
+      if (!name) return stop;
+      const set = listeners.get(name) ?? new Set();
+      listeners.set(name, set.add(listener));
+      // A demo photo's comments live in memory: always "connected".
+      if (name.startsWith('photo:')) listener({ kind: 'live', on: true });
+      return () => {
+        stop();
+        set.delete(listener);
+      };
+    },
     async list(day) {
       const result = await service.list(day);
       if (result === 'error') return result;
@@ -202,8 +231,12 @@ export function createGroupDemoService(service: GroupService): GroupService {
     async comment(path, body) {
       if (!path.startsWith('demo/')) return service.comment(path, body);
       const list = demoComments.get(path) ?? [];
-      list.push({ id: `demo-c${list.length}-${Date.now()}`, userId: null, body: body.trim().slice(0, COMMENT_MAX), at: new Date().toISOString() });
+      const id = `demo-c${list.length}-${Date.now()}`;
+      list.push({ id, userId: null, body: body.trim().slice(0, COMMENT_MAX), at: new Date().toISOString() });
       demoComments.set(path, list);
+      const names = [`photo:${path}`, ...(target ? [`group:${target.id}`] : [])];
+      for (const name of names) tell(name, { kind: 'comment', id, by: 'me', path });
+      replyLater(DEMO_IDS[1], (said) => list.push(said), names, path);
       return true;
     },
     async feed(groupId) {
@@ -233,7 +266,10 @@ export function createGroupDemoService(service: GroupService): GroupService {
     },
     async sendMessage(groupId, body) {
       if (!target || groupId !== target.id) return service.sendMessage(groupId, body);
-      demoMessages.push({ id: `demo-m${demoMessages.length}-${Date.now()}`, userId: null, body: body.trim().slice(0, COMMENT_MAX), at: new Date().toISOString() });
+      const id = `demo-m${demoMessages.length}-${Date.now()}`;
+      demoMessages.push({ id, userId: null, body: body.trim().slice(0, COMMENT_MAX), at: new Date().toISOString() });
+      tell(`group:${groupId}`, { kind: 'message', id, by: 'me' });
+      replyLater(DEMO_IDS[0], (said) => demoMessages.push(said), [`group:${groupId}`]);
       return true;
     },
     async kick(id, userId) {

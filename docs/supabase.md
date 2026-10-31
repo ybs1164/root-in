@@ -65,6 +65,7 @@
    `20261104000000_photo_comments.sql` — 큰 사진 댓글: `photo_comments`(사진 `path`·쓴 사람·글 200자, 직접 읽기 없음), `comment_photo(photo_path, comment)`(그 사진이 내 그룹에 있을 때만 — 내 사진도, 1분에 30개까지, 새 id), `photo_comments(photo_path)`(그 사진이 내 그룹에 있을 때 오래된 순 200개, 쓴 사람 이름(같이 있는 그룹의 이름 → 닉네임)·`mine`). TODAY 사진(`ping:<id>`)의 댓글은 서버에 안 감(`goodroot:photo-comments:v1`). 적용 전에는 큰 사진 아래 '댓글을 불러오지 못했어요.'
    `20261105000000_group_chat.sql` — 그룹 대화: `group_messages`(그룹·쓴 사람·글 200자, 직접 읽기 없음), `send_group_message(gid, message)`(모임원만, 1분에 30개, 새 id), `group_feed(gid)`(모임원만 — 그 그룹에 온 사진(`path`·장소 이름) + 그 사진들의 댓글(글·사진 `path`·장소) + 대화 메시지를 최근 300개, 사람은 id와 `mine`만). 적용 전에는 대화 화면에 '대화를 불러오지 못했어요.'
    `20261106000000_photo_decor.sql` — 그룹 사진 낙서: `photo_decor`(사진 `path`·사람마다 한 겹 `decor` jsonb(앱의 DayDecor, 300KB까지), 직접 읽기 없음), `set_photo_decor(photo_path, decor)`(그 사진이 내 그룹에 있을 때 내 겹만 바꿈, null이면 지움), `photo_decors(photo_path)`(그 사진의 모든 겹, 바꾼 순, `mine`). `photo_comments` 마이그레이션의 `can_see_photo`를 씀 — 그 뒤에 적용.
+   `20261107000000_realtime_group_events.sql` — 대화·댓글 실시간: `group_messages`·`group_photos`·`photo_comments`에 insert 트리거(`feed_news`)가 비공개 Realtime 채널로 짧은 알림(`event` `feed`, `{ kind, id, by, path? }` — 글은 안 넣음)을 보냄 — `group:<그룹 id>`(대화의 새 줄: 메시지·사진·그 그룹에 온 사진의 댓글), `photo:<사진 path>`(그 사진의 새 댓글). `realtime.messages` select 정책: `group:`은 모임원만(`is_group_member`), `photo:`은 그 사진을 볼 수 있는 사람만(`can_see_photo` — 이 파일이 authenticated에 실행 권한을 줌); insert 정책 없음(트리거만 보냄). **대시보드 → Realtime → Settings에서 공개 채널 허용(Allow public access) 끄기.** `photo_comments`·`group_chat` 뒤에 적용. 적용 전에도 앱은 그대로 됨(채널 가입이 실패하면 30초마다 읽던 예전처럼). 계획: [plan-realtime.md](plan-realtime.md).
    **이 마이그레이션들을 먼저 적용하고 나서 클라이언트를 배포**할 것 — 새 클라이언트는 이 열을 읽어서, 적용 전 DB에서는 동기화가 실패(프로필 창 안내)한다.
    지움 표시는 30일 뒤 지운다: Integrations → Cron(pg_cron)에 매일 `select public.purge_sync_tombstones();` 등록. 그 전까지 지운 핀·루트의 내용이 서버에 남아 있음.
 3. Project Settings → API의 Project URL과 **anon(public)** 키를 `.env.local`에:
@@ -95,6 +96,7 @@
 - `services/accountSync.ts` — 로그인 때 합치기·변경 보내기 (React 밖, 테스트 있음).
 - `hooks/useAccount.ts` — App에 연결. `ProfileSheet`의 `account` prop. 프로필 동기화 뒤 `cloudSync`를 돌림.
 - `services/shareLinkService.ts`(짧은 링크 만들기·열기·횟수) · `shareCounts.ts`(횟수를 루트에) · `hooks/useIncomingCourse.ts`의 `resolveIncoming`.
+- `services/groupLive.ts` — 대화·댓글 실시간 채널(`GroupLive.watch`, 같은 채널은 같이 씀, 아무도 안 들으면 1.5초 뒤 닫음, 받은 알림은 모양 검사, reject 안 함) · `hooks/useLiveRefresh.ts`(알림이 오면 0.25초 모아 한 번 다시 읽음 — 이미 보이는 줄의 알림은 무시; 다시 연결·앱 복귀 때 읽음; 연결 중 2분·끊김 30초마다 읽음).
 - `services/cloudSync.ts`(엔진) · `syncMerge.ts`(3방향 병합·해시) · `syncCollections.ts`(저장소 ↔ 행) · `remoteDataService.ts`(Supabase 읽기 1000행씩·쓰기 200행씩) · `syncBus.ts`(저장소 쓰기 알림).
 
 ## 다음 단계

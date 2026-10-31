@@ -10579,6 +10579,42 @@ button.group-photo-panel__photo {
   padding: 10px 16px calc(var(--safe-bottom) + 14px);
 }
 
+/* '새 메시지': a line came in while scrolled up; a tap goes down to it. */
+.group-chat__news {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-size: 14px;
+  white-space: nowrap;
+  box-shadow: var(--round-btn-shadow);
+  translate: -50% 0;
+  --anim-x: -50%;
+  animation: settle 0.36s var(--settle-ease) both;
+}
+
+/* The 44px touch target, the pill itself kept slim. */
+.group-chat__news::before {
+  content: "";
+  position: absolute;
+  inset: -4px 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group-chat__news {
+    animation: none;
+  }
+}
+
 .group-chat__input {
   flex: 1;
   min-width: 0;

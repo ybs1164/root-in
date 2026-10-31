@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PhotoComment } from '../domain/gallery';
 import { getDisplayName } from '../lib/currentUser';
 import { groupService } from '../services/groupService';
 import { addLocalComment, loadLocalComments } from '../services/photoCommentRepository';
+import { useLiveRefresh } from './useLiveRefresh';
 
 export interface PhotoComments {
   /** null while reading. */
@@ -17,7 +18,8 @@ const isLocal = (path: string) => path.startsWith('ping:');
 
 /**
  * A big photo's comments, by its path: a group photo's from the server
- * (everyone in its groups reads them), a TODAY photo's from this phone.
+ * (everyone in its groups reads them, live — one written while it's open
+ * shows up), a TODAY photo's from this phone.
  */
 export function usePhotoComments(path: string | null): PhotoComments {
   const [comments, setComments] = useState<PhotoComment[] | null>(null);
@@ -43,6 +45,23 @@ export function usePhotoComments(path: string | null): PhotoComments {
       live = false;
     };
   }, [path, read]);
+  // Someone else's comment while the photo is open: read them again.
+  const shown = useRef(new Set<string>());
+  useEffect(() => {
+    shown.current = new Set((comments ?? []).map((c) => c.id));
+  }, [comments]);
+  const pathRef = useRef(path);
+  useEffect(() => {
+    pathRef.current = path;
+  }, [path]);
+  const again = () => {
+    const at = path;
+    if (!at) return;
+    void read(at).then((list) => {
+      if (list !== 'error' && at === pathRef.current) setComments(list), setFailed(false);
+    });
+  };
+  useLiveRefresh(path && !isLocal(path) ? { photo: path } : null, again, { known: (id) => shown.current.has(id) });
   const add = async (body: string) => {
     if (!path || !body.trim()) return false;
     const ok = isLocal(path) ? addLocalComment(path, body) : await groupService.comment(path, body);

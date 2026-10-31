@@ -9,6 +9,7 @@ import { COMMENT_MAX, isMemberInk, type FeedItem, type GalleryPhoto, type MetPai
 import type { DayDecor } from '../domain/decor';
 import { isBlankDecor, readDecor } from './dayRepository';
 import { publicAppUrl } from '../lib/appUrl';
+import { createGroupLive, type LiveEvent, type LiveTopic } from './groupLive';
 
 // We Now groups (supabase/migrations/20261016000000_groups.sql). Everything
 // goes through the server's functions; what comes back is checked like any
@@ -95,6 +96,8 @@ export interface GroupService {
   decors(path: string): Promise<PhotoDecorLayer[] | 'error'>;
   /** My doodles on a photo, replaced (nothing on it: taken off), with my colour for their stickers' edge; false when the server said no. */
   setDecor(path: string, decor: DayDecor, ink?: string): Promise<boolean>;
+  /** Hears a group's 대화 or a photo's comments as lines are written (`groupLive`); returns the stop. */
+  watch(topic: LiveTopic, listener: (event: LiveEvent) => void): () => void;
 }
 
 
@@ -314,8 +317,11 @@ export function createSupabaseGroupService(
   available = supabaseConfigured(),
   slug: () => string = newSlug,
 ): GroupService {
+  const live = createGroupLive(getClient);
   return {
     available,
+
+    watch: (topic, listener) => live.watch(topic, listener),
 
     async list(day) {
       try {
