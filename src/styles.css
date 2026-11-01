@@ -8711,10 +8711,9 @@ button:disabled {
   position: fixed;
   left: 0;
   right: 0;
-  /* Down on the line the camera had (its middle 70px up: the faces' 46px
-     plus the row's 10px padding either side, centred there) — a group's map
-     has no buttons left along the bottom (2026-10-29). */
-  bottom: calc(var(--safe-bottom) + 37px);
+  /* Over the 대화 button at the bottom-right (its top 96px up), so the
+     faces at the row's end never run under it (2026-11-01; was 37px). */
+  bottom: calc(var(--safe-bottom) + 101px);
   z-index: 20;
   display: flex;
   align-items: center;
@@ -8954,6 +8953,9 @@ button.group-photo-panel__photo {
   gap: 14px;
   width: min(100%, 520px);
   margin: 0;
+  /* Up by what's under the photo (14px gap + the caption's ~42px): the
+     caption ends where the photo used to (2026-11-01). */
+  translate: 0 -56px;
   animation: pop-in 0.26s var(--pop-ease) both;
 }
 
@@ -9079,7 +9081,7 @@ button.group-photo-panel__photo {
 .member-pass {
   position: fixed;
   /* Over the member row (its 66px, then 12px). */
-  bottom: calc(var(--safe-bottom) + 115px);
+  bottom: calc(var(--safe-bottom) + 179px);
   z-index: 21;
   max-width: 420px;
   /* Clear of the < > either side. */
@@ -10627,6 +10629,10 @@ button.group-photo-panel__photo {
   place-items: end center;
   padding-bottom: 10px;
   overflow: hidden;
+}
+
+:root[data-keyboard] .group-photo-viewer__figure {
+  translate: none;
 }
 
 .group-chat__input {

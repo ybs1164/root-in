@@ -914,8 +914,8 @@ export default function App() {
     // Under the title, over the member row along the bottom (and the picked
     // member's pass over it), clear of the < > at the sides.
     const side = width < 520 ? 76 : 96;
-    // (59px less than when the row sat over the camera.)
-    const padding = { top: 150, right: side, bottom: groupPicked ? 273 : 133, left: side };
+    // (The row sits over the 대화 button, 64px higher than it did.)
+    const padding = { top: 150, right: side, bottom: groupPicked ? 337 : 197, left: side };
     // Like a route: the first move onto someone (from ALL, or opening the
     // group) glides at the usual pace; going on from one member to the next
     // is as quick as stepping between routes with < >.
