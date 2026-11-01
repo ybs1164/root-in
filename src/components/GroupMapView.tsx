@@ -1,11 +1,13 @@
 import { CalendarDays, Camera, ChevronLeft, ChevronRight, MessageCircle, Settings, X } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { GROUP_LIMITS, memberColor, memberInk, passRoute, photoKey, pingPhotos, placeTime, type Group, type GroupMember, type GroupPing } from '../domain/groups';
 import { addDays } from '../domain/calendar';
 import { dateKey } from '../domain/diary';
-import { galleryDayLabel } from '../domain/gallery';
+import { galleryDayLabel, type PhotoDecorLayer } from '../domain/gallery';
 import { MemberFace } from './WeNowPage';
 import PhotoViewer, { OpenPhotoMarks } from './PhotoViewer';
+import { DoodleLayers } from './PhotoDoodle';
+import { useGalleryDecors } from '../hooks/useGalleryPhotos';
 import { GalleryButton } from './PhotoGallery';
 import { TalkBubbles } from './icons';
 
@@ -83,6 +85,10 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
   const inkOf = useCallback((userId: string) => memberInk([group], userId), [group]);
   // The panel's 💬: the photo opens big with its comment line already out (and the keyboard up).
   const [bigWriting, setBigWriting] = useState(false);
+  // The panel's photo wears its doodles too, read again when the big one closes (they may be new).
+  const panelPath = pickedMember && place?.member === pickedMember.userId ? photoKey(shownPhoto(pickedMember.pings[place.seq], place.photo)) : null;
+  const panelDecors = useGalleryDecors(useMemo(() => (panelPath ? [panelPath] : []), [panelPath]), photoBig);
+  const doodles = panelPath ? panelDecors.get(panelPath) : undefined;
   useEffect(() => {
     if (!photoBig) setBigWriting(false);
   }, [photoBig]);
@@ -152,6 +158,8 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
               seq={place.seq}
               photo={shownPhoto(pickedMember.pings[place.seq], place.photo)}
               time={placeTime(pickedMember.pings[place.seq], place.photo)}
+              doodles={doodles}
+              inkOf={inkOf}
               marks={<OpenPhotoMarks path={photoKey(shownPhoto(pickedMember.pings[place.seq], place.photo))} heart={pickedMember.userId !== me} />}
               onOpen={() => onPhotoBig(true)}
               onComment={() => {
@@ -265,6 +273,8 @@ function PhotoPanel({
   photo,
   time,
   marks,
+  doodles,
+  inkOf,
   onOpen,
   onComment,
   onClose,
@@ -275,6 +285,9 @@ function PhotoPanel({
   time: string;
   /** ♥ ★ for the photo, as on it big. */
   marks: ReactNode;
+  /** Its doodles, everyone's, drawn over it as on it big. */
+  doodles?: PhotoDecorLayer[];
+  inkOf?: (userId: string) => string | null;
   onOpen(): void;
   /** 💬: open it big, writing a comment. */
   onComment(): void;
@@ -309,6 +322,7 @@ function PhotoPanel({
           // Tap the photo to see it big.
           <button key={`${seq}|${photo}`} className="group-photo-panel__photo" aria-label="사진 크게 보기" onClick={onOpen}>
             <img src={photo} alt="" draggable={false} />
+            {doodles && <DoodleLayers layers={doodles} inkOf={inkOf} />}
           </button>
         ) : (
           <div key={seq} className="group-photo-panel__photo is-empty">
