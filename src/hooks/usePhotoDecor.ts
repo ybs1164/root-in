@@ -45,6 +45,7 @@ export function usePhotoDecor(path: string | null, ink?: string | null): PhotoDe
     setMineUser(null);
     if (!path) return;
     let live = true;
+    let asked = 0;
     void groupService.decors(path).then((layers) => {
       if (!live) return;
       const list = layers === 'error' ? [] : layers;
@@ -55,8 +56,17 @@ export function usePhotoDecor(path: string | null, ink?: string | null): PhotoDe
       setMineUser(saved?.userId ?? null);
       if (!pending.current) setMineState(saved?.decor ?? EMPTY_DECOR);
     });
+    // Another member doodling shows up as they go. Only their layers are
+    // taken: mine is whatever I have here (the server's may be behind it).
+    const stop = groupService.watchPhoto(path, () => {
+      const n = ++asked;
+      void groupService.decors(path).then((layers) => {
+        if (live && n === asked && layers !== 'error') setOthers(layers.filter((l) => !l.mine));
+      });
+    });
     return () => {
       live = false;
+      stop();
       flush();
     };
   }, [path, flush]);

@@ -355,3 +355,47 @@ describe('groupService', () => {
     expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).setProfile(G1, false, 'a')).toBe(false);
   });
 });
+
+describe('live updates', () => {
+  function realtimeClient() {
+    const handlers: { opts: Record<string, unknown>; fire: () => void }[] = [];
+    const channel = {
+      on: vi.fn((_kind: string, opts: Record<string, unknown>, fire: () => void) => (handlers.push({ opts, fire }), channel)),
+      subscribe: vi.fn(() => channel),
+    };
+    const removeChannel = vi.fn(async () => 'ok');
+    const client = { channel: vi.fn(() => channel), removeChannel } as unknown as SupabaseClient;
+    return { client, handlers, removeChannel };
+  }
+  const PATH = `${U1}/abcdef12.jpg`;
+
+  it("listens to a photo's comments and doodles, and stops", async () => {
+    const fake = realtimeClient();
+    const onChange = vi.fn();
+    const stop = createSupabaseGroupService(async () => fake.client, true).watchPhoto(PATH, onChange);
+    await vi.waitFor(() => expect(fake.handlers).toHaveLength(2));
+    expect(fake.handlers.map((h) => [h.opts.table, h.opts.filter])).toEqual([
+      ['photo_comments', `path=eq.${PATH}`],
+      ['photo_decor', `path=eq.${PATH}`],
+    ]);
+    fake.handlers[0].fire();
+    expect(onChange).toHaveBeenCalledTimes(1);
+    stop();
+    expect(fake.removeChannel).toHaveBeenCalledTimes(1);
+    fake.handlers[1].fire();
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("listens to a group's 대화; nothing for bad ids or no backend", async () => {
+    const fake = realtimeClient();
+    createSupabaseGroupService(async () => fake.client, true).watchGroup(G1, () => {});
+    await vi.waitFor(() => expect(fake.handlers).toHaveLength(3));
+    expect(fake.handlers[0].opts).toMatchObject({ table: 'group_messages', filter: `group_id=eq.${G1}` });
+    const other = realtimeClient();
+    createSupabaseGroupService(async () => other.client, true).watchGroup('nope', () => {})();
+    createSupabaseGroupService(async () => other.client, false).watchPhoto(PATH, () => {})();
+    createSupabaseGroupService(() => Promise.reject(new Error('down')), true).watchPhoto(PATH, () => {})();
+    await Promise.resolve();
+    expect(other.client.channel).not.toHaveBeenCalled();
+  });
+});
