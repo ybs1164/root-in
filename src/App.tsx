@@ -56,7 +56,7 @@ import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
 import { useGroups, useGroupsOnDay } from './hooks/useGroups';
 import { groupsNeedLogin, inviteUrl } from './services/groupService';
-import { focusPoints, mergeSamePlace, pingPhotos as groupPingPhotos, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, newPingCount, photoPings, sharedPlacePings, withSentPhotos, type GroupMember } from './domain/groups';
+import { focusPoints, mergeSamePlace, pingPhotos as groupPingPhotos, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, newPingCount, photoPings, sharedPlaces, withSentPhotos, type GroupMember, type SharedPlace } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
 import { loadGroupSeen, loadMemberSeen, memberSeenKey, saveGroupSeen, saveMemberSeen, type GroupSeen, type MemberSeen } from './services/groupSeenRepository';
 import { useStoredPings } from './hooks/useStoredPings';
@@ -81,7 +81,7 @@ import { usePinKinds } from './hooks/usePinKinds';
 import { useRouteFolders } from './hooks/useRouteFolders';
 import { usePlaceSearch } from './hooks/usePlaceSearch';
 import { useSettings } from './hooks/useSettings';
-import { SEOUL_CENTER, type CourseMap, type MapPadding, type PinMarker } from './map/courseMap';
+import { SEOUL_CENTER, type CourseMap, type GroupPingMark, type MapPadding, type PinMarker } from './map/courseMap';
 import { createMapStack } from './map/createCourseMap';
 import { haversineMeters as distanceMeters } from './domain/geo';
 import { pointPlace, UNNAMED_SPOT, type PlaceSearchService } from './services/placeSearch/placeSearchService';
@@ -825,25 +825,71 @@ export default function App() {
   // An open group: every member's pings (their latest as their face), the
   // picked member's over the rest, everyone else stepping back; a few
   // every photo as its ping's head (`photoPings`), the tapped ping marked for the panel.
-  const groupMarks = useMemo(() => {
+  // A place two or more members pinged is one aurora ping at one spot
+  // (`sharedPlaces`): whoever is there now in a row over it, and over them
+  // every photo sent from there by anyone, in the order they were taken.
+  // Each member's own ping there stays as an invisible point under it, where
+  // their lines meet.
+  const groupMarks = useMemo<GroupPingMark[]>(() => {
     if (!openGroup) return [];
-    const together = sharedPlacePings(openGroup.members);
+    const isPicked = (member: string, seq: number) => groupPing?.member === member && groupPing.seq === seq;
+    const shared = new Map<string, { place: SharedPlace; lead: boolean }>();
+    const places = sharedPlaces(openGroup.members);
+    for (const place of places) {
+      place.pings.forEach(({ member, seq }, k) => shared.set(`${member.userId}|${seq}`, { place, lead: k === 0 }));
+    }
+    const placeMark = (place: SharedPlace): GroupPingMark => {
+      const first = place.pings[0];
+      const inIt = place.pings.find((p) => p.member.userId === groupPicked);
+      const photos = place.pings
+        .flatMap(({ member, seq }) => {
+          const ping = member.pings[seq];
+          const urls = groupPingPhotos(ping);
+          const ats = ping.photoAts ?? urls.map(() => ping.at);
+          return urls.map((url, photo) => ({ url, at: ats[photo] ?? ping.at, of: { member: member.userId, seq, photo } }));
+        })
+        .sort((a, b) => a.at.localeCompare(b.at));
+      const tapped = place.pings.find((p) => isPicked(p.member.userId, p.seq));
+      // The tapped photo, or (from the pin or a face) that ping's newest.
+      const tappedPhoto = tapped && (groupPing?.photo ?? groupPingPhotos(tapped.member.pings[tapped.seq]).length - 1);
+      const selectedPhoto = tapped ? photos.findIndex((p) => p.of.member === tapped.member.userId && p.of.seq === tapped.seq && p.of.photo === tappedPhoto) : -1;
+      return {
+        member: first.member.userId,
+        seq: first.seq,
+        center: place.center,
+        color: memberColor(first.member.color),
+        together: true,
+        faded: !!groupPicked && !inIt,
+        label: inIt ? inIt.member.pings[inIt.seq].name : undefined,
+        faces: place.pings
+          .filter(({ member, seq }) => seq === member.pings.length - 1)
+          .map(({ member, seq }) => ({ member: member.userId, seq, color: memberColor(member.color), photo: member.photo })),
+        photos: photos.length ? photos.map((p) => p.url) : undefined,
+        photoOf: photos.length ? photos.map((p) => p.of) : undefined,
+        selected: !!tapped,
+        selectedPhoto: selectedPhoto >= 0 ? selectedPhoto : undefined,
+      };
+    };
     return openGroup.members.flatMap((m) => {
       const photos = photoPings(m);
-      return m.pings.map((p, i) => ({
-        member: m.userId,
-        seq: i,
-        center: p.center,
-        color: memberColor(m.color),
-        face: i === m.pings.length - 1 ? { photo: m.photo } : undefined,
-        faded: !!groupPicked && groupPicked !== m.userId,
-        // The picked member's places by name; nobody's while ALL.
-        label: groupPicked === m.userId ? p.name : undefined,
-        photos: photos.has(i) ? groupPingPhotos(p) : undefined,
-        selected: groupPing?.member === m.userId && groupPing.seq === i,
-        selectedPhoto: groupPing?.member === m.userId && groupPing.seq === i ? groupPing.photo : undefined,
-        together: together.has(groupPingKey(m, p)),
-      }));
+      return m.pings.map((p, i): GroupPingMark => {
+        const at = shared.get(`${m.userId}|${i}`);
+        if (at?.lead) return placeMark(at.place);
+        if (at) return { member: m.userId, seq: i, center: at.place.center, color: memberColor(m.color), ghost: true };
+        return {
+          member: m.userId,
+          seq: i,
+          center: p.center,
+          color: memberColor(m.color),
+          face: i === m.pings.length - 1 ? { photo: m.photo } : undefined,
+          faded: !!groupPicked && groupPicked !== m.userId,
+          // The picked member's places by name; nobody's while ALL.
+          label: groupPicked === m.userId ? p.name : undefined,
+          photos: photos.has(i) ? groupPingPhotos(p) : undefined,
+          selected: isPicked(m.userId, i),
+          selectedPhoto: isPicked(m.userId, i) ? groupPing?.photo : undefined,
+        };
+      });
     });
   }, [openGroup, groupPicked, groupPing]);
   const groupLines = useMemo<GroupLine[]>(
@@ -919,9 +965,13 @@ export default function App() {
         if (!parts.some(within)) continue;
         // One of a place's stacked photos: that photo, not just the newest.
         const photo = parts.find((c) => c.dataset.photo !== undefined && within(c));
-        found = { member: p.dataset.member, seq: Number(p.dataset.seq), ...(photo ? { photo: Number(photo.dataset.photo) } : {}) };
+        // On a shared place a photo or face says whose it is; its pin is the place's first ping.
+        const whose = photo?.dataset.member ? photo : parts.find((c) => c.dataset.member && within(c));
+        const member = whose?.dataset.member ?? p.dataset.member;
+        const seq = Number(whose?.dataset.seq ?? p.dataset.seq);
+        found = { member, seq, ...(photo ? { photo: Number(photo.dataset.photo) } : {}) };
         // A photo or a face is over the pins around it.
-        if (p.classList.contains('has-photo') || p.classList.contains('group-ping--face')) break;
+        if (p.classList.contains('has-photo') || p.classList.contains('group-ping--face') || p.classList.contains('has-faces')) break;
       }
       return found;
     };

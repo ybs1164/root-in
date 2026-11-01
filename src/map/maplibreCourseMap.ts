@@ -3,6 +3,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import type { AreaLabel, AreaShapes } from '../domain/adminAreas';
 import type { PlaceRef } from '../types/course';
 import { colourToken, resolvedColour } from '../lib/cssColour';
+import { onAppVisibility } from '../lib/native';
 import {
   attachLongPress,
   createAreaLabelElement,
@@ -64,6 +65,9 @@ export class MapLibreCourseMap implements CourseMap {
   private areas: AreaShapes | null = null;
   private areaLabels = new Map<string, { label: AreaLabel; marker: Marker }>();
   private readonly detachLongPress: () => void;
+  private readonly sizeWatch: ResizeObserver | null;
+  private readonly detachVisibility: () => void;
+  private removed = false;
   /** Set once the style has loaded: the map renders from then on. */
   private ready = false;
   private tintShown = true;
@@ -85,6 +89,22 @@ export class MapLibreCourseMap implements CourseMap {
     this.attribution.className = 'map-attribution';
     this.attribution.textContent = ADMIN_ATTRIBUTION;
     container.append(this.attribution);
+    // MapLibre's own size watch skips the first report it gets, taking it for
+    // the size it started at. On an iPhone opening the app, the web view can
+    // still be settling when the map is made: the size that settles is that
+    // first report, so the canvas stayed a strip at the top (the rest bare
+    // --surface-2 that a finger can't drag, since the gestures live on the
+    // canvas), on the group's map too. Check the canvas against its container
+    // on every change, from the start, and again whenever the app comes back.
+    this.sizeWatch = typeof ResizeObserver === 'function' ? new ResizeObserver(() => this.fitCanvas()) : null;
+    this.sizeWatch?.observe(container);
+    requestAnimationFrame(() => this.fitCanvas());
+    this.map.on('load', () => this.fitCanvas());
+    this.detachVisibility = onAppVisibility((active) => {
+      if (!active) return;
+      this.reviveContext();
+      this.fitCanvas();
+    });
     this.detachLongPress = attachLongPress(container, (x, y) => {
       const at = this.map.unproject([x, y]);
       options.onLongPress?.([at.lng, at.lat]);
@@ -350,7 +370,37 @@ export class MapLibreCourseMap implements CourseMap {
     this.map.resize();
   }
 
+  /** The canvas (and with it where gestures land) the size of its container. */
+  private fitCanvas(): void {
+    if (this.removed) return;
+    const container = this.map.getContainer();
+    const canvas = this.map.getCanvas();
+    if (!container.isConnected || container.clientWidth === 0 || container.clientHeight === 0) return;
+    if (Math.abs(canvas.clientWidth - container.clientWidth) > 1 || Math.abs(canvas.clientHeight - container.clientHeight) > 1) {
+      this.map.resize();
+      this.map.triggerRepaint();
+    }
+  }
+
+  /**
+   * iOS can take the WebGL context away while the app is in the background
+   * and not hand it back: the map goes blank. MapLibre restores itself on
+   * `webglcontextrestored`, so ask for that when the app returns.
+   */
+  private reviveContext(): void {
+    const gl = this.map.painter?.context?.gl as WebGLRenderingContext | undefined;
+    if (!gl?.isContextLost()) return;
+    try {
+      gl.getExtension('WEBGL_lose_context')?.restoreContext();
+    } catch {
+      // Nothing more to do: it comes back on its own or not at all.
+    }
+  }
+
   destroy(): void {
+    this.removed = true;
+    this.sizeWatch?.disconnect();
+    this.detachVisibility();
     this.detachLongPress();
     this.setNearbyPlaces([]);
     this.attribution.remove();

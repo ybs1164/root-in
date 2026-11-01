@@ -8918,7 +8918,8 @@ button.group-photo-panel__photo {
 /* The panel's photo big: a dark veil over everything, the photo whole, the place under it. */
 .group-photo-viewer {
   position: fixed;
-  inset: 0;
+  inset: var(--vv-top, 0px) 0 auto;
+  height: var(--vv-height, 100%);
   z-index: 60;
   display: grid;
   place-items: center;
@@ -9384,6 +9385,40 @@ button.group-photo-panel__photo {
 .group-ping.is-together .group-ping__pin {
   animation: aurora-fill 6s linear infinite;
   filter: drop-shadow(0 0 1.5px var(--surface)) drop-shadow(0 0 4px var(--aurora-5));
+}
+
+/* A shared place (`sharedPlaces`, 2026-11-01): one aurora pin for everyone
+   who pinged it; over it, whoever is there now side by side, each in their
+   own colour ring; over them, every photo from there in the order taken. */
+.group-ping__faces {
+  position: absolute;
+  left: 0;
+  top: -74px;
+  display: flex;
+  gap: 10px;
+  translate: -50% 0;
+}
+
+.group-ping.is-together .group-ping__faces .group-ping__face {
+  position: relative;
+  left: auto;
+  top: auto;
+  flex: none;
+  padding: 0;
+  background: var(--member);
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--member), var(--pin-shadow);
+}
+
+.group-ping.has-faces .group-ping__photo {
+  top: calc(-149px - var(--stack, 0) * var(--stack-step));
+}
+
+/* A member's own ping at a shared place: only where their lines meet. */
+.group-ping--ghost {
+  width: 0;
+  height: 0;
+  background: none;
+  box-shadow: none;
 }
 
 @keyframes aurora-turn {
@@ -10256,7 +10291,9 @@ button.group-photo-panel__photo {
    TALK up top, the thread, the line to write at the bottom. */
 .group-chat {
   position: fixed;
-  inset: 0;
+  /* The part the keyboard leaves (lib/visualViewport.ts): the input sits on it. */
+  inset: var(--vv-top, 0px) 0 auto;
+  height: var(--vv-height, 100%);
   z-index: 50;
   display: flex;
   flex-direction: column;
@@ -10577,6 +10614,19 @@ button.group-photo-panel__photo {
   max-width: 720px;
   margin: 0 auto;
   padding: 10px 16px calc(var(--safe-bottom) + 14px);
+}
+
+:root[data-keyboard] .group-chat__form {
+  /* The keyboard covers the home bar: no room kept for it. */
+  padding-bottom: 10px;
+}
+
+/* A comment being written: the photo, caption and comments go up to sit on
+   the keyboard (the photo's top may go off the top), its input just over it. */
+:root[data-keyboard] .group-photo-viewer {
+  place-items: end center;
+  padding-bottom: 10px;
+  overflow: hidden;
 }
 
 .group-chat__input {

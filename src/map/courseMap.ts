@@ -94,6 +94,15 @@ export interface GroupPingMark {
   selectedPhoto?: number;
   /** Someone else in the group pinged the same place: an aurora edge instead of the member's colour. */
   together?: boolean;
+  /**
+   * A ping drawn by its place's shared mark (`sharedPlaces`): nothing to see,
+   * only the spot where this member's lines meet, under the shared ping.
+   */
+  ghost?: boolean;
+  /** A shared place: the members who are there now (it's their latest ping), in a row over its ping. */
+  faces?: { member: string; seq: number; color: string; photo: string | null }[];
+  /** A shared place: whose ping each of `photos` came from, and which of that ping's photos it is. */
+  photoOf?: { member: string; seq: number; photo: number }[];
 }
 
 export interface CourseMapOptions {
@@ -218,29 +227,54 @@ export function syncAreaLabels<M>(
 const DEFAULT_FACE_SVG =
   '<svg viewBox="0 0 24 24" width="60%" height="60%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>';
 
+function faceElement(photo: string | null): HTMLElement {
+  const face = document.createElement('span');
+  face.className = 'group-ping__face';
+  if (photo) {
+    const img = document.createElement('img');
+    img.src = photo;
+    img.alt = '';
+    face.append(img);
+  } else face.innerHTML = DEFAULT_FACE_SVG;
+  return face;
+}
+
 export function createGroupPingElement(mark: GroupPingMark): HTMLElement {
   const el = document.createElement('div');
-  el.className = `group-ping${mark.face ? ' group-ping--face' : ' group-ping--pin'}${mark.faded ? ' is-faded' : ''}${mark.selected ? ' is-selected' : ''}${mark.photos?.length ? ' has-photo' : ''}${mark.together ? ' is-together' : ''}`;
+  if (mark.ghost) {
+    el.className = 'group-ping group-ping--ghost';
+    el.dataset.member = mark.member;
+    el.dataset.seq = String(mark.seq);
+    el.setAttribute('aria-hidden', 'true');
+    return el;
+  }
+  el.className = `group-ping${mark.face ? ' group-ping--face' : ' group-ping--pin'}${mark.faces?.length ? ' has-faces' : ''}${mark.faded ? ' is-faded' : ''}${mark.selected ? ' is-selected' : ''}${mark.photos?.length ? ' has-photo' : ''}${mark.together ? ' is-together' : ''}`;
   el.style.setProperty('--member', mark.color);
   el.dataset.member = mark.member;
   el.dataset.seq = String(mark.seq);
   el.setAttribute('aria-hidden', 'true');
   if (mark.face) {
-    const face = document.createElement('span');
-    face.className = 'group-ping__face';
-    if (mark.face.photo) {
-      const img = document.createElement('img');
-      img.src = mark.face.photo;
-      img.alt = '';
-      face.append(img);
-    } else face.innerHTML = DEFAULT_FACE_SVG;
-    el.append(face);
+    el.append(faceElement(mark.face.photo));
   } else {
     // A ping, not a bare dot: the pin glyph in the member's colour, its tip on the spot.
     const pin = document.createElement('span');
     pin.className = 'group-ping__pin';
     pin.innerHTML = pinGlyphSvg('pin');
     el.append(pin);
+  }
+  // A shared place: whoever is there now, side by side over its one ping
+  // (each tells a tap whose it is).
+  if (mark.faces?.length) {
+    const row = document.createElement('span');
+    row.className = 'group-ping__faces';
+    for (const f of mark.faces) {
+      const face = faceElement(f.photo);
+      face.style.setProperty('--member', f.color);
+      face.dataset.member = f.member;
+      face.dataset.seq = String(f.seq);
+      row.append(face);
+    }
+    el.append(row);
   }
   // The photos over the ping: small rounded prints in the member's colour on
   // top of its pin (or face, if it's their latest), one over the other with
@@ -250,8 +284,13 @@ export function createGroupPingElement(mark: GroupPingMark): HTMLElement {
     const head = document.createElement('span');
     head.className = 'group-ping__photo';
     head.style.setProperty('--stack', String(i));
-    // Which of the place's photos a tap on it opens.
-    head.dataset.photo = String(i);
+    // Which of the place's photos a tap on it opens (and, on a shared place, whose).
+    const of = mark.photoOf?.[i];
+    head.dataset.photo = String(of ? of.photo : i);
+    if (of) {
+      head.dataset.member = of.member;
+      head.dataset.seq = String(of.seq);
+    }
     if (i === picked) head.classList.add('is-picked');
     // The picked one swells upward: the ones stacked over it step up out of its way.
     else if (picked >= 0 && i > picked) head.classList.add('is-lifted');

@@ -94,6 +94,19 @@ export default function GroupChat({
     el.scrollTop = el.scrollHeight;
   }, [items]);
 
+  // The keyboard coming up shortens the thread (the screen sits on it): with
+  // the input focused, the newest line stays in sight right over it.
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const el = list.current;
+    if (!el || typeof ResizeObserver !== 'function') return;
+    const watch = new ResizeObserver(() => {
+      if (document.activeElement === input.current) el.scrollTop = el.scrollHeight;
+    });
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, []);
+
   // A day heading tapped: a small calendar beside it, only the days with
   // talk pressable; one picked scrolls the thread so that day is at the top.
   const days = useMemo(() => new Set((items ?? []).map((i) => dateKey(new Date(i.at)))), [items]);
@@ -206,6 +219,7 @@ export default function GroupChat({
       >
         {sendFailed && <p className="group-chat__fail">보내지 못했어요. 다시 시도하세요.</p>}
         <input
+          ref={input}
           className="group-chat__input"
           value={text}
           maxLength={COMMENT_MAX}

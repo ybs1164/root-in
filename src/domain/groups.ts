@@ -56,25 +56,42 @@ export const GROUP_LIMITS = { name: 12, alias: 20, members: 20, pingsPerMember: 
  */
 export const SAME_PLACE_M = 50;
 
+/** A place two or more members pinged: one ping on the map for all of them. */
+export interface SharedPlace {
+  /** Where its one ping stands: the earliest of its pings' spots, so it stays put as more come. */
+  center: [number, number];
+  /** Every ping there, as (member, its place in their day), oldest first. */
+  pings: { member: GroupMember; seq: number }[];
+}
+
 /**
- * Pings at a place where at least one other member pinged too, as
- * `groupPingKey`s — drawn with the aurora edge (two or more of us were there).
+ * Places at least two members pinged (each within `SAME_PLACE_M` of another
+ * ping there — chained, so three friends a few metres apart in a row are
+ * one place). Their pings land a little apart (each phone's own fix, or the
+ * same café found on Kakao and on the OSM fallback), which zoomed in read as
+ * different spots: the map draws each such place as one aurora ping at one
+ * spot (2026-11-01). One member's own repeat visits alone don't make one.
  */
-export function sharedPlacePings(members: readonly GroupMember[]): Set<string> {
-  const shared = new Set<string>();
-  members.forEach((a, ai) =>
-    a.pings.forEach((pa) => {
-      for (const b of members.slice(ai + 1)) {
-        if (b.userId === a.userId) continue;
-        b.pings.forEach((pb) => {
-          if (haversineMeters(pa.center, pb.center) > SAME_PLACE_M) return;
-          shared.add(groupPingKey(a, pa));
-          shared.add(groupPingKey(b, pb));
-        });
-      }
-    }),
-  );
-  return shared;
+export function sharedPlaces(members: readonly GroupMember[]): SharedPlace[] {
+  const all = members.flatMap((member) => member.pings.map((ping, seq) => ({ member, seq, ping })));
+  const root = all.map((_, i) => i);
+  const find = (i: number): number => (root[i] === i ? i : (root[i] = find(root[i])));
+  all.forEach((a, i) => {
+    for (let j = i + 1; j < all.length; j++) {
+      if (haversineMeters(a.ping.center, all[j].ping.center) <= SAME_PLACE_M) root[find(j)] = find(i);
+    }
+  });
+  const groups = new Map<number, typeof all>();
+  all.forEach((p, i) => {
+    const k = find(i);
+    groups.set(k, [...(groups.get(k) ?? []), p]);
+  });
+  return [...groups.values()]
+    .filter((ps) => new Set(ps.map((p) => p.member.userId)).size >= 2)
+    .map((ps) => {
+      const sorted = [...ps].sort((x, y) => x.ping.at.localeCompare(y.ping.at));
+      return { center: sorted[0].ping.center, pings: sorted.map(({ member, seq }) => ({ member, seq })) };
+    });
 }
 
 /**
