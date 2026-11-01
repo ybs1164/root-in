@@ -8,6 +8,7 @@ import { shareLinkService as defaultLinks, type ShareLinkService } from '../serv
 import { authService as defaultAuth, type AuthService, type AuthUser } from '../services/authService';
 import type { Profile } from '../services/profileRepository';
 import { remoteProfileService as defaultRemote, type RemoteProfileService } from '../services/remoteProfileService';
+import { pushTokenService as defaultPush, type PushTokenService } from '../services/pushService';
 
 export interface Account {
   /** False without Supabase keys: no 로그인, the app works on this device only. */
@@ -41,6 +42,7 @@ export function useAccount(
   remote: RemoteProfileService = defaultRemote,
   data: RemoteDataService = defaultData,
   links: ShareLinkService = defaultLinks,
+  pushTokens: PushTokenService = defaultPush,
 ): Account {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [busy, setBusy] = useState(false);
@@ -136,7 +138,8 @@ export function useAccount(
     },
     signOut() {
       setBusy(true);
-      void auth.signOut().finally(() => {
+      // While still signed in: this phone stops getting the account's pushes.
+      void pushTokens.forget().then(() => auth.signOut()).finally(() => {
         setUser(null);
         setBusy(false);
       });

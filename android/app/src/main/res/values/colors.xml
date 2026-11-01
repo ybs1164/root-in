@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The pastel blue of the app's 여행 theme (styles.css accent token), for push icons. -->
+    <color name="push_accent">#6C90D8</color>
+</resources>

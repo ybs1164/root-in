@@ -8,12 +8,15 @@ import { getSupabase } from '../lib/supabase';
 // usual functions. Never rejects; without a server nothing ever comes and
 // the screens keep reading on their timers.
 
-/** What to listen to: a group's 대화, or one photo's comments (its upload path). */
-export type LiveTopic = { group: string } | { photo: string };
+/**
+ * What to listen to: a group's 대화, one photo's comments (its upload path),
+ * or my own news (my user id — 그룹 알림, 20261108000000_place_alerts.sql).
+ */
+export type LiveTopic = { group: string } | { photo: string } | { user: string };
 
-/** A line was written: what kind, its id, who wrote it, and the photo it's on. */
+/** A line was written: what kind, its id, who wrote it, and the photo it's on. `news`: a line in my inbox. */
 export interface LiveNote {
-  kind: 'message' | 'comment' | 'photo';
+  kind: 'message' | 'comment' | 'photo' | 'news';
   id: string;
   by: string;
   path?: string;
@@ -39,6 +42,7 @@ export const CLOSE_GRACE_MS = 1500;
 /** The channel's name, or null when the topic isn't one the server sends on. */
 export function topicName(topic: LiveTopic): string | null {
   if ('group' in topic) return UUID.test(topic.group) ? `group:${topic.group}` : null;
+  if ('user' in topic) return UUID.test(topic.user) ? `user:${topic.user}` : null;
   return PHOTO_PATH.test(topic.photo) ? `photo:${topic.photo}` : null;
 }
 
@@ -46,10 +50,10 @@ export function topicName(topic: LiveTopic): string | null {
 export function readLiveNote(raw: unknown): LiveNote | null {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Record<string, unknown>;
-  if (r.kind !== 'message' && r.kind !== 'comment' && r.kind !== 'photo') return null;
+  if (r.kind !== 'message' && r.kind !== 'comment' && r.kind !== 'photo' && r.kind !== 'news') return null;
   if (typeof r.id !== 'string' || !UUID.test(r.id) || typeof r.by !== 'string' || !UUID.test(r.by)) return null;
   const note: LiveNote = { kind: r.kind, id: r.id, by: r.by };
-  if (r.kind !== 'message') {
+  if (r.kind === 'comment' || r.kind === 'photo') {
     if (typeof r.path !== 'string' || !PHOTO_PATH.test(r.path)) return null;
     note.path = r.path;
   }

@@ -66,6 +66,7 @@
    `20261105000000_group_chat.sql` — 그룹 대화: `group_messages`(그룹·쓴 사람·글 200자, 직접 읽기 없음), `send_group_message(gid, message)`(모임원만, 1분에 30개, 새 id), `group_feed(gid)`(모임원만 — 그 그룹에 온 사진(`path`·장소 이름) + 그 사진들의 댓글(글·사진 `path`·장소) + 대화 메시지를 최근 300개, 사람은 id와 `mine`만). 적용 전에는 대화 화면에 '대화를 불러오지 못했어요.'
    `20261106000000_photo_decor.sql` — 그룹 사진 낙서: `photo_decor`(사진 `path`·사람마다 한 겹 `decor` jsonb(앱의 DayDecor, 300KB까지), 직접 읽기 없음), `set_photo_decor(photo_path, decor)`(그 사진이 내 그룹에 있을 때 내 겹만 바꿈, null이면 지움), `photo_decors(photo_path)`(그 사진의 모든 겹, 바꾼 순, `mine`). `photo_comments` 마이그레이션의 `can_see_photo`를 씀 — 그 뒤에 적용.
    `20261107000000_realtime_group_events.sql` — 대화·댓글 실시간: `group_messages`·`group_photos`·`photo_comments`에 insert 트리거(`feed_news`)가 비공개 Realtime 채널로 짧은 알림(`event` `feed`, `{ kind, id, by, path? }` — 글은 안 넣음)을 보냄 — `group:<그룹 id>`(대화의 새 줄: 메시지·사진·그 그룹에 온 사진의 댓글), `photo:<사진 path>`(그 사진의 새 댓글). `realtime.messages` select 정책: `group:`은 모임원만(`is_group_member`), `photo:`은 그 사진을 볼 수 있는 사람만(`can_see_photo` — 이 파일이 authenticated에 실행 권한을 줌); insert 정책 없음(트리거만 보냄). **대시보드 → Realtime → Settings에서 공개 채널 허용(Allow public access) 끄기.** `photo_comments`·`group_chat` 뒤에 적용. 적용 전에도 앱은 그대로 됨(채널 가입이 실패하면 30초마다 읽던 예전처럼). 계획: [plan-realtime.md](plan-realtime.md).
+   `20261108000000_place_alerts.sql` — 그룹 알림 · 새로운 루트 보내기(아래 '장소 알림'): 알림함 `group_news`·푸시 토큰 `push_tokens`(둘 다 직접 읽기 없음), `pings`·`group_photos` insert 트리거(`ping_news` → `place_news`), `group_news()`·`group_news_seen(upto)`·`save_push_token`·`drop_push_token`, `pg_net` 확장, 내 채널 `user:<내 id>` select 정책. 209줄이라 SQL Editor에는 셋으로(1–77행 `push_news`까지 / 78–152행 트리거까지 / 153행부터). `realtime_group_events` 뒤에 적용.
    **이 마이그레이션들을 먼저 적용하고 나서 클라이언트를 배포**할 것 — 새 클라이언트는 이 열을 읽어서, 적용 전 DB에서는 동기화가 실패(프로필 창 안내)한다.
    지움 표시는 30일 뒤 지운다: Integrations → Cron(pg_cron)에 매일 `select public.purge_sync_tombstones();` 등록. 그 전까지 지운 핀·루트의 내용이 서버에 남아 있음.
 3. Project Settings → API의 Project URL과 **anon(public)** 키를 `.env.local`에:
@@ -88,6 +89,34 @@
    - Authentication → URL Configuration: Site URL은 배포 주소, Redirect URLs에
      `http://localhost:5188/**`와 배포 도메인 추가.
 
+## 장소 알림 (그룹 알림 · 새로운 루트, 2026-11-08)
+그룹원이 **새 장소에 핑**(TODAY 핑이 서버에 동기화될 때, 또는 카메라 사진을 그룹에 보낼 때)하면 그 핑을 보는 다른 그룹원에게 알림이 감.
+- **누가 받나**: TODAY 핑은 보낸 사람의 모든 그룹, 사진은 보낸 그룹만 — 그중 받는 사람이 알림 설정에서 그 그룹의 [새로운 루트]를 끈 그룹은 빼고(`profiles.settings.groupAlertsOff`의 `<그룹 id>:route`, 옛 값 `<그룹 id>`는 모두 꺼짐). 여러 그룹을 같이 쓰면 한 사람에게 한 줄(가장 오래된 그룹 이름으로).
+- **새 장소만**: 12시간 안에 그 사람에게서 마지막으로 받은 알림의 장소와 50m 안이면 안 보냄 — 같은 곳에서 사진을 연달아 보내거나, 카메라 사진과 함께 찍힌 TODAY 핑이 두 번 알리지 않게. 다른 곳에 갔다 돌아오면 다시 알림. 1시간보다 오래된 핑(다른 폰이 밀린 핑을 올릴 때)은 안 알림. 제외 주소 핑은 원래 서버에 없음.
+- **알림 한 줄**(`group_news`): 받는 사람·보낸 사람·그룹·보낸 사람 이름(그 그룹에서 보이는 이름)·그룹 이름·장소 이름. 좌표는 '같은 장소' 판단에만 쓰고 앱에는 안 보냄. 앱이 보여 주면 `seen_at`, 30일 지난 줄은 지움.
+- **앱이 열려 있을 때**: 트리거가 비공개 채널 `user:<받는 사람 id>`로 `{ kind: 'news', id, by }`를 보내고 앱이 `group_news()`를 읽어 알약 '민수님이 '서촌 카페'에 핑을 찍었어요.'(여럿이면 '…새 장소 n곳에…' / '민수님 외 n명이…') 뒤 `group_news_seen` — 채널이 끊겨 있어도 앱을 열 때·앞으로 올 때·1분마다 읽음(`hooks/useGroupNews.ts`). 웹은 이것뿐(웹 푸시 없음).
+- **푸시**(앱이 꺼져 있어도): 트리거가 `pg_net`으로 Edge Function `push-news`(`supabase/functions/push-news/`)에 새 줄 id만 넘기고, 함수가 service role로 줄과 토큰을 읽어 안드로이드는 FCM HTTP v1, 아이폰은 APNs로 보냄 — 제목은 그룹 이름, 본문은 앱 알약과 같은 글, 누르면 그 그룹 지도가 열림(`data.group`). 서비스가 '없는 토큰'이라 하면 지움. 앱이 앞에 있으면 시스템 배너는 안 띄움(`capacitor.config.ts` `presentationOptions: []`, 알약이 대신).
+- **토큰**: 폰 앱에서 로그인(게스트 포함)돼 있으면 알림 권한을 묻고(안드로이드 13+·iOS) 토큰을 `save_push_token`(한 폰의 토큰은 마지막에 로그인한 사람 것, 사람마다 10대). 로그아웃 직전에 `drop_push_token`, 탈퇴하면 같이 지워짐. 안드로이드는 빌드에 Firebase(`google-services.json`)가 없으면 등록하지 않음(없이 부르면 앱이 죽음 — `PushSetupPlugin`이 확인).
+
+### 푸시 켜는 법 (한 번)
+1. **Firebase**(안드로이드): [console.firebase.google.com](https://console.firebase.google.com)에서 프로젝트 → Android 앱 추가(패키지 `app.rootin.android`) → `google-services.json`을 `android/app/`에 넣기(커밋 안 함 — `.gitignore`). 그다음 `npm run android:sync` · `npm run android:apk`. 프로젝트 설정 → 서비스 계정 → **새 비공개 키 생성**(JSON).
+2. **APNs**(아이폰, Apple 개발자 프로그램 필요): developer.apple.com → Keys → + → Apple Push Notifications service(APNs) → `.p8` 내려받기, Key ID와 Team ID 적어 두기. Xcode → App 타깃 → Signing & Capabilities에 Push Notifications가 보이는지 확인(`App.entitlements`의 `aps-environment` — Xcode에서 실행한 빌드는 `development`라 아래 `APNS_SANDBOX=true`, TestFlight·App Store는 지우거나 `false`). *무료 Apple ID(개인 팀)는 푸시 권한으로 서명이 안 되니 그땐 `App.entitlements`에서 `aps-environment` 두 줄을 빼고 빌드.*
+3. **함수 배포**(Supabase CLI):
+   ```
+   supabase functions deploy push-news --no-verify-jwt
+   supabase secrets set PUSH_SECRET=<아무 긴 무작위 문자열>
+   supabase secrets set FCM_SERVICE_ACCOUNT="$(cat <서비스 계정>.json)"
+   supabase secrets set APNS_KEY="$(cat AuthKey_XXXX.p8)" APNS_KEY_ID=<Key ID> APNS_TEAM_ID=<Team ID> APNS_BUNDLE_ID=app.rootin.ios APNS_SANDBOX=true
+   ```
+   (아이폰을 안 쓰면 APNS_* 는 빼도 됨 — 아이폰 토큰은 그냥 건너뜀.)
+4. **DB가 함수를 부르게**: SQL Editor에서
+   ```sql
+   select vault.create_secret('https://<ref>.supabase.co/functions/v1/push-news', 'push_news_url');
+   select vault.create_secret('<3번의 PUSH_SECRET과 같은 값>', 'push_news_secret');
+   ```
+   이 둘이 없으면 알림함·앱 알약은 그대로 되고 푸시만 안 감.
+5. 확인: 두 계정(다른 폰, 또는 폰 하나 + 다른 브라우저 프로필)을 같은 그룹에 넣고 한쪽에서 카메라로 그 그룹에 사진 보내기 → 다른 폰에 '<그룹 이름> · <이름>님이 '<장소>'에 핑을 찍었어요.' 안 오면 대시보드 → Edge Functions → push-news → Logs, 그리고 `select * from net._http_response order by created desc limit 5;`.
+
 ## 구조
 - `lib/supabase.ts` — 키가 있을 때만 `@supabase/supabase-js`를 동적 import (키 없는 빌드엔 라이브러리가 아예 안 들어감). PKCE 흐름이라 로그인 결과가 `?code=`로 돌아와 공유 링크 해시(`#share=`)와 안 겹침, 쓰고 나면 `clearLoginReturn`이 주소창에서 지움.
 - `services/authService.ts` — 로그인·로그아웃·탈퇴 (`AuthService` 인터페이스, reject 안 함).
@@ -96,7 +125,8 @@
 - `services/accountSync.ts` — 로그인 때 합치기·변경 보내기 (React 밖, 테스트 있음).
 - `hooks/useAccount.ts` — App에 연결. `ProfileSheet`의 `account` prop. 프로필 동기화 뒤 `cloudSync`를 돌림.
 - `services/shareLinkService.ts`(짧은 링크 만들기·열기·횟수) · `shareCounts.ts`(횟수를 루트에) · `hooks/useIncomingCourse.ts`의 `resolveIncoming`.
-- `services/groupLive.ts` — 대화·댓글 실시간 채널(`GroupLive.watch`, 같은 채널은 같이 씀, 아무도 안 들으면 1.5초 뒤 닫음, 받은 알림은 모양 검사, reject 안 함) · `hooks/useLiveRefresh.ts`(알림이 오면 0.25초 모아 한 번 다시 읽음 — 이미 보이는 줄의 알림은 무시; 다시 연결·앱 복귀 때 읽음; 연결 중 2분·끊김 30초마다 읽음).
+- `services/pushService.ts`(이 폰의 푸시 토큰 저장·로그아웃 때 지움) · `lib/push.ts`(Capacitor PushNotifications — 권한·등록·누른 푸시의 그룹) · `hooks/useGroupNews.ts`(알림함 읽기·알약·푸시 등록) · `supabase/functions/push-news/`(FCM·APNs로 보내는 Edge Function, Deno — 글·본문 만들기는 `payload.ts`, 테스트는 `src/test/pushPayload.test.ts`).
+- `services/groupLive.ts` — 대화·댓글·내 알림(`user:<id>`) 실시간 채널(`GroupLive.watch`, 같은 채널은 같이 씀, 아무도 안 들으면 1.5초 뒤 닫음, 받은 알림은 모양 검사, reject 안 함) · `hooks/useLiveRefresh.ts`(알림이 오면 0.25초 모아 한 번 다시 읽음 — 이미 보이는 줄의 알림은 무시; 다시 연결·앱 복귀 때 읽음; 연결 중 2분·끊김 30초마다 읽음).
 - `services/cloudSync.ts`(엔진) · `syncMerge.ts`(3방향 병합·해시) · `syncCollections.ts`(저장소 ↔ 행) · `remoteDataService.ts`(Supabase 읽기 1000행씩·쓰기 200행씩) · `syncBus.ts`(저장소 쓰기 알림).
 
 ## 다음 단계

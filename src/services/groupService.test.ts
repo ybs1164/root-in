@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import { createSupabaseGroupService, inviteUrl, readGroups, readInviteSlug, readMetPairs, readHeartNews, readComments, readFeed, readDecorLayers } from './groupService';
+import { createSupabaseGroupService, inviteUrl, readGroups, readInviteSlug, readMetPairs, readHeartNews, readGroupNews, readComments, readFeed, readDecorLayers } from './groupService';
 
 const G1 = '11111111-1111-1111-1111-111111111111';
 const U1 = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
@@ -255,6 +255,24 @@ describe('groupService', () => {
     expect(fake.rpc).toHaveBeenLastCalledWith('hearts_seen', { upto: '2026-11-02T01:00:00Z' });
     expect(readHeartNews('nope')).toEqual([]);
     expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).heartNews()).toEqual([]);
+  });
+
+  it('reads 그룹 알림 news checked, and marks it shown up to a time', async () => {
+    const N1 = '11111111-2222-4333-8444-555555555555';
+    const row = { id: N1, from_user: U1, group_id: G1, kind: 'route', name: ' 민수 ', group_name: '우리', place: ' 서촌 카페 ', at: '2026-11-08T01:00:00Z' };
+    const fake = fakeClient((fn) => ({
+      data: fn === 'group_news' ? [row, { ...row, kind: 'heart' }, { ...row, id: 'x' }, { ...row, place: '  ' }, { ...row, group_id: 'g' }, { ...row, name: '' }] : null,
+    }));
+    const service = createSupabaseGroupService(async () => fake.client, true);
+    expect(await service.news()).toEqual([
+      { id: N1, fromUser: U1, groupId: G1, name: '민수', groupName: '우리', place: '서촌 카페', at: row.at },
+      { id: N1, fromUser: U1, groupId: G1, name: '누군가', groupName: '우리', place: '서촌 카페', at: row.at },
+    ]);
+    expect(await service.newsSeen(row.at)).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('group_news_seen', { upto: row.at });
+    expect(await service.newsSeen('not a time')).toBe(false);
+    expect(readGroupNews({})).toEqual([]);
+    expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).news()).toEqual([]);
   });
 
   it('reads and writes a photo\'s comments by its path, checked', async () => {

@@ -84,6 +84,10 @@ export interface GroupService {
   heartNews(): Promise<HeartNews[]>;
   /** Shown: the hearts up to `upto` (an `at`) stop coming back. */
   heartsSeen(upto: string): Promise<boolean>;
+  /** 그룹 알림 not yet shown (a member pinged a new place), newest first ([] when it couldn't ask). */
+  news(): Promise<GroupNews[]>;
+  /** Shown: the news up to `upto` (an `at`) stops coming back. */
+  newsSeen(upto: string): Promise<boolean>;
   /** A photo's comments (by its upload `path`), oldest first; 'error' when the server couldn't be asked. */
   comments(path: string): Promise<PhotoComment[] | 'error'>;
   /** A comment on a photo of a group of mine; false when the server said no. */
@@ -109,6 +113,18 @@ export interface HeartNews {
   nickname: string;
   /** Where the photo was taken, when known. */
   place: string | null;
+  at: string;
+}
+
+/** 그룹 알림 · 새로운 루트: a member of a group of mine pinged a new place (20261108000000_place_alerts.sql). */
+export interface GroupNews {
+  id: string;
+  fromUser: string;
+  groupId: string;
+  /** The sender as the group shows them. */
+  name: string;
+  groupName: string;
+  place: string;
   at: string;
 }
 
@@ -198,6 +214,23 @@ export function readHeartNews(data: unknown): HeartNews[] {
     const nickname = typeof r.nickname === 'string' && r.nickname.trim() ? r.nickname.trim().slice(0, 20) : '누군가';
     const place = typeof r.place === 'string' && r.place.trim() ? r.place.trim().slice(0, 80) : null;
     news.push({ path: r.path, fromUser: r.from_user, nickname, place, at: r.at });
+  }
+  return news;
+}
+
+/** group_news' rows, checked; anything off (or a kind this app doesn't know) is skipped. */
+export function readGroupNews(data: unknown): GroupNews[] {
+  if (!Array.isArray(data)) return [];
+  const news: GroupNews[] = [];
+  for (const row of data.slice(0, 50)) {
+    const r = (row ?? {}) as Record<string, unknown>;
+    if (r.kind !== 'route') continue;
+    if (typeof r.id !== 'string' || !UUID.test(r.id) || typeof r.from_user !== 'string' || !UUID.test(r.from_user)) continue;
+    if (typeof r.group_id !== 'string' || !UUID.test(r.group_id)) continue;
+    if (typeof r.place !== 'string' || !r.place.trim() || typeof r.at !== 'string' || Number.isNaN(Date.parse(r.at))) continue;
+    const name = typeof r.name === 'string' && r.name.trim() ? r.name.trim().slice(0, 20) : '누군가';
+    const groupName = typeof r.group_name === 'string' && r.group_name.trim() ? r.group_name.trim().slice(0, GROUP_LIMITS.name) : '그룹';
+    news.push({ id: r.id, fromUser: r.from_user, groupId: r.group_id, name, groupName, place: r.place.trim().slice(0, 80), at: r.at });
   }
   return news;
 }
@@ -556,6 +589,29 @@ export function createSupabaseGroupService(
         const client = await getClient();
         if (!client) return false;
         const { error } = await client.rpc('hearts_seen', { upto });
+        return !error;
+      } catch {
+        return false;
+      }
+    },
+
+    async news() {
+      try {
+        const client = await getClient();
+        if (!client) return [];
+        const { data, error } = await client.rpc('group_news');
+        return error ? [] : readGroupNews(data);
+      } catch {
+        return [];
+      }
+    },
+
+    async newsSeen(upto) {
+      try {
+        if (Number.isNaN(Date.parse(upto))) return false;
+        const client = await getClient();
+        if (!client) return false;
+        const { error } = await client.rpc('group_news_seen', { upto });
         return !error;
       } catch {
         return false;

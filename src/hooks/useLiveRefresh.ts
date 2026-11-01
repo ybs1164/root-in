@@ -11,7 +11,8 @@ export const POLL_OFF_MS = 30_000;
 
 export const pollEvery = (live: boolean): number => (live ? POLL_LIVE_MS : POLL_OFF_MS);
 
-const topicKey = (topic: LiveTopic | null): string | null => (!topic ? null : 'group' in topic ? `group:${topic.group}` : `photo:${topic.photo}`);
+const topicKey = (topic: LiveTopic | null): string | null =>
+  !topic ? null : 'group' in topic ? `group:${topic.group}` : 'photo' in topic ? `photo:${topic.photo}` : `user:${topic.user}`;
 
 /**
  * Keeps a screen (the 대화, a big photo's comments) up to date: `refresh`

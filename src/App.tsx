@@ -65,6 +65,7 @@ import GroupMapView, { type GroupPlace } from './components/GroupMapView';
 import GroupChat from './components/GroupChat';
 import PhotoGallery from './components/PhotoGallery';
 import { useHeartNews } from './hooks/useHeartNews';
+import { useGroupNews } from './hooks/useGroupNews';
 import { useGalleryPhotos } from './hooks/useGalleryPhotos';
 import { usePingPhotos } from './hooks/usePingPhotos';
 import { localGalleryPhotos, type GalleryTab } from './domain/gallery';
@@ -327,6 +328,15 @@ export default function App() {
   const [galleryTab, setGalleryTab] = useState<GalleryTab | null>(null);
   // Someone hearted a photo of mine in the gallery: say so (in-app; no push yet).
   useHeartNews(account.user, notify);
+  // A member of a group of mine pinged a new place (그룹 알림 · 새로운 루트):
+  // a notice in the app, a push on the phone apps; a tapped push opens the group.
+  useGroupNews(account.user, {
+    onNotice: notify,
+    onOpenGroup: (id) => {
+      changeTab('people');
+      setOpenGroupId(id);
+    },
+  });
   const groups = useGroups(account.user, tab === 'people' || galleryTab !== null || settingsOpen, {
     onJoined: (id) => {
       changeTab('people');

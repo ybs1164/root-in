@@ -164,7 +164,7 @@ export function createGroupDemoService(service: GroupService): GroupService {
     ...service,
     watch(topic, listener) {
       const stop = service.watch(topic, listener);
-      const name = 'group' in topic ? `group:${topic.group}` : topic.photo.startsWith('demo/') ? `photo:${topic.photo}` : null;
+      const name = 'group' in topic ? `group:${topic.group}` : 'photo' in topic && topic.photo.startsWith('demo/') ? `photo:${topic.photo}` : null;
       if (!name) return stop;
       const set = listeners.get(name) ?? new Set();
       listeners.set(name, set.add(listener));

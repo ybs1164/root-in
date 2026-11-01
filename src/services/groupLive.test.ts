@@ -45,6 +45,8 @@ describe('topicName', () => {
   it('names only the channels the server sends on', () => {
     expect(topicName({ group: GID })).toBe(`group:${GID}`);
     expect(topicName({ photo: PATH })).toBe(`photo:${PATH}`);
+    expect(topicName({ user: UID })).toBe(`user:${UID}`);
+    expect(topicName({ user: 'me' })).toBeNull();
     expect(topicName({ group: 'dev-group' })).toBeNull();
     expect(topicName({ photo: 'demo/abc' })).toBeNull();
     expect(topicName({ photo: `${UID}/../x.jpg` })).toBeNull();
@@ -55,6 +57,7 @@ describe('readLiveNote', () => {
   it('keeps a well-formed note and nothing it does not know', () => {
     expect(readLiveNote({ kind: 'message', id: GID, by: UID, body: 'hi' })).toEqual({ kind: 'message', id: GID, by: UID });
     expect(readLiveNote({ kind: 'comment', id: GID, by: UID, path: PATH })).toEqual({ kind: 'comment', id: GID, by: UID, path: PATH });
+    expect(readLiveNote({ kind: 'news', id: GID, by: UID, place: '서촌' })).toEqual({ kind: 'news', id: GID, by: UID });
   });
   it('drops anything off', () => {
     expect(readLiveNote(null)).toBeNull();
