@@ -11,8 +11,10 @@ import PhotoViewer, { OpenPhotoMarks } from './PhotoViewer';
 /** The day calendar's height (its six weeks), to flip it over a pill low on the screen. */
 const PICKER_HEIGHT = 330;
 
-/** How often the 대화 reads itself again while it's open. */
+/** How often the 대화 reads itself again while it's open (live updates do the rest). */
 const REFRESH_MS = 30_000;
+/** Live nudges this close together make one read. */
+const LIVE_GATHER_MS = 150;
 
 /** Someone no longer in the group: no face, a neutral name. */
 const goneMember = (userId: string): GroupMember => ({ userId, slot: 0, color: 0, nickname: '나간 그룹원', alias: null, photo: null, pings: [] });
@@ -52,16 +54,31 @@ export default function GroupChat({
 }) {
   const [items, setItems] = useState<FeedItem[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const asked = useRef(0);
   const read = useCallback(async () => {
+    const n = ++asked.current;
     const feed = await groupService.feed(group.id);
+    // Only the latest read counts: live nudges can overlap.
+    if (n !== asked.current) return;
     if (feed === 'error') setFailed(true), setItems((now) => now ?? []);
     else setFailed(false), setItems(feed);
   }, [group.id]);
   useEffect(() => {
     void read();
+    // New lines come in live; the slow re-read only covers a dropped connection.
+    let nudge: number | undefined;
+    const stop = groupService.watchGroup(group.id, () => {
+      // A burst (a photo sent to several groups, quick messages) is one read.
+      window.clearTimeout(nudge);
+      nudge = window.setTimeout(() => void read(), LIVE_GATHER_MS);
+    });
     const timer = window.setInterval(() => void read(), REFRESH_MS);
-    return () => window.clearInterval(timer);
-  }, [read]);
+    return () => {
+      stop();
+      window.clearTimeout(nudge);
+      window.clearInterval(timer);
+    };
+  }, [read, group.id]);
   // Back from a big photo: a comment may have been written there.
   const wasBig = useRef(false);
   useEffect(() => {

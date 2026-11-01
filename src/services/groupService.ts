@@ -101,6 +101,14 @@ export interface GroupService {
   decorsMany(paths: readonly string[]): Promise<Map<string, PhotoDecorLayer[]> | 'error'>;
   /** My doodles on a photo, replaced (nothing on it: taken off), with my colour for their stickers' edge; false when the server said no. */
   setDecor(path: string, decor: DayDecor, ink?: string): Promise<boolean>;
+  /**
+   * Live: `onChange` whenever a group's 대화 may have changed (a message, a
+   * photo sent to it, a comment on a photo I can see). Only a nudge — read
+   * `feed` again. Returns the way to stop listening; never throws.
+   */
+  watchGroup(groupId: string, onChange: () => void): () => void;
+  /** Live: `onChange` whenever a photo's comments or doodles may have changed (by its upload `path`). */
+  watchPhoto(path: string, onChange: () => void): () => void;
 }
 
 
@@ -313,6 +321,38 @@ export function readGroups(raw: unknown, photoUrl: (path: string) => string | nu
     groups.push(group);
   }
   return groups;
+}
+
+type Listen = { table: string; event: 'INSERT' | '*'; filter?: string };
+
+let channelSeq = 0;
+
+/**
+ * Realtime postgres_changes on `listens` (the tables' select policies keep
+ * out rows I can't read), each calling `onChange`; the stop function works
+ * even before the client has loaded.
+ */
+function listen(getClient: () => Promise<SupabaseClient | null>, name: string, listens: Listen[], onChange: () => void): () => void {
+  let stopped = false;
+  let stop = () => {};
+  void getClient()
+    .then((client) => {
+      if (!client || stopped) return;
+      // Its own topic each time: two screens on the same thing would otherwise share (and close) one channel.
+      let channel = client.channel(`${name}:${++channelSeq}`);
+      for (const l of listens) {
+        channel = channel.on('postgres_changes', { schema: 'public', table: l.table, event: l.event, ...(l.filter ? { filter: l.filter } : {}) }, () => {
+          if (!stopped) onChange();
+        });
+      }
+      channel.subscribe();
+      stop = () => void client.removeChannel(channel).catch(() => {});
+    })
+    .catch(() => {});
+  return () => {
+    stopped = true;
+    stop();
+  };
 }
 
 export function createSupabaseGroupService(
@@ -662,6 +702,25 @@ export function createSupabaseGroupService(
       } catch {
         return false;
       }
+    },
+
+    watchGroup(groupId, onChange) {
+      if (!available || !UUID.test(groupId)) return () => {};
+      return listen(getClient, `group-talk:${groupId}`, [
+        { table: 'group_messages', event: 'INSERT', filter: `group_id=eq.${groupId}` },
+        { table: 'group_photos', event: 'INSERT', filter: `group_id=eq.${groupId}` },
+        // Which group a comment's photo went to isn't on the row: every one I can see, and the feed sorts it out.
+        { table: 'photo_comments', event: 'INSERT' },
+      ], onChange);
+    },
+
+    watchPhoto(path, onChange) {
+      if (!available || !PHOTO_PATH.test(path)) return () => {};
+      return listen(getClient, `photo:${path}`, [
+        { table: 'photo_comments', event: 'INSERT', filter: `path=eq.${path}` },
+        // Doodles are upserted (a layer taken off entirely is a delete, which a filter can't catch).
+        { table: 'photo_decor', event: '*', filter: `path=eq.${path}` },
+      ], onChange);
     },
 
     async pingDays(groupId, from, to) {
