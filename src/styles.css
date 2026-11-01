@@ -8711,10 +8711,9 @@ button:disabled {
   position: fixed;
   left: 0;
   right: 0;
-  /* Down on the line the camera had (its middle 70px up: the faces' 46px
-     plus the row's 10px padding either side, centred there) — a group's map
-     has no buttons left along the bottom (2026-10-29). */
-  bottom: calc(var(--safe-bottom) + 37px);
+  /* Over the 대화 button at the bottom-right (its top 96px up), so the
+     faces at the row's end never run under it (2026-11-01; was 37px). */
+  bottom: calc(var(--safe-bottom) + 101px);
   z-index: 20;
   display: flex;
   align-items: center;
@@ -8899,14 +8898,35 @@ button:disabled {
   justify-content: flex-end;
 }
 
+/* When it was taken: top left, where 1 / N used to be (2026-11-01). */
 .group-photo-panel__time {
   flex: none;
-  padding: 0 10px 8px 0;
   color: var(--muted);
   font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
   font-size: 22px;
   letter-spacing: 0.04em;
   line-height: 1;
+}
+
+/* 💬 ♥ ★ along the bottom, as under the photo big, in the panel's ink. */
+.group-photo-panel__foot {
+  gap: 0;
+  margin-right: -6px;
+}
+
+.group-photo-panel .gallery__marks {
+  display: contents;
+}
+
+.group-photo-panel .gallery__mark {
+  width: 40px;
+  height: 40px;
+  color: var(--text);
+}
+
+.group-photo-panel .gallery__mark svg {
+  width: 24px;
+  height: 24px;
 }
 
 button.group-photo-panel__photo {
@@ -8918,7 +8938,8 @@ button.group-photo-panel__photo {
 /* The panel's photo big: a dark veil over everything, the photo whole, the place under it. */
 .group-photo-viewer {
   position: fixed;
-  inset: 0;
+  inset: var(--vv-top, 0px) 0 auto;
+  height: var(--vv-height, 100%);
   z-index: 60;
   display: grid;
   place-items: center;
@@ -8953,6 +8974,9 @@ button.group-photo-panel__photo {
   gap: 14px;
   width: min(100%, 520px);
   margin: 0;
+  /* Up by what's under the photo (14px gap + the caption's ~42px): the
+     caption ends where the photo used to (2026-11-01). */
+  translate: 0 -56px;
   animation: pop-in 0.26s var(--pop-ease) both;
 }
 
@@ -9078,7 +9102,7 @@ button.group-photo-panel__photo {
 .member-pass {
   position: fixed;
   /* Over the member row (its 66px, then 12px). */
-  bottom: calc(var(--safe-bottom) + 115px);
+  bottom: calc(var(--safe-bottom) + 179px);
   z-index: 21;
   max-width: 420px;
   /* Clear of the < > either side. */
@@ -9384,6 +9408,40 @@ button.group-photo-panel__photo {
 .group-ping.is-together .group-ping__pin {
   animation: aurora-fill 6s linear infinite;
   filter: drop-shadow(0 0 1.5px var(--surface)) drop-shadow(0 0 4px var(--aurora-5));
+}
+
+/* A shared place (`sharedPlaces`, 2026-11-01): one aurora pin for everyone
+   who pinged it; over it, whoever is there now side by side, each in their
+   own colour ring; over them, every photo from there in the order taken. */
+.group-ping__faces {
+  position: absolute;
+  left: 0;
+  top: -74px;
+  display: flex;
+  gap: 10px;
+  translate: -50% 0;
+}
+
+.group-ping.is-together .group-ping__faces .group-ping__face {
+  position: relative;
+  left: auto;
+  top: auto;
+  flex: none;
+  padding: 0;
+  background: var(--member);
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--member), var(--pin-shadow);
+}
+
+.group-ping.has-faces .group-ping__photo {
+  top: calc(-149px - var(--stack, 0) * var(--stack-step));
+}
+
+/* A member's own ping at a shared place: only where their lines meet. */
+.group-ping--ghost {
+  width: 0;
+  height: 0;
+  background: none;
+  box-shadow: none;
 }
 
 @keyframes aurora-turn {
@@ -10256,7 +10314,9 @@ button.group-photo-panel__photo {
    TALK up top, the thread, the line to write at the bottom. */
 .group-chat {
   position: fixed;
-  inset: 0;
+  /* The part the keyboard leaves (lib/visualViewport.ts): the input sits on it. */
+  inset: var(--vv-top, 0px) 0 auto;
+  height: var(--vv-height, 100%);
   z-index: 50;
   display: flex;
   flex-direction: column;
@@ -10579,6 +10639,23 @@ button.group-photo-panel__photo {
   padding: 10px 16px calc(var(--safe-bottom) + 14px);
 }
 
+:root[data-keyboard] .group-chat__form {
+  /* The keyboard covers the home bar: no room kept for it. */
+  padding-bottom: 10px;
+}
+
+/* A comment being written: the photo, caption and comments go up to sit on
+   the keyboard (the photo's top may go off the top), its input just over it. */
+:root[data-keyboard] .group-photo-viewer {
+  place-items: end center;
+  padding-bottom: 10px;
+  overflow: hidden;
+}
+
+:root[data-keyboard] .group-photo-viewer__figure {
+  translate: none;
+}
+
 .group-chat__input {
   flex: 1;
   min-width: 0;
@@ -10618,7 +10695,7 @@ button.group-photo-panel__photo {
   width: min(100%, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 330px));
 }
 
-.group-photo-viewer__photo.has-doodles img {
+.group-photo-viewer__photo.has-doodles > img {
   width: 100%;
   height: 100%;
   border-radius: 18px;
@@ -10629,6 +10706,12 @@ button.group-photo-panel__photo {
 .photo-doodle__layer {
   position: absolute;
   inset: 0;
+}
+
+/* Stickers and text are sized by the photo (cqw), not the screen: the same
+   at full size and in a gallery square. */
+.photo-doodle {
+  container-type: inline-size;
 }
 
 /* One member's layer (it carries their sticker edge colour); only the tools' own surface takes touches. */
@@ -10839,11 +10922,19 @@ button.group-photo-panel__photo {
   background: var(--surface-2);
 }
 
-.gallery__photo img {
+/* The photo itself (not the doodles' stickers over it). */
+.gallery__photo > img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* A square's doodles: a still copy of the big photo's, cut to the square. */
+.gallery__photo .photo-doodle--still {
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 .gallery__photo:active {

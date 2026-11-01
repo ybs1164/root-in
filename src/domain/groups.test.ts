@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlacePings, withSentPhotos, mergeSamePlace, pingPhotos, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, type Group } from './groups';
+import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlaces, withSentPhotos, mergeSamePlace, pingPhotos, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -232,18 +232,28 @@ describe('viewerStep', () => {
   });
 });
 
-describe('sharedPlacePings', () => {
-  it('marks pings where another member was within 50m, both sides, by distance not id', () => {
+describe('sharedPlaces', () => {
+  it('gathers pings where another member was within 50m into one place at the earliest spot, by distance not id', () => {
     const a = member('a', 0, [[127.0, 37.5], [127.1, 37.6]]);
-    // ~20m east of a's first ping; the second is far from everything.
-    const b = member('b', 1, [[127.0002, 37.5], [127.3, 37.7]]);
-    const shared = sharedPlacePings([a, b]);
-    expect([...shared].sort()).toEqual([groupPingKey(a, a.pings[0]), groupPingKey(b, b.pings[0])].sort());
+    // ~20m east of a's first ping, an hour later; the second is far from everything.
+    const b = { ...member('b', 1, [[127.0002, 37.5], [127.3, 37.7]]) };
+    b.pings[0] = { ...b.pings[0], at: '2026-10-16T05:00:00.000Z' };
+    const places = sharedPlaces([b, a]);
+    expect(places).toHaveLength(1);
+    expect(places[0].center).toEqual([127.0, 37.5]);
+    expect(places[0].pings.map((p) => `${p.member.userId}${p.seq}`)).toEqual(['a0', 'b0']);
+  });
+
+  it('chains pings a few metres apart into one place', () => {
+    const a = member('a', 0, [[127.0, 37.5]]);
+    const b = member('b', 1, [[127.0004, 37.5]]);
+    const c = member('c', 2, [[127.0008, 37.5]]);
+    expect(sharedPlaces([a, b, c])[0].pings).toHaveLength(3);
   });
 
   it("doesn't count one member's own pings at the same place", () => {
     const a = member('a', 0, [[127.0, 37.5], [127.0001, 37.5]]);
-    expect(sharedPlacePings([a, member('b', 1, [[128, 36]])]).size).toBe(0);
+    expect(sharedPlaces([a, member('b', 1, [[128, 36]])])).toEqual([]);
   });
 });
 
