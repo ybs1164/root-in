@@ -13,6 +13,8 @@ export interface PhotoDecor {
   mine: DayDecor;
   /** The colour my layer was saved with (where I can't doodle, e.g. the gallery, its stickers' edge). */
   mineInk: string | null;
+  /** Who my layer belongs to as the server knows me (null until it's read, or when I have none). */
+  mineUser: string | null;
   setMine(decor: DayDecor): void;
 }
 
@@ -26,6 +28,7 @@ export function usePhotoDecor(path: string | null, ink?: string | null): PhotoDe
   const [others, setOthers] = useState<PhotoDecorLayer[] | null>(null);
   const [mine, setMineState] = useState<DayDecor>(EMPTY_DECOR);
   const [mineInk, setMineInk] = useState<string | null>(null);
+  const [mineUser, setMineUser] = useState<string | null>(null);
   const pending = useRef<{ path: string; decor: DayDecor; ink?: string } | null>(null);
   const timer = useRef<number | undefined>(undefined);
   const flush = useCallback(() => {
@@ -39,8 +42,10 @@ export function usePhotoDecor(path: string | null, ink?: string | null): PhotoDe
     setOthers(null);
     setMineState(EMPTY_DECOR);
     setMineInk(null);
+    setMineUser(null);
     if (!path) return;
     let live = true;
+    let asked = 0;
     void groupService.decors(path).then((layers) => {
       if (!live) return;
       const list = layers === 'error' ? [] : layers;
@@ -48,10 +53,20 @@ export function usePhotoDecor(path: string | null, ink?: string | null): PhotoDe
       // Unless I've started on it meanwhile.
       const saved = list.find((l) => l.mine);
       setMineInk(saved?.ink ?? null);
+      setMineUser(saved?.userId ?? null);
       if (!pending.current) setMineState(saved?.decor ?? EMPTY_DECOR);
+    });
+    // Another member doodling shows up as they go. Only their layers are
+    // taken: mine is whatever I have here (the server's may be behind it).
+    const stop = groupService.watchDecor(path, () => {
+      const n = ++asked;
+      void groupService.decors(path).then((layers) => {
+        if (live && n === asked && layers !== 'error') setOthers(layers.filter((l) => !l.mine));
+      });
     });
     return () => {
       live = false;
+      stop();
       flush();
     };
   }, [path, flush]);
@@ -63,5 +78,5 @@ export function usePhotoDecor(path: string | null, ink?: string | null): PhotoDe
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(flush, SAVE_MS);
   };
-  return { others, mine, mineInk, setMine };
+  return { others, mine, mineInk, mineUser, setMine };
 }

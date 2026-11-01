@@ -259,6 +259,15 @@ export function createGroupDemoService(service: GroupService): GroupService {
       const mine = demoDecor.get(path);
       return mine ? [{ userId: 'me', decor: mine.decor, mine: true, ...(mine.ink ? { ink: mine.ink } : {}) }] : [];
     },
+    async decorsMany(paths) {
+      const result = await service.decorsMany(paths.filter((p) => !p.startsWith('demo/')));
+      const out = new Map(result === 'error' ? [] : result);
+      for (const path of paths) {
+        const mine = demoDecor.get(path);
+        if (mine) out.set(path, [{ userId: 'me', decor: mine.decor, mine: true, ...(mine.ink ? { ink: mine.ink } : {}) }]);
+      }
+      return out;
+    },
     async setDecor(path, decor, ink) {
       if (!path.startsWith('demo/')) return service.setDecor(path, decor, ink);
       demoDecor.set(path, { decor, ink });

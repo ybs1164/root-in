@@ -30,7 +30,7 @@ Supabase Realtime의 **Broadcast from Database**(트리거에서 `realtime.send`
 
 ## 작업
 
-### R0 — 서버: 트리거와 채널 권한 (`supabase/migrations/20261107000000_realtime_group_events.sql`)
+### R0 — 서버: 트리거와 채널 권한 (`supabase/migrations/20261109000000_realtime_group_events.sql`)
 
 - 트리거 함수(security definer, `search_path = pg_catalog`):
   - `group_messages` insert → `realtime.send(알림, 'feed', 'group:' || group_id, true)`

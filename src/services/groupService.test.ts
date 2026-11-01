@@ -373,3 +373,40 @@ describe('groupService', () => {
     expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).setProfile(G1, false, 'a')).toBe(false);
   });
 });
+
+describe('live updates', () => {
+  function realtimeClient() {
+    const handlers: { opts: Record<string, unknown>; fire: () => void }[] = [];
+    const channel = {
+      on: vi.fn((_kind: string, opts: Record<string, unknown>, fire: () => void) => (handlers.push({ opts, fire }), channel)),
+      subscribe: vi.fn(() => channel),
+    };
+    const removeChannel = vi.fn(async () => 'ok');
+    const client = { channel: vi.fn(() => channel), removeChannel } as unknown as SupabaseClient;
+    return { client, handlers, removeChannel };
+  }
+  const PATH = `${U1}/abcdef12.jpg`;
+
+  it("listens to a photo's doodles, and stops", async () => {
+    const fake = realtimeClient();
+    const onChange = vi.fn();
+    const stop = createSupabaseGroupService(async () => fake.client, true).watchDecor(PATH, onChange);
+    await vi.waitFor(() => expect(fake.handlers).toHaveLength(1));
+    expect(fake.handlers[0].opts).toMatchObject({ table: 'photo_decor', event: '*', filter: `path=eq.${PATH}` });
+    fake.handlers[0].fire();
+    expect(onChange).toHaveBeenCalledTimes(1);
+    stop();
+    expect(fake.removeChannel).toHaveBeenCalledTimes(1);
+    fake.handlers[0].fire();
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('listens to nothing for bad paths or no backend', async () => {
+    const other = realtimeClient();
+    createSupabaseGroupService(async () => other.client, true).watchDecor('nope', () => {})();
+    createSupabaseGroupService(async () => other.client, false).watchDecor(PATH, () => {})();
+    createSupabaseGroupService(() => Promise.reject(new Error('down')), true).watchDecor(PATH, () => {})();
+    await Promise.resolve();
+    expect(other.client.channel).not.toHaveBeenCalled();
+  });
+});

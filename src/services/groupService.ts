@@ -98,10 +98,22 @@ export interface GroupService {
   sendMessage(groupId: string, body: string): Promise<boolean>;
   /** Every member's doodles on a photo (by its upload `path`); 'error' when the server couldn't be asked. */
   decors(path: string): Promise<PhotoDecorLayer[] | 'error'>;
+  /**
+   * Every member's doodles on many photos at once (the gallery's squares),
+   * by path; a photo nobody doodled on is left out. 'error' when the server
+   * couldn't be asked (or hasn't photo_decors_many yet).
+   */
+  decorsMany(paths: readonly string[]): Promise<Map<string, PhotoDecorLayer[]> | 'error'>;
   /** My doodles on a photo, replaced (nothing on it: taken off), with my colour for their stickers' edge; false when the server said no. */
   setDecor(path: string, decor: DayDecor, ink?: string): Promise<boolean>;
   /** Hears a group's 대화 or a photo's comments as lines are written (`groupLive`); returns the stop. */
   watch(topic: LiveTopic, listener: (event: LiveEvent) => void): () => void;
+  /**
+   * Live: `onChange` whenever a photo's doodles may have changed (by its
+   * upload `path`; postgres_changes on photo_decor). Only a nudge — read
+   * `decors` again. Returns the way to stop listening; never throws.
+   */
+  watchDecor(path: string, onChange: () => void): () => void;
 }
 
 
@@ -116,7 +128,7 @@ export interface HeartNews {
   at: string;
 }
 
-/** 그룹 알림 · 새로운 루트: a member of a group of mine pinged a new place (20261108000000_place_alerts.sql). */
+/** 그룹 알림 · 새로운 루트: a member of a group of mine pinged a new place (20261110000000_place_alerts.sql). */
 export interface GroupNews {
   id: string;
   fromUser: string;
@@ -343,6 +355,38 @@ export function readGroups(raw: unknown, photoUrl: (path: string) => string | nu
     groups.push(group);
   }
   return groups;
+}
+
+type Listen = { table: string; event: 'INSERT' | '*'; filter?: string };
+
+let channelSeq = 0;
+
+/**
+ * Realtime postgres_changes on `listens` (the tables' select policies keep
+ * out rows I can't read), each calling `onChange`; the stop function works
+ * even before the client has loaded.
+ */
+function listen(getClient: () => Promise<SupabaseClient | null>, name: string, listens: Listen[], onChange: () => void): () => void {
+  let stopped = false;
+  let stop = () => {};
+  void getClient()
+    .then((client) => {
+      if (!client || stopped) return;
+      // Its own topic each time: two screens on the same thing would otherwise share (and close) one channel.
+      let channel = client.channel(`${name}:${++channelSeq}`);
+      for (const l of listens) {
+        channel = channel.on('postgres_changes', { schema: 'public', table: l.table, event: l.event, ...(l.filter ? { filter: l.filter } : {}) }, () => {
+          if (!stopped) onChange();
+        });
+      }
+      channel.subscribe();
+      stop = () => void client.removeChannel(channel).catch(() => {});
+    })
+    .catch(() => {});
+  return () => {
+    stopped = true;
+    stop();
+  };
 }
 
 export function createSupabaseGroupService(
@@ -681,6 +725,31 @@ export function createSupabaseGroupService(
       }
     },
 
+    async decorsMany(paths) {
+      try {
+        const asked = [...new Set(paths.filter((p) => PHOTO_PATH.test(p)))].slice(0, GALLERY_LIMIT);
+        if (!asked.length) return new Map();
+        const askedSet = new Set(asked);
+        const client = await getClient();
+        if (!client) return 'error';
+        const { data, error } = await client.rpc('photo_decors_many', { photo_paths: asked });
+        if (error || !Array.isArray(data)) return 'error';
+        const byPath = new Map<string, unknown[]>();
+        for (const row of data) {
+          const path = (row as { path?: unknown } | null)?.path;
+          if (typeof path === 'string' && askedSet.has(path)) byPath.set(path, [...(byPath.get(path) ?? []), row]);
+        }
+        const out = new Map<string, PhotoDecorLayer[]>();
+        for (const [path, rows] of byPath) {
+          const layers = readDecorLayers(rows);
+          if (layers.length) out.set(path, layers);
+        }
+        return out;
+      } catch {
+        return 'error';
+      }
+    },
+
     async setDecor(path, decor, ink) {
       try {
         if (!PHOTO_PATH.test(path)) return false;
@@ -693,6 +762,14 @@ export function createSupabaseGroupService(
       } catch {
         return false;
       }
+    },
+
+    watchDecor(path, onChange) {
+      if (!available || !PHOTO_PATH.test(path)) return () => {};
+      return listen(getClient, `photo-decor:${path}`, [
+        // Doodles are upserted (a layer taken off entirely is a delete, which a filter can't catch).
+        { table: 'photo_decor', event: '*', filter: `path=eq.${path}` },
+      ], onChange);
     },
 
     async pingDays(groupId, from, to) {

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase, supabaseConfigured } from '../lib/supabase';
 
-// This phone's push token on the account (supabase/migrations/20261108000000_place_alerts.sql
+// This phone's push token on the account (supabase/migrations/20261110000000_place_alerts.sql
 // push_tokens): saved while someone is signed in, dropped before signing out
 // so the next person on the phone doesn't get their pushes. Never rejects.
 

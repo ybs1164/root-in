@@ -2,7 +2,7 @@ import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { getSupabase } from '../lib/supabase';
 
 // The group 대화 and a big photo's comments, live
-// (supabase/migrations/20261107000000_realtime_group_events.sql). The server
+// (supabase/migrations/20261109000000_realtime_group_events.sql). The server
 // sends a short note on a private channel when a line is written; the note
 // has no text, so the app reads the feed or the comments again through the
 // usual functions. Never rejects; without a server nothing ever comes and
@@ -10,7 +10,7 @@ import { getSupabase } from '../lib/supabase';
 
 /**
  * What to listen to: a group's 대화, one photo's comments (its upload path),
- * or my own news (my user id — 그룹 알림, 20261108000000_place_alerts.sql).
+ * or my own news (my user id — 그룹 알림, 20261110000000_place_alerts.sql).
  */
 export type LiveTopic = { group: string } | { photo: string } | { user: string };
 

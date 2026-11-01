@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { GalleryPhoto, MetPair } from '../domain/gallery';
+import type { GalleryPhoto, MetPair, PhotoDecorLayer } from '../domain/gallery';
 import { metPairs } from '../domain/groups';
 import { groupService } from '../services/groupService';
 
@@ -25,6 +25,25 @@ export function useGalleryPhotos(groupIds: readonly string[] | null): { state: G
   }, [key, attempt]);
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
   return { state, retry };
+}
+
+/**
+ * The doodles on the gallery's photos (`paths`), read in one go each time the
+ * set of photos changes — and again when `again` changes (a big photo
+ * closed: the doodles may be new). Nothing while it's being read or can't be.
+ */
+export function useGalleryDecors(paths: readonly string[], again: unknown): Map<string, PhotoDecorLayer[]> {
+  const [decors, setDecors] = useState<Map<string, PhotoDecorLayer[]>>(() => new Map());
+  const key = [...paths].sort().join('\n');
+  const turn = useRef(0);
+  useEffect(() => {
+    const mine = ++turn.current;
+    if (!key) return setDecors(new Map());
+    void groupService.decorsMany(key.split('\n')).then((read) => {
+      if (mine === turn.current && read !== 'error') setDecors(read);
+    });
+  }, [key, again]);
+  return decors;
 }
 
 /** How many days the 만난 날 stand-in (a my_groups read a day) reads at most. */

@@ -1,11 +1,13 @@
-import { CalendarDays, Camera, ChevronLeft, ChevronRight, Settings, X } from 'lucide-react';
-import { useEffect, useRef, type CSSProperties } from 'react';
-import { GROUP_LIMITS, memberColor, passRoute, photoKey, pingPhotos, placeTime, type Group, type GroupMember, type GroupPing } from '../domain/groups';
+import { CalendarDays, Camera, ChevronLeft, ChevronRight, MessageCircle, Settings, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { GROUP_LIMITS, memberColor, memberInk, passRoute, photoKey, pingPhotos, placeTime, type Group, type GroupMember, type GroupPing } from '../domain/groups';
 import { addDays } from '../domain/calendar';
 import { dateKey } from '../domain/diary';
-import { galleryDayLabel } from '../domain/gallery';
+import { galleryDayLabel, type PhotoDecorLayer } from '../domain/gallery';
 import { MemberFace } from './WeNowPage';
 import PhotoViewer, { OpenPhotoMarks } from './PhotoViewer';
+import { DoodleLayers } from './PhotoDoodle';
+import { useGalleryDecors } from '../hooks/useGalleryPhotos';
 import { GalleryButton } from './PhotoGallery';
 import { TalkBubbles } from './icons';
 
@@ -80,6 +82,16 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
   // My colour here, as the doodle tools' one ink (`member-N`).
   const mine = group.members.find((m) => m.userId === me);
   const myColor = mine ? `member-${mine.color % GROUP_LIMITS.members}` : null;
+  const inkOf = useCallback((userId: string) => memberInk([group], userId), [group]);
+  // The panel's 💬: the photo opens big with its comment line already out (and the keyboard up).
+  const [bigWriting, setBigWriting] = useState(false);
+  // The panel's photo wears its doodles too, read again when the big one closes (they may be new).
+  const panelPath = pickedMember && place?.member === pickedMember.userId ? photoKey(shownPhoto(pickedMember.pings[place.seq], place.photo)) : null;
+  const panelDecors = useGalleryDecors(useMemo(() => (panelPath ? [panelPath] : []), [panelPath]), photoBig);
+  const doodles = panelPath ? panelDecors.get(panelPath) : undefined;
+  useEffect(() => {
+    if (!photoBig) setBigWriting(false);
+  }, [photoBig]);
   const today = dateKey();
   const shown = day ?? today;
   const label = galleryDayLabel(shown, today);
@@ -141,7 +153,21 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
       {pickedMember && place?.member === pickedMember.userId && pickedMember.pings[place.seq] && (() => {
         return (
           <>
-            <PhotoPanel member={pickedMember} seq={place.seq} photo={shownPhoto(pickedMember.pings[place.seq], place.photo)} time={placeTime(pickedMember.pings[place.seq], place.photo)} onOpen={() => onPhotoBig(true)} onClose={() => onPlace(null)} />
+            <PhotoPanel
+              member={pickedMember}
+              seq={place.seq}
+              photo={shownPhoto(pickedMember.pings[place.seq], place.photo)}
+              time={placeTime(pickedMember.pings[place.seq], place.photo)}
+              doodles={doodles}
+              inkOf={inkOf}
+              marks={<OpenPhotoMarks path={photoKey(shownPhoto(pickedMember.pings[place.seq], place.photo))} heart={pickedMember.userId !== me} />}
+              onOpen={() => onPhotoBig(true)}
+              onComment={() => {
+                setBigWriting(true);
+                onPhotoBig(true);
+              }}
+              onClose={() => onPlace(null)}
+            />
             {photoBig && (
               <PhotoViewer
                 items={pickedMember.pings.map((p, i) => ({
@@ -154,11 +180,13 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
                 seq={place.seq}
                 onSeq={(seq) => onPlace({ member: pickedMember.userId, seq })}
                 onClose={() => onPhotoBig(false)}
+                startWriting={bigWriting}
                 counted={false}
                 commentPath={photoKey(shownPhoto(pickedMember.pings[place.seq], place.photo))}
                 // Doodled on in my colour in this group (kept on the photo: the gallery shows them too).
                 decorPath={photoKey(shownPhoto(pickedMember.pings[place.seq], place.photo))}
                 decorColor={myColor}
+                inkOf={inkOf}
                 // ♥ ★ as in the gallery in place of ‹ › (paging by drag and the arrow keys); no ♥ on my own.
                 side={
                   <OpenPhotoMarks path={photoKey(shownPhoto(pickedMember.pings[place.seq], place.photo))} heart={pickedMember.userId !== me} />
@@ -239,7 +267,32 @@ function MemberPass({ member, mine, day }: { member: GroupMember; mine: boolean;
  * thread in their colour runs from the panel down to the ping on the map,
  * redrawn every frame from the marker so it follows pans and zooms.
  */
-function PhotoPanel({ member, seq, photo, time, onOpen, onClose }: { member: GroupMember; seq: number; photo?: string; time: string; onOpen(): void; onClose(): void }) {
+function PhotoPanel({
+  member,
+  seq,
+  photo,
+  time,
+  marks,
+  doodles,
+  inkOf,
+  onOpen,
+  onComment,
+  onClose,
+}: {
+  member: GroupMember;
+  seq: number;
+  photo?: string;
+  time: string;
+  /** ♥ ★ for the photo, as on it big. */
+  marks: ReactNode;
+  /** Its doodles, everyone's, drawn over it as on it big. */
+  doodles?: PhotoDecorLayer[];
+  inkOf?: (userId: string) => string | null;
+  onOpen(): void;
+  /** 💬: open it big, writing a comment. */
+  onComment(): void;
+  onClose(): void;
+}) {
   const ping = member.pings[seq];
   const panel = useRef<HTMLElement>(null);
   const thread = useRef<HTMLSpanElement>(null);
@@ -269,6 +322,7 @@ function PhotoPanel({ member, seq, photo, time, onOpen, onClose }: { member: Gro
           // Tap the photo to see it big.
           <button key={`${seq}|${photo}`} className="group-photo-panel__photo" aria-label="사진 크게 보기" onClick={onOpen}>
             <img src={photo} alt="" draggable={false} />
+            {doodles && <DoodleLayers layers={doodles} inkOf={inkOf} />}
           </button>
         ) : (
           <div key={seq} className="group-photo-panel__photo is-empty">
@@ -278,18 +332,22 @@ function PhotoPanel({ member, seq, photo, time, onOpen, onClose }: { member: Gro
         )}
         <div className="group-photo-panel__text">
           <div className="group-photo-panel__top">
-            <span className="group-photo-panel__seq">
-              <b>{seq + 1}</b> / {member.pings.length}
-            </span>
+            {/* When the photo was taken (or they were there); who it is, the pass below says. */}
+            <time className="group-photo-panel__time">{time}</time>
             <button className="group-photo-panel__close" aria-label="사진 닫기" onClick={onClose}>
               <X size={18} strokeWidth={2.4} />
             </button>
           </div>
           <strong className="group-photo-panel__name">{placeName(ping.name)}</strong>
-          <div className="group-photo-panel__foot">
-            {/* When the photo was taken (or they were there); who it is, the pass below says. */}
-            <time className="group-photo-panel__time">{time}</time>
-          </div>
+          {/* As under the photo big: 💬 opens it big to write, ♥ ★ right here. */}
+          {photo && (
+            <div className="group-photo-panel__foot">
+              <button className="gallery__mark gallery__comment" aria-label="댓글 쓰기" onClick={onComment}>
+                <MessageCircle size={27} strokeWidth={2} aria-hidden />
+              </button>
+              {marks}
+            </div>
+          )}
         </div>
       </section>
     </>

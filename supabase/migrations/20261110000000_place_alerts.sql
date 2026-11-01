@@ -10,7 +10,7 @@
 --   · is handed to the push-news Edge Function (pg_net), which pushes it to
 --     their phones (FCM / APNs) — only once its URL and secret are in the
 --     Vault (docs/supabase.md '장소 알림'); without them nothing is sent.
--- Needs 20261107000000_realtime_group_events.sql first. Pings at a 제외 주소
+-- Needs 20261109000000_realtime_group_events.sql first. Pings at a 제외 주소
 -- never reach the server, so they never make news either.
 
 create extension if not exists pg_net;

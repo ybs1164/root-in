@@ -1,9 +1,10 @@
 import { PenLine, Sticker, Type } from 'lucide-react';
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   canUndo,
   cleanTextStyle,
+  DEFAULT_PEN,
   EMPTY_HISTORY,
   recordChange,
   redoDecor,
@@ -13,7 +14,9 @@ import {
   type PenSettings,
   type TextStyle,
 } from '../domain/decor';
+import { inLayerInk, type PhotoDecorLayer } from '../domain/gallery';
 import type { StickerDrop } from '../domain/stickerSheets';
+import { resolvedColour } from '../lib/cssColour';
 import { usePhotoDecor } from '../hooks/usePhotoDecor';
 import DecorLayer, { type TextFocus } from './DecorLayer';
 import { DecorTray } from './DecorTools';
@@ -24,9 +27,39 @@ const DOODLE_TOOLS: { tool: DoodleTool; label: string; Icon: typeof PenLine }[] 
   { tool: 'sticker', label: '스티커', Icon: Sticker },
   { tool: 'text', label: '텍스트', Icon: Type },
 ];
-/** A doodler's stickers wear a die-cut edge in their colour (white when it's not known). */
-const edgeOf = (ink: string | null | undefined): CSSProperties | undefined =>
-  ink ? ({ '--sticker-edge': `var(--${ink})` } as CSSProperties) : undefined;
+/** How far a sticker's edge goes from its doodler's colour toward white. */
+const EDGE_WHITE = 0.45;
+
+/**
+ * A doodler's stickers wear a die-cut edge in their colour, paler (toward
+ * white) than the colour itself; white when it's not known. A plain rgb(),
+ * not a CSS mix: the peeling sticker reads it onto a canvas.
+ */
+function edgeOf(ink: string | null | undefined): CSSProperties | undefined {
+  if (!ink) return undefined;
+  const rgb = /^rgba?\((\d+), ?(\d+), ?(\d+)/.exec(resolvedColour(`--${ink}`));
+  const edge = rgb ? `rgb(${rgb.slice(1, 4).map((v) => Math.round(Number(v) + (255 - Number(v)) * EDGE_WHITE)).join(', ')})` : `var(--${ink})`;
+  return { '--sticker-edge': edge } as CSSProperties;
+}
+
+/**
+ * A photo's doodles, shown only (a gallery square): every member's layer in
+ * their colour now, oldest change first. Fills the square it's put in.
+ */
+export function DoodleLayers({ layers, inkOf }: { layers: readonly PhotoDecorLayer[]; inkOf?: (userId: string) => string | null }) {
+  return (
+    <span className="photo-doodle photo-doodle--still" aria-hidden>
+      {layers.map((layer) => {
+        const ink = inkOf?.(layer.userId) ?? layer.ink;
+        return (
+          <span key={layer.userId} className="photo-doodle__layer" style={edgeOf(ink)}>
+            <DecorLayer decor={inLayerInk(layer.decor, ink)} tool={null} pen={DEFAULT_PEN} onChange={() => {}} />
+          </span>
+        );
+      })}
+    </span>
+  );
+}
 
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
@@ -51,7 +84,7 @@ export interface PhotoDoodle {
  * colour in the group. No `color`: shown only (the gallery). A touch off
  * the photo and the tools puts the tool away.
  */
-export function usePhotoDoodle(path: string | null, color: string | null): PhotoDoodle {
+export function usePhotoDoodle(path: string | null, color: string | null, inkOf?: (userId: string) => string | null): PhotoDoodle {
   const decor = usePhotoDecor(path, color);
   const editable = !!path && !!color;
   const ink = color ?? 'ink-black';
@@ -73,7 +106,17 @@ export function usePhotoDoodle(path: string | null, color: string | null): Photo
     setTextStyle((t) => ({ ...t, color: ink }));
   }, [path, ink]);
 
-  const mine = decor.mine;
+  // Every layer in its doodler's colour now (their colour may have changed
+  // since): mine in mine, everyone else's by who they are in the group.
+  const mineInk = color ?? (decor.mineUser ? inkOf?.(decor.mineUser) : null) ?? decor.mineInk;
+  const mine = useMemo(() => inLayerInk(decor.mine, mineInk), [decor.mine, mineInk]);
+  const others = useMemo(
+    () => decor.others?.map((layer) => {
+      const ink = inkOf?.(layer.userId) ?? layer.ink;
+      return { ...layer, ink, decor: inLayerInk(layer.decor, ink) };
+    }),
+    [decor.others, inkOf],
+  );
   const changeDecor = (next: DayDecor) => {
     setHistory((h) => recordChange(h, mine));
     decor.setMine(next);
@@ -167,12 +210,12 @@ export function usePhotoDoodle(path: string | null, color: string | null): Photo
   const layers = path ? (
     // Everyone else's doodles under mine; only mine take the tools.
     <div className={`photo-doodle ${tool ? 'is-drawing' : ''}`}>
-      {decor.others?.map((layer) => (
+      {others?.map((layer) => (
         <div key={layer.userId} className="photo-doodle__layer" style={edgeOf(layer.ink)}>
           <DecorLayer decor={layer.decor} tool={null} pen={pen} onChange={() => {}} />
         </div>
       ))}
-      <div className="photo-doodle__layer" style={edgeOf(color ?? decor.mineInk)}>
+      <div className="photo-doodle__layer" style={edgeOf(mineInk)}>
         <DecorLayer
           decor={mine}
           tool={editable ? tool : null}

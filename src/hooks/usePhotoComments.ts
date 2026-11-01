@@ -36,11 +36,17 @@ export function usePhotoComments(path: string | null): PhotoComments {
     setFailed(false);
     if (!path) return;
     let live = true;
-    void read(path).then((list) => {
-      if (!live) return;
-      if (list === 'error') setFailed(true), setComments([]);
-      else setComments(list);
-    });
+    let asked = 0;
+    const load = () => {
+      const n = ++asked;
+      void read(path).then((list) => {
+        // Only the latest read counts: an older one may land after a newer.
+        if (!live || n !== asked) return;
+        if (list === 'error') setFailed(true), setComments((now) => now ?? []);
+        else setComments(list), setFailed(false);
+      });
+    };
+    load();
     return () => {
       live = false;
     };
