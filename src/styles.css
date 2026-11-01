@@ -8898,14 +8898,35 @@ button:disabled {
   justify-content: flex-end;
 }
 
+/* When it was taken: top left, where 1 / N used to be (2026-11-01). */
 .group-photo-panel__time {
   flex: none;
-  padding: 0 10px 8px 0;
   color: var(--muted);
   font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
   font-size: 22px;
   letter-spacing: 0.04em;
   line-height: 1;
+}
+
+/* 💬 ♥ ★ along the bottom, as under the photo big, in the panel's ink. */
+.group-photo-panel__foot {
+  gap: 0;
+  margin-right: -6px;
+}
+
+.group-photo-panel .gallery__marks {
+  display: contents;
+}
+
+.group-photo-panel .gallery__mark {
+  width: 40px;
+  height: 40px;
+  color: var(--text);
+}
+
+.group-photo-panel .gallery__mark svg {
+  width: 24px;
+  height: 24px;
 }
 
 button.group-photo-panel__photo {

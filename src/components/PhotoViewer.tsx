@@ -44,6 +44,7 @@ export default function PhotoViewer({
   decorPath,
   decorColor,
   inkOf,
+  startWriting = false,
 }: {
   items: ViewerItem[];
   seq: number;
@@ -74,8 +75,10 @@ export default function PhotoViewer({
   decorColor?: string | null;
   /** Each doodler's colour now (`member-N`), by user id: their doodles are drawn in it, not the one they used then. */
   inkOf?: (userId: string) => string | null;
+  /** Opens with the comment line out, its field focused (the photo panel's 💬). */
+  startWriting?: boolean;
 }) {
-  const [writing, setWriting] = useState(false);
+  const [writing, setWriting] = useState(startWriting);
   const doodle = usePhotoDoodle(decorPath ?? null, decorColor ?? null, inkOf);
   const tool = doodle.active;
   const ping = items[seq];
