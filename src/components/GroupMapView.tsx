@@ -1,6 +1,6 @@
 import { CalendarDays, Camera, ChevronLeft, ChevronRight, Settings, X } from 'lucide-react';
-import { useEffect, useRef, type CSSProperties } from 'react';
-import { GROUP_LIMITS, memberColor, passRoute, photoKey, pingPhotos, placeTime, type Group, type GroupMember, type GroupPing } from '../domain/groups';
+import { useCallback, useEffect, useRef, type CSSProperties } from 'react';
+import { GROUP_LIMITS, memberColor, memberInk, passRoute, photoKey, pingPhotos, placeTime, type Group, type GroupMember, type GroupPing } from '../domain/groups';
 import { addDays } from '../domain/calendar';
 import { dateKey } from '../domain/diary';
 import { galleryDayLabel } from '../domain/gallery';
@@ -80,6 +80,7 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
   // My colour here, as the doodle tools' one ink (`member-N`).
   const mine = group.members.find((m) => m.userId === me);
   const myColor = mine ? `member-${mine.color % GROUP_LIMITS.members}` : null;
+  const inkOf = useCallback((userId: string) => memberInk([group], userId), [group]);
   const today = dateKey();
   const shown = day ?? today;
   const label = galleryDayLabel(shown, today);
@@ -159,6 +160,7 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
                 // Doodled on in my colour in this group (kept on the photo: the gallery shows them too).
                 decorPath={photoKey(shownPhoto(pickedMember.pings[place.seq], place.photo))}
                 decorColor={myColor}
+                inkOf={inkOf}
                 // ♥ ★ as in the gallery in place of ‹ › (paging by drag and the arrow keys); no ♥ on my own.
                 side={
                   <OpenPhotoMarks path={photoKey(shownPhoto(pickedMember.pings[place.seq], place.photo))} heart={pickedMember.userId !== me} />

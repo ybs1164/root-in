@@ -1,14 +1,15 @@
 import { ChevronLeft, Images, Star } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { dayPosters, filterGallery, galleryDayLabel, galleryTabDays, metDays, viewerOrder, type GalleryItem, type GalleryPhoto, type GalleryTab } from '../domain/gallery';
-import { memberColor, type Group, type GroupMember } from '../domain/groups';
+import { memberColor, memberInk, type Group, type GroupMember } from '../domain/groups';
 import { centeredScrollLeft } from '../domain/routeFolders';
-import { useMetDays, type GalleryState } from '../hooks/useGalleryPhotos';
+import { useGalleryDecors, useMetDays, type GalleryState } from '../hooks/useGalleryPhotos';
 import { usePhotoMarks } from '../hooks/usePhotoMarks';
 import { HighFive } from './icons';
 import { dateKey } from '../domain/diary';
 import { MemberFace } from './WeNowPage';
 import PhotoViewer, { PhotoMarkButtons } from './PhotoViewer';
+import { DoodleLayers } from './PhotoDoodle';
 
 interface PhotoGalleryProps {
   /** Every group I'm in: a tab each, after MY. */
@@ -84,6 +85,18 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
     }
     return goneMember(item.userId);
   };
+  // Each square wears its photo's doodles, every doodler in their colour now
+  // — in the groups the photo went to first, else any group we share.
+  const decors = useGalleryDecors(
+    useMemo(() => days.flatMap((d) => d.photos.map((p) => p.path).filter((path) => !path.startsWith('ping:'))), [days]),
+    seq === null,
+  );
+  const inkIn = useCallback(
+    (item: GalleryItem) => (userId: string) =>
+      memberInk(item.groupIds.flatMap((id) => byGroup.get(id) ?? []), userId) ?? memberInk(groups, userId),
+    [byGroup, groups],
+  );
+  const viewerInk = useMemo(() => (seq !== null && viewer[seq] ? inkIn(viewer[seq]) : undefined), [seq, viewer, inkIn]);
   useEffect(() => {
     if (seq !== null) return;
     const key = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -194,6 +207,7 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
                     onClick={() => onSeq(viewer.indexOf(p))}
                   >
                     <img src={p.url} alt="" loading="lazy" draggable={false} />
+                    {decors.get(p.path) && <DoodleLayers layers={decors.get(p.path)!} inkOf={inkIn(p)} />}
                     <span className="gallery__face">
                       <MemberFace member={member} size={22} />
                     </span>
@@ -227,6 +241,7 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
           commentPath={viewer[seq].path}
           // The doodles show here, but aren't drawn on (that's on the group's map or 대화).
           decorPath={viewer[seq].path.startsWith('ping:') ? null : viewer[seq].path}
+          inkOf={viewerInk}
           side={
             // Hearts go to someone else's photo sent to a group: never mine, nor one that stayed on this phone.
             <PhotoMarkButtons

@@ -10668,7 +10668,7 @@ button.group-photo-panel__photo {
   width: min(100%, calc(100dvh - var(--safe-top) - var(--safe-bottom) - 330px));
 }
 
-.group-photo-viewer__photo.has-doodles img {
+.group-photo-viewer__photo.has-doodles > img {
   width: 100%;
   height: 100%;
   border-radius: 18px;
@@ -10679,6 +10679,12 @@ button.group-photo-panel__photo {
 .photo-doodle__layer {
   position: absolute;
   inset: 0;
+}
+
+/* Stickers and text are sized by the photo (cqw), not the screen: the same
+   at full size and in a gallery square. */
+.photo-doodle {
+  container-type: inline-size;
 }
 
 /* One member's layer (it carries their sticker edge colour); only the tools' own surface takes touches. */
@@ -10889,11 +10895,19 @@ button.group-photo-panel__photo {
   background: var(--surface-2);
 }
 
-.gallery__photo img {
+/* The photo itself (not the doodles' stickers over it). */
+.gallery__photo > img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* A square's doodles: a still copy of the big photo's, cut to the square. */
+.gallery__photo .photo-doodle--still {
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 .gallery__photo:active {

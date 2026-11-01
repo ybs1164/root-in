@@ -93,6 +93,12 @@ export interface GroupService {
   sendMessage(groupId: string, body: string): Promise<boolean>;
   /** Every member's doodles on a photo (by its upload `path`); 'error' when the server couldn't be asked. */
   decors(path: string): Promise<PhotoDecorLayer[] | 'error'>;
+  /**
+   * Every member's doodles on many photos at once (the gallery's squares),
+   * by path; a photo nobody doodled on is left out. 'error' when the server
+   * couldn't be asked (or hasn't photo_decors_many yet).
+   */
+  decorsMany(paths: readonly string[]): Promise<Map<string, PhotoDecorLayer[]> | 'error'>;
   /** My doodles on a photo, replaced (nothing on it: taken off), with my colour for their stickers' edge; false when the server said no. */
   setDecor(path: string, decor: DayDecor, ink?: string): Promise<boolean>;
 }
@@ -614,6 +620,31 @@ export function createSupabaseGroupService(
         if (!client) return 'error';
         const { data, error } = await client.rpc('photo_decors', { photo_path: path });
         return error ? 'error' : readDecorLayers(data);
+      } catch {
+        return 'error';
+      }
+    },
+
+    async decorsMany(paths) {
+      try {
+        const asked = [...new Set(paths.filter((p) => PHOTO_PATH.test(p)))].slice(0, GALLERY_LIMIT);
+        if (!asked.length) return new Map();
+        const askedSet = new Set(asked);
+        const client = await getClient();
+        if (!client) return 'error';
+        const { data, error } = await client.rpc('photo_decors_many', { photo_paths: asked });
+        if (error || !Array.isArray(data)) return 'error';
+        const byPath = new Map<string, unknown[]>();
+        for (const row of data) {
+          const path = (row as { path?: unknown } | null)?.path;
+          if (typeof path === 'string' && askedSet.has(path)) byPath.set(path, [...(byPath.get(path) ?? []), row]);
+        }
+        const out = new Map<string, PhotoDecorLayer[]>();
+        for (const [path, rows] of byPath) {
+          const layers = readDecorLayers(rows);
+          if (layers.length) out.set(path, layers);
+        }
+        return out;
       } catch {
         return 'error';
       }

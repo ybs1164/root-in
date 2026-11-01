@@ -110,6 +110,15 @@ export const MEMBER_COLOR_NAMES = [
 /** A member's colour, as CSS. */
 export const memberColor = (color: number): string => `var(--member-${Math.abs(Math.trunc(color)) % GROUP_LIMITS.members})`;
 
+/** A member's colour as their doodles store it (`member-N`), by user id across `groups`, first group first; null for someone not in any. */
+export function memberInk(groups: readonly Group[], userId: string): string | null {
+  for (const g of groups) {
+    const m = g.members.find((x) => x.userId === userId);
+    if (m) return `member-${Math.abs(Math.trunc(m.color)) % GROUP_LIMITS.members}`;
+  }
+  return null;
+}
+
 /** The colours the other members of `group` have (mine is mine to change). */
 export function takenColors(group: Group, me: string | null): Set<number> {
   return new Set(group.members.filter((m) => m.userId !== me).map((m) => m.color));

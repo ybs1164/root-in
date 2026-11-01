@@ -180,3 +180,18 @@ export interface PhotoDecorLayer {
 
 /** A doodler's colour as stored with their layer: a member colour token, nothing else. */
 export const isMemberInk = (v: unknown): v is string => typeof v === 'string' && /^member-(1?\d)$/.test(v);
+
+/**
+ * A member's doodle layer in their colour now: every member colour in it
+ * (pen lines, text) becomes `ink`, so changing one's colour in a group
+ * recolours what they doodled before too. Their pens only ever draw in
+ * their colour; black or white text and other inks stay as they are.
+ */
+export function inLayerInk(decor: DayDecor, ink: string | null | undefined): DayDecor {
+  if (!isMemberInk(ink)) return decor;
+  const recolour = <T extends { color: string }>(item: T): T => (isMemberInk(item.color) && item.color !== ink ? { ...item, color: ink } : item);
+  const strokes = decor.strokes.map(recolour);
+  const texts = decor.texts?.map(recolour);
+  const same = strokes.every((st, i) => st === decor.strokes[i]) && (texts ?? []).every((t, i) => t === decor.texts?.[i]);
+  return same ? decor : { ...decor, strokes, ...(texts ? { texts } : {}) };
+}

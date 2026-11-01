@@ -1,7 +1,7 @@
 import { ArrowUp, Camera, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { COMMENT_MAX, galleryDayLabel, type FeedItem } from '../domain/gallery';
-import { GROUP_LIMITS, isGroupBirthday, memberColor, type Group, type GroupMember } from '../domain/groups';
+import { GROUP_LIMITS, isGroupBirthday, memberColor, memberInk, type Group, type GroupMember } from '../domain/groups';
 import { dateKey } from '../domain/diary';
 import { monthGrid, shiftMonth } from '../domain/calendar';
 import { groupService } from '../services/groupService';
@@ -77,6 +77,7 @@ export default function GroupChat({
   // My colour here: the doodle tools' one ink on a photo opened big.
   const myMember = group.members.find((m) => m.userId === me);
   const myColor = myMember ? `member-${myMember.color % GROUP_LIMITS.members}` : null;
+  const inkOf = useCallback((userId: string) => memberInk([group], userId), [group]);
   const openPhoto = (path: string | undefined) => {
     const seq = photos.findIndex((p) => p.path === path);
     if (seq >= 0) onPhotoSeq(seq);
@@ -250,6 +251,7 @@ export default function GroupChat({
           commentPath={photos[photoSeq].path ?? null}
           decorPath={photos[photoSeq].path ?? null}
           decorColor={myColor}
+          inkOf={inkOf}
           side={<OpenPhotoMarks path={photos[photoSeq].path ?? null} heart={!photos[photoSeq].mine} />}
         />
       )}
