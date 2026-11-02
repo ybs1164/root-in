@@ -8129,6 +8129,11 @@ button:disabled {
   .corner-btn {
     top: 24px;
   }
+  /* Level with the bar's big button there too. */
+  .group-view__camera {
+    bottom: 20px;
+  }
+
 
   .app--searching .corner-btn {
     transform: none;
@@ -8803,9 +8808,10 @@ button:disabled {
   position: fixed;
   left: 0;
   right: 0;
-  /* Over the 대화 button at the bottom-right (its top 96px up), so the
-     faces at the row's end never run under it (2026-11-01; was 37px). */
-  bottom: calc(var(--safe-bottom) + 101px);
+  /* Over the big camera in the middle (its top 108px up) and the 대화
+     button at the bottom-right (96px), so no face runs under either
+     (2026-11-02; was 101px, before that 37px). */
+  bottom: calc(var(--safe-bottom) + 108px);
   z-index: 20;
   display: flex;
   align-items: center;
@@ -9197,7 +9203,7 @@ button.group-photo-panel__photo {
 .member-pass {
   position: fixed;
   /* Over the member row (its 66px, then 12px). */
-  bottom: calc(var(--safe-bottom) + 179px);
+  bottom: calc(var(--safe-bottom) + 186px);
   z-index: 21;
   max-width: 420px;
   /* Clear of the < > either side. */
@@ -10570,6 +10576,35 @@ button.group-photo-panel__photo {
   /* The part the keyboard leaves (lib/visualViewport.ts): the input sits on it. */
   inset: var(--vv-top, 0px) 0 auto;
   height: var(--vv-height, 100%);
+/* A group's camera: We Now's big middle button, in the same place (the bar's
+   36px lift less the 8px it hangs below the row), so opening a group leaves it be. */
+.group-view__camera {
+  position: fixed;
+  left: calc(50% - 40px);
+  bottom: calc(var(--safe-bottom) + 28px);
+  z-index: 21;
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 80px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: var(--round-btn-shadow);
+  color: var(--on-accent);
+  transition: scale 0.12s ease;
+}
+
+.group-view__camera:active {
+  scale: 0.92;
+}
+
+.group-view__camera svg {
+  width: 38px;
+  height: 38px;
+}
+
   z-index: 50;
   display: flex;
   flex-direction: column;
