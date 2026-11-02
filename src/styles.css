@@ -186,6 +186,8 @@
   --map-shadow: color-mix(in srgb, var(--accent) 70%, var(--ink-black));
   /* The air over the land's far side (aerial perspective): the page itself, faded out toward the near side. */
   --map-haze: var(--surface);
+  /* We Now's atlas: Korea behind the islands, a shade off the page. */
+  --atlas-land: color-mix(in srgb, var(--text) 9%, var(--bg));
   /* TODAY's 미니맵 roles (domain/miniMap.ts MapRole) are the same colours. */
   --mini-land: var(--map-land);
   --mini-side: var(--map-side);
@@ -8615,6 +8617,92 @@ button:disabled {
   visibility: hidden;
 }
 
+/* The atlas stands in for the real map under a group (nothing to draw under it). */
+.app--group .map {
+  visibility: hidden;
+}
+
+/* A group's map as an atlas (GroupAtlas): a faint Korea, an island per
+   region, the pings over them. The ground is moved and scaled by a transform;
+   the pins and names keep their size and are moved to their spots. */
+.group-atlas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: var(--bg);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.group-atlas__ground {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+
+.group-atlas__korea {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+}
+
+/* The 시도 are drawn one over the other in one colour: an edge of their own colour hides the seams. */
+.group-atlas__korea path {
+  fill: var(--atlas-land);
+  stroke: var(--atlas-land);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.group-atlas__island {
+  position: absolute;
+}
+
+/* An island whose real map isn't in (yet, or at all): a plain flat island. */
+.group-atlas__blob {
+  position: absolute;
+  left: 10%;
+  top: 25%;
+  width: 80%;
+  height: 50%;
+  border-radius: 50%;
+  background: var(--mini-land);
+  box-shadow: 0 3px 0 var(--mini-side);
+}
+
+.group-atlas__names,
+.group-atlas__pins {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.group-atlas__pins {
+  z-index: 1;
+}
+
+.group-atlas__mark {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* A region's name, under its island (the pins stand up over it). */
+.group-atlas__name {
+  position: absolute;
+  left: 0;
+  top: 0;
+  translate: -50% 0;
+  color: var(--muted);
+  font-size: 14px;
+  white-space: nowrap;
+  text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg), 0 0 2px var(--bg);
+}
+
 .group-view__btn {
   position: fixed;
   top: calc(12px + var(--safe-top));
@@ -9509,6 +9597,17 @@ button.group-photo-panel__photo {
 .group-lines .group-lines__case {
   stroke: var(--map-road);
   stroke-width: 6.5;
+}
+
+/* On the atlas, a leg from one region's island to another's: a trip, not a walk — dotted, no casing. */
+.group-lines .is-jump line {
+  stroke-width: 3;
+  stroke-dasharray: 0.1 8;
+  opacity: 0.85;
+}
+
+.group-lines .is-jump .group-lines__case {
+  display: none;
 }
 
 /* 새 그룹 / 그룹 설정: a boarding pass (ticket-dialog). */
