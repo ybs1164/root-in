@@ -109,13 +109,17 @@
    supabase secrets set APNS_KEY="$(cat AuthKey_XXXX.p8)" APNS_KEY_ID=<Key ID> APNS_TEAM_ID=<Team ID> APNS_BUNDLE_ID=app.rootin.ios APNS_SANDBOX=true
    ```
    (아이폰을 안 쓰면 APNS_* 는 빼도 됨 — 아이폰 토큰은 그냥 건너뜀.)
+   **Windows PowerShell**에서는 위 `"$(cat …json)"`이 JSON의 따옴표를 떼어 내서 함수가 키를 못 읽음(푸시가 조용히 안 감) — 대신 base64로 넣을 것(함수가 JSON·base64 둘 다 받음):
+   ```powershell
+   npx supabase secrets set FCM_SERVICE_ACCOUNT=$([Convert]::ToBase64String([IO.File]::ReadAllBytes("<서비스 계정>.json")))
+   ```
 4. **DB가 함수를 부르게**: SQL Editor에서
    ```sql
    select vault.create_secret('https://<ref>.supabase.co/functions/v1/push-news', 'push_news_url');
    select vault.create_secret('<3번의 PUSH_SECRET과 같은 값>', 'push_news_secret');
    ```
    이 둘이 없으면 알림함·앱 알약은 그대로 되고 푸시만 안 감.
-5. 확인: 두 계정(다른 폰, 또는 폰 하나 + 다른 브라우저 프로필)을 같은 그룹에 넣고 한쪽에서 카메라로 그 그룹에 사진 보내기 → 다른 폰에 '<그룹 이름> · <이름>님이 '<장소>'에 핑을 찍었어요.' 안 오면 대시보드 → Edge Functions → push-news → Logs, 그리고 `select * from net._http_response order by created desc limit 5;`.
+5. 확인: 두 계정(다른 폰, 또는 폰 하나 + 다른 브라우저 프로필)을 같은 그룹에 넣고 한쪽에서 카메라로 그 그룹에 사진 보내기 → 다른 폰에 '<그룹 이름> · <이름>님이 '<장소>'에 핑을 찍었어요.' 안 오면 `select status_code, content, created from net._http_response order by created desc limit 5;` — 함수 답의 `errors`에 보내지 못한 이유(키를 못 읽음 · `google token 4xx` · `fcm 403 SENDER_ID_MISMATCH` 등)가 나옴(대시보드 → Edge Functions → push-news → Logs에도). `errors`가 비었는데 안 오면 폰 쪽(앱 강제 종료·배터리 최적화·알림 꺼짐).
 
 ## 구조
 - `lib/supabase.ts` — 키가 있을 때만 `@supabase/supabase-js`를 동적 import (키 없는 빌드엔 라이브러리가 아예 안 들어감). PKCE 흐름이라 로그인 결과가 `?code=`로 돌아와 공유 링크 해시(`#share=`)와 안 겹침, 쓰고 나면 `clearLoginReturn`이 주소창에서 지움.

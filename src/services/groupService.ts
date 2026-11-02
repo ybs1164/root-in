@@ -171,7 +171,7 @@ const AVATAR_BUCKET = 'avatars';
 const GROUP_AVATAR = /^[0-9a-f-]{36}\/g[A-Za-z0-9_-]{6,40}\.jpg$/;
 /** A group's cover photo: <uuid>/c<random>.jpg in the avatars bucket (its maker's folder). */
 const GROUP_COVER = /^[0-9a-f-]{36}\/c[A-Za-z0-9_-]{6,40}\.jpg$/;
-// Postgres check_violation: a server without the seven covers yet (20261109000000_group_covers.sql).
+// Postgres check_violation: a server without the seven covers yet (20261109000001_group_covers.sql).
 const CHECK_VIOLATION = '23514';
 const AVATAR_PATH = /^[0-9a-f-]{36}\/(avatar|g[A-Za-z0-9_-]{6,40})\.jpg$/;
 const PHOTO_PATH = /^[0-9a-f-]{36}\/[A-Za-z0-9_-]{6,40}\.jpg$/;

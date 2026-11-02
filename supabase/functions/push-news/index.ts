@@ -25,7 +25,7 @@ async function signJwt(header: object, claims: object, key: CryptoKey, algorithm
 // ── FCM ──────────────────────────────────────────────────────────────────
 let fcmAccess: { token: string; until: number } | null = null;
 
-async function fcmToken(account: { client_email: string; private_key: string }): Promise<string | null> {
+async function fcmToken(account: { client_email: string; private_key: string }): Promise<string> {
   if (fcmAccess && fcmAccess.until > Date.now() + 60_000) return fcmAccess.token;
   const key = await crypto.subtle.importKey('pkcs8', pemToDer(account.private_key), { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
   const now = Math.floor(Date.now() / 1000);
@@ -40,26 +40,43 @@ async function fcmToken(account: { client_email: string; private_key: string }):
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion }),
   });
-  if (!res.ok) return null;
+  if (!res.ok) throw new Error(`google token ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const json = await res.json();
   fcmAccess = { token: json.access_token, until: Date.now() + (json.expires_in ?? 3600) * 1000 };
   return fcmAccess.token;
 }
 
-/** True when the token is gone. */
+/**
+ * The service account, or why it can't be read. Windows PowerShell drops the
+ * JSON's quotes on its way to `secrets set`, so the JSON may also come as
+ * base64 (no quotes or spaces to lose — docs/supabase.md '푸시 켜는 법').
+ */
+function fcmAccount(): { project_id: string; client_email: string; private_key: string } {
+  const raw = env('FCM_SERVICE_ACCOUNT').trim();
+  if (!raw) throw new Error('FCM_SERVICE_ACCOUNT is not set');
+  let account;
+  try {
+    account = JSON.parse(raw.startsWith('{') ? raw : new TextDecoder().decode(Uint8Array.from(atob(raw), (c) => c.charCodeAt(0))));
+  } catch {
+    throw new Error(`FCM_SERVICE_ACCOUNT is not JSON (${raw.length} chars, starts ${JSON.stringify(raw.slice(0, 12))})`);
+  }
+  if (!account?.project_id || !account?.client_email || !account?.private_key) throw new Error('FCM_SERVICE_ACCOUNT lacks project_id / client_email / private_key');
+  return account;
+}
+
+/** True when the token is gone; throws why it didn't go otherwise. */
 async function sendFcm(token: string, row: NewsRow): Promise<boolean> {
-  const raw = env('FCM_SERVICE_ACCOUNT');
-  if (!raw) return false;
-  const account = JSON.parse(raw);
+  const account = fcmAccount();
   const access = await fcmToken(account);
-  if (!access) return false;
   const res = await fetch(`https://fcm.googleapis.com/v1/projects/${account.project_id}/messages:send`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${access}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(fcmBody(token, newsMessage(row), row.from_user)),
   });
   if (res.ok) return false;
-  return fcmTokenDead(res.status, await res.json().catch(() => null));
+  const error = await res.json().catch(() => null);
+  if (fcmTokenDead(res.status, error)) return true;
+  throw new Error(`fcm ${res.status}: ${JSON.stringify(error?.error ?? error).slice(0, 300)}`);
 }
 
 // ── APNs ─────────────────────────────────────────────────────────────────
@@ -83,7 +100,7 @@ async function apnsJwt(): Promise<string | null> {
 
 async function sendApns(token: string, row: NewsRow): Promise<boolean> {
   const auth = await apnsJwt();
-  if (!auth) return false;
+  if (!auth) throw new Error('APNS_KEY / APNS_KEY_ID / APNS_TEAM_ID are not set');
   const host = env('APNS_SANDBOX') === 'true' ? 'api.sandbox.push.apple.com' : 'api.push.apple.com';
   const res = await fetch(`https://${host}/3/device/${token}`, {
     method: 'POST',
@@ -98,7 +115,8 @@ async function sendApns(token: string, row: NewsRow): Promise<boolean> {
   });
   if (res.ok) return false;
   const reason = (await res.json().catch(() => null))?.reason;
-  return apnsTokenDead(res.status, reason);
+  if (apnsTokenDead(res.status, reason)) return true;
+  throw new Error(`apns ${res.status}: ${reason ?? 'no reason'}`);
 }
 
 Deno.serve(async (req) => {
@@ -116,16 +134,22 @@ Deno.serve(async (req) => {
   if (!news.length) return Response.json({ sent: 0 });
 
   const { data: tokens } = await db.from('push_tokens').select('token, user_id, platform').in('user_id', [...new Set(news.map((n) => n.to_user))]);
-  const jobs: Promise<{ token: string; dead: boolean }>[] = [];
+  const jobs: Promise<{ token: string; dead: boolean; error?: string }>[] = [];
   for (const row of news) {
     for (const t of tokens ?? []) {
       if (t.user_id !== row.to_user) continue;
       const send = t.platform === 'ios' ? sendApns : sendFcm;
-      jobs.push(send(t.token, row).then((dead) => ({ token: t.token, dead }), () => ({ token: t.token, dead: false })));
+      jobs.push(send(t.token, row).then(
+        (dead) => ({ token: t.token, dead }),
+        (e) => ({ token: t.token, dead: false, error: `${t.platform}: ${e instanceof Error ? e.message : String(e)}` }),
+      ));
     }
   }
   const done = await Promise.all(jobs);
   const dead = done.filter((d) => d.dead).map((d) => d.token);
   if (dead.length) await db.from('push_tokens').delete().in('token', dead);
-  return Response.json({ tried: done.length, dropped: dead.length });
+  // Why sends failed, in the function's logs and in net._http_response (the database's view of this call).
+  const errors = [...new Set(done.flatMap((d) => (d.error ? [d.error] : [])))].slice(0, 5);
+  for (const error of errors) console.error('push-news:', error);
+  return Response.json({ tried: done.length, dropped: dead.length, failed: done.filter((d) => d.error).length, errors });
 });
