@@ -903,20 +903,6 @@ button:disabled {
 
 /* ---------- Map markers ---------- */
 
-.map-attribution {
-  position: absolute;
-  right: 6px;
-  top: calc(var(--safe-top) + 76px);
-  z-index: 2;
-  padding: 2px 6px;
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 10px;
-  opacity: 0.85;
-  pointer-events: none;
-}
-
 .map-marker {
   display: grid;
   place-items: center;

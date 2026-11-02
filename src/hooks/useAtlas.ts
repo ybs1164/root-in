@@ -29,6 +29,9 @@ export interface Atlas {
 export const markKey = (member: string, seq: number) => `${member}|${seq}`;
 const spotKey = (c: LonLat) => `${c[0].toFixed(6)},${c[1].toFixed(6)}`;
 
+/** Islands go without their region's name (2026-11-02): no address text on the group map. */
+const REGION_NAMES_SHOWN = false;
+
 const admin = new StaticAdminAreaService();
 /** A region's name by its middle (the same island comes back every refresh and every reopening). */
 const names = new Map<string, Promise<string | null>>();
@@ -81,7 +84,7 @@ export function useAtlas(marks: GroupPingMark[]): Atlas {
       const key = islandKeys[i];
       const stops = island.stops.map((s) => spots.centers[s]);
       void terrainService.fetch(stops).then((shapes) => alive && setTerrain((t) => (t.get(key) === shapes ? t : new Map(t).set(key, shapes))));
-      void nameAt(island.center).then((name) => alive && setNamed((n) => (n.get(key) === name ? n : new Map(n).set(key, name))));
+      if (REGION_NAMES_SHOWN) void nameAt(island.center).then((name) => alive && setNamed((n) => (n.get(key) === name ? n : new Map(n).set(key, name))));
     });
     return () => {
       alive = false;

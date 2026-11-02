@@ -16,7 +16,6 @@ import {
   type CourseMapOptions,
   type MapPadding,
   type PinMarker,
-  ADMIN_ATTRIBUTION,
   createGroupPingElement,
   type GroupPingMark,
 } from './courseMap';
@@ -59,7 +58,6 @@ export class KakaoCourseMap implements CourseMap {
   private tintShown = true;
   private areaLabels = new Map<string, { label: AreaLabel; marker: KakaoOverlay }>();
   private readonly container: HTMLElement;
-  private attribution: HTMLElement | null = null;
   private readonly detachLongPress: () => void;
   private readonly sizeWatch: ResizeObserver | null;
 
@@ -165,8 +163,6 @@ export class KakaoCourseMap implements CourseMap {
       this.shadowPolygons = [];
       this.parkPolygons = [];
       this.roadLines = [];
-      this.attribution?.remove();
-      this.attribution = null;
     } else {
       // Kakao tiles can't be restyled, so a Korea-sized polygon hides them;
       // the base map's land (water is where there is none) and the 동 tint
@@ -180,13 +176,6 @@ export class KakaoCourseMap implements CourseMap {
       if (!before || before.parts !== shapes.parts) {
         this.shadowPolygons = this.reshape(this.shadowPolygons, shapes.partsDrop ?? [], () => this.shadowFill(), Z['area-shadow']);
         this.partPolygons = this.reshape(this.partPolygons, shapes.parts, (i) => this.tint(i), Z['area-parts']);
-      }
-      if (!this.attribution) {
-        // Boundaries come from Statistics Korea (KOGL Type 1: credit required).
-        this.attribution = document.createElement('div');
-        this.attribution.className = 'map-attribution';
-        this.attribution.textContent = ADMIN_ATTRIBUTION;
-        this.container.appendChild(this.attribution);
       }
     }
     syncAreaLabels(this.areaLabels, shapes?.labels ?? [], {

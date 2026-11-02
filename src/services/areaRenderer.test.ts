@@ -41,8 +41,8 @@ describe('area renderer', () => {
     const renderer = new AreaRenderer(fakeService());
     const first = await renderer.render(at(127, 37));
     expect(first && 'shapes' in first && first.shapes.parts.length).toBe(2);
-    expect(AREA_NAMES_SHOWN).toBe(true);
-    expect(first && 'shapes' in first && first.shapes.labels?.length).toBeGreaterThan(0);
+    expect(AREA_NAMES_SHOWN).toBe(false);
+    expect(first && 'shapes' in first && first.shapes.labels).toEqual([]);
     // A small pan: no new polygons (labels move only if they must).
     const panned = await renderer.render(at(127.003, 37.002));
     expect(panned === null || 'labels' in panned).toBe(true);

@@ -1,8 +1,8 @@
 import { AreaShapeCache, areaFocusKey, areaRenderWindow, renderAreaDraft, renderAreaMap, type AreaLabel, type AreaMap, type AreaShapes } from '../domain/adminAreas';
 import { placeAreaLabels as placeNames, sameLabels, type LabelCover } from '../domain/areaLabels';
 
-/** Names identify every visible district; nearby place icons are separate. */
-export const AREA_NAMES_SHOWN = true;
+/** District names stay off the map (2026-11-02): no address text over the map. */
+export const AREA_NAMES_SHOWN = false;
 const placeAreaLabels: typeof placeNames = (...args) => (AREA_NAMES_SHOWN ? placeNames(...args) : []);
 import { shapeBaseMap, type BaseShapes } from '../domain/baseShapes';
 import type { Bbox, MapViewport } from '../domain/districtMap';

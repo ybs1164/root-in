@@ -53,7 +53,6 @@ const FOCUS_ZOOM = 15;
 export class MapLibreCourseMap implements CourseMap {
   readonly provider = 'maplibre' as const;
   private readonly map: MapLibreMap;
-  private readonly attribution: HTMLElement;
   private stops: PlaceRef[] = [];
   private stopMarkers: Marker[] = [];
   private previewMarker: Marker | null = null;
@@ -85,10 +84,6 @@ export class MapLibreCourseMap implements CourseMap {
       zoom: 12,
       attributionControl: false,
     });
-    this.attribution = document.createElement('div');
-    this.attribution.className = 'map-attribution';
-    this.attribution.textContent = ADMIN_ATTRIBUTION;
-    container.append(this.attribution);
     // MapLibre's own size watch skips the first report it gets, taking it for
     // the size it started at. On an iPhone opening the app, the web view can
     // still be settling when the map is made: the size that settles is that
@@ -403,7 +398,6 @@ export class MapLibreCourseMap implements CourseMap {
     this.detachVisibility();
     this.detachLongPress();
     this.setNearbyPlaces([]);
-    this.attribution.remove();
     this.map.remove();
   }
 }
