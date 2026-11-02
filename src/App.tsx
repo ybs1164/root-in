@@ -173,6 +173,8 @@ export default function App() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
+  // The group the camera was opened from: picked to send to, to start with (can be unpicked).
+  const [cameraGroupId, setCameraGroupId] = useState<string | null>(null);
   // A shot from the camera waiting for its groups (the 그룹에 보내기 popup is up).
   const [cameraShot, setCameraShot] = useState<string | null>(null);
   // When it was taken: the photo ping's time (and day) is the shutter's, not 전송's.
@@ -950,7 +952,7 @@ export default function App() {
     // member's pass over it), clear of the < > at the sides.
     const side = width < 520 ? 76 : 96;
     // (The row sits over the 대화 button, 64px higher than it did.)
-    const padding = { top: 150, right: side, bottom: groupPicked ? 337 : 197, left: side };
+    const padding = { top: 150, right: side, bottom: groupPicked ? 344 : 204, left: side };
     // Like a route: the first move onto someone (from ALL, or opening the
     // group) glides at the usual pace; going on from one member to the next
     // is as quick as stepping between routes with < >.
@@ -1523,12 +1525,13 @@ export default function App() {
     if (small) savePingPhoto(pingId, small, new Set(loadPings().map((p) => p.id)));
     return true;
   };
-  const sendCameraShot = async (groupIds: string[], photo: string, place: PlaceRef, today: boolean): Promise<string | null> => {
+  // TODAY always gets the shot (the gallery's MY is TODAY's photos); the groups are extra.
+  const sendCameraShot = async (groupIds: string[], photo: string, place: PlaceRef): Promise<string | null> => {
     if (isExcluded(place, privacy.excluded)) return '제외 주소 근처에서는 보낼 수 없어요.';
     const sent = groupIds.length ? await groups.sendPhoto(groupIds, { day: dateKey(cameraShotAt.current), at: cameraShotAt.current.toISOString(), center: place.center, name: place.name }, photo) : 0;
     if (groupIds.length && !sent) return '보내지 못했어요. 잠시 뒤에 다시 시도해 주세요.';
-    const pinged = today && (await pingShotOnToday(photo, place));
-    if (today && !pinged && !sent) return 'TODAY에 핑을 찍지 못했어요.';
+    const pinged = await pingShotOnToday(photo, place);
+    if (!pinged && !sent) return 'TODAY에 핑을 찍지 못했어요.';
     setCameraShot(null);
     setCameraOpen(false);
     notify(sent ? (pinged ? `TODAY와 ${sent}개 그룹에 보냈어요.` : sent === 1 ? '그룹에 보냈어요.' : `${sent}개 그룹에 보냈어요.`) : `'${place.name}' 핑을 TODAY에 찍었어요.`);
@@ -2054,6 +2057,10 @@ export default function App() {
             onGallery={() => openGallery(openGroup.id)}
             onChat={() => setGroupChat(true)}
             chatUnread={unreadTalk.counts[openGroup.id] ?? 0}
+            onCamera={() => {
+              setCameraGroupId(openGroup.id);
+              setCameraOpen(true);
+            }}
           />
         </>
       )}
@@ -2238,7 +2245,10 @@ export default function App() {
           onMap={() => changeTab('pins')}
           onPin={startPinning}
           onPeople={() => changeTab('people')}
-          onCamera={() => setCameraOpen(true)}
+          onCamera={() => {
+            setCameraGroupId(null);
+            setCameraOpen(true);
+          }}
           onGallery={() => openGallery('my')}
           onChats={() => setChatsOpen(true)}
           chatsUnread={allUnreadTalk}
@@ -2364,7 +2374,8 @@ export default function App() {
           status={groups.status}
           places={cameraSpots.places}
           placeProblem={cameraSpots.problem}
-          onSend={(ids, place, today) => sendCameraShot(ids, cameraShot, place, today)}
+          startGroupId={cameraGroupId}
+          onSend={(ids, place) => sendCameraShot(ids, cameraShot, place)}
           onClose={() => {
             cameraLookup.current++;
             setCameraShot(null);

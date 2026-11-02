@@ -44,6 +44,8 @@ interface GroupMapViewProps {
   onChat(): void;
   /** Lines of this group's 대화 I haven't read: a badge on its button. */
   chatUnread?: number;
+  /** The big camera at the bottom middle, as on We Now's list (sent to TODAY and this group to start with). */
+  onCamera(): void;
 }
 
 /**
@@ -79,7 +81,7 @@ const shownPhoto = (ping: GroupPing | undefined, photo?: number): string | undef
   return (photo !== undefined ? all[photo] : undefined) ?? ping?.photo;
 };
 
-export default function GroupMapView({ group, day, onDay, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onGallery, onChat, chatUnread = 0 }: GroupMapViewProps) {
+export default function GroupMapView({ group, day, onDay, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onGallery, onChat, chatUnread = 0, onCamera }: GroupMapViewProps) {
   const pickedMember = group.members.find((m) => m.userId === picked) ?? null;
   // My colour here, as the doodle tools' one ink (`member-N`).
   const mine = group.members.find((m) => m.userId === me);
@@ -122,6 +124,10 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
       <button className="group-view__chat" aria-label={chatUnread ? `대화, 안 읽은 메시지 ${chatUnread}` : '대화'} onClick={onChat}>
         <TalkBubbles size={30} />
         <TalkBadge count={chatUnread} />
+      </button>
+      {/* Where We Now's big camera is, so it stays put on opening a group. */}
+      <button className="group-view__camera" aria-label="카메라" onClick={onCamera}>
+        <Camera strokeWidth={2.2} aria-hidden />
       </button>
 
       <div className="group-view__title">

@@ -36,10 +36,10 @@ const goneMember = (userId: string): GroupMember => ({ userId, slot: 0, color: 0
 
 /**
  * The camera's photos over the whole screen: ‹ back and GALLERY, then index
- * tabs as on the route folders — MY (what I sent, and TODAY's photos on this
- * phone) and one per group — and under them a heading per day (newest
+ * tabs as on the route folders — MY (TODAY's photos on this phone: every
+ * camera shot goes there) and one per group — and under them a heading per day (newest
  * first) over a grid of squares, each with the sender's face in the corner.
- * A photo sent to several groups shows once in MY. Tapping one opens it big;
+ * Tapping one opens it big;
  * there the newest is furthest right and paging back runs on through the
  * days before, the day over the photo.
  *
@@ -53,8 +53,8 @@ const goneMember = (userId: string): GroupMember => ({ userId, slot: 0, color: 0
 export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, onRetry, local, seq, onSeq, onClose }: PhotoGalleryProps) {
   const ready = state.status === 'ready' || tab === 'my';
   const allDays = useMemo(
-    () => galleryTabDays(tab, state.status === 'ready' ? state.photos : [], me, local),
-    [tab, state, me, local],
+    () => galleryTabDays(tab, state.status === 'ready' ? state.photos : [], local),
+    [tab, state, local],
   );
   const [starsOn, setStarsOn] = useState(false);
   const [metOn, setMetOn] = useState(false);
