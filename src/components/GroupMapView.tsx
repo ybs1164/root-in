@@ -1,6 +1,6 @@
 import { CalendarDays, Camera, ChevronLeft, ChevronRight, MessageCircle, Settings, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { GROUP_LIMITS, memberColor, memberInk, passRoute, photoKey, pingPhotos, placeTime, type Group, type GroupMember, type GroupPing } from '../domain/groups';
+import { GROUP_LIMITS, memberColor, memberInk, memberPhotoItems, passRoute, photoKey, pingPhotos, placeTime, type Group, type GroupMember, type GroupPing } from '../domain/groups';
 import { addDays } from '../domain/calendar';
 import { dateKey } from '../domain/diary';
 import { galleryDayLabel, type PhotoDecorLayer } from '../domain/gallery';
@@ -160,6 +160,10 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
       {pickedMember && <MemberPass key={pickedMember.userId} member={pickedMember} mine={pickedMember.userId === me} day={label} />}
 
       {pickedMember && place?.member === pickedMember.userId && pickedMember.pings[place.seq] && (() => {
+        const photos = memberPhotoItems(pickedMember.pings);
+        const stack = pingPhotos(pickedMember.pings[place.seq]);
+        const photo = place.photo !== undefined && stack[place.photo] ? place.photo : stack.length - 1;
+        const photoSeq = photos.findIndex((item) => item.seq === place.seq && item.photo === photo);
         return (
           <>
             <PhotoPanel
@@ -177,17 +181,20 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
               }}
               onClose={() => onPlace(null)}
             />
-            {photoBig && (
+            {photoBig && photoSeq >= 0 && (
               <PhotoViewer
-                items={pickedMember.pings.map((p, i) => ({
-                  photo: shownPhoto(p, i === place.seq ? place.photo : undefined),
-                  name: placeName(p.name),
+                items={photos.map((item) => ({
+                  photo: item.url,
+                  name: placeName(pickedMember.pings[item.seq].name),
                   // The member's name alone, no n / N.
                   who: pickedMember.nickname,
                   face: <MemberFace member={pickedMember} size={32} />,
                 }))}
-                seq={place.seq}
-                onSeq={(seq) => onPlace({ member: pickedMember.userId, seq })}
+                seq={photoSeq}
+                onSeq={(seq) => {
+                  const item = photos[seq];
+                  if (item) onPlace({ member: pickedMember.userId, seq: item.seq, photo: item.photo });
+                }}
                 onClose={() => onPhotoBig(false)}
                 startWriting={bigWriting}
                 counted={false}

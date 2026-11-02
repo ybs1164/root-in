@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlaces, withSentPhotos, mergeSamePlace, pingPhotos, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, orderGroups, moveId, type Group } from './groups';
+import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlaces, withSentPhotos, mergeSamePlace, pingPhotos, memberPhotoItems, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, orderGroups, moveId, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -163,6 +163,41 @@ describe('mergeSamePlace', () => {
     ];
     expect(mergeSamePlace(pings).map((p) => p.at)).toEqual([at(1), at(2), at(3), at(4)]);
     expect(pingPhotos({ at: at(1), center: here })).toEqual([]);
+  });
+});
+
+describe('memberPhotoItems', () => {
+  it('pages every stacked photo in both directions and keeps its map selection across places', () => {
+    const here: [number, number] = [127, 37.5];
+    const away: [number, number] = [127.1, 37.6];
+    const pings = mergeSamePlace([
+      { at: '2026-10-29T01:00:00Z', center: here, photo: 'a.jpg' },
+      { at: '2026-10-29T02:00:00Z', center: here, photo: 'b.jpg' },
+      { at: '2026-10-29T03:00:00Z', center: away },
+      { at: '2026-10-29T04:00:00Z', center: here, photo: 'c.jpg' },
+      { at: '2026-10-29T05:00:00Z', center: here, photo: 'd.jpg' },
+      { at: '2026-10-29T06:00:00Z', center: away, photo: 'e.jpg' },
+    ]);
+    const items = memberPhotoItems(pings);
+    expect(items).toEqual([
+      { seq: 0, photo: 0, url: 'a.jpg' },
+      { seq: 0, photo: 1, url: 'b.jpg' },
+      { seq: 2, photo: 0, url: 'c.jpg' },
+      { seq: 2, photo: 1, url: 'd.jpg' },
+      { seq: 3, photo: 0, url: 'e.jpg' },
+    ]);
+    // Opening the newest photo of the first stack can go back within it or on to the next photo.
+    const opened = items.findIndex((item) => item.seq === 0 && item.photo === 1);
+    expect(items[viewerStep(opened, -1, items.length)!].url).toBe('a.jpg');
+    expect(items[viewerStep(opened, 1, items.length)!].url).toBe('c.jpg');
+    for (const item of items) expect(pingPhotos(pings[item.seq])[item.photo]).toBe(item.url);
+    expect(viewerStep(0, -1, items.length)).toBeNull();
+    expect(viewerStep(items.length - 1, 1, items.length)).toBeNull();
+  });
+
+  it('has no viewer items for a day without photos', () => {
+    expect(memberPhotoItems([])).toEqual([]);
+    expect(memberPhotoItems([{ at: '2026-10-29T01:00:00Z', center: [127, 37.5] }])).toEqual([]);
   });
 });
 
