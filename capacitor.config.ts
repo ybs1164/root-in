@@ -12,6 +12,10 @@ const config: CapacitorConfig = {
     // Chrome remote debugging off in release builds
     webContentsDebuggingEnabled: false,
   },
+  plugins: {
+    // 그룹 알림 while the app is in front: its own notice says it (useGroupNews), not a system banner too.
+    PushNotifications: { presentationOptions: [] },
+  },
 };
 
 export default config;

@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(LocationSettingsPlugin.class);
         registerPlugin(AppLinksPlugin.class);
+        registerPlugin(PushSetupPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

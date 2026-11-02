@@ -58,7 +58,7 @@ export function usePhotoDecor(path: string | null, ink?: string | null): PhotoDe
     });
     // Another member doodling shows up as they go. Only their layers are
     // taken: mine is whatever I have here (the server's may be behind it).
-    const stop = groupService.watchPhoto(path, () => {
+    const stop = groupService.watchDecor(path, () => {
       const n = ++asked;
       void groupService.decors(path).then((layers) => {
         if (live && n === asked && layers !== 'error') setOthers(layers.filter((l) => !l.mine));

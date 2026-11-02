@@ -9,6 +9,7 @@ import { COMMENT_MAX, isMemberInk, type FeedItem, type GalleryPhoto, type MetPai
 import type { DayDecor } from '../domain/decor';
 import { isBlankDecor, readDecor } from './dayRepository';
 import { publicAppUrl } from '../lib/appUrl';
+import { createGroupLive, type LiveEvent, type LiveTopic } from './groupLive';
 
 // We Now groups (supabase/migrations/20261016000000_groups.sql). Everything
 // goes through the server's functions; what comes back is checked like any
@@ -88,6 +89,10 @@ export interface GroupService {
   heartNews(): Promise<HeartNews[]>;
   /** Shown: the hearts up to `upto` (an `at`) stop coming back. */
   heartsSeen(upto: string): Promise<boolean>;
+  /** 그룹 알림 not yet shown (a member pinged a new place), newest first ([] when it couldn't ask). */
+  news(): Promise<GroupNews[]>;
+  /** Shown: the news up to `upto` (an `at`) stops coming back. */
+  newsSeen(upto: string): Promise<boolean>;
   /** A photo's comments (by its upload `path`), oldest first; 'error' when the server couldn't be asked. */
   comments(path: string): Promise<PhotoComment[] | 'error'>;
   /** A comment on a photo of a group of mine; false when the server said no. */
@@ -106,14 +111,14 @@ export interface GroupService {
   decorsMany(paths: readonly string[]): Promise<Map<string, PhotoDecorLayer[]> | 'error'>;
   /** My doodles on a photo, replaced (nothing on it: taken off), with my colour for their stickers' edge; false when the server said no. */
   setDecor(path: string, decor: DayDecor, ink?: string): Promise<boolean>;
+  /** Hears a group's 대화 or a photo's comments as lines are written (`groupLive`); returns the stop. */
+  watch(topic: LiveTopic, listener: (event: LiveEvent) => void): () => void;
   /**
-   * Live: `onChange` whenever a group's 대화 may have changed (a message, a
-   * photo sent to it, a comment on a photo I can see). Only a nudge — read
-   * `feed` again. Returns the way to stop listening; never throws.
+   * Live: `onChange` whenever a photo's doodles may have changed (by its
+   * upload `path`; postgres_changes on photo_decor). Only a nudge — read
+   * `decors` again. Returns the way to stop listening; never throws.
    */
-  watchGroup(groupId: string, onChange: () => void): () => void;
-  /** Live: `onChange` whenever a photo's comments or doodles may have changed (by its upload `path`). */
-  watchPhoto(path: string, onChange: () => void): () => void;
+  watchDecor(path: string, onChange: () => void): () => void;
   /** I've read the group's 대화 up to now (false when the server said no). */
   markRead(groupId: string): Promise<boolean>;
   /** Each member's last read of the group's 대화 (user id → ISO time); 'error' when the server couldn't be asked. */
@@ -133,6 +138,18 @@ export interface HeartNews {
   nickname: string;
   /** Where the photo was taken, when known. */
   place: string | null;
+  at: string;
+}
+
+/** 그룹 알림 · 새로운 루트: a member of a group of mine pinged a new place (20261110000000_place_alerts.sql). */
+export interface GroupNews {
+  id: string;
+  fromUser: string;
+  groupId: string;
+  /** The sender as the group shows them. */
+  name: string;
+  groupName: string;
+  place: string;
   at: string;
 }
 
@@ -226,6 +243,23 @@ export function readHeartNews(data: unknown): HeartNews[] {
     const nickname = typeof r.nickname === 'string' && r.nickname.trim() ? r.nickname.trim().slice(0, 20) : '누군가';
     const place = typeof r.place === 'string' && r.place.trim() ? r.place.trim().slice(0, 80) : null;
     news.push({ path: r.path, fromUser: r.from_user, nickname, place, at: r.at });
+  }
+  return news;
+}
+
+/** group_news' rows, checked; anything off (or a kind this app doesn't know) is skipped. */
+export function readGroupNews(data: unknown): GroupNews[] {
+  if (!Array.isArray(data)) return [];
+  const news: GroupNews[] = [];
+  for (const row of data.slice(0, 50)) {
+    const r = (row ?? {}) as Record<string, unknown>;
+    if (r.kind !== 'route') continue;
+    if (typeof r.id !== 'string' || !UUID.test(r.id) || typeof r.from_user !== 'string' || !UUID.test(r.from_user)) continue;
+    if (typeof r.group_id !== 'string' || !UUID.test(r.group_id)) continue;
+    if (typeof r.place !== 'string' || !r.place.trim() || typeof r.at !== 'string' || Number.isNaN(Date.parse(r.at))) continue;
+    const name = typeof r.name === 'string' && r.name.trim() ? r.name.trim().slice(0, 20) : '누군가';
+    const groupName = typeof r.group_name === 'string' && r.group_name.trim() ? r.group_name.trim().slice(0, GROUP_LIMITS.name) : '그룹';
+    news.push({ id: r.id, fromUser: r.from_user, groupId: r.group_id, name, groupName, place: r.place.trim().slice(0, 80), at: r.at });
   }
   return news;
 }
@@ -402,8 +436,11 @@ export function createSupabaseGroupService(
   available = supabaseConfigured(),
   slug: () => string = newSlug,
 ): GroupService {
+  const live = createGroupLive(getClient);
   return {
     available,
+
+    watch: (topic, listener) => live.watch(topic, listener),
 
     async list(day) {
       try {
@@ -680,6 +717,29 @@ export function createSupabaseGroupService(
       }
     },
 
+    async news() {
+      try {
+        const client = await getClient();
+        if (!client) return [];
+        const { data, error } = await client.rpc('group_news');
+        return error ? [] : readGroupNews(data);
+      } catch {
+        return [];
+      }
+    },
+
+    async newsSeen(upto) {
+      try {
+        if (Number.isNaN(Date.parse(upto))) return false;
+        const client = await getClient();
+        if (!client) return false;
+        const { error } = await client.rpc('group_news_seen', { upto });
+        return !error;
+      } catch {
+        return false;
+      }
+    },
+
     async comments(path) {
       try {
         if (!PHOTO_PATH.test(path)) return 'error';
@@ -829,22 +889,9 @@ export function createSupabaseGroupService(
       }
     },
 
-    watchGroup(groupId, onChange) {
-      if (!available || !UUID.test(groupId)) return () => {};
-      return listen(getClient, `group-talk:${groupId}`, [
-        { table: 'group_messages', event: 'INSERT', filter: `group_id=eq.${groupId}` },
-        { table: 'group_photos', event: 'INSERT', filter: `group_id=eq.${groupId}` },
-        // Which group a comment's photo went to isn't on the row: every one I can see, and the feed sorts it out.
-        { table: 'photo_comments', event: 'INSERT' },
-        // Someone read it: the numbers beside the lines go down.
-        { table: 'group_reads', event: '*', filter: `group_id=eq.${groupId}` },
-      ], onChange);
-    },
-
-    watchPhoto(path, onChange) {
+    watchDecor(path, onChange) {
       if (!available || !PHOTO_PATH.test(path)) return () => {};
-      return listen(getClient, `photo:${path}`, [
-        { table: 'photo_comments', event: 'INSERT', filter: `path=eq.${path}` },
+      return listen(getClient, `photo-decor:${path}`, [
         // Doodles are upserted (a layer taken off entirely is a delete, which a filter can't catch).
         { table: 'photo_decor', event: '*', filter: `path=eq.${path}` },
       ], onChange);

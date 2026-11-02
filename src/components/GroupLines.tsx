@@ -5,6 +5,8 @@ export interface GroupLine {
   color: string;
   count: number;
   faded: boolean;
+  /** Per leg: one from island to island on the atlas (a trip between regions), drawn dotted with no casing. */
+  jumps?: boolean[];
 }
 
 /** Screen centre of a member's `seq`th ping marker, if it's on the map. */
@@ -58,7 +60,7 @@ export default function GroupLines({ lines }: { lines: GroupLine[] }) {
       {lines.map((line) => (
         <g key={line.member} className={line.faded ? 'is-faded' : undefined} style={{ stroke: line.color }}>
           {Array.from({ length: Math.max(0, line.count - 1) }, (_, k) => (
-            <g key={k}>
+            <g key={k} className={line.jumps?.[k] ? 'is-jump' : undefined}>
               <line
                 className="group-lines__case"
                 ref={(el) => {

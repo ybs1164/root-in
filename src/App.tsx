@@ -68,6 +68,7 @@ import GroupMapView, { type GroupPlace } from './components/GroupMapView';
 import GroupChat from './components/GroupChat';
 import PhotoGallery from './components/PhotoGallery';
 import { useHeartNews } from './hooks/useHeartNews';
+import { useGroupNews } from './hooks/useGroupNews';
 import { useGalleryPhotos } from './hooks/useGalleryPhotos';
 import { usePingPhotos } from './hooks/usePingPhotos';
 import { localGalleryPhotos, type GalleryTab } from './domain/gallery';
@@ -75,7 +76,9 @@ import CameraScreen from './components/CameraScreen';
 import GroupSendDialog from './components/GroupSendDialog';
 import GroupFormDialog from './components/GroupFormDialog';
 import GroupSettingsDialog from './components/GroupSettingsDialog';
-import GroupLines, { type GroupLine } from './components/GroupLines';
+import type { GroupLine } from './components/GroupLines';
+import GroupAtlas, { type AtlasHandle } from './components/GroupAtlas';
+import { markKey } from './hooks/useAtlas';
 import { shareLinkService } from './services/shareLinkService';
 import { planShare } from './services/shareTargets';
 import { usePageSwipe } from './hooks/usePageSwipe';
@@ -119,6 +122,9 @@ const STEP_GLIDE_MS = 260;
 
 export default function App() {
   const mapEl = useRef<HTMLDivElement | null>(null);
+  // An open group's map: the atlas (its islands over a faint Korea), not the real map.
+  const atlasRef = useRef<AtlasHandle | null>(null);
+  const atlasEl = useRef<HTMLDivElement | null>(null);
   const barEl = useRef<HTMLDivElement | null>(null);
   const searchInput = useRef<HTMLInputElement | null>(null);
   const mapRef = useRef<CourseMap | null>(null);
@@ -330,6 +336,15 @@ export default function App() {
   const [galleryTab, setGalleryTab] = useState<GalleryTab | null>(null);
   // Someone hearted a photo of mine in the gallery: say so (in-app; no push yet).
   useHeartNews(account.user, notify);
+  // A member of a group of mine pinged a new place (그룹 알림 · 새로운 루트):
+  // a notice in the app, a push on the phone apps; a tapped push opens the group.
+  useGroupNews(account.user, {
+    onNotice: notify,
+    onOpenGroup: (id) => {
+      changeTab('people');
+      setOpenGroupId(id);
+    },
+  });
   const groups = useGroups(account.user, tab === 'people' || galleryTab !== null || settingsOpen, {
     onJoined: (id) => {
       changeTab('people');
@@ -921,17 +936,15 @@ export default function App() {
         .map((m) => ({ member: m.userId, color: memberColor(m.color), count: m.pings.length, faded: !!groupPicked && groupPicked !== m.userId })),
     [openGroup, groupPicked],
   );
-  useEffect(() => {
-    mapRef.current?.setGroupPings(groupMarks);
-  }, [groupMarks, mapProvider]);
   // Opening a group fits all of it; picking someone brings the map in close on their day.
   const groupFitted = useRef<{ group: string; picked: string | null } | null>(null);
   const groupFitKey = openGroup ? `${openGroup.id}|${groupDay ?? ''}|${groupPicked ?? ''}|${focusPoints(openGroup, groupPicked).length}|${groupPing ? `${groupPing.member}:${groupPing.seq}` : ''}` : '';
   useEffect(() => {
-    if (!openGroup || !mapRef.current) return;
-    const points = focusPoints(openGroup, groupPicked);
-    if (points.length === 0) return;
-    const el = mapEl.current;
+    if (!openGroup || !atlasRef.current) return;
+    const shown = groupPicked ? openGroup.members.filter((m) => m.userId === groupPicked) : openGroup.members;
+    const keys = shown.flatMap((m) => m.pings.map((_, i) => markKey(m.userId, i)));
+    if (keys.length === 0) return;
+    const el = atlasEl.current;
     const width = el?.clientWidth ?? window.innerWidth;
     // Under the title, over the member row along the bottom (and the picked
     // member's pass over it), clear of the < > at the sides.
@@ -956,13 +969,13 @@ export default function App() {
         const head = Math.min(at, ...[...marker.children].map((c) => c.getBoundingClientRect().top));
         const above = document.querySelector('.group-photo-panel')?.getBoundingClientRect().bottom ?? box.top + GROUP_TITLE_PX;
         const below = document.querySelector('.member-pass, .group-rail')?.getBoundingClientRect().top ?? box.bottom;
-        return mapRef.current?.focus(ping.center, { top: above - box.top + (at - head) + 12, right: 0, bottom: Math.max(0, box.bottom - below), left: 0 });
+        return atlasRef.current?.focus(markKey(groupPing.member, groupPing.seq), { top: above - box.top + (at - head) + 12, right: 0, bottom: Math.max(0, box.bottom - below), left: 0 });
       }
-      void mapRef.current?.fitPoints(points, padding, memberToMember ? STEP_GLIDE_MS : undefined);
+      atlasRef.current?.fit(keys, padding, memberToMember ? STEP_GLIDE_MS : undefined);
     });
     return () => cancelAnimationFrame(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupFitKey, mapProvider]);
+  }, [groupFitKey]);
   useEffect(() => {
     if (!openGroup) groupFitted.current = null;
   }, [openGroup]);
@@ -970,9 +983,9 @@ export default function App() {
   // On a group's map, a quick tap (not a pan or a long press) on someone's
   // ping, photo or face (faded or not) puts the focus on them and opens that
   // place's photo panel; on bare map it goes back to ALL (panel and all).
-  // The pings let taps through to the map, so they're found by where they are on screen.
+  // The pings let taps through to the atlas under them, so they're found by where they are on screen.
   useEffect(() => {
-    const el = mapEl.current;
+    const el = atlasEl.current;
     if (!groupOpen || !el) return;
     let tap: { x: number; y: number; at: number } | null = null;
     const hit = (x: number, y: number): { member: string; seq: number } | null => {
@@ -2021,7 +2034,7 @@ export default function App() {
 
       {openGroup && (
         <>
-          <GroupLines lines={groupLines} />
+          <GroupAtlas marks={groupMarks} lines={groupLines} handle={atlasRef} rootRef={atlasEl} />
           <GroupMapView
             group={openGroup}
             picked={groupPicked}

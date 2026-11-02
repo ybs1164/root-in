@@ -85,6 +85,15 @@ export class StaticAdminAreaService implements AdminAreaService {
     return (sgg && areaAt(sgg, point))?.code ?? null;
   }
 
+  /** The 시도 and 시군구 names under a point (the nearest 시군구 over water); null without data. */
+  async sggNamesAt(point: LonLat): Promise<{ sido: string; sgg: string } | null> {
+    const sido = await this.load('sido.json');
+    const inSido = sido && areaAt(sido, point);
+    const sgg = inSido ? await this.load(`sgg/${inSido.code}.json`) : null;
+    const inSgg = sgg && areaAt(sgg, point);
+    return inSido && inSgg ? { sido: inSido.name, sgg: inSgg.name } : null;
+  }
+
   /** All districts touching the screen, including those across province borders. */
   async sggAreasInBounds(bounds: Bbox): Promise<AdminArea[]> {
     const sido = await this.load('sido.json');

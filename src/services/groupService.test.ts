@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import { createSupabaseGroupService, inviteUrl, readGroups, readInviteSlug, readMetPairs, readHeartNews, readComments, readFeed, readDecorLayers, readReads, readUnreadTalk } from './groupService';
+import { createSupabaseGroupService, inviteUrl, readGroups, readInviteSlug, readMetPairs, readHeartNews, readGroupNews, readComments, readFeed, readDecorLayers, readReads, readUnreadTalk } from './groupService';
 
 const G1 = '11111111-1111-1111-1111-111111111111';
 const U1 = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
@@ -257,6 +257,24 @@ describe('groupService', () => {
     expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).heartNews()).toEqual([]);
   });
 
+  it('reads 그룹 알림 news checked, and marks it shown up to a time', async () => {
+    const N1 = '11111111-2222-4333-8444-555555555555';
+    const row = { id: N1, from_user: U1, group_id: G1, kind: 'route', name: ' 민수 ', group_name: '우리', place: ' 서촌 카페 ', at: '2026-11-08T01:00:00Z' };
+    const fake = fakeClient((fn) => ({
+      data: fn === 'group_news' ? [row, { ...row, kind: 'heart' }, { ...row, id: 'x' }, { ...row, place: '  ' }, { ...row, group_id: 'g' }, { ...row, name: '' }] : null,
+    }));
+    const service = createSupabaseGroupService(async () => fake.client, true);
+    expect(await service.news()).toEqual([
+      { id: N1, fromUser: U1, groupId: G1, name: '민수', groupName: '우리', place: '서촌 카페', at: row.at },
+      { id: N1, fromUser: U1, groupId: G1, name: '누군가', groupName: '우리', place: '서촌 카페', at: row.at },
+    ]);
+    expect(await service.newsSeen(row.at)).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('group_news_seen', { upto: row.at });
+    expect(await service.newsSeen('not a time')).toBe(false);
+    expect(readGroupNews({})).toEqual([]);
+    expect(await createSupabaseGroupService(() => Promise.reject(new Error('x')), true).news()).toEqual([]);
+  });
+
   it('reads and writes a photo\'s comments by its path, checked', async () => {
     const path = `${U1}/AbCdEf123456.jpg`;
     const C1 = '11111111-2222-4333-8444-555555555555';
@@ -369,32 +387,25 @@ describe('live updates', () => {
   }
   const PATH = `${U1}/abcdef12.jpg`;
 
-  it("listens to a photo's comments and doodles, and stops", async () => {
+  it("listens to a photo's doodles, and stops", async () => {
     const fake = realtimeClient();
     const onChange = vi.fn();
-    const stop = createSupabaseGroupService(async () => fake.client, true).watchPhoto(PATH, onChange);
-    await vi.waitFor(() => expect(fake.handlers).toHaveLength(2));
-    expect(fake.handlers.map((h) => [h.opts.table, h.opts.filter])).toEqual([
-      ['photo_comments', `path=eq.${PATH}`],
-      ['photo_decor', `path=eq.${PATH}`],
-    ]);
+    const stop = createSupabaseGroupService(async () => fake.client, true).watchDecor(PATH, onChange);
+    await vi.waitFor(() => expect(fake.handlers).toHaveLength(1));
+    expect(fake.handlers[0].opts).toMatchObject({ table: 'photo_decor', event: '*', filter: `path=eq.${PATH}` });
     fake.handlers[0].fire();
     expect(onChange).toHaveBeenCalledTimes(1);
     stop();
     expect(fake.removeChannel).toHaveBeenCalledTimes(1);
-    fake.handlers[1].fire();
+    fake.handlers[0].fire();
     expect(onChange).toHaveBeenCalledTimes(1);
   });
 
-  it("listens to a group's 대화; nothing for bad ids or no backend", async () => {
-    const fake = realtimeClient();
-    createSupabaseGroupService(async () => fake.client, true).watchGroup(G1, () => {});
-    await vi.waitFor(() => expect(fake.handlers).toHaveLength(4));
-    expect(fake.handlers[0].opts).toMatchObject({ table: 'group_messages', filter: `group_id=eq.${G1}` });
+  it('listens to nothing for bad paths or no backend', async () => {
     const other = realtimeClient();
-    createSupabaseGroupService(async () => other.client, true).watchGroup('nope', () => {})();
-    createSupabaseGroupService(async () => other.client, false).watchPhoto(PATH, () => {})();
-    createSupabaseGroupService(() => Promise.reject(new Error('down')), true).watchPhoto(PATH, () => {})();
+    createSupabaseGroupService(async () => other.client, true).watchDecor('nope', () => {})();
+    createSupabaseGroupService(async () => other.client, false).watchDecor(PATH, () => {})();
+    createSupabaseGroupService(() => Promise.reject(new Error('down')), true).watchDecor(PATH, () => {})();
     await Promise.resolve();
     expect(other.client.channel).not.toHaveBeenCalled();
   });

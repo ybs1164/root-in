@@ -1,10 +1,11 @@
-import { ArrowUp, Camera, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowDown, ArrowUp, Camera, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { COMMENT_MAX, galleryDayLabel, unreadBy, type FeedItem } from '../domain/gallery';
 import { GROUP_LIMITS, isGroupBirthday, memberColor, memberInk, type Group, type GroupMember } from '../domain/groups';
 import { dateKey } from '../domain/diary';
 import { monthGrid, shiftMonth } from '../domain/calendar';
 import { groupService } from '../services/groupService';
+import { useLiveRefresh } from '../hooks/useLiveRefresh';
 import { MemberFace } from './WeNowPage';
 import PhotoViewer, { OpenPhotoMarks } from './PhotoViewer';
 import { useSwipeBack } from '../hooks/useSwipeBack';
@@ -12,10 +13,8 @@ import { useSwipeBack } from '../hooks/useSwipeBack';
 /** The day calendar's height (its six weeks), to flip it over a pill low on the screen. */
 const PICKER_HEIGHT = 330;
 
-/** How often the 대화 reads itself again while it's open (live updates do the rest). */
-const REFRESH_MS = 30_000;
-/** Live nudges this close together make one read. */
-const LIVE_GATHER_MS = 150;
+/** How far from the bottom (px) still counts as reading the newest: a line coming in scrolls down to it. */
+const NEAR_BOTTOM_PX = 80;
 
 /** Someone no longer in the group: no face, a neutral name. */
 const goneMember = (userId: string): GroupMember => ({ userId, slot: 0, color: 0, nickname: '나간 그룹원', alias: null, photo: null, pings: [] });
@@ -81,20 +80,14 @@ export default function GroupChat({
   const memberIds = useMemo(() => group.members.map((m) => m.userId), [group.members]);
   useEffect(() => {
     void read();
-    // New lines come in live; the slow re-read only covers a dropped connection.
-    let nudge: number | undefined;
-    const stop = groupService.watchGroup(group.id, () => {
-      // A burst (a photo sent to several groups, quick messages) is one read.
-      window.clearTimeout(nudge);
-      nudge = window.setTimeout(() => void read(), LIVE_GATHER_MS);
-    });
-    const timer = window.setInterval(() => void read(), REFRESH_MS);
-    return () => {
-      stop();
-      window.clearTimeout(nudge);
-      window.clearInterval(timer);
-    };
-  }, [read, group.id]);
+  }, [read]);
+  // Live: a line written in the group reads the 대화 again (not one already
+  // here, like the one I just sent); a timer and the app coming back catch up.
+  const shown = useRef(new Set<string>());
+  useEffect(() => {
+    shown.current = new Set((items ?? []).map((i) => i.id));
+  }, [items]);
+  useLiveRefresh({ group: group.id }, () => void read(), { known: (id) => shown.current.has(id) });
   // Back from a big photo: a comment may have been written there.
   const wasBig = useRef(false);
   useEffect(() => {
@@ -117,16 +110,33 @@ export default function GroupChat({
   };
 
   // Kept at the newest: on opening, and whenever a line comes in — not on a
-  // re-read that brought nothing new (it'd pull away from a day jumped to).
+  // re-read that brought nothing new (it'd pull away from a day jumped to),
+  // and not while scrolled up reading older talk: then a '새 메시지' pill
+  // (a tap goes down to it) unless the new line is mine.
   const list = useRef<HTMLOListElement>(null);
   const newest = useRef<string | null>(null);
+  const [unseen, setUnseen] = useState(false);
   useEffect(() => {
     const el = list.current;
-    const last = items?.length ? items[items.length - 1].id : null;
+    const lastItem = items?.length ? items[items.length - 1] : null;
+    const last = lastItem?.id ?? null;
     if (!el || last === newest.current) return;
+    const opening = newest.current === null;
     newest.current = last;
+    const away = el.scrollHeight - el.scrollTop - el.clientHeight > NEAR_BOTTOM_PX;
+    if (!opening && away && !lastItem?.mine) return setUnseen(true);
     el.scrollTop = el.scrollHeight;
+    setUnseen(false);
   }, [items]);
+  const toNewest = () => {
+    const el = list.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    setUnseen(false);
+  };
+  const onScroll = () => {
+    const el = list.current;
+    if (unseen && el && el.scrollHeight - el.scrollTop - el.clientHeight <= NEAR_BOTTOM_PX) setUnseen(false);
+  };
 
   // The keyboard coming up shortens the thread (the screen sits on it): with
   // the input focused, the newest line stays in sight right over it.
@@ -195,7 +205,7 @@ export default function GroupChat({
         <p className="group-chat__group">{group.name}</p>
       </header>
 
-      <ol ref={list} className="group-chat__list" aria-label="대화 내역">
+      <ol ref={list} className="group-chat__list" aria-label="대화 내역" onScroll={onScroll}>
         {items === null && <li className="gallery__note">대화를 불러오는 중…</li>}
         {items?.length === 0 && !failed && <li className="gallery__note">아직 대화가 없어요. 사진을 보내거나 말을 걸어 보세요.</li>}
         {failed && <li className="gallery__note">대화를 불러오지 못했어요.</li>}
@@ -262,6 +272,11 @@ export default function GroupChat({
           void send();
         }}
       >
+        {unseen && !sendFailed && (
+          <button className="group-chat__news" type="button" onClick={toNewest}>
+            <ArrowDown size={16} strokeWidth={2.6} aria-hidden />새 메시지
+          </button>
+        )}
         {sendFailed && <p className="group-chat__fail">보내지 못했어요. 다시 시도하세요.</p>}
         <input
           ref={input}
