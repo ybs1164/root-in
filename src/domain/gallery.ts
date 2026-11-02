@@ -80,11 +80,12 @@ export function localGalleryPhotos(pings: readonly StoredPing[], photos: Readonl
 }
 
 /**
- * A tab's photos, by day: MY is every photo I sent (to any group, each
- * once) plus TODAY's on this phone; a group's tab is every photo sent there.
+ * A tab's photos, by day: MY is TODAY's photos on this phone (every camera
+ * shot goes to TODAY, so what I sent to groups is there once already —
+ * listing those too doubled them); a group's tab is every photo sent there.
  */
-export function galleryTabDays(tab: GalleryTab, photos: readonly GalleryPhoto[], me: string | null, local: readonly GalleryPhoto[]): GalleryDay[] {
-  if (tab === 'my') return galleryDays([...photos.filter((p) => !!me && p.userId === me), ...local]);
+export function galleryTabDays(tab: GalleryTab, photos: readonly GalleryPhoto[], local: readonly GalleryPhoto[]): GalleryDay[] {
+  if (tab === 'my') return galleryDays(local);
   return galleryDays(photos.filter((p) => p.groupId === tab));
 }
 

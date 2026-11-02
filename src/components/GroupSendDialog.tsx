@@ -13,27 +13,29 @@ interface GroupSendDialogProps {
   places: PlaceRef[] | null;
   /** Why there's nowhere to send from (no location, near a 제외 주소). */
   placeProblem: string | null;
+  /** The group the camera was opened from: picked to start with, unpickable like any other (TODAY alone can't be). */
+  startGroupId?: string | null;
   /**
-   * Sends to the picked groups as the picked place (and, with `today`, pings
-   * it on my own TODAY with the photo); resolves to what went wrong, or null
-   * once sent (the dialog then closes).
+   * Pings the picked place on my own TODAY with the photo and sends it to the
+   * picked groups; resolves to what went wrong, or null once sent (the
+   * dialog then closes).
    */
-  onSend(groupIds: string[], place: PlaceRef, today: boolean): Promise<string | null>;
+  onSend(groupIds: string[], place: PlaceRef): Promise<string | null>;
   onClose(): void;
 }
 
 /**
  * 전송 from the camera: a boarding pass (`ticket-dialog`) in two steps. First
  * 위치 선택 — the places around where I am, the spot itself picked to start
- * with; 다음 goes on to TODAY (MY — my own day, picked to start with) and
- * every group I'm in, each with its cover; tap as many as you like, then 전송
- * sends the photo and a ping of that place to each.
+ * with; 다음 goes on to TODAY (MY — my own day, always sent to: the gallery's
+ * MY is TODAY's photos, so every shot lands there) and every group I'm in,
+ * each with its cover; tap as many groups as you like, then 전송 sends the
+ * photo and a ping of that place to each.
  */
-export default function GroupSendDialog({ groups, status, places, placeProblem, onSend, onClose }: GroupSendDialogProps) {
+export default function GroupSendDialog({ groups, status, places, placeProblem, startGroupId, onSend, onClose }: GroupSendDialogProps) {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const backdrop = useBackdropTap(dialogRef);
-  const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
-  const [today, setToday] = useState(true);
+  const [picked, setPicked] = useState<ReadonlySet<string>>(() => new Set(startGroupId ? [startGroupId] : []));
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [step, setStep] = useState<'place' | 'groups'>('place');
@@ -56,11 +58,12 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
       return next;
     });
   };
-  const targets = ids.length + (today ? 1 : 0);
+  // TODAY always counts.
+  const targets = ids.length + 1;
   const send = async () => {
-    if (!targets || !place || busy) return;
+    if (!place || busy) return;
     setBusy(true);
-    const failed = await onSend(ids, place, today);
+    const failed = await onSend(ids, place);
     setBusy(false);
     if (failed) setProblem(failed);
     else dialogRef.current?.close();
@@ -144,24 +147,17 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
             </p>
             <ul className="group-send__list" role="group" aria-label="보낼 곳">
               <li>
-                <button
-                  type="button"
-                  className={`group-send__item ${today ? 'is-on' : ''}`}
-                  aria-pressed={today}
-                  onClick={() => {
-                    setProblem(null);
-                    setToday((on) => !on);
-                  }}
-                >
+                {/* Not a button: TODAY can't be left out. */}
+                <div className="group-send__item is-on" aria-label="TODAY · 항상 보내져요">
                   <span className="group-send__spot group-send__spot--today" aria-hidden>
                     <CalendarCheck size={20} strokeWidth={2.2} />
                   </span>
                   <span className="group-send__name">TODAY</span>
                   <span className="group-send__count">MY</span>
                   <span className="group-send__check" aria-hidden>
-                    {today && <Check size={16} strokeWidth={3} />}
+                    <Check size={16} strokeWidth={3} />
                   </span>
-                </button>
+                </div>
               </li>
               {!empty &&
                 groups.map((g) => {
@@ -195,8 +191,8 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
             >
               이전
             </button>
-            <button className="is-action" disabled={!targets || !place || busy} onClick={() => void send()}>
-              {busy ? '보내는 중…' : targets ? `전송 (${targets})` : '전송'}
+            <button className="is-action" disabled={!place || busy} onClick={() => void send()}>
+              {busy ? '보내는 중…' : `전송 (${targets})`}
             </button>
           </div>
         </>

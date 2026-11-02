@@ -150,7 +150,7 @@ export default function GroupAtlas({ marks, lines, handle, rootRef }: { marks: G
     if (!el) return;
     if (!view.current) {
       const all = [...atlas.spots.values()];
-      const start = fitView(all, { width: el.clientWidth, height: el.clientHeight }, { left: 76, right: 76, top: 150, bottom: 197 }, { zoom: 1, x: 0, y: 0 });
+      const start = fitView(all, { width: el.clientWidth, height: el.clientHeight }, { left: 76, right: 76, top: 150, bottom: 204 }, { zoom: 1, x: 0, y: 0 });
       view.current = start ?? { zoom: 1, x: 0, y: 0 };
     }
     show(view.current);

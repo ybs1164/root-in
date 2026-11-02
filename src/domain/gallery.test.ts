@@ -47,12 +47,12 @@ describe('gallery tabs', () => {
   ];
   const local = localGalleryPhotos(stored, { p1: 'data:image/jpeg;base64,AA' }, 'me');
 
-  it("MY is what I sent (once, with every group) and TODAY's own photos; a group's tab is everything sent there", () => {
+  it("MY is only TODAY's own photos (not what I sent to groups again); a group's tab is everything sent there", () => {
     expect(local.map((p) => p.name)).toEqual(['서촌']);
-    const my = galleryTabDays('my', [mine, mineToo, theirs], 'me', local);
-    expect(my.flatMap((d) => d.photos.map((p) => [p.name, p.groupIds]))).toEqual([['서촌', []], ['m', ['g1', 'g2']]]);
-    expect(galleryTabDays('g2', [mine, mineToo, theirs], 'me', local).flatMap((d) => d.photos.map((p) => p.id))).toEqual(['t', 'm2']);
-    expect(galleryTabDays('my', [mine], null, []).length).toBe(0);
+    const my = galleryTabDays('my', [mine, mineToo, theirs], local);
+    expect(my.flatMap((d) => d.photos.map((p) => [p.name, p.groupIds]))).toEqual([['서촌', []]]);
+    expect(galleryTabDays('g2', [mine, mineToo, theirs], local).flatMap((d) => d.photos.map((p) => p.id))).toEqual(['t', 'm2']);
+    expect(galleryTabDays('my', [mine], []).length).toBe(0);
   });
 
   it('pages the viewer oldest first, the newest last, across days', () => {
