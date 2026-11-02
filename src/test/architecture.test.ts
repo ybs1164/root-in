@@ -61,6 +61,7 @@ describe('architecture (CLAUDE.md 작업 규칙)', () => {
       'VITE_MAP_DATA_URL',
       'VITE_POSTHOG_HOST',
       'VITE_POSTHOG_KEY',
+      'VITE_PUBLIC_APP_URL',
       'VITE_SUPABASE_ANON_KEY',
       'VITE_SUPABASE_URL',
     ];
@@ -68,6 +69,7 @@ describe('architecture (CLAUDE.md 작업 규칙)', () => {
     // A new key must be added here on purpose — and must not be a server secret
     // (Kakao REST key, Supabase service_role) that would ship in the bundle.
     expect([...used].filter((k) => !known.includes(k))).toEqual([]);
-    expect(offenders(/service_role|SERVICE_ROLE|KAKAO_REST/, () => false)).toEqual([]);
+    // supabaseConfig names the role only to refuse a key that carries it.
+    expect(offenders(/service_role|SERVICE_ROLE|KAKAO_REST/, (p) => p === 'src/lib/supabaseConfig.ts')).toEqual([]);
   });
 });
