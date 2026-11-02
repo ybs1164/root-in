@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlaces, withSentPhotos, mergeSamePlace, pingPhotos, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, type Group } from './groups';
+import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlaces, withSentPhotos, mergeSamePlace, pingPhotos, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, orderGroups, moveId, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -303,5 +303,19 @@ describe('isGroupBirthday', () => {
     expect(isGroupBirthday('2025-10-28', made)).toBe(false);
     expect(isGroupBirthday('2026-10-29', made)).toBe(false);
     expect(isGroupBirthday('2026-10-28', undefined)).toBe(false);
+  });
+});
+
+describe('orderGroups / moveId', () => {
+  const gs = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }];
+  it('puts dragged groups first in their order, the rest after in their own', () => {
+    expect(orderGroups(gs, ['c', 'a']).map((g) => g.id)).toEqual(['c', 'a', 'b', 'd']);
+    expect(orderGroups(gs, ['gone', 'd']).map((g) => g.id)).toEqual(['d', 'a', 'b', 'c']);
+    expect(orderGroups(gs, []).map((g) => g.id)).toEqual(['a', 'b', 'c', 'd']);
+  });
+  it('moves one id to an index', () => {
+    expect(moveId(['a', 'b', 'c', 'd'], 'a', 2)).toEqual(['b', 'c', 'a', 'd']);
+    expect(moveId(['a', 'b', 'c', 'd'], 'd', 0)).toEqual(['d', 'a', 'b', 'c']);
+    expect(moveId(['a', 'b', 'c'], 'b', 9)).toEqual(['a', 'c', 'b']);
   });
 });

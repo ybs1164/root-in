@@ -40,6 +40,11 @@ export interface GroupService {
   /** The group's id once joined (or already in it); null: no such group, or it's full. */
   join(slug: string): Promise<string | null | 'error'>;
   rename(id: string, name: string): Promise<boolean>;
+  /**
+   * The group's cover (its maker only): the pattern, and the photo — a new
+   * square JPEG data URL, null to take it off, undefined to keep it.
+   */
+  setCover(id: string, cover: number, photo?: string | null): Promise<boolean>;
   leave(id: string): Promise<boolean>;
   /** 추방 (the group's maker only, never themselves). */
   kick(id: string, userId: string): Promise<boolean>;
@@ -109,6 +114,14 @@ export interface GroupService {
   watchGroup(groupId: string, onChange: () => void): () => void;
   /** Live: `onChange` whenever a photo's comments or doodles may have changed (by its upload `path`). */
   watchPhoto(path: string, onChange: () => void): () => void;
+  /** I've read the group's 대화 up to now (false when the server said no). */
+  markRead(groupId: string): Promise<boolean>;
+  /** Each member's last read of the group's 대화 (user id → ISO time); 'error' when the server couldn't be asked. */
+  reads(groupId: string): Promise<Record<string, string> | 'error'>;
+  /** Per group of mine, how many lines of its 대화 others wrote since I last read it; 'error' when the server couldn't be asked. */
+  unreadTalk(): Promise<Record<string, number> | 'error'>;
+  /** Live: `onChange` whenever a line may have come into any of my groups' 대화. */
+  watchAllTalk(onChange: () => void): () => void;
 }
 
 
@@ -139,6 +152,10 @@ const PHOTO_BUCKET = 'group-photos';
 const AVATAR_BUCKET = 'avatars';
 /** A group's own profile photo: <uuid>/g<random>.jpg in the avatars bucket. */
 const GROUP_AVATAR = /^[0-9a-f-]{36}\/g[A-Za-z0-9_-]{6,40}\.jpg$/;
+/** A group's cover photo: <uuid>/c<random>.jpg in the avatars bucket (its maker's folder). */
+const GROUP_COVER = /^[0-9a-f-]{36}\/c[A-Za-z0-9_-]{6,40}\.jpg$/;
+// Postgres check_violation: a server without the seven covers yet (20261109000000_group_covers.sql).
+const CHECK_VIOLATION = '23514';
 const AVATAR_PATH = /^[0-9a-f-]{36}\/(avatar|g[A-Za-z0-9_-]{6,40})\.jpg$/;
 const PHOTO_PATH = /^[0-9a-f-]{36}\/[A-Za-z0-9_-]{6,40}\.jpg$/;
 
@@ -317,10 +334,35 @@ export function readGroups(raw: unknown, photoUrl: (path: string) => string | nu
       .filter((m): m is GroupMember => !!m && !seen.has(m.userId) && !!seen.add(m.userId))
       .sort((a, b) => a.slot - b.slot);
     const group: Group = { id: r.id, name: name || '이름 없는 그룹', cover, inviteSlug: r.invite_slug, mine: r.mine === true, members };
+    const coverPhoto = typeof r.cover_path === 'string' && GROUP_COVER.test(r.cover_path) ? photoUrl(r.cover_path) : null;
+    if (coverPhoto) group.coverPhoto = coverPhoto;
     if (typeof r.created_at === 'string' && !Number.isNaN(Date.parse(r.created_at))) group.createdAt = new Date(r.created_at).toISOString();
     groups.push(group);
   }
   return groups;
+}
+
+/** What group_reads returned, checked: user id → when they last read (ISO). */
+export function readReads(raw: unknown): Record<string, string> {
+  const reads: Record<string, string> = {};
+  if (!Array.isArray(raw)) return reads;
+  for (const r of raw.slice(0, GROUP_LIMITS.members)) {
+    const row = r as { user_id?: unknown; read_at?: unknown } | null;
+    if (!row || typeof row.user_id !== 'string' || !UUID.test(row.user_id) || typeof row.read_at !== 'string') continue;
+    const at = Date.parse(row.read_at);
+    if (!Number.isNaN(at)) reads[row.user_id] = new Date(at).toISOString();
+  }
+  return reads;
+}
+
+/** What my_unread_talk returned, checked: group id → how many unread (0 to 300). */
+export function readUnreadTalk(raw: unknown): Record<string, number> {
+  const counts: Record<string, number> = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return counts;
+  for (const [id, n] of Object.entries(raw).slice(0, 30)) {
+    if (UUID.test(id) && typeof n === 'number' && Number.isInteger(n) && n > 0) counts[id] = Math.min(n, 300);
+  }
+  return counts;
 }
 
 type Listen = { table: string; event: 'INSERT' | '*'; filter?: string };
@@ -384,16 +426,52 @@ export function createSupabaseGroupService(
         const clean = cleanGroupName(name);
         const client = await getClient();
         if (!client || !clean) return null;
-        const safeCover = Number.isInteger(cover) && cover >= 0 && cover < GROUP_LIMITS.covers ? cover : 0;
+        let safeCover = Number.isInteger(cover) && cover >= 0 && cover < GROUP_LIMITS.covers ? cover : 0;
         for (let attempt = 0; attempt < 3; attempt += 1) {
           const inviteSlug = attempt === 0 && wanted && SLUG.test(wanted) ? wanted : slug();
           const { data, error } = await client.rpc('create_group', { group_name: clean, group_cover: safeCover, slug: inviteSlug });
           if (!error) return typeof data === 'string' && UUID.test(data) ? { id: data, inviteSlug } : null;
+          // A server with only the first four covers: made with the first one rather than not at all.
+          if (error.code === CHECK_VIOLATION && safeCover > 0) {
+            safeCover = 0;
+            continue;
+          }
           if (error.code !== UNIQUE_VIOLATION) return null;
         }
         return null;
       } catch {
         return null;
+      }
+    },
+
+    async setCover(id, cover, photo) {
+      try {
+        if (!UUID.test(id) || !Number.isInteger(cover) || cover < 0 || cover >= GROUP_LIMITS.covers) return false;
+        const client = await getClient();
+        if (!client) return false;
+        const bucket = client.storage.from(AVATAR_BUCKET);
+        let path: string | null = null;
+        if (photo) {
+          const blob = dataUrlToBlob(photo);
+          const { data: session } = await client.auth.getSession();
+          const userId = session.session?.user.id;
+          if (!blob || !userId) return false;
+          // A new name each time, so no one's cached copy of the old one shows.
+          path = `${userId}/c${slug()}${slug()}.jpg`;
+          const { error } = await bucket.upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
+          if (error) return false;
+        }
+        const { data, error } = await client.rpc('set_group_cover', { gid: id, new_cover: cover, new_photo: photo === undefined ? null : (path ?? '') });
+        const ok = !error && !!data && (data as { ok?: unknown }).ok === true;
+        if (!ok) {
+          if (path) await bucket.remove([path]);
+          return false;
+        }
+        const old = (data as { old_photo?: unknown }).old_photo;
+        if (typeof old === 'string' && GROUP_COVER.test(old)) await bucket.remove([old]);
+        return true;
+      } catch {
+        return false;
       }
     },
 
@@ -627,6 +705,53 @@ export function createSupabaseGroupService(
       }
     },
 
+    async markRead(groupId) {
+      try {
+        if (!UUID.test(groupId)) return false;
+        const client = await getClient();
+        if (!client) return false;
+        const { data, error } = await client.rpc('mark_group_read', { gid: groupId });
+        return !error && data === true;
+      } catch {
+        return false;
+      }
+    },
+
+    async reads(groupId) {
+      try {
+        if (!UUID.test(groupId)) return 'error';
+        const client = await getClient();
+        if (!client) return 'error';
+        const { data, error } = await client.rpc('group_reads', { gid: groupId });
+        if (error) return 'error';
+        return readReads(data);
+      } catch {
+        return 'error';
+      }
+    },
+
+    async unreadTalk() {
+      try {
+        const client = await getClient();
+        if (!client) return 'error';
+        const { data, error } = await client.rpc('my_unread_talk');
+        if (error) return 'error';
+        return readUnreadTalk(data);
+      } catch {
+        return 'error';
+      }
+    },
+
+    watchAllTalk(onChange) {
+      if (!available) return () => {};
+      // No filter: Realtime only sends the rows of my groups (each table's select policy).
+      return listen(getClient, 'all-talk', [
+        { table: 'group_messages', event: 'INSERT' },
+        { table: 'group_photos', event: 'INSERT' },
+        { table: 'photo_comments', event: 'INSERT' },
+      ], onChange);
+    },
+
     async feed(groupId) {
       try {
         if (!UUID.test(groupId)) return 'error';
@@ -711,6 +836,8 @@ export function createSupabaseGroupService(
         { table: 'group_photos', event: 'INSERT', filter: `group_id=eq.${groupId}` },
         // Which group a comment's photo went to isn't on the row: every one I can see, and the feed sorts it out.
         { table: 'photo_comments', event: 'INSERT' },
+        // Someone read it: the numbers beside the lines go down.
+        { table: 'group_reads', event: '*', filter: `group_id=eq.${groupId}` },
       ], onChange);
     },
 

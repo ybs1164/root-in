@@ -5,8 +5,15 @@
  * isn't all edge.
  */
 
-/** The edge's width, as a share of the sticker picture's width. */
+/** The edge's width, as a share of the sticker picture's width (the pack sheet and the peel). */
 export const STICKER_EDGE = 0.022;
+
+/**
+ * A placed sticker's edge, as a share of the drawing's width: the same for
+ * every sticker however big it's made — scaled with the sticker, a shrunk
+ * one lost its edge and a grown one wore a thick one (2026-11-02).
+ */
+export const PLACED_STICKER_EDGE = 0.005;
 
 /**
  * The picture drawn `size` px wide with an `edge` px border around its

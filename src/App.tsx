@@ -56,8 +56,11 @@ import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
 import { useGroups, useGroupsOnDay } from './hooks/useGroups';
 import { groupsNeedLogin, inviteUrl } from './services/groupService';
-import { focusPoints, mergeSamePlace, pingPhotos as groupPingPhotos, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, newPingCount, photoPings, sharedPlaces, withSentPhotos, type GroupMember, type SharedPlace } from './domain/groups';
+import { focusPoints, mergeSamePlace, orderGroups, pingPhotos as groupPingPhotos, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, newPingCount, photoPings, sharedPlaces, withSentPhotos, type GroupMember, type SharedPlace } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
+import ChatList from './components/ChatList';
+import { useUnreadTalk } from './hooks/useUnreadTalk';
+import { loadGroupOrder, saveGroupOrder } from './services/groupOrderRepository';
 import { loadGroupSeen, loadMemberSeen, memberSeenKey, saveGroupSeen, saveMemberSeen, type GroupSeen, type MemberSeen } from './services/groupSeenRepository';
 import { useStoredPings } from './hooks/useStoredPings';
 import { dateKey } from './domain/diary';
@@ -346,9 +349,15 @@ export default function App() {
   // linger there until the next push and the next read).
   const myId = account.user?.id ?? null;
   const myPings = useMemo(() => myGroupPings(storedPings, dateKey()), [storedPings]);
+  // The order I dragged the groups into on We Now (this phone only): everywhere they're listed.
+  const [groupOrder, setGroupOrder] = useState<string[]>(loadGroupOrder);
+  const reorderGroups = (ids: string[]) => {
+    setGroupOrder(ids);
+    saveGroupOrder(ids);
+  };
   const groupList = useMemo(
     () =>
-      groups.groups.map((g) => ({
+      orderGroups(groups.groups, groupOrder).map((g) => ({
         ...g,
         // A place pinged again and again in a row (photo after photo there) is one ping with its photos stacked.
         members: g.members.map((m) =>
@@ -362,7 +371,7 @@ export default function App() {
             : { ...m, pings: mergeSamePlace(m.pings) },
         ),
       })),
-    [groups.groups, myId, profile.photo, myPings],
+    [groups.groups, groupOrder, myId, profile.photo, myPings],
   );
   // Back from TODAY to the group list: read the groups again rather than wait
   // for the minute's refresh (the others' pings may have moved on meanwhile).
@@ -452,6 +461,19 @@ export default function App() {
   // The open group's 대화, and the photo open big in it.
   const [groupChat, setGroupChat] = useState(false);
   const [chatPhoto, setChatPhoto] = useState<number | null>(null);
+  // Lines of each group's 대화 I haven't read: the 대화 buttons' badges (We Now only, signed in).
+  const unreadTalk = useUnreadTalk(tab === 'people' && !!account.user && groups.status === 'ready');
+  const allUnreadTalk = groupList.reduce((n, g) => n + (unreadTalk.counts[g.id] ?? 0), 0);
+  // We Now's 대화 목록 (every group's thread), and the group whose 대화 is open from it.
+  const [chatsOpen, setChatsOpen] = useState(false);
+  const [chatsGroupId, setChatsGroupId] = useState<string | null>(null);
+  const chatsGroup = chatsOpen && chatsGroupId ? (groupList.find((g) => g.id === chatsGroupId) ?? null) : null;
+  useEffect(() => {
+    if (!chatsOpen) setChatsGroupId(null);
+  }, [chatsOpen]);
+  useEffect(() => {
+    if (tab !== 'people') setChatsOpen(false);
+  }, [tab]);
   useEffect(() => {
     setGroupChat(false);
     setChatPhoto(null);
@@ -1075,6 +1097,8 @@ export default function App() {
   mapEvents.current.longPress = async (center: [number, number]) => {
     // Making a route, or a saved one on show (its long presses restyle it): no place card.
     if ((building && routeMode) || shownRoute) return;
+    // A group's map shows its members' pings only: no new pin of mine from it.
+    if (groupOpen) return;
     await openNewPinAt(center, 'long_press');
   };
 
@@ -1427,6 +1451,8 @@ export default function App() {
     if (groupCalendar) return setGroupCalendar(false), true;
     if (studio) return setStudio(null), true;
     if (chatPhoto !== null) return setChatPhoto(null), true;
+    if (chatsGroupId) return setChatsGroupId(null), true;
+    if (chatsOpen) return setChatsOpen(false), true;
     if (groupChat) return setGroupChat(false), true;
     if (groupPhotoBig) return setGroupPhotoBig(false), true;
     if (openGroupId) return setOpenGroupId(null), true;
@@ -1984,6 +2010,7 @@ export default function App() {
               photo={profile.photo}
               onProfile={() => setProfileOpen(true)}
               onOpen={setOpenGroupId}
+              onReorder={reorderGroups}
               onCreate={() => setGroupFormOpen(true)}
               onSignIn={account.signIn}
               onRetry={() => (account.user || needLogin ? groups.refresh() : startGuest())}
@@ -2013,12 +2040,39 @@ export default function App() {
             onCalendar={() => setGroupCalendar(true)}
             onGallery={() => openGallery(openGroup.id)}
             onChat={() => setGroupChat(true)}
+            chatUnread={unreadTalk.counts[openGroup.id] ?? 0}
           />
         </>
       )}
 
       {groupChat && openGroup && (
-        <GroupChat group={openGroup} me={myId} photoSeq={chatPhoto} onPhotoSeq={setChatPhoto} onClose={() => setGroupChat(false)} />
+        <GroupChat group={openGroup} me={myId} photoSeq={chatPhoto} onPhotoSeq={setChatPhoto} onClose={() => setGroupChat(false)} onRead={unreadTalk.refresh} />
+      )}
+
+      {chatsOpen && (
+        <ChatList
+          groups={groupList}
+          unread={unreadTalk.counts}
+          covered={!!chatsGroup}
+          onOpen={(id) => {
+            setChatPhoto(null);
+            setChatsGroupId(id);
+          }}
+          onClose={() => setChatsOpen(false)}
+        />
+      )}
+      {chatsGroup && (
+        <GroupChat
+          group={chatsGroup}
+          me={myId}
+          photoSeq={chatPhoto}
+          onPhotoSeq={setChatPhoto}
+          onRead={unreadTalk.refresh}
+          onClose={() => {
+            setChatPhoto(null);
+            setChatsGroupId(null);
+          }}
+        />
       )}
 
       {groupCalendar && openGroup && (
@@ -2058,9 +2112,11 @@ export default function App() {
 
       {groupFormOpen && (
         <GroupFormDialog
-          onSubmit={async (name, cover, slug) => {
+          onSubmit={async (name, cover, slug, photo) => {
             const made = await groups.create(name, cover, slug);
             if (!made) return false;
+            // The cover photo goes up once the group is there; the group stands even if it doesn't.
+            if (photo && !(await groups.setCover(made.id, cover, photo))) return notify('그룹을 만들었어요. 표지 사진은 올리지 못했어요.'), true;
             notify(made.inviteSlug === slug ? '그룹을 만들었어요.' : '그룹을 만들었어요. 초대 링크가 바뀌었으니 ⚙에서 다시 복사하세요.');
             return true;
           }}
@@ -2072,6 +2128,7 @@ export default function App() {
         <GroupSettingsDialog
           group={openGroup}
           onRename={(name) => groups.rename(openGroup.id, name)}
+          onCover={(cover, photo) => groups.setCover(openGroup.id, cover, photo)}
           me={myId}
           onKick={setKicking}
           onColor={(color) => groups.setColor(openGroup.id, color)}
@@ -2170,6 +2227,8 @@ export default function App() {
           onPeople={() => changeTab('people')}
           onCamera={() => setCameraOpen(true)}
           onGallery={() => openGallery('my')}
+          onChats={() => setChatsOpen(true)}
+          chatsUnread={allUnreadTalk}
         />
       </div>
 

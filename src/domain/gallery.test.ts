@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayPosters, feedAlertKind, filterGallery, metDays, galleryDayLabel, galleryDays, galleryTabDays, localGalleryPhotos, viewerOrder, type GalleryPhoto } from './gallery';
+import { dayPosters, feedAlertKind, filterGallery, metDays, galleryDayLabel, galleryDays, galleryTabDays, localGalleryPhotos, viewerOrder, unreadBy, type GalleryPhoto } from './gallery';
 import type { StoredPing } from './dayPings';
 
 const photo = (id: string, groupId: string, day: string, time: string, path = `p/${id}`): GalleryPhoto => ({
@@ -94,5 +94,16 @@ describe('feedAlertKind', () => {
     expect(feedAlertKind(line('comment', { path: 'u3/c.jpg', body: '여행!' }), mine)).toBe('chat');
     expect(feedAlertKind(line('message', { body: '나도' }), mine)).toBe('chat');
     expect(feedAlertKind(line('message', { body: '나도', mine: true }), mine)).toBeNull();
+  });
+});
+
+describe('unreadBy', () => {
+  const members = ['me', 'a', 'b', 'c'];
+  const item = { userId: 'a', at: '2026-11-02T10:00:00.000Z' };
+  it('counts members other than the writer and me who last read before the line', () => {
+    expect(unreadBy(item, members, {}, 'me')).toBe(2);
+    expect(unreadBy(item, members, { b: '2026-11-02T10:00:00.000Z' }, 'me')).toBe(1);
+    expect(unreadBy(item, members, { b: '2026-11-02T11:00:00.000Z', c: '2026-11-02T09:59:00.000Z' }, 'me')).toBe(1);
+    expect(unreadBy(item, members, { b: '2026-11-02T11:00:00.000Z', c: '2026-11-02T11:00:00.000Z' }, 'me')).toBe(0);
   });
 });

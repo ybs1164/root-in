@@ -4,18 +4,18 @@ import { useBackdropTap } from '../hooks/useBackdropTap';
 import { inviteUrl } from '../services/groupService';
 import { newSlug } from '../services/shareLinkService';
 import InviteLinkField from './InviteLinkField';
-import { GroupCover } from './WeNowPage';
+import CoverPicker from './CoverPicker';
 import { showModalQuietly } from '../lib/dialog';
 
 interface GroupFormDialogProps {
-  /** Resolves false when it didn't go through (the dialog then stays open with a note). */
-  onSubmit(name: string, cover: number, inviteSlug: string): Promise<boolean>;
+  /** Resolves false when it didn't go through (the dialog then stays open with a note). `photo`: a cover photo picked from the gallery. */
+  onSubmit(name: string, cover: number, inviteSlug: string, photo: string | null): Promise<boolean>;
   onClose(): void;
 }
 
 /**
  * 새 그룹, a boarding pass like the other centre popups (`ticket-dialog`):
- * the name, the tile's cover and the invite link it will have (tap to copy
+ * the name, the tile's cover (a pattern, or a photo from the gallery) and the invite link it will have (tap to copy
  * — it opens once the group is made), then 취소 | 만들기.
  */
 export default function GroupFormDialog({ onSubmit, onClose }: GroupFormDialogProps) {
@@ -23,6 +23,7 @@ export default function GroupFormDialog({ onSubmit, onClose }: GroupFormDialogPr
   const backdrop = useBackdropTap(dialogRef);
   const [name, setName] = useState('');
   const [cover, setCover] = useState(0);
+  const [photo, setPhoto] = useState<string | null>(null);
   // The group's invite slug, picked now so its link can be shown (and copied) before 만들기.
   const [slug] = useState(() => newSlug());
   const [busy, setBusy] = useState(false);
@@ -37,7 +38,7 @@ export default function GroupFormDialog({ onSubmit, onClose }: GroupFormDialogPr
   const submit = async () => {
     if (!canSubmit) return;
     setBusy(true);
-    const ok = await onSubmit(name.trim(), cover, slug);
+    const ok = await onSubmit(name.trim(), cover, slug, photo);
     setBusy(false);
     if (ok) dialogRef.current?.close();
     else setProblem('그룹을 만들지 못했어요. 잠시 뒤에 다시 시도해 주세요.');
@@ -81,15 +82,14 @@ export default function GroupFormDialog({ onSubmit, onClose }: GroupFormDialogPr
           </small>
         </label>
         <p className="group-form__label">COVER</p>
-        <div className="group-form__covers" role="radiogroup" aria-label="표지">
-          {Array.from({ length: GROUP_LIMITS.covers }, (_, i) => (
-            <button key={i} role="radio" aria-checked={cover === i} aria-label={`표지 ${i + 1}`} className={cover === i ? 'is-on' : ''} onClick={() => setCover(i)}>
-              <svg viewBox="0 0 100 100" aria-hidden>
-                <GroupCover cover={i} />
-              </svg>
-            </button>
-          ))}
-        </div>
+        <CoverPicker
+          cover={cover}
+          photo={photo}
+          onChange={(c, p) => {
+            setCover(c);
+            setPhoto(p);
+          }}
+        />
         <p className="group-form__label">INVITE</p>
         <InviteLinkField url={inviteUrl(slug)} />
         {problem && <p className="group-form__hint">{problem}</p>}

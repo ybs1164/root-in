@@ -39,6 +39,8 @@ export interface Group {
   id: string;
   name: string;
   cover: number;
+  /** The group's own cover photo (URL), picked from the gallery: shown in place of `cover`'s pattern. */
+  coverPhoto?: string;
   inviteSlug: string;
   /** Whether I made it (only the maker renames it). */
   mine: boolean;
@@ -47,7 +49,7 @@ export interface Group {
   createdAt?: string;
 }
 
-export const GROUP_LIMITS = { name: 12, alias: 20, members: 20, pingsPerMember: 200, covers: 4 } as const;
+export const GROUP_LIMITS = { name: 12, alias: 20, members: 20, pingsPerMember: 200, covers: 7 } as const;
 
 /**
  * Two pings this close are the same place. By distance, not by place id: the
@@ -205,6 +207,25 @@ export function placeTime(ping: GroupPing, photo?: number): string {
 
 /** The first letter of a nickname, for a member without a photo. */
 export const memberInitial = (nickname: string): string => [...nickname.trim()][0] ?? '?';
+
+/**
+ * My groups in the order I dragged them into (`order`, their ids); ones not
+ * in it (new, or never moved) keep their own order after the rest.
+ */
+export function orderGroups<T extends { id: string }>(groups: readonly T[], order: readonly string[]): T[] {
+  const at = new Map(order.map((id, i) => [id, i]));
+  return groups
+    .map((g, i) => ({ g, i }))
+    .sort((a, b) => (at.get(a.g.id) ?? order.length + a.i) - (at.get(b.g.id) ?? order.length + b.i))
+    .map(({ g }) => g);
+}
+
+/** `ids` with `id` moved to index `to` (the others close up around it). */
+export function moveId(ids: readonly string[], id: string, to: number): string[] {
+  const rest = ids.filter((x) => x !== id);
+  const at = Math.max(0, Math.min(rest.length, to));
+  return [...rest.slice(0, at), id, ...rest.slice(at)];
+}
 
 export function cleanGroupName(name: string): string {
   return name.trim().slice(0, GROUP_LIMITS.name);

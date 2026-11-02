@@ -12,6 +12,7 @@ export interface Groups {
   refresh(): void;
   create(name: string, cover: number, inviteSlug?: string): Promise<{ id: string; inviteSlug: string } | null>;
   rename(id: string, name: string): Promise<boolean>;
+  setCover(id: string, cover: number, photo?: string | null): Promise<boolean>;
   leave(id: string): Promise<boolean>;
   kick(id: string, userId: string): Promise<boolean>;
   setAlias(id: string, alias: string): Promise<boolean>;
@@ -129,6 +130,14 @@ export function useGroups(
     },
     [service, refresh],
   );
+  const setCover = useCallback(
+    async (id: string, cover: number, photo?: string | null) => {
+      const ok = await service.setCover(id, cover, photo);
+      if (ok) refresh();
+      return ok;
+    },
+    [service, refresh],
+  );
   const leave = useCallback(
     async (id: string) => {
       const ok = await service.leave(id);
@@ -191,7 +200,7 @@ export function useGroups(
     [service, refresh],
   );
 
-  return { status, groups, refresh, create, rename, leave, kick, setAlias, setColor, setProfile, remove, sendPhoto };
+  return { status, groups, refresh, create, rename, setCover, leave, kick, setAlias, setColor, setProfile, remove, sendPhoto };
 }
 
 export type GroupDayStatus = 'loading' | 'ready' | 'error';

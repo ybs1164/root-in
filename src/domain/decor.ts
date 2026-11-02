@@ -54,7 +54,7 @@ export interface PenSettings {
 
 // ----- Text boxes -----
 
-export type TextFont = 'sans' | 'serif' | 'pen' | 'round' | 'heavy';
+export type TextFont = 'app' | 'sans' | 'serif' | 'pen' | 'round' | 'heavy';
 export type TextAlign = 'left' | 'center' | 'right';
 
 /** How a text box looks: what the text toolbar sets. Flags are only stored when on. */
@@ -83,7 +83,9 @@ export interface PlacedText extends TextStyle {
 /** The fonts (Google Fonts, linked in index.html), each with a fallback if it can't load. */
 /** `label` is read out (aria); `sample` is what the toolbar shows, written in the font itself. */
 export const TEXT_FONTS: { font: TextFont; label: string; sample: string; family: string }[] = [
-  { font: 'sans', label: '기본', sample: 'Basic', family: "system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" },
+  // The app's own lettering (Oswald, 도현 for Korean): first, and what a new box starts in (2026-11-02).
+  { font: 'app', label: '기본', sample: 'Root', family: "'Oswald', 'Do Hyeon', 'Pretendard', -apple-system, 'Apple SD Gothic Neo', sans-serif" },
+  { font: 'sans', label: '고딕', sample: 'Basic', family: "system-ui, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif" },
   { font: 'serif', label: '명조', sample: 'Serif', family: "'Nanum Myeongjo', serif" },
   { font: 'pen', label: '손글씨', sample: 'Hand', family: "'Nanum Pen Script', cursive" },
   { font: 'round', label: '동글', sample: 'Round', family: "'Jua', sans-serif" },
@@ -111,7 +113,7 @@ export const TEXT_ALIGNS: { align: TextAlign; label: string }[] = [
   { align: 'right', label: '오른쪽 정렬' },
 ];
 
-export const DEFAULT_TEXT_STYLE: TextStyle = { font: 'sans', color: 'ink-black', align: 'center' };
+export const DEFAULT_TEXT_STYLE: TextStyle = { font: 'app', color: 'ink-black', align: 'center' };
 
 export const TEXT_SIZE = 0.07;
 /** Pinch limits; the smallest keeps the field at 16px+ on a phone, so iOS doesn't zoom in to type. */

@@ -59,3 +59,16 @@ export function TalkBubbles({ size = 24 }: { size?: number }) {
     </svg>
   );
 }
+
+/**
+ * On a 대화 button's top-right: how many lines I haven't read (the member
+ * faces' new-ping badge, without its ring). Nothing at 0; 99+ past that.
+ */
+export function TalkBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span className="talk-badge" aria-hidden>
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
