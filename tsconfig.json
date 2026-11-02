@@ -14,6 +14,8 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
+    // Without this a warm `tsc -b` re-checks everything (~20s); with it ~10s (MH2).
+    "incremental": true,
     "jsx": "react-jsx"
   },
   "include": ["src"],

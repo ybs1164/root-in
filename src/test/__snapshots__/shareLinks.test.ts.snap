@@ -1,0 +1,291 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`old share links still open > diary v1: a planned day (p: 1, added after v1 shipped) 1`] = `
+{
+  "date": "2026-10-10",
+  "kind": "plan",
+  "sharedAt": "2026-10-04T12:00:00.000Z",
+  "stops": [
+    {
+      "place": {
+        "center": [
+          127.0557,
+          37.5446,
+        ],
+        "id": "kakao:1001",
+        "name": "성수 카페",
+      },
+    },
+    {
+      "place": {
+        "center": [
+          127.0666,
+          37.5291,
+        ],
+        "id": "osm:node/42",
+        "name": "뚝섬 한강공원",
+      },
+    },
+  ],
+  "title": "다음 주",
+  "travelMode": "walk",
+}
+`;
+
+exports[`old share links still open > diary v1: a recorded day with times, mood and text 1`] = `
+{
+  "date": "2026-10-03",
+  "mood": "good",
+  "sharedAt": "2026-10-03T12:00:00.000Z",
+  "sharedBy": "민지",
+  "stops": [
+    {
+      "memo": "브런치",
+      "place": {
+        "center": [
+          127.0557,
+          37.5446,
+        ],
+        "id": "kakao:1001",
+        "name": "성수 카페",
+      },
+      "time": "11:20",
+    },
+    {
+      "place": {
+        "center": [
+          127.0374,
+          37.5443,
+        ],
+        "id": "kakao:1002",
+        "name": "서울숲",
+      },
+      "time": "14:05",
+    },
+  ],
+  "text": "날씨가 좋았다.",
+  "title": "성수 하루",
+  "travelMode": "walk",
+}
+`;
+
+exports[`old share links still open > pins v1: sub-category parent index p (ignored since 2026-10-04) 1`] = `
+{
+  "categories": [
+    {
+      "color": 3,
+      "icon": "cafe",
+      "name": "카페",
+    },
+    {
+      "color": 2,
+      "icon": "food",
+      "name": "디저트",
+    },
+  ],
+  "pins": [
+    {
+      "category": 0,
+      "memo": "라떼",
+      "place": {
+        "address": "서울 성동구 성수동2가",
+        "center": [
+          127.0557,
+          37.5446,
+        ],
+        "id": "kakao:1001",
+        "name": "성수 카페",
+      },
+    },
+    {
+      "category": 1,
+      "place": {
+        "center": [
+          127.0374,
+          37.5443,
+        ],
+        "id": "kakao:1002",
+        "kind": "park",
+        "name": "서울숲",
+      },
+    },
+  ],
+  "sharedAt": "2026-10-01T01:00:00.000Z",
+  "sharedBy": "민지",
+  "title": "핀 모음",
+}
+`;
+
+exports[`old share links still open > pins v1: wheel-picked category colour 1`] = `
+{
+  "categories": [
+    {
+      "color": "#a1b2c3",
+      "icon": "pin",
+      "name": "산책",
+    },
+  ],
+  "pins": [
+    {
+      "category": 0,
+      "place": {
+        "center": [
+          127.0666,
+          37.5291,
+        ],
+        "id": "osm:node/42",
+        "name": "뚝섬 한강공원",
+      },
+    },
+  ],
+  "sharedAt": "2026-10-05T01:00:00.000Z",
+  "title": "핀 모음",
+}
+`;
+
+exports[`old share links still open > share v1: no title (falls back to "A → B") 1`] = `
+{
+  "note": undefined,
+  "sharedAt": "2026-09-20T05:00:00.000Z",
+  "sharedBy": undefined,
+  "stops": [
+    {
+      "place": {
+        "center": [
+          127.0557,
+          37.5446,
+        ],
+        "id": "kakao:1001",
+        "name": "성수 카페",
+      },
+    },
+    {
+      "place": {
+        "center": [
+          127.0374,
+          37.5443,
+        ],
+        "id": "kakao:1002",
+        "name": "서울숲",
+      },
+    },
+  ],
+  "theme": "trip",
+  "title": "성수 카페 → 서울숲",
+  "travelMode": "drive",
+}
+`;
+
+exports[`old share links still open > share v1: one origin → destination route 1`] = `
+{
+  "note": "오후에 가요",
+  "sharedAt": "2026-09-20T05:00:00.000Z",
+  "sharedBy": "민지",
+  "stops": [
+    {
+      "place": {
+        "center": [
+          127.0557,
+          37.5446,
+        ],
+        "id": "kakao:1001",
+        "name": "성수 카페",
+      },
+    },
+    {
+      "place": {
+        "center": [
+          127.0374,
+          37.5443,
+        ],
+        "id": "kakao:1002",
+        "name": "서울숲",
+      },
+    },
+  ],
+  "theme": "trip",
+  "title": "성수 산책",
+  "travelMode": "drive",
+}
+`;
+
+exports[`old share links still open > share v2: category, place kind, memo, note, sender 1`] = `
+{
+  "note": "천천히 걸어요",
+  "sharedAt": "2026-10-07T09:30:00.000Z",
+  "sharedBy": "익명의 여행자",
+  "stops": [
+    {
+      "memo": "창가 자리",
+      "place": {
+        "category": "cafe",
+        "center": [
+          127.0557,
+          37.5446,
+        ],
+        "id": "kakao:1001",
+        "kind": "cafe",
+        "name": "성수 카페",
+      },
+    },
+    {
+      "place": {
+        "center": [
+          127.0374,
+          37.5443,
+        ],
+        "id": "kakao:1002",
+        "kind": "park",
+        "name": "서울숲",
+      },
+    },
+    {
+      "place": {
+        "category": "한강",
+        "center": [
+          127.0666,
+          37.5291,
+        ],
+        "id": "osm:node/42",
+        "name": "뚝섬 한강공원",
+      },
+    },
+  ],
+  "theme": "etc",
+  "title": "IN MY ROOT #2",
+  "travelMode": "walk",
+}
+`;
+
+exports[`old share links still open > share v2: oldest stops (no place kind, no memo) 1`] = `
+{
+  "note": undefined,
+  "sharedAt": "2026-09-28T03:00:00.000Z",
+  "sharedBy": undefined,
+  "stops": [
+    {
+      "place": {
+        "center": [
+          127.0557,
+          37.5446,
+        ],
+        "id": "kakao:1001",
+        "name": "성수 카페",
+      },
+    },
+    {
+      "place": {
+        "center": [
+          127.0374,
+          37.5443,
+        ],
+        "id": "kakao:1002",
+        "name": "서울숲",
+      },
+    },
+  ],
+  "theme": "date",
+  "title": "주말 코스",
+  "travelMode": "walk",
+}
+`;
