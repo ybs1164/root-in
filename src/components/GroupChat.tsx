@@ -1,12 +1,13 @@
 import { ArrowUp, Camera, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { COMMENT_MAX, galleryDayLabel, type FeedItem } from '../domain/gallery';
+import { COMMENT_MAX, galleryDayLabel, unreadBy, type FeedItem } from '../domain/gallery';
 import { GROUP_LIMITS, isGroupBirthday, memberColor, memberInk, type Group, type GroupMember } from '../domain/groups';
 import { dateKey } from '../domain/diary';
 import { monthGrid, shiftMonth } from '../domain/calendar';
 import { groupService } from '../services/groupService';
 import { MemberFace } from './WeNowPage';
 import PhotoViewer, { OpenPhotoMarks } from './PhotoViewer';
+import { useSwipeBack } from '../hooks/useSwipeBack';
 
 /** The day calendar's height (its six weeks), to flip it over a pill low on the screen. */
 const PICKER_HEIGHT = 330;
@@ -44,6 +45,7 @@ export default function GroupChat({
   photoSeq,
   onPhotoSeq,
   onClose,
+  onRead,
 }: {
   group: Group;
   me: string | null;
@@ -51,18 +53,32 @@ export default function GroupChat({
   photoSeq: number | null;
   onPhotoSeq(seq: number | null): void;
   onClose(): void;
+  /** I've read the 대화 up to now (App reads the unread counts again). */
+  onRead?(): void;
 }) {
   const [items, setItems] = useState<FeedItem[] | null>(null);
   const [failed, setFailed] = useState(false);
+  // Each member's last read of the 대화: the numbers beside the lines (who hasn't read them yet).
+  const [reads, setReads] = useState<Record<string, string> | null>(null);
   const asked = useRef(0);
   const read = useCallback(async () => {
     const n = ++asked.current;
-    const feed = await groupService.feed(group.id);
+    const [feed, seen] = await Promise.all([groupService.feed(group.id), groupService.reads(group.id)]);
     // Only the latest read counts: live nudges can overlap.
     if (n !== asked.current) return;
+    if (seen !== 'error') setReads(seen);
     if (feed === 'error') setFailed(true), setItems((now) => now ?? []);
     else setFailed(false), setItems(feed);
   }, [group.id]);
+  // Open, I've read it up to now — and again whenever a new line comes in while it's open.
+  const newestSeen = items?.length ? items[items.length - 1].id : null;
+  const onReadRef = useRef(onRead);
+  onReadRef.current = onRead;
+  useEffect(() => {
+    if (items === null) return;
+    void groupService.markRead(group.id).then((ok) => ok && onReadRef.current?.());
+  }, [group.id, newestSeen, items === null]);
+  const memberIds = useMemo(() => group.members.map((m) => m.userId), [group.members]);
   useEffect(() => {
     void read();
     // New lines come in live; the slow re-read only covers a dropped connection.
@@ -164,10 +180,13 @@ export default function GroupChat({
     return () => window.removeEventListener('keydown', key);
   }, [photoSeq, onClose, picker]);
 
+  // Left to right, back to the group's map under it (not while a photo is big over it).
+  const swipeBack = useSwipeBack(onClose, photoSeq === null && !picker);
+
   const today = dateKey();
   let lastDay = '';
   return (
-    <div className="group-chat" role="dialog" aria-modal="true" aria-label={`${group.name} 대화`}>
+    <div className="group-chat" role="dialog" aria-modal="true" aria-label={`${group.name} 대화`} {...swipeBack}>
       <header className="group-chat__head">
         <button className="gallery__back" aria-label="닫기" onClick={onClose}>
           <ChevronLeft size={24} strokeWidth={2.2} />
@@ -218,9 +237,17 @@ export default function GroupChat({
                       </>
                     )}
                   </div>
-                  <time className="group-chat__time" dateTime={item.at}>
-                    {clock(item.at)}
-                  </time>
+                  <span className="group-chat__meta">
+                    {/* How many haven't read it yet (none: nothing); unknown until the reads are in. */}
+                    {reads && unreadBy(item, memberIds, reads, me) > 0 && (
+                      <span className="group-chat__unread" aria-label={`안 읽은 사람 ${unreadBy(item, memberIds, reads, me)}명`}>
+                        {unreadBy(item, memberIds, reads, me)}
+                      </span>
+                    )}
+                    <time className="group-chat__time" dateTime={item.at}>
+                      {clock(item.at)}
+                    </time>
+                  </span>
                 </div>
               </div>
             </li>,

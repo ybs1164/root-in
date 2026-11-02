@@ -2257,7 +2257,8 @@ button:disabled {
   flex: 0 1 auto;
   min-width: 44px;
   height: 44px;
-  padding: 0 8px;
+  /* Six fonts on a phone's row (the app's own first, 2026-11-02). */
+  padding: 0 6px;
   border-radius: 12px;
   color: var(--tray-dim);
   font-size: 17px;
@@ -8210,8 +8211,8 @@ button:disabled {
   aspect-ratio: 1;
   object-fit: contain;
   pointer-events: none;
-  /* The white die-cut edge, as on the sheet (--edge grows with the sticker;
-     the share image draws the same, lib/stickerEdge.ts). */
+  /* The white die-cut edge (--edge: the same on every sticker, whatever its
+     size; the share image draws the same, lib/stickerEdge.ts). */
   filter: drop-shadow(var(--edge) 0 0 var(--sticker-edge)) drop-shadow(calc(var(--edge) * -1) 0 0 var(--sticker-edge))
     drop-shadow(0 var(--edge) 0 var(--sticker-edge)) drop-shadow(0 calc(var(--edge) * -1) 0 var(--sticker-edge))
     drop-shadow(0 calc(var(--edge) * 0.7) var(--edge) var(--sticker-shadow));
@@ -8366,16 +8367,6 @@ button:disabled {
   pointer-events: none;
 }
 
-.today-tile__empty {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  color: var(--muted);
-  font-size: 14px;
-  text-align: center;
-}
-
 /* TODAY opened from We Now: full screen, a ‹ back to the groups. */
 .today-back {
   position: absolute;
@@ -8420,6 +8411,24 @@ button:disabled {
   transform: scale(0.98);
 }
 
+/* Held long, a tile lifts to be dragged into another place (WeNowPage useTileDrag). */
+.we-now__grid {
+  position: relative;
+}
+
+.group-tile {
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+.group-tile.is-lifted {
+  position: relative;
+  z-index: 3;
+  scale: 1.05;
+  box-shadow: var(--dialog-shadow);
+  transition: scale 0.15s ease, box-shadow 0.15s ease;
+}
+
 .group-tile__map {
   display: block;
   width: 100%;
@@ -8451,11 +8460,6 @@ button:disabled {
 
 .group-tile__dot {
   fill: var(--member);
-}
-
-.group-tile__empty {
-  fill: var(--muted);
-  font-size: 9px;
 }
 
 .group-tile__body {
@@ -8957,6 +8961,8 @@ button.group-photo-panel__photo {
 
 .group-photo-viewer__close {
   position: absolute;
+  /* Over the figure: a tall one (comments, the doodle tools) goes up under it. */
+  z-index: 3;
   top: calc(var(--safe-top) + 12px);
   right: 14px;
   display: grid;
@@ -9588,6 +9594,26 @@ button.group-photo-panel__photo {
   box-shadow: 0 0 0 2.5px var(--accent);
 }
 
+/* The last cover square: the gallery icon in its middle, the picked photo once there is one. */
+.group-form__covers .group-form__cover-photo {
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.group-form__covers .group-form__cover-photo svg {
+  width: 26px;
+  height: 26px;
+}
+
+.group-form__cover-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .group-form__invite {
   display: flex;
   align-items: center;
@@ -9727,6 +9753,10 @@ button.group-photo-panel__photo {
   font-size: 16px;
 }
 
+.group-form__danger--manage {
+  margin-top: 22px;
+}
+
 .group-form__danger:active {
   background: var(--danger);
   color: var(--on-accent);
@@ -9810,6 +9840,11 @@ button.group-photo-panel__photo {
 /* 그룹원 관리: folded like the profile's sections, every member with 추방 for the maker. */
 .group-form__section {
   margin-top: 14px;
+}
+
+/* 그룹 관리: a button to its own popup, not a fold (its chevron points on, and doesn't turn). */
+.group-form__manage {
+  width: 100%;
 }
 
 .group-members {
@@ -10138,11 +10173,129 @@ button.group-photo-panel__photo {
   height: 24px;
 }
 
-/* We Now's list: the gallery in the row's bottom-right corner, the camera's old place. */
+/* We Now's list: the gallery in the row's bottom-right corner, the camera's old place —
+   over the 대화 목록 (as TODAY's calendar over its gallery, 12px apart). */
 .bar-corner {
   position: absolute;
   right: 16px;
   bottom: -8px;
+}
+
+.bar-corner--up {
+  bottom: 56px;
+}
+
+/* Unread 대화 lines on a 대화 button's top-right: the member faces' badge (group-rail__count) without the ring. */
+.talk-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--danger);
+  color: var(--on-accent);
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+}
+
+/* The 대화 목록 button: the group map's 대화 button (accent, white bubbles). */
+.bar-chats {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* We Now's 대화 목록 (ChatList): a row per group, its cover, name and last line. */
+.chat-list__rows {
+  flex: 1;
+  margin: 0;
+  padding: 8px 0 calc(var(--safe-bottom) + 16px);
+  overflow-y: auto;
+  list-style: none;
+}
+
+.chat-list__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 72px;
+  padding: 8px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.chat-list__row:active {
+  background: var(--surface-2);
+}
+
+.chat-list__cover {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--map-land);
+}
+
+.chat-list__text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.chat-list__name {
+  overflow: hidden;
+  font-size: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-list__name small {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.chat-list__last {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-list__side {
+  flex: none;
+  align-self: stretch;
+  display: grid;
+  align-content: space-between;
+  justify-items: end;
+  padding: 6px 0;
+}
+
+.chat-list__at {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* A thread's unread lines: the 대화 buttons' badge (talk-badge), in the row. */
+.chat-list__unread {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--danger);
+  color: var(--on-accent);
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
 }
 
 /* A group's map: the gallery under the calendar, in the column under ⚙
@@ -10324,6 +10477,8 @@ button.group-photo-panel__photo {
   background: var(--bg);
   color: var(--text);
   animation: veil-in 0.2s ease both;
+  /* Up and down scroll the thread; sideways is the swipe back to the map (useSwipeBack). */
+  touch-action: pan-y;
 }
 
 .group-chat__head {
@@ -10538,6 +10693,24 @@ button.group-photo-panel__photo {
   flex: none;
   color: var(--muted);
   font-size: 11px;
+}
+
+/* Beside a line, under its time's side: how many haven't read it yet (over the time, as a messenger does). */
+.group-chat__meta {
+  flex: none;
+  display: grid;
+  justify-items: start;
+  line-height: 1.2;
+}
+
+.group-chat__line.is-mine .group-chat__meta {
+  justify-items: end;
+}
+
+.group-chat__unread {
+  color: var(--accent);
+  font-family: "Bebas Neue", "Oswald", sans-serif;
+  font-size: 14px;
 }
 
 .group-chat__line > .member-face {

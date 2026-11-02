@@ -170,7 +170,7 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
                     <li key={g.id}>
                       <button type="button" className={`group-send__item ${on ? 'is-on' : ''}`} aria-pressed={on} onClick={() => toggle(g.id)}>
                         <svg className="group-send__cover" viewBox="0 0 100 100" aria-hidden>
-                          <GroupCover cover={g.cover} />
+                          <GroupCover cover={g.cover} photo={g.coverPhoto} />
                         </svg>
                         <span className="group-send__name">{g.name}</span>
                         <span className="group-send__count">{g.members.length}명</span>

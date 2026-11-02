@@ -91,7 +91,7 @@ export function usePhotoDoodle(path: string | null, color: string | null, inkOf?
   const [tool, setTool] = useState<DoodleTool | null>(null);
   const [pen, setPenState] = useState<PenSettings>({ tool: 'pen', color: ink, width: 'medium' });
   const setPen = (next: PenSettings) => setPenState({ ...next, color: ink });
-  const [textStyle, setTextStyle] = useState<TextStyle>({ font: 'sans', color: ink, align: 'center' });
+  const [textStyle, setTextStyle] = useState<TextStyle>({ font: 'app', color: ink, align: 'center' });
   const [textFocus, setTextFocus] = useState<TextFocus>(null);
   const [dragging, setDragging] = useState(false);
   const [history, setHistory] = useState<DecorHistory>(EMPTY_HISTORY);
@@ -176,6 +176,8 @@ export function usePhotoDoodle(path: string | null, color: string | null, inkOf?
       const t = e.target as Element | null;
       if (t?.closest('.photo-doodle, .photo-doodle__tools, .decor-tray, .color-picker')) return;
       setTool(null);
+      // ✕ still closes the photo: a doodle just made mustn't take the first tap on it.
+      if (t?.closest('.group-photo-viewer__close')) return;
       const swallow = (c: MouseEvent) => {
         c.stopPropagation();
         c.preventDefault();

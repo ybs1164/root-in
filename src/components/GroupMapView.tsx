@@ -9,7 +9,7 @@ import PhotoViewer, { OpenPhotoMarks } from './PhotoViewer';
 import { DoodleLayers } from './PhotoDoodle';
 import { useGalleryDecors } from '../hooks/useGalleryPhotos';
 import { GalleryButton } from './PhotoGallery';
-import { TalkBubbles } from './icons';
+import { TalkBadge, TalkBubbles } from './icons';
 
 /** Per-button delay index, capped as on the pin rail. */
 const stagger = (i: number): CSSProperties => ({ '--i': Math.min(i, 8) }) as CSSProperties;
@@ -42,6 +42,8 @@ interface GroupMapViewProps {
   onGallery(): void;
   /** The 대화 at the bottom-right: the group's photos, their comments and messages in one thread. */
   onChat(): void;
+  /** Lines of this group's 대화 I haven't read: a badge on its button. */
+  chatUnread?: number;
 }
 
 /**
@@ -77,7 +79,7 @@ const shownPhoto = (ping: GroupPing | undefined, photo?: number): string | undef
   return (photo !== undefined ? all[photo] : undefined) ?? ping?.photo;
 };
 
-export default function GroupMapView({ group, day, onDay, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onGallery, onChat }: GroupMapViewProps) {
+export default function GroupMapView({ group, day, onDay, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onGallery, onChat, chatUnread = 0 }: GroupMapViewProps) {
   const pickedMember = group.members.find((m) => m.userId === picked) ?? null;
   // My colour here, as the doodle tools' one ink (`member-N`).
   const mine = group.members.find((m) => m.userId === me);
@@ -117,8 +119,9 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
       </button>
       <GalleryButton className="group-view__btn group-view__btn--gallery" onOpen={onGallery} />
       {/* Bottom-right, level with the member row (where the camera once stood). */}
-      <button className="group-view__chat" aria-label="대화" onClick={onChat}>
+      <button className="group-view__chat" aria-label={chatUnread ? `대화, 안 읽은 메시지 ${chatUnread}` : '대화'} onClick={onChat}>
         <TalkBubbles size={30} />
+        <TalkBadge count={chatUnread} />
       </button>
 
       <div className="group-view__title">

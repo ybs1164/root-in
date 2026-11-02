@@ -195,3 +195,13 @@ export function inLayerInk(decor: DayDecor, ink: string | null | undefined): Day
   const same = strokes.every((st, i) => st === decor.strokes[i]) && (texts ?? []).every((t, i) => t === decor.texts?.[i]);
   return same ? decor : { ...decor, strokes, ...(texts ? { texts } : {}) };
 }
+
+/**
+ * Beside a line of the 대화: how many members haven't read it yet — not its
+ * writer, not me (I'm looking at it), and not anyone whose last read
+ * (`reads`, user id → ISO time) is at or after it.
+ */
+export function unreadBy(item: Pick<FeedItem, 'userId' | 'at'>, memberIds: readonly string[], reads: Readonly<Record<string, string>>, me: string | null): number {
+  const at = Date.parse(item.at);
+  return memberIds.filter((id) => id !== item.userId && id !== me && !(Date.parse(reads[id] ?? '') >= at)).length;
+}

@@ -1,7 +1,8 @@
 import { Plus, UserRound, Users } from 'lucide-react';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import type { PinIcon, PinTint } from '../types/pin';
-import { groupPingCount, memberColor, tilePaths, type Group, type GroupMember } from '../domain/groups';
+import { groupPingCount, memberColor, moveId, tilePaths, type Group, type GroupMember } from '../domain/groups';
+import { PRESS } from '../domain/dayPings';
 import { edgeKey, pingKey, pingsLandedMs, type DayPing } from '../domain/dayPings';
 import { dateKey } from '../domain/diary';
 import { loadDays, saveDays, type DayStore } from '../services/dayRepository';
@@ -27,8 +28,12 @@ export function MemberFace({ member, size }: { member: GroupMember; size: number
 
 const TILE = 100;
 
-/** The tile's background: one of four soft area-map patterns (`Group.cover`). */
-export function GroupCover({ cover }: { cover: number }) {
+/**
+ * The tile's background: one of seven soft area-map patterns (`Group.cover`),
+ * or the group's own photo (`photo`, picked from the gallery) over them.
+ */
+export function GroupCover({ cover, photo }: { cover: number; photo?: string | null }) {
+  if (photo) return <image href={photo} x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice" />;
   switch (cover) {
     case 1:
       return <path className="group-cover__water" d="M-5 58 Q30 74 55 60 T105 56 V105 H-5Z" />;
@@ -42,6 +47,30 @@ export function GroupCover({ cover }: { cover: number }) {
       );
     case 3:
       return <path className="group-cover__other" d="M-5 30 L105 78 V105 H-5Z" />;
+    // Ripples out of the bottom-left corner.
+    case 4:
+      return (
+        <>
+          <circle className="group-cover__other" cx="0" cy="100" r="78" />
+          <circle className="group-cover__area" cx="0" cy="100" r="50" />
+        </>
+      );
+    // A sun over one soft hill.
+    case 5:
+      return (
+        <>
+          <circle className="group-cover__area" cx="70" cy="32" r="16" />
+          <path className="group-cover__other" d="M-5 105 V72 Q50 40 105 72 V105Z" />
+        </>
+      );
+    // Two broad diagonal bands.
+    case 6:
+      return (
+        <>
+          <path className="group-cover__other" d="M-5 40 L40 -5 H70 L-5 70Z" />
+          <path className="group-cover__area" d="M30 105 L105 30 V60 L60 105Z" />
+        </>
+      );
     default:
       return (
         <>
@@ -52,20 +81,21 @@ export function GroupCover({ cover }: { cover: number }) {
   }
 }
 
-function GroupTile({ group, fresh, onOpen }: { group: Group; fresh: number; onOpen: () => void }) {
+function GroupTile({ group, fresh, lifted, onOpen, onPress }: { group: Group; fresh: number; lifted: boolean; onOpen: () => void; onPress(e: ReactPointerEvent<HTMLElement>): void }) {
   const paths = tilePaths(group, TILE);
   const pings = groupPingCount(group);
   const shown = group.members.slice(0, 3);
   const more = group.members.length - shown.length;
   return (
-    <button className="group-tile" onClick={onOpen} aria-label={`${group.name}, ${group.members.length}명, 오늘 핑 ${pings}${fresh ? `, 새 핑 ${fresh}` : ''}`}>
+    <button
+      className={`group-tile ${lifted ? 'is-lifted' : ''}`}
+      data-group-id={group.id}
+      onClick={onOpen}
+      onPointerDown={onPress}
+      onContextMenu={(e) => e.preventDefault()}
+      aria-label={`${group.name}, ${group.members.length}명, 오늘 핑 ${pings}${fresh ? `, 새 핑 ${fresh}` : ''}`}>
       <svg className="group-tile__map" viewBox={`0 0 ${TILE} ${TILE}`} aria-hidden>
-        <GroupCover cover={group.cover} />
-        {paths.length === 0 && (
-          <text className="group-tile__empty" x="50" y="54" textAnchor="middle">
-            아직 오늘 핑 없음
-          </text>
-        )}
+        <GroupCover cover={group.cover} photo={group.coverPhoto} />
         {paths.map((p, i) => (
           <g key={i} style={{ '--member': p.color } as CSSProperties}>
             {p.points.length > 1 && <polyline className="group-tile__line" points={p.points.map((q) => q.join(',')).join(' ')} />}
@@ -94,6 +124,146 @@ function GroupTile({ group, fresh, onOpen }: { group: Group; fresh: number; onOp
       </span>
     </button>
   );
+}
+
+/** Held this long, a group's tile lifts to be dragged to another place in the grid. */
+const LIFT_MS = 450;
+/** How long the other tiles take to make room, and the dropped one to settle into its place. */
+const SHUFFLE_MS = 180;
+
+/**
+ * The groups' tiles dragged into another order: a long press lifts one (a
+ * move before then is a scroll, a quick release a tap), it follows the
+ * finger, and over another tile it takes that one's place while the others
+ * slide aside; let go, it settles in and `onReorder` gets the new order.
+ * The pointer is followed on the window: the tile moves in the DOM as the
+ * order changes, which would drop a capture on it.
+ */
+function useTileDrag(ids: readonly string[], onReorder: (ids: string[]) => void) {
+  const grid = useRef<HTMLDivElement>(null);
+  const [draft, setDraft] = useState<string[] | null>(null);
+  const [lifted, setLifted] = useState<string | null>(null);
+  const drag = useRef<{ id: string; grabX: number; grabY: number; x: number; y: number } | null>(null);
+  /** Where each tile stood before the last reorder (for the others to slide from), and the dropped tile's last offset. */
+  const before = useRef<Map<string, { left: number; top: number }> | null>(null);
+  const settle = useRef<{ id: string; dx: number; dy: number } | null>(null);
+  const swallow = useRef(false);
+  const shown = draft ?? ids;
+
+  const tileOf = (id: string) => grid.current?.querySelector<HTMLElement>(`[data-group-id="${CSS.escape(id)}"]`) ?? null;
+  const place = () => {
+    const d = drag.current;
+    const box = grid.current?.getBoundingClientRect();
+    const el = d && tileOf(d.id);
+    if (!d || !box || !el) return;
+    el.style.translate = `${d.x - box.left - d.grabX - el.offsetLeft}px ${d.y - box.top - d.grabY - el.offsetTop}px`;
+  };
+  const offsets = () => {
+    const map = new Map<string, { left: number; top: number }>();
+    grid.current?.querySelectorAll<HTMLElement>('[data-group-id]').forEach((el) => map.set(el.dataset.groupId!, { left: el.offsetLeft, top: el.offsetTop }));
+    return map;
+  };
+
+  // After a reorder: the others slide from where they stood; the lifted one stays under the finger.
+  useLayoutEffect(() => {
+    const was = before.current;
+    before.current = null;
+    if (was) {
+      for (const [id, now] of offsets()) {
+        const old = was.get(id);
+        if (!old || id === drag.current?.id || (old.left === now.left && old.top === now.top)) continue;
+        tileOf(id)?.animate([{ translate: `${old.left - now.left}px ${old.top - now.top}px` }, { translate: '0px 0px' }], { duration: SHUFFLE_MS, easing: 'ease-out' });
+      }
+    }
+    place();
+    const s = settle.current;
+    if (s && !lifted) {
+      settle.current = null;
+      tileOf(s.id)?.animate([{ translate: `${s.dx}px ${s.dy}px` }, { translate: '0px 0px' }], { duration: SHUFFLE_MS, easing: 'ease-out' });
+    }
+  });
+
+  const onPress = (id: string) => (e: ReactPointerEvent<HTMLElement>) => {
+    if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    const start = { x: e.clientX, y: e.clientY };
+    const tile = e.currentTarget;
+    let order: string[] = [...ids];
+    const lift = () => {
+      const r = tile.getBoundingClientRect();
+      drag.current = { id, grabX: start.x - r.left, grabY: start.y - r.top, x: start.x, y: start.y };
+      setDraft(order);
+      setLifted(id);
+      navigator.vibrate?.(10);
+    };
+    const timer = window.setTimeout(lift, LIFT_MS);
+    // Lifted, the page doesn't scroll under the finger.
+    const noScroll = (t: TouchEvent) => drag.current && t.cancelable && t.preventDefault();
+    const move = (m: PointerEvent) => {
+      if (m.pointerId !== e.pointerId) return;
+      const d = drag.current;
+      if (!d) {
+        if (Math.hypot(m.clientX - start.x, m.clientY - start.y) > PRESS.slopPx) end();
+        return;
+      }
+      d.x = m.clientX;
+      d.y = m.clientY;
+      // Over another tile: the lifted one takes its place.
+      const box = grid.current?.getBoundingClientRect();
+      if (box) {
+        const over = order.findIndex((other) => {
+          const el = other !== id && tileOf(other);
+          if (!el) return false;
+          const left = box.left + el.offsetLeft;
+          const top = box.top + el.offsetTop;
+          return d.x >= left && d.x <= left + el.offsetWidth && d.y >= top && d.y <= top + el.offsetHeight;
+        });
+        if (over >= 0) {
+          before.current = offsets();
+          order = moveId(order, id, over);
+          setDraft(order);
+          return;
+        }
+      }
+      place();
+    };
+    const end = () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      document.removeEventListener('touchmove', noScroll);
+    };
+    const up = (u: PointerEvent) => {
+      if (u.pointerId !== e.pointerId) return;
+      end();
+      const d = drag.current;
+      if (!d) return;
+      drag.current = null;
+      // A lift, moved or not, is never also a tap that opens the group.
+      swallow.current = true;
+      window.setTimeout(() => (swallow.current = false), 0);
+      const el = tileOf(id);
+      if (el) {
+        const [dx, dy] = el.style.translate.split(' ').map((v) => parseFloat(v) || 0);
+        settle.current = { id, dx, dy: dy ?? 0 };
+        el.style.translate = '';
+      }
+      setLifted(null);
+      setDraft(null);
+      if (order.join() !== ids.join()) onReorder(order);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    document.addEventListener('touchmove', noScroll, { passive: false });
+  };
+  const onClickCapture = (e: React.MouseEvent) => {
+    if (!swallow.current) return;
+    swallow.current = false;
+    e.stopPropagation();
+    e.preventDefault();
+  };
+  return { grid, shown, lifted, onPress, onClickCapture };
 }
 
 /**
@@ -157,7 +327,6 @@ function TodayTile({ pings, pinLookOf, onOpen }: { pings: DayPing[]; pinLookOf: 
         <span className="today-tile__title" aria-hidden>
           TODAY
         </span>
-        {pings.length === 0 && <span className="today-tile__empty">아직 오늘 핑 없음</span>}
         <div className="today-tile__pings">
           <DayPings
             pings={pings}
@@ -204,6 +373,8 @@ interface WeNowPageProps {
   photo: string | null;
   onProfile(): void;
   onOpen(id: string): void;
+  /** The groups dragged into a new order (their ids). */
+  onReorder(ids: string[]): void;
   onCreate(): void;
   /** 카카오로 로그인 (only shown when We Now needs a login, VITE_GROUPS_NEED_LOGIN). */
   onSignIn(): void;
@@ -213,10 +384,15 @@ interface WeNowPageProps {
 /**
  * We Now's first screen: my groups as a two-column grid of tiles, each with
  * a little map of its members' pings today (what opening it shows), and a +
- * tile for a new one. Signed out it asks for a Kakao login — reached only
+ * tile for a new one. A long press on a group's tile lifts it to drag into
+ * another place (`useTileDrag`; TODAY and + stay where they are). Signed out it asks for a Kakao login — reached only
  * when VITE_GROUPS_NEED_LOGIN is on; otherwise App signs in as a guest first.
  */
-export default function WeNowPage({ status, todayPings, pinLookOf, onToday, groups, newPings, photo, onProfile, onOpen, onCreate, onSignIn, onRetry }: WeNowPageProps) {
+export default function WeNowPage({ status, todayPings, pinLookOf, onToday, groups, newPings, photo, onProfile, onOpen, onReorder, onCreate, onSignIn, onRetry }: WeNowPageProps) {
+  const tiles = useTileDrag(
+    groups.map((g) => g.id),
+    onReorder,
+  );
   const empty = (title: string, body: string, action?: { label: string; run: () => void }) => (
     <div className="we-now__empty">
       <span className="we-now__badge" aria-hidden>
@@ -242,10 +418,11 @@ export default function WeNowPage({ status, todayPings, pinLookOf, onToday, grou
   // No groups yet: the same grid, with only its + tile.
   else
     content = (
-      <div className="we-now__grid">
-        {groups.map((g) => (
-          <GroupTile key={g.id} group={g} fresh={newPings(g)} onOpen={() => onOpen(g.id)} />
-        ))}
+      <div ref={tiles.grid} className="we-now__grid" onClickCapture={tiles.onClickCapture}>
+        {tiles.shown.map((id) => {
+          const g = groups.find((x) => x.id === id);
+          return g && <GroupTile key={g.id} group={g} fresh={newPings(g)} lifted={tiles.lifted === g.id} onOpen={() => onOpen(g.id)} onPress={tiles.onPress(g.id)} />;
+        })}
         <button className="group-tile group-tile--new" onClick={onCreate}>
           <span className="group-tile__plus" aria-hidden>
             <Plus size={26} strokeWidth={2.4} />

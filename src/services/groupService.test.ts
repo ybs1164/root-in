@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import { createSupabaseGroupService, inviteUrl, readGroups, readInviteSlug, readMetPairs, readHeartNews, readComments, readFeed, readDecorLayers } from './groupService';
+import { createSupabaseGroupService, inviteUrl, readGroups, readInviteSlug, readMetPairs, readHeartNews, readComments, readFeed, readDecorLayers, readReads, readUnreadTalk } from './groupService';
 
 const G1 = '11111111-1111-1111-1111-111111111111';
 const U1 = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
@@ -389,7 +389,7 @@ describe('live updates', () => {
   it("listens to a group's 대화; nothing for bad ids or no backend", async () => {
     const fake = realtimeClient();
     createSupabaseGroupService(async () => fake.client, true).watchGroup(G1, () => {});
-    await vi.waitFor(() => expect(fake.handlers).toHaveLength(3));
+    await vi.waitFor(() => expect(fake.handlers).toHaveLength(4));
     expect(fake.handlers[0].opts).toMatchObject({ table: 'group_messages', filter: `group_id=eq.${G1}` });
     const other = realtimeClient();
     createSupabaseGroupService(async () => other.client, true).watchGroup('nope', () => {})();
@@ -397,5 +397,15 @@ describe('live updates', () => {
     createSupabaseGroupService(() => Promise.reject(new Error('down')), true).watchPhoto(PATH, () => {})();
     await Promise.resolve();
     expect(other.client.channel).not.toHaveBeenCalled();
+  });
+});
+
+describe('readReads / readUnreadTalk', () => {
+  const U = '11111111-1111-1111-1111-111111111111';
+  it('keeps only well-formed rows', () => {
+    expect(readReads([{ user_id: U, read_at: '2026-11-02T10:00:00Z' }, { user_id: 'x', read_at: 'y' }, null])).toEqual({ [U]: '2026-11-02T10:00:00.000Z' });
+    expect(readReads('nope')).toEqual({});
+    expect(readUnreadTalk({ [U]: 3, bad: 2, [U.replace(/1/g, '2')]: 0 })).toEqual({ [U]: 3 });
+    expect(readUnreadTalk({ [U]: 999 })).toEqual({ [U]: 300 });
   });
 });

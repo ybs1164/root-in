@@ -35,7 +35,7 @@ import {
   type TextStyle,
 } from '../domain/decor';
 import type { StickerDrop } from '../domain/stickerSheets';
-import { STICKER_EDGE } from '../lib/stickerEdge';
+import { PLACED_STICKER_EDGE } from '../lib/stickerEdge';
 
 /** The text box picked with the text tool, and whether it's being typed in. */
 export type TextFocus = { id: string; editing: boolean } | null;
@@ -172,7 +172,7 @@ export default function DecorLayer({
   enterDelayMs = 0,
   textFocus = null,
   onTextFocus = () => {},
-  textStyle = { font: 'sans', color: 'ink-black', align: 'center' },
+  textStyle = { font: 'app', color: 'ink-black', align: 'center' },
   onDragging,
   aspect = 1,
 }: DecorLayerProps) {
@@ -610,8 +610,8 @@ export default function DecorLayer({
               left: `${pos.x * 100}%`,
               top: `${pos.y * 100}%`,
               width: `${pos.size * 78}cqw`,
-              // The die-cut edge grows with the sticker (STICKER_EDGE of its width).
-              '--edge': `${pos.size * 78 * STICKER_EDGE}cqw`,
+              // The die-cut edge is the same on every sticker, whatever its size (never under a hair).
+              '--edge': `max(1.2px, ${PLACED_STICKER_EDGE * 100}cqw)`,
               zIndex: zIndex.get(`sticker:${i}`),
               rotate: `${pos.rotate ?? 0}deg`,
             } as CSSProperties}

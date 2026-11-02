@@ -67,7 +67,7 @@ interface SettingsScreenProps {
   /** 제외 주소 설정 (PrivacySection's props), the same as on the profile. */
   privacy: Omit<Parameters<typeof PrivacySection>[0], 'notice'>;
   /** 알림 설정 → 그룹 알림: my groups, one switch each. */
-  groups?: readonly Pick<Group, 'id' | 'name' | 'cover'>[];
+  groups?: readonly Pick<Group, 'id' | 'name' | 'cover' | 'coverPhoto'>[];
   /** 설정 has slid in and covers the whole screen (the profile under it can go now). */
   onCovered?: () => void;
   onClose: () => void;
@@ -353,7 +353,7 @@ export default function SettingsScreen({ profile, onChange, account, privacy, lo
  * switched off. No 전체 for every group at the head, and no 랜덤. Cells of
  * groups I've left are kept as they were.
  */
-function GroupAlerts({ groups, off, onChange }: { groups: readonly Pick<Group, 'id' | 'name' | 'cover'>[]; off: readonly string[]; onChange: (off: string[]) => void }) {
+function GroupAlerts({ groups, off, onChange }: { groups: readonly Pick<Group, 'id' | 'name' | 'cover' | 'coverPhoto'>[]; off: readonly string[]; onChange: (off: string[]) => void }) {
   return (
     <div className="alerts__row alerts__row--groups" role="group" aria-label="그룹 알림">
       <div className="alerts__head">
@@ -368,7 +368,7 @@ function GroupAlerts({ groups, off, onChange }: { groups: readonly Pick<Group, '
             <li key={g.id} className="alerts__group" role="group" aria-label={`${g.name} 알림`}>
               <div className="alerts__group-head">
                 <svg className="alerts__cover" viewBox="0 0 100 100" aria-hidden>
-                  <GroupCover cover={g.cover} />
+                  <GroupCover cover={g.cover} photo={g.coverPhoto} />
                 </svg>
                 <span className="settings__label alerts__group-name">{g.name}</span>
                 <button className="alerts__all" aria-label={`${g.name} 알림 전체`} onClick={() => onChange(toggleGroupAlertsAll(off, [g.id]))}>
