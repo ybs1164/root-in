@@ -1,5 +1,7 @@
+import { parsePlaceArea } from './poiAppearance';
 import type { MapViewport } from './districtMap';
 import { isPlaceKind } from './placeKinds';
+import { publicFacilityKind } from './placeKindRules';
 import type { PlaceRef } from '../types/course';
 
 export interface Landmark extends PlaceRef { importance: 0 | 1 | 2 }
@@ -15,12 +17,13 @@ export function parseLandmarks(value: unknown): Landmark[] | null {
   const data = value as { v?: unknown; r?: unknown } | null;
   if (data?.v !== 1 || !Array.isArray(data.r)) return null;
   return data.r.flatMap((row: unknown) => {
-    if (!Array.isArray(row) || row.length !== 7) return [];
+    if (!Array.isArray(row) || (row.length !== 7 && row.length !== 8)) return [];
     const [id, name, x, y, kind, category, importance] = row;
     if (typeof id !== 'string' || !/^[nwr]\d+$/.test(id) || typeof name !== 'string' || !name || name.length > 80 ||
       !Number.isInteger(x) || !Number.isInteger(y) || x < 124e5 || x > 132e5 || y < 33e5 || y > 39e5 ||
       !isPlaceKind(kind) || typeof category !== 'string' || ![0, 1, 2].includes(importance)) return [];
-    return [{ id: `landmark:${id}`, name, center: [x / 1e5, y / 1e5] as [number, number], kind, category, importance }];
+    const resolvedKind = kind === 'building' && category === '공공시설' ? publicFacilityKind(name) : kind;
+    return [{ id: `landmark:${id}`, name, center: [x / 1e5, y / 1e5] as [number, number], kind: resolvedKind, category, importance, ...parsePlaceArea(row[7]) }];
   });
 }
 

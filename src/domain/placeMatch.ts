@@ -1,3 +1,4 @@
+import type { PlaceArea } from './poiAppearance';
 import { haversineMeters } from './geo';
 import type { PlaceKind } from './placeKinds';
 
@@ -7,7 +8,7 @@ import type { PlaceKind } from './placeKinds';
 // is checked against both).
 
 /** One shop as the app keeps it: normalised name, point ×1e5, kind. */
-export interface KindShop {
+export interface KindShop extends PlaceArea {
   name: string;
   x: number;
   y: number;

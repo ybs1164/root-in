@@ -65,6 +65,9 @@ const KAKAO_SEGMENTS: [RegExp, PlaceKind][] = [
   [/낚시/, 'fishing'],
   [/수상레저|서핑|요트/, 'water_sports'],
   // Services
+  [/경찰서|경찰청|지구대|파출소|치안센터/, 'police'],
+  [/소방서|119안전센터|119지역대|소방본부/, 'fire_station'],
+  [/행정복지센터|주민센터|행정기관|공공기관|시청|군청|구청|읍사무소|면사무소/, 'government'],
   [/미용실|헤어|네일|피부관리/, 'salon'],
   [/세탁|빨래방/, 'laundry'],
   [/예식장|웨딩홀/, 'wedding'],
@@ -144,6 +147,8 @@ const OSM_TAGS: Record<string, Record<string, PlaceKind>> = {
     arts_centre: 'gallery', library: 'library', school: 'school', university: 'school', college: 'school',
     karaoke_box: 'karaoke', bus_station: 'bus_stop', ferry_terminal: 'port', marketplace: 'market',
     car_rental: 'car_rental', car_wash: 'car_service',
+    police: 'police', fire_station: 'fire_station', townhall: 'government',
+    community_centre: 'government', courthouse: 'government',
   },
   shop: {
     convenience: 'convenience', supermarket: 'mart', department_store: 'department_store', mall: 'department_store',
@@ -173,7 +178,15 @@ const OSM_TAGS: Record<string, Record<string, PlaceKind>> = {
   public_transport: { station: 'station' },
   highway: { bus_stop: 'bus_stop' },
   aeroway: { aerodrome: 'airport', terminal: 'airport' },
+  office: { government: 'government' },
 };
+
+/** Older landmark tiles grouped these tagged facilities as public buildings. */
+export function publicFacilityKind(name: string): PlaceKind {
+  if (/경찰서|경찰청|지구대|파출소|치안센터/.test(name)) return 'police';
+  if (/소방서|119\s*(?:안전센터|지역대|구조대)|소방본부/.test(name)) return 'fire_station';
+  return 'government';
+}
 
 export const kindFromOsm = (key: string | undefined, value: string | undefined): PlaceKind | null =>
   (key && value && Object.hasOwn(OSM_TAGS, key) && Object.hasOwn(OSM_TAGS[key], value) && OSM_TAGS[key][value]) || null;

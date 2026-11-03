@@ -1,3 +1,4 @@
+import { parsePlaceArea } from './poiAppearance';
 import type { Bbox, MapViewport } from './districtMap';
 import { haversineMeters } from './geo';
 import { KIND_GROUPS, kindIcon } from './placeKinds';
@@ -69,6 +70,7 @@ export function selectNearbyPlaces(shops: KindShop[], viewport: MapViewport): Pl
       name: shop.name,
       center: [shop.x / 1e5, shop.y / 1e5],
       kind: shop.kind,
+      ...parsePlaceArea(shop),
       category: KIND_GROUPS.find((group) => group.icon === kindIcon(shop.kind))?.label,
     }));
 }

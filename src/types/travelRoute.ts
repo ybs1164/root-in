@@ -1,3 +1,4 @@
+import type { PlaceArea } from '../domain/poiAppearance';
 import type { PlaceKind } from '../domain/placeKinds';
 
 // A lightweight snapshot of a Place at the moment a route referencing it was
@@ -5,7 +6,7 @@ import type { PlaceKind } from '../domain/placeKinds';
 // renders correctly even if the underlying place catalog changes later, and
 // it gives a future backend-aggregated recommendation feature something to
 // group/display without having to re-join against a places table.
-export interface PlaceRef {
+export interface PlaceRef extends PlaceArea {
   id: string;
   name: string;
   center: [number, number];
