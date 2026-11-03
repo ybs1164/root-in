@@ -31,6 +31,9 @@ describe('kindFromKakao', () => {
     ['종교 > 불교 > 사찰', 'temple'],
     ['의료,건강 > 병원 > 치과', 'clinic'],
     ['서비스,산업 > 미용 > 미용실', 'salon'],
+    ['사회,공공기관 > 경찰서 > 파출소', 'police'],
+    ['사회,공공기관 > 소방서 > 119안전센터', 'fire_station'],
+    ['사회,공공기관 > 지방행정기관 > 주민센터', 'government'],
   ])('%s → %s', (path, kind) => {
     expect(kindFromKakao(path)).toBe(kind);
   });
@@ -48,6 +51,9 @@ describe('kindFromOsm', () => {
     expect(kindFromOsm('amenity', 'cafe')).toBe('cafe');
     expect(kindFromOsm('leisure', 'park')).toBe('park');
     expect(kindFromOsm('natural', 'peak')).toBe('mountain');
+    expect(kindFromOsm('amenity', 'police')).toBe('police');
+    expect(kindFromOsm('amenity', 'fire_station')).toBe('fire_station');
+    expect(kindFromOsm('office', 'government')).toBe('government');
     expect(kindFromOsm('shop', 'clothes')).toBe('shop');
     expect(kindFromOsm('shop', 'wholesale')).toBeNull();
     expect(kindFromOsm('amenity', 'toString')).toBeNull();

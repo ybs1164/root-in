@@ -1,3 +1,4 @@
+import { poiAppearance } from '../domain/poiAppearance';
 import type { AreaLabel, AreaShapes } from '../domain/adminAreas';
 import type { MapViewport } from '../domain/districtMap';
 import type { PlaceRef } from '../types/course';
@@ -157,7 +158,27 @@ export function createNearbyPlaceElement(place: PlaceRef, onClick?: (place: Plac
   el.dataset.kind = place.kind;
   el.title = place.name;
   el.setAttribute('aria-label', `${place.name}${place.category ? ` · ${place.category}` : ''}`);
-  el.innerHTML = pinGlyphSvg(kindIcon(place.kind) ?? 'pin');
+  const appearance = poiAppearance(place);
+  el.style.setProperty('--poi-size', `${appearance.size}px`);
+  el.style.setProperty('--poi-art-scale', String(appearance.artScale));
+  el.dataset.sizeSource = appearance.source;
+  const art = document.createElement('div');
+  art.className = 'map-nearby-place__art';
+  const fallback = () => {
+    el.classList.remove('map-nearby-place--sticker');
+    art.remove();
+  };
+  if (appearance.sticker) {
+    el.classList.add('map-nearby-place--sticker');
+    const image = document.createElement('img');
+    image.alt = '';
+    image.draggable = false;
+    image.decoding = 'async';
+    image.addEventListener('error', fallback, { once: true });
+    image.src = appearance.sticker;
+    art.append(image);
+    el.append(art);
+  }
   const name = document.createElement('span');
   name.textContent = place.name;
   el.append(name);
