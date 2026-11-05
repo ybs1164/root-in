@@ -1,3 +1,4 @@
+import { parsePlaceArea } from '../domain/poiAppearance';
 import type { LonLat } from '../domain/districtMap';
 import { isPlaceKind, type PlaceKind } from '../domain/placeKinds';
 import { matchKind, type KindShop } from '../domain/placeMatch';
@@ -27,12 +28,12 @@ export function parseKindShops(value: unknown): KindShop[] | null {
   const kinds = v.k.map((k) => (isPlaceKind(k) ? k : null));
   const shops: KindShop[] = [];
   for (const row of v.r as unknown[]) {
-    if (!Array.isArray(row) || row.length !== 4) continue;
+    if (!Array.isArray(row) || (row.length !== 4 && row.length !== 5)) continue;
     const [name, x, y, k] = row as unknown[];
     const kind = Number.isInteger(k) ? kinds[k as number] : null;
     if (typeof name !== 'string' || !name || name.length > MAX_NAME || !kind) continue;
     if (!Number.isInteger(x) || !Number.isInteger(y)) continue;
-    shops.push({ name, x: x as number, y: y as number, kind });
+    shops.push({ name, x: x as number, y: y as number, kind, ...parsePlaceArea(row[4]) });
   }
   return shops;
 }

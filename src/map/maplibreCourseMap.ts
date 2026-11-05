@@ -8,7 +8,6 @@ import {
   attachLongPress,
   createAreaLabelElement,
   createMarkerElement,
-  createPreviewElement,
   createMyLocationElement,
   createPinElement,
   createNearbyPlaceElement,
@@ -55,7 +54,6 @@ export class MapLibreCourseMap implements CourseMap {
   private readonly map: MapLibreMap;
   private stops: PlaceRef[] = [];
   private stopMarkers: Marker[] = [];
-  private previewMarker: Marker | null = null;
   private meMarker: Marker | null = null;
   private pinMarkers: Marker[] = [];
   private nearbyMarkers = new Map<string, Marker>();
@@ -312,13 +310,6 @@ export class MapLibreCourseMap implements CourseMap {
     else this.meMarker = new maplibregl.Marker({ element: createMyLocationElement() }).setLngLat(center).addTo(this.map);
   }
 
-  setPreview(place: PlaceRef | null): void {
-    this.previewMarker?.remove();
-    this.previewMarker = place
-      ? new maplibregl.Marker({ element: createPreviewElement(place) }).setLngLat(place.center).addTo(this.map)
-      : null;
-  }
-
   fitCourse(padding: MapPadding, glideMs?: number): Promise<void> {
     return this.fitPoints(
       this.stops.map((s) => s.center),
@@ -352,8 +343,8 @@ export class MapLibreCourseMap implements CourseMap {
     else this.map.dragPan.disable();
   }
 
-  centerOn(center: [number, number]): void {
-    this.map.easeTo({ center, duration: this.duration(400) });
+  centerOn(center: [number, number], dropPx = 0): void {
+    this.map.easeTo({ center, offset: [0, dropPx], duration: this.duration(400) });
   }
 
   getCenter(): [number, number] {

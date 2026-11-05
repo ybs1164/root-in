@@ -1,10 +1,6 @@
 import { useRef, type PointerEvent as ReactPointerEvent } from 'react';
 import { SWIPE, swipeCommits } from '../domain/appTabs';
-
-const SLIDE_OFF_MS = 240;
-const SPRING_BACK_MS = 180;
-const stillMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-const slideEase = () => getComputedStyle(document.documentElement).getPropertyValue('--slide-ease').trim() || 'ease-out';
+import { slideOff, springBack } from '../lib/swipeSlide';
 
 /**
  * A full screen that a left-to-right swipe takes back (as Settings): it
@@ -20,8 +16,9 @@ export function useSwipeBack(onBack: () => void, enabled = true) {
   const swallow = useRef(false);
   const onPointerDown = (e: ReactPointerEvent<HTMLElement>) => {
     if (!enabled || !e.isPrimary || going.current) return;
-    // A press in a field moves its caret, not the screen.
-    if ((e.target as Element).closest('input, textarea')) return;
+    // A press in a field moves its caret, and a strip marked `data-swipe-keep`
+    // scrolls sideways itself: neither moves the screen.
+    if ((e.target as Element).closest('input, textarea, [data-swipe-keep]')) return;
     swipe.current = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, v: 0, at: performance.now(), el: null };
   };
   const onPointerMove = (e: ReactPointerEvent<HTMLElement>) => {
@@ -52,17 +49,14 @@ export function useSwipeBack(onBack: () => void, enabled = true) {
     swallow.current = true;
     window.setTimeout(() => (swallow.current = false), 0);
     const el = sw.el;
-    el.style.translate = '';
     if (swipeCommits(1, sw.dx, el.getBoundingClientRect().width || window.innerWidth, sw.v)) {
       going.current = true;
-      const done = () => {
+      return slideOff(el, sw.dx, () => {
         going.current = false;
         onBack();
-      };
-      el.animate([{ translate: `${sw.dx}px 0` }, { translate: '100% 0' }], { duration: stillMotion() ? 0 : SLIDE_OFF_MS, easing: slideEase(), fill: 'forwards' }).finished.then(done, done);
-      return;
+      });
     }
-    el.animate([{ translate: `${sw.dx}px 0` }, { translate: '0px 0' }], { duration: stillMotion() ? 0 : SPRING_BACK_MS, easing: slideEase() });
+    springBack(el, sw.dx);
   };
   const onClickCapture = (e: React.MouseEvent) => {
     if (!swallow.current) return;

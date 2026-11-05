@@ -29,6 +29,7 @@ const KEYS: Record<string, KeyInfo> = {
   'goodroot:category-subs:v1': { status: 'current', what: '구독한 카테고리' },
   'goodroot:gallery-stars:v1': { status: 'current', what: '갤러리 즐겨찾기 (이 폰에만)' },
   'goodroot:group-order:v1': { status: 'current', what: 'We Now 그룹 순서' },
+  'goodroot:visited-pins:v1': { status: 'current', what: '미분류 핀으로 만든 핑(가본 장소, 이 폰에만)' },
   'goodroot:member-seen:v1': { status: 'current', what: '그룹원을 마지막으로 본 때 (얼굴 배지)' },
   'goodroot:photo-comments:v1': { status: 'current', what: 'TODAY 사진 댓글 (이 폰에만)' },
   'goodroot:ping-photos:v1': { status: 'current', what: 'TODAY 핑 사진 (이 폰에만)' },

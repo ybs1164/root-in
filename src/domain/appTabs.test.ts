@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { barSlot, barTurn, calendarAgain, pageSwipes, showsPage, swipeCommits, tabForIncoming, type AppTab, type BarButton } from './appTabs';
+import { barSlot, barTurn, calendarAgain, pageSwipes, SHEET_PULL, showsPage, swipeCommits, tabForIncoming, type AppTab, type BarButton } from './appTabs';
 
 describe('bottom-bar tabs', () => {
   it('incoming #share= / #diary= / #pins= links open the matching tab', () => {
@@ -15,13 +15,19 @@ describe('bottom-bar tabs', () => {
     expect(pageSwipes('pins')).toEqual({ left: null, right: null });
   });
 
-  it('a swipe commits past 30% of the width or on a quick flick, and only the right way', () => {
-    expect(swipeCommits(-1, -120, 375, 0.1)).toBe(true);
-    expect(swipeCommits(-1, -60, 375, 0.1)).toBe(false);
-    expect(swipeCommits(-1, -60, 375, -0.8)).toBe(true); // quick flick left
+  it('a short swipe is enough: past 12% of the width or a quick flick, and only the right way', () => {
+    expect(swipeCommits(-1, -50, 375, 0.1)).toBe(true);
+    expect(swipeCommits(-1, -30, 375, 0.1)).toBe(false);
+    expect(swipeCommits(-1, -30, 375, -0.4)).toBe(true); // quick flick left
     expect(swipeCommits(-1, 200, 375, 0.9)).toBe(false); // wrong way
-    expect(swipeCommits(1, 150, 375, 0)).toBe(true);
-    expect(swipeCommits(1, 20, 375, 2)).toBe(false); // too short even if fast
+    expect(swipeCommits(1, 50, 375, 0)).toBe(true);
+    expect(swipeCommits(1, 10, 375, 2)).toBe(false); // too short even if fast
+  });
+
+  it('pulling a sheet stays deliberate', () => {
+    expect(swipeCommits(1, 50, 375, 0, SHEET_PULL)).toBe(false);
+    expect(swipeCommits(1, 120, 375, 0, SHEET_PULL)).toBe(true);
+    expect(swipeCommits(1, 40, 375, 0.6, SHEET_PULL)).toBe(true);
   });
 
   it('calendar button again: a day screen goes straight to the month, the month back to TODAY', () => {

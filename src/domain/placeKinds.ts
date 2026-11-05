@@ -104,6 +104,9 @@ export const KIND_ICON = {
   salon: 'salon',
   // 생활 서비스·기관
   building: 'building',
+  police: 'building',
+  fire_station: 'building',
+  government: 'building',
   laundry: 'building',
   photo_studio: 'building',
   wedding: 'building',

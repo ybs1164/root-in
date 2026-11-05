@@ -1,10 +1,8 @@
+import { poiAppearance } from '../domain/poiAppearance';
 import type { AreaLabel, AreaShapes } from '../domain/adminAreas';
 import type { MapViewport } from '../domain/districtMap';
 import type { PlaceRef } from '../types/course';
 import { pinGlyphSvg } from '../lib/pinGlyphs';
-import type { PinIcon, PinTint } from '../types/pin';
-import { pinColorCss } from '../domain/pin';
-import { kindIcon } from '../domain/placeKinds';
 
 export interface MapPadding {
   top: number;
@@ -21,8 +19,6 @@ export interface CourseMap {
   readonly provider: 'kakao' | 'maplibre';
   /** Numbered markers for the stops, joined by a dashed straight line. */
   setCourse(stops: PlaceRef[]): void;
-  /** A distinct marker for a search result the user is looking at. */
-  setPreview(place: PlaceRef | null): void;
   /** The phone's own position (a dot, not tappable); null hides it. */
   setMyLocation(center: [number, number] | null): void;
   /** Saved pins, colored/iconed by category. Drawn under the course markers. */
@@ -54,8 +50,11 @@ export interface CourseMap {
   /** Fits arbitrary points (pins, a guide line). Resolves once the move ends. */
   fitPoints(points: [number, number][], padding: MapPadding, glideMs?: number): Promise<void>;
   focus(center: [number, number], padding?: MapPadding): void;
-  /** Pans so `center` sits in the middle of the map, leaving the zoom as it is. */
-  centerOn(center: [number, number]): void;
+  /**
+   * Pans so `center` sits in the middle of the map, leaving the zoom as it
+   * is — or `dropPx` below the middle (a card standing over it needs the room).
+   */
+  centerOn(center: [number, number], dropPx?: number): void;
   /** Turns one-finger / mouse dragging of the map on or off (off while a route is drawn over pins). */
   setPanEnabled(enabled: boolean): void;
   getCenter(): [number, number];
@@ -67,9 +66,9 @@ export interface CourseMap {
 export interface PinMarker {
   id: string;
   center: [number, number];
-  icon: PinIcon;
-  color: PinTint;
   name: string;
+  /** The pinned place: the map draws it as its POI (sticker and name), nothing more. */
+  place: PlaceRef;
   selected?: boolean;
 }
 
@@ -124,15 +123,14 @@ export const SEOUL_CENTER: [number, number] = [126.978, 37.5665];
 export const ADMIN_ATTRIBUTION = '행정경계: 통계청 SGIS · admdongkor | 지도·시설: © OpenStreetMap';
 
 /** Shared marker DOM so both map providers look identical. */
-export function createMarkerElement(label: string, variant: 'stop' | 'preview', onClick?: () => void, icon: PinIcon = 'pin'): HTMLElement {
+export function createMarkerElement(label: string, variant: 'stop', onClick?: () => void): HTMLElement {
   const el = document.createElement('button');
   el.type = 'button';
   el.className = `map-marker map-marker--${variant}`;
-  if (variant === 'preview') el.innerHTML = pinGlyphSvg(icon);
-  else el.textContent = label;
-  el.setAttribute('aria-label', variant === 'stop' ? `${label}번 장소` : '선택한 장소');
+  el.textContent = label;
+  el.setAttribute('aria-label', `${label}번 장소`);
   // Its place in the route, for the lines the app draws between stops.
-  if (variant === 'stop') el.dataset.stop = label;
+  el.dataset.stop = label;
   if (onClick) {
     el.addEventListener('click', (event) => {
       event.stopPropagation();
@@ -144,11 +142,6 @@ export function createMarkerElement(label: string, variant: 'stop' | 'preview', 
   return el;
 }
 
-/** The preview and its card use the same place-kind icon before it is saved. */
-export function createPreviewElement(place: PlaceRef): HTMLElement {
-  return createMarkerElement('', 'preview', undefined, kindIcon(place.kind) ?? 'pin');
-}
-
 export function createNearbyPlaceElement(place: PlaceRef, onClick?: (place: PlaceRef) => void): HTMLElement {
   const el = document.createElement('button');
   el.type = 'button';
@@ -157,7 +150,27 @@ export function createNearbyPlaceElement(place: PlaceRef, onClick?: (place: Plac
   el.dataset.kind = place.kind;
   el.title = place.name;
   el.setAttribute('aria-label', `${place.name}${place.category ? ` · ${place.category}` : ''}`);
-  el.innerHTML = pinGlyphSvg(kindIcon(place.kind) ?? 'pin');
+  const appearance = poiAppearance(place);
+  el.style.setProperty('--poi-size', `${appearance.size}px`);
+  el.style.setProperty('--poi-art-scale', String(appearance.artScale));
+  el.dataset.sizeSource = appearance.source;
+  const art = document.createElement('div');
+  art.className = 'map-nearby-place__art';
+  const fallback = () => {
+    el.classList.remove('map-nearby-place--sticker');
+    art.remove();
+  };
+  if (appearance.sticker) {
+    el.classList.add('map-nearby-place--sticker');
+    const image = document.createElement('img');
+    image.alt = '';
+    image.draggable = false;
+    image.decoding = 'async';
+    image.addEventListener('error', fallback, { once: true });
+    image.src = appearance.sticker;
+    art.append(image);
+    el.append(art);
+  }
   const name = document.createElement('span');
   name.textContent = place.name;
   el.append(name);
@@ -311,12 +324,11 @@ export function createGroupPingElement(mark: GroupPingMark): HTMLElement {
 }
 
 export function createPinElement(pin: PinMarker, onClick?: (id: string) => void): HTMLElement {
-  const el = document.createElement('button');
-  el.type = 'button';
-  el.className = `map-marker map-marker--pin${pin.selected ? ' is-selected' : ''}`;
-  el.style.setProperty('--pin', pinColorCss(pin.color));
-  // The category's solid glyph in the pin colour, no disc behind it.
-  el.innerHTML = pinGlyphSvg(pin.icon);
+  // A pinned place carries no mark of its own (no group icon, no colour): it
+  // is drawn exactly as the nearby POI it replaces — its sticker and name.
+  const el = createNearbyPlaceElement(pin.place);
+  el.classList.add('map-marker--pin');
+  if (pin.selected) el.classList.add('is-selected');
   el.setAttribute('aria-label', pin.name);
   // Lets a finger drawing a route over the map find the pin under it.
   el.dataset.pinId = pin.id;

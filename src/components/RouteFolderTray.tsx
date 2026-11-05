@@ -50,7 +50,7 @@ const LONG_PRESS_MS = 450;
 /** Moving this far before then is a scroll of the tab row, not a press. */
 const PRESS_SLOP_PX = 8;
 /** A sideways swipe on the list this long (and mostly sideways) goes to the next / previous folder. */
-const SWIPE_MIN_PX = 56;
+const SWIPE_MIN_PX = 40;
 
 interface Press {
   id: string;

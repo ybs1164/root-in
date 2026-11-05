@@ -8,6 +8,7 @@ import type { Account } from '../hooks/useAccount';
 import type { ColorScheme, Profile } from '../services/profileRepository';
 import { clearAppData } from '../services/settingsRepository';
 import { SWIPE, swipeCommits } from '../domain/appTabs';
+import { motionMs, slideOff, springBack } from '../lib/swipeSlide';
 import { ADMIN_ATTRIBUTION } from '../map/courseMap';
 import AlertBoard, { FlipCell } from './AlertBoard';
 import { GroupCover } from './WeNowPage';
@@ -33,21 +34,6 @@ function shownScheme(picked: ColorScheme | null): ColorScheme {
 }
 
 type Page = 'main' | 'location' | 'links' | 'privacy' | 'alerts' | 'display' | 'account' | 'terms';
-
-/** How long a screen takes to slide off to the right, going back (as long as it took coming in, styles.css `settings-in`). */
-const PAGE_OUT_MS = 260;
-/** A swipe let go too soon: the screen goes back into place. */
-const SPRING_BACK_MS = 180;
-
-const stillMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-// The same curve the screens come in on.
-const slideEase = () => getComputedStyle(document.documentElement).getPropertyValue('--slide-ease').trim() || 'ease-out';
-
-/** Slides `el` from `fromPx` off to the right, then `done`. */
-function slideOff(el: HTMLElement, fromPx: number, done: () => void) {
-  el.style.translate = '';
-  el.animate([{ translate: `${fromPx}px 0` }, { translate: '100% 0' }], { duration: stillMotion() ? 0 : PAGE_OUT_MS, easing: slideEase(), fill: 'forwards' }).finished.then(done, done);
-}
 
 const PAGES: { id: Exclude<Page, 'main'>; title: string; icon: ReactNode }[] = [
   { id: 'location', title: '위치 설정', icon: <LocateFixed size={20} aria-hidden /> },
@@ -95,7 +81,7 @@ export default function SettingsScreen({ profile, onChange, account, privacy, lo
     const dialog = dialogRef.current;
     if (dialog && !dialog.open) dialog.showModal();
     // Without the slide-in there's nothing to wait for.
-    if (stillMotion()) onCovered?.();
+    if (!motionMs(1)) onCovered?.();
   }, []);
 
   const open = (next: Exclude<Page, 'main'>) => {
@@ -156,9 +142,8 @@ export default function SettingsScreen({ profile, onChange, account, privacy, lo
     if (!sw?.el) return;
     swallowClick.current = true;
     const el = sw.el;
-    el.style.translate = '';
     if (swipeCommits(1, sw.dx, el.getBoundingClientRect().width || window.innerWidth, sw.v)) return back(sw.dx);
-    el.animate([{ translate: `${sw.dx}px 0` }, { translate: '0px 0' }], { duration: stillMotion() ? 0 : SPRING_BACK_MS, easing: slideEase() });
+    springBack(el, sw.dx);
   };
   const current = PAGES.find((p) => p.id === page);
   const scheme = shownScheme(profile.scheme);

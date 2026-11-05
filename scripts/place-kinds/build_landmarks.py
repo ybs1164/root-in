@@ -30,8 +30,12 @@ def classify(tags):
         return "hospital", "병원", 0
     if amenity in {"school", "kindergarten"}:
         return "school", "학교" if amenity == "school" else "유치원", 1
-    if amenity in {"townhall", "police", "fire_station", "community_centre", "courthouse"} or tags.get("office") == "government":
-        return "building", "공공시설", 1
+    if amenity == "police":
+        return "police", "경찰서", 1
+    if amenity == "fire_station":
+        return "fire_station", "소방서", 1
+    if amenity in {"townhall", "community_centre", "courthouse"} or tags.get("office") == "government":
+        return "government", "공공시설", 1
     if tags.get("leisure") in {"park", "garden"}:
         return "park", "공원", 1
     if tags.get("tourism") in {"museum", "gallery", "attraction"}:

@@ -919,30 +919,6 @@ button:disabled {
   box-shadow: var(--shadow-sm);
 }
 
-.map-marker--preview {
-  width: 38px;
-  height: 38px;
-  /* A new pin's place: 미분류's plain pin in the accent, drawn like the pins. */
-  background: transparent;
-  box-shadow: none;
-  color: var(--pin-0);
-  /* Drops in from just above, like a route's stops. Not a transform
-     animation: the map places markers with transform, so animating it made
-     the pin fly in from the map's corner. */
-  animation: stop-drop var(--drop-time) var(--drop-ease) both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .map-marker--preview {
-    animation: none;
-  }
-}
-
-.map-marker--preview .pin-glyph {
-  width: 32px;
-  height: 32px;
-}
-
 /* 내 위치: an accent dot in a soft halo — a pin made inside the halo goes into
    TODAY. One element, so its shadow costs nothing while the map moves. Taps
    go through to the map. */
@@ -1017,7 +993,15 @@ button:disabled {
   cursor: pointer;
   text-shadow: 0 0 3px var(--map-land), 0 0 2px var(--map-land);
 }
-.map-nearby-place svg { width: 17px; height: 17px; filter: drop-shadow(0 0 2px var(--map-land)); }
+/* Map POIs use upright transparent stickers; missing artwork leaves the name. */
+.map-nearby-place__art { display: flex; align-items: center; justify-content: center; flex: none; pointer-events: none; }
+.map-nearby-place--sticker .map-nearby-place__art { width: var(--poi-size); height: var(--poi-size); }
+.map-nearby-place__art img {
+  width: 100%; height: 100%; object-fit: contain;
+  transform: scale(var(--poi-art-scale, 1));
+  filter: drop-shadow(1.5px 0 0 var(--sticker-edge)) drop-shadow(-1.5px 0 0 var(--sticker-edge))
+    drop-shadow(0 1.5px 0 var(--sticker-edge)) drop-shadow(0 -1.5px 0 var(--sticker-edge));
+}
 .map-nearby-place span { max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .map-nearby-place--landmark { width: 116px; color: var(--text); font-size: 11px; font-weight: 600; }
 .map-nearby-place--landmark span { max-width: 110px; }
@@ -4915,8 +4899,10 @@ button:disabled {
    tail points down at the pin. Placed after the generic bottom positions so
    it wins on every width. */
 .app .place-card.place-card--pin {
-  /* Half the selected pin's height plus a gap. */
-  bottom: calc(50% + 32px);
+  /* Half the selected pin's height plus a gap, above the pin, which sits
+     96px below the map's middle (App's PIN_CARD_DROP_PX) to leave room for
+     the photos over the card. */
+  bottom: calc(50% + 32px - 96px);
   left: 50%;
   right: auto;
   width: min(270px, calc(100vw - 24px));
@@ -4949,6 +4935,129 @@ button:disabled {
   padding: 0;
 }
 
+/* The photos taken at the place, over its card, as a fan: the newest in the
+   middle, the next older tucked in behind on the right and the one before on
+   the left, both turned out a little; the rest wait hidden behind the middle.
+   A turn only changes each photo's slot — the transitions move them round.
+   Inside the card, so touching them keeps the card open. */
+.place-photos {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 14px);
+  translate: -50% 0;
+  width: 320px;
+  height: 146px;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.place-photos__photo {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 132px;
+  height: 132px;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 0.46s cubic-bezier(0.3, 0.7, 0.2, 1),
+    opacity 0.46s ease,
+    filter 0.46s ease;
+}
+
+.place-photos__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 14px;
+  pointer-events: none;
+}
+
+.place-photos__photo.is-center {
+  z-index: 3;
+  transform: translateX(-50%);
+  box-shadow: var(--shadow);
+}
+
+.place-photos__photo.is-right {
+  z-index: 2;
+  transform: translateX(calc(-50% + 82px)) translateY(14px) rotate(10deg) scale(0.79);
+  filter: saturate(0.7) brightness(0.96);
+}
+
+.place-photos__photo.is-left {
+  z-index: 1;
+  transform: translateX(calc(-50% - 82px)) translateY(14px) rotate(-10deg) scale(0.79);
+  filter: saturate(0.7) brightness(0.96);
+}
+
+/* The photos in the gallery (MY, searched for this place): at the fan's
+   bottom right, over the right-hand photo's corner. */
+.place-photos__gallery {
+  position: absolute;
+  right: 14px;
+  bottom: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.place-photos__photo.is-hidden {
+  z-index: 0;
+  transform: translateX(-50%) translateY(18px) scale(0.6);
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .place-photos__photo {
+    transition: none;
+  }
+}
+
+/* Far left of the ticket, the place as a sticker: a little bigger than the
+   stub's group glyph (30px), each image scaled like the map's POIs, sitting a
+   touch above the middle (level with the name and memo, not the card's
+   bottom padding). */
+.place-sticker {
+  flex: none;
+  align-self: center;
+  translate: 0 -10px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-left: 16px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.place-sticker img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform: scale(var(--poi-art-scale, 1));
+  filter: drop-shadow(1.5px 0 0 var(--sticker-edge)) drop-shadow(-1.5px 0 0 var(--sticker-edge))
+    drop-shadow(0 1.5px 0 var(--sticker-edge)) drop-shadow(0 -1.5px 0 var(--sticker-edge));
+}
+
+.place-sticker .pin-glyph {
+  width: 32px;
+  height: 32px;
+}
+
 .pin-card__main {
   position: relative;
   flex: 1;
@@ -4956,7 +5065,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 16px 18px 16px 24px;
+  padding: 16px 18px 16px 12px;
 }
 
 .pin-card__route {
@@ -5126,7 +5235,7 @@ button:disabled {
   color: var(--muted);
 }
 
-/* A new pin's ✓, where an existing pin's bin is. */
+/* A new pin's +, where an existing pin's bin is. */
 .pin-card__confirm {
   margin-bottom: -4px;
   color: var(--accent);
@@ -5593,6 +5702,28 @@ button:disabled {
   z-index: 3;
   transform: scale(1.3);
   background: color-mix(in srgb, var(--pin) 16%, transparent);
+}
+
+/* A pin is drawn as its POI (.map-nearby-place): undo the pin-only looks so
+   a pinned place shows nothing extra — no size, colour, disc or growth. */
+.map-nearby-place.map-marker--pin {
+  width: 76px;
+  height: auto;
+  color: var(--muted);
+}
+
+.map-nearby-place--landmark.map-marker--pin {
+  width: 116px;
+  color: var(--text);
+}
+
+.map-nearby-place--major.map-marker--pin {
+  color: var(--accent-strong);
+}
+
+.map-nearby-place.map-marker--pin.is-selected {
+  transform: none;
+  background: transparent;
 }
 
 /* ---------- Category chips / pills ---------- */
@@ -8108,6 +8239,11 @@ button:disabled {
     padding-bottom: 0;
   }
 
+  /* Level with the bar's big button there too. */
+  .group-view__camera {
+    bottom: 20px;
+  }
+
   .search.search--open {
     right: auto;
   }
@@ -8115,11 +8251,6 @@ button:disabled {
   .corner-btn {
     top: 24px;
   }
-  /* Level with the bar's big button there too. */
-  .group-view__camera {
-    bottom: 20px;
-  }
-
 
   .app--searching .corner-btn {
     transform: none;
@@ -9029,8 +9160,21 @@ button.group-photo-panel__photo {
   display: grid;
   place-items: center;
   padding: calc(var(--safe-top) + 64px) 16px calc(var(--safe-bottom) + 24px);
-  background: var(--tray-bg);
   animation: veil-in 0.2s ease both;
+  /* Every drag here is the viewer's (PhotoViewer): sideways pages, down closes. */
+  touch-action: none;
+}
+
+/* The veil, its own layer: pulled down it clears (--veil) to show what's under
+   the photo. `--veil-ms` is set only when it's let go; a finger moves it directly. */
+.group-photo-viewer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--tray-bg);
+  opacity: var(--veil, 1);
+  transition: opacity var(--veil-ms, 0ms) var(--slide-ease);
 }
 
 @keyframes veil-in {
@@ -9054,6 +9198,8 @@ button.group-photo-panel__photo {
   border-radius: 50%;
   background: var(--tray-hi);
   color: var(--tray-fg);
+  opacity: var(--veil, 1);
+  transition: opacity var(--veil-ms, 0ms) var(--slide-ease);
 }
 
 .group-photo-viewer__figure {
@@ -9078,9 +9224,7 @@ button.group-photo-panel__photo {
   text-align: center;
 }
 
-/* What the finger drags (GroupMapView moves it); sideways is the viewer's, up and down stay the page's. */
 .group-photo-viewer__drag {
-  touch-action: pan-y;
   cursor: grab;
 }
 
@@ -10405,6 +10549,8 @@ button.group-photo-panel__photo {
   background: var(--bg);
   color: var(--text);
   animation: veil-in 0.2s ease both;
+  /* Up and down scroll the photos; sideways is the swipe back (useSwipeBack). */
+  touch-action: pan-y;
 }
 
 .gallery__head {
@@ -10468,31 +10614,141 @@ button.group-photo-panel__photo {
   z-index: 1;
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  /* Bare icons now (no pills): close together. */
+  gap: 2px;
   max-width: 720px;
   margin: 0 auto -12px;
 }
 
 .gallery__filter {
+  --fill: var(--accent);
   display: grid;
   place-items: center;
-  min-width: 52px;
-  height: 36px;
-  padding: 0 14px;
-  border: 1.5px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--muted);
 }
 
-.gallery__filter.is-on {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--on-accent);
+.gallery__filter--star {
+  --fill: var(--star);
 }
 
-.gallery__filter.is-on .lucide-star {
+/* Switched on: the icon fills with its colour and pops, as the big photo's ♥ ★ do. */
+.gallery__filter.is-on {
+  color: var(--fill);
+}
+
+.gallery__filter.is-on svg {
   fill: currentColor;
+  animation: pop-in 0.28s var(--pop-ease) both;
+}
+
+/* 🔍 inside the open field's right end: no colour, no animation. */
+.gallery__filter--search.is-inside {
+  position: absolute;
+  right: 3px;
+  top: 50%;
+  width: 36px;
+  height: 36px;
+  translate: 0 -50%;
+}
+
+/* Searching, the row clears the first day's heading (the field runs across it). */
+.gallery__tools.is-searching {
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+/* The search field opens in the row, to the left of 🔍; the suggestions drop under it. */
+.gallery__search {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  margin: 0 4px 0 0;
+}
+
+.gallery__search-input {
+  display: block;
+  width: 100%;
+  height: 40px;
+  /* Room on the right for ✕ and 🔍. */
+  padding: 0 72px 0 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  /* 16px: iOS doesn't zoom in. */
+  font-size: 16px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.gallery__search-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.gallery__search-input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.gallery__search-clear {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  translate: 0 -50%;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+}
+
+.gallery__suggest {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 5;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  animation: unfold 0.16s ease both;
+}
+
+.gallery__suggest button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+}
+
+.gallery__suggest button svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.gallery__suggest b {
+  color: var(--accent-strong);
 }
 
 /* Beside the big photo's caption, where ‹ › were: the heart, then the star —
@@ -10555,13 +10811,6 @@ button.group-photo-panel__photo {
   scale: 0.92;
 }
 
-/* The 대화 itself (GroupChat): over the group's map like the gallery — ‹ and
-   TALK up top, the thread, the line to write at the bottom. */
-.group-chat {
-  position: fixed;
-  /* The part the keyboard leaves (lib/visualViewport.ts): the input sits on it. */
-  inset: var(--vv-top, 0px) 0 auto;
-  height: var(--vv-height, 100%);
 /* A group's camera: We Now's big middle button, in the same place (the bar's
    36px lift less the 8px it hangs below the row), so opening a group leaves it be. */
 .group-view__camera {
@@ -10591,6 +10840,13 @@ button.group-photo-panel__photo {
   height: 38px;
 }
 
+/* The 대화 itself (GroupChat): over the group's map like the gallery — ‹ and
+   TALK up top, the thread, the line to write at the bottom. */
+.group-chat {
+  position: fixed;
+  /* The part the keyboard leaves (lib/visualViewport.ts): the input sits on it. */
+  inset: var(--vv-top, 0px) 0 auto;
+  height: var(--vv-height, 100%);
   z-index: 50;
   display: flex;
   flex-direction: column;
@@ -11113,6 +11369,8 @@ button.group-photo-panel__photo {
   overflow-y: auto;
   overscroll-behavior: contain;
   list-style: none;
+  /* A long list scrolls under the finger, in a viewer that takes every other drag. */
+  touch-action: pan-y;
 }
 
 .photo-comments__item {

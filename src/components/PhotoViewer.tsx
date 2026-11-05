@@ -6,6 +6,7 @@ import { COMMENT_MAX } from '../domain/gallery';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { viewerStep } from '../domain/groups';
 import { SWIPE, swipeCommits } from '../domain/appTabs';
+import { motionMs, slideEase, SLIDE_OFF_MS, SPRING_BACK_MS } from '../lib/swipeSlide';
 
 /** One photo the viewer pages through; no `photo` = an empty frame (a place with none). */
 export interface ViewerItem {
@@ -20,6 +21,11 @@ export interface ViewerItem {
 
 /** How far a drag past the first or last photo still moves it (a little give, then it springs back). */
 const EDGE_GIVE = 0.25;
+/** A pull down this far (px) has cleared the veil, and the photo shrinks a little as it goes. */
+const PULL_CLEAR_PX = 320;
+const PULL_SHRINK = 0.15;
+/** A drag's own click on the veil or a button comes just after it, on some phones a while after. */
+const AFTER_DRAG_MS = 350;
 
 /**
  * A photo big over the whole screen (from a group's photo panel or the
@@ -28,8 +34,10 @@ const EDGE_GIVE = 0.25;
  * empty frame for a place with no photo). Dragged sideways the photo
  * follows the finger and, let go far or fast enough, pages to the place
  * before or after — stopping at the first and last (it gives a little and
- * springs back) rather than going round as the panel's ‹ › do. The veil,
- * ✕, Esc or the back button closes it, back to where it was opened.
+ * springs back) rather than going round as the panel's ‹ › do. Pulled down
+ * from anywhere, the photo follows the finger as the veil clears and, let go
+ * far or fast enough, drops off the screen and closes. The veil, ✕, Esc or
+ * the back button also close it, back to where it was opened.
  */
 export default function PhotoViewer({
   items,
@@ -110,30 +118,85 @@ export default function PhotoViewer({
   }, [onClose]);
 
   // The drag: the photo is moved straight from the pointer (no re-render a frame).
+  const root = useRef<HTMLDivElement>(null);
+  const figure = useRef<HTMLElement>(null);
   const photo = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ id: number; x: number; y: number; t: number; dx: number; on: boolean } | null>(null);
+  const drag = useRef<{ id: number; x: number; y: number; t: number; dx: number; dy: number; onPhoto: boolean; mode: 'page' | 'close' | null } | null>(null);
   /** A drag just ended: the click it makes isn't a tap on the veil. */
   const dragged = useRef(false);
+  const closing = useRef(false);
   const place = (dx: number, animate: boolean) => {
     const el = photo.current;
     if (!el) return;
     el.style.transition = animate ? 'translate 0.22s var(--slide-ease)' : 'none';
     el.style.translate = dx ? `${dx}px 0` : '';
   };
+  /** Where a pull down has the photo: `transform`, as the figure's `translate` holds its resting place. */
+  const pulledTo = (dy: number) => `translateY(${dy}px) scale(${1 - Math.min(1, dy / PULL_CLEAR_PX) * PULL_SHRINK})`;
+  const setVeil = (dy: number, ms = 0) => {
+    const el = root.current;
+    if (!el) return;
+    el.style.setProperty('--veil-ms', `${ms}ms`);
+    el.style.setProperty('--veil', String(1 - Math.min(1, dy / PULL_CLEAR_PX)));
+  };
+  const pull = (dy: number) => {
+    if (figure.current) figure.current.style.transform = pulledTo(dy);
+    setVeil(dy);
+  };
+  const letGoPull = (dy: number, commits: boolean) => {
+    const el = figure.current;
+    if (!el) return commits ? onClose() : undefined;
+    el.style.transform = '';
+    if (commits) {
+      closing.current = true;
+      const ms = motionMs(SLIDE_OFF_MS);
+      setVeil(PULL_CLEAR_PX, ms);
+      el.animate([{ transform: pulledTo(dy) }, { transform: `translateY(${window.innerHeight}px) scale(${1 - PULL_SHRINK})` }], {
+        duration: ms,
+        easing: slideEase(),
+        fill: 'forwards',
+      }).finished.then(() => onClose(), () => onClose());
+      return;
+    }
+    const ms = motionMs(SPRING_BACK_MS);
+    setVeil(0, ms);
+    el.animate([{ transform: pulledTo(dy) }, { transform: 'none' }], { duration: ms, easing: slideEase() });
+  };
   const onDown = (e: React.PointerEvent) => {
-    // A tool out: the finger doodles, it doesn't page.
-    if (!e.isPrimary || tool) return;
-    drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), dx: 0, on: false };
+    // A tool out: the finger doodles. A field moves its caret, a long list of comments scrolls.
+    if (!e.isPrimary || tool || closing.current) return;
+    const target = e.target as Element;
+    if (target.closest('input, textarea, .photo-comments__list')) return;
+    drag.current = {
+      id: e.pointerId,
+      x: e.clientX,
+      y: e.clientY,
+      t: performance.now(),
+      dx: 0,
+      dy: 0,
+      onPhoto: !!photo.current?.contains(target),
+      mode: null,
+    };
   };
   const onMove = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d || d.id !== e.pointerId) return;
     const dx = e.clientX - d.x;
-    if (!d.on) {
-      // Sideways first: a mostly vertical move isn't a page.
-      if (Math.abs(dx) < SWIPE.startPx || Math.abs(dx) < Math.abs(e.clientY - d.y)) return;
-      d.on = true;
-      e.currentTarget.setPointerCapture(e.pointerId);
+    const dy = e.clientY - d.y;
+    if (!d.mode) {
+      if (Math.abs(dx) < SWIPE.startPx && Math.abs(dy) < SWIPE.startPx) return;
+      // Down from anywhere closes; only the photo itself pages sideways; up is nothing.
+      if (Math.abs(dy) >= Math.abs(dx) ? dy < 0 : !d.onPhoto) return void (drag.current = null);
+      d.mode = Math.abs(dy) >= Math.abs(dx) ? 'close' : 'page';
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch {
+        // Not a live pointer: moves still come while over the viewer.
+      }
+    }
+    if (d.mode === 'close') {
+      d.dy = Math.max(0, dy);
+      return pull(d.dy);
     }
     // Past the first or last photo it only gives a little.
     const edge = viewerStep(seq, dx < 0 ? 1 : -1, count) === null;
@@ -143,13 +206,16 @@ export default function PhotoViewer({
   const onUp = (e: React.PointerEvent) => {
     const d = drag.current;
     drag.current = null;
-    if (!d || d.id !== e.pointerId || !d.on) return;
+    if (!d || d.id !== e.pointerId || !d.mode) return;
     dragged.current = true;
-    window.setTimeout(() => (dragged.current = false), 0);
+    window.setTimeout(() => (dragged.current = false), AFTER_DRAG_MS);
     const width = photo.current?.clientWidth ?? window.innerWidth;
-    const velocity = d.dx / Math.max(1, performance.now() - d.t);
+    const elapsed = Math.max(1, performance.now() - d.t);
+    const cancelled = e.type === 'pointercancel';
+    if (d.mode === 'close') return letGoPull(d.dy, !cancelled && swipeCommits(1, d.dy, width, d.dy / elapsed));
+    const velocity = d.dx / elapsed;
     const dir: -1 | 1 = d.dx < 0 ? 1 : -1;
-    const commits = viewerStep(seq, dir, count) !== null && swipeCommits(d.dx < 0 ? -1 : 1, d.dx, width, velocity);
+    const commits = !cancelled && viewerStep(seq, dir, count) !== null && swipeCommits(d.dx < 0 ? -1 : 1, d.dx, width, velocity);
     if (commits) {
       place(0, false);
       go(dir);
@@ -157,21 +223,29 @@ export default function PhotoViewer({
   };
 
   return (
-    <div className="group-photo-viewer" role="dialog" aria-modal="true" aria-label={`${ping.name} 사진`} onClick={() => dragged.current || onClose()}>
+    <div
+      ref={root}
+      className="group-photo-viewer"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${ping.name} 사진`}
+      onClick={() => onClose()}
+      onClickCapture={(e) => {
+        // A drag that began on a button or the photo isn't a press of it.
+        if (dragged.current) e.stopPropagation();
+      }}
+      onPointerDown={onDown}
+      onPointerMove={onMove}
+      onPointerUp={onUp}
+      onPointerCancel={onUp}
+    >
       <button className="group-photo-viewer__close" aria-label="닫기" onClick={onClose}>
         <X size={22} strokeWidth={2.4} />
       </button>
-      <figure className={`group-photo-viewer__figure ${commentPath !== undefined ? 'has-comments' : ''}`} onClick={(e) => e.stopPropagation()}>
+      <figure ref={figure} className={`group-photo-viewer__figure ${commentPath !== undefined ? 'has-comments' : ''}`} onClick={(e) => e.stopPropagation()}>
         {ping.date && <p className="group-photo-viewer__date">{ping.date}</p>}
         {ping.photo && doodle.tools}
-        <div
-          ref={photo}
-          className="group-photo-viewer__drag"
-          onPointerDown={onDown}
-          onPointerMove={onMove}
-          onPointerUp={onUp}
-          onPointerCancel={onUp}
-        >
+        <div ref={photo} className="group-photo-viewer__drag">
           <div key={seq} className={`group-photo-viewer__photo ${ping.photo ? '' : 'is-empty'} ${decorPath !== undefined && ping.photo ? 'has-doodles' : ''}`} data-from={from || undefined}>
             {ping.photo ? (
               <>

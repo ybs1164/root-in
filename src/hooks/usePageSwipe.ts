@@ -1,5 +1,6 @@
 import { useRef, useState, type CSSProperties, type TouchEvent } from 'react';
 import { SWIPE, swipeCommits } from '../domain/appTabs';
+import { motionMs, SLIDE_OFF_MS, SPRING_BACK_MS } from '../lib/swipeSlide';
 
 interface Track {
   x: number;
@@ -12,8 +13,6 @@ interface Track {
   /** Decided once the finger has moved: a sideways swipe one way (-1 left, 1 right), or anything else. */
   axis: -1 | 1 | 'other' | null;
 }
-
-const LEAVE_MS = 260;
 
 /**
  * One-finger sideways swipe that pushes a tab page off to the left
@@ -42,7 +41,7 @@ export function usePageSwipe(onLeft: (() => void) | null, onRight: (() => void) 
     settle.current = window.setTimeout(() => {
       setPhase((p) => (p === 'back' ? 'idle' : p));
       setHeading(null);
-    }, LEAVE_MS);
+    }, motionMs(SPRING_BACK_MS));
   };
 
   const go = (dir: -1 | 1) => {
@@ -56,11 +55,13 @@ export function usePageSwipe(onLeft: (() => void) | null, onRight: (() => void) 
       setPhase('idle');
       setDx(0);
       setHeading(null);
-    }, LEAVE_MS);
+    }, motionMs(SLIDE_OFF_MS));
   };
 
   const onTouchStart = (e: TouchEvent) => {
     if ((!onLeft && !onRight) || phase === 'leaving') return;
+    // A popup opened from the page: its fingers aren't the page's.
+    if ((e.target as Element).closest?.('dialog')) return;
     if (e.touches.length !== 1) {
       if (typeof track.current?.axis === 'number') reset();
       track.current = null;
@@ -118,7 +119,7 @@ export function usePageSwipe(onLeft: (() => void) | null, onRight: (() => void) 
       ? {}
       : {
           transform: `translateX(${dx}px)`,
-          transition: phase === 'drag' ? 'none' : `transform ${LEAVE_MS}ms cubic-bezier(0.2, 0.8, 0.2, 1)`,
+          transition: phase === 'drag' ? 'none' : `transform ${motionMs(phase === 'leaving' ? SLIDE_OFF_MS : SPRING_BACK_MS)}ms var(--slide-ease)`,
         };
 
   return {

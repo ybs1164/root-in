@@ -6,7 +6,6 @@ import {
   attachLongPress,
   createAreaLabelElement,
   createMarkerElement,
-  createPreviewElement,
   createMyLocationElement,
   createPinElement,
   createNearbyPlaceElement,
@@ -42,7 +41,6 @@ export class KakaoCourseMap implements CourseMap {
   private readonly map: KakaoMapInstance;
   private stops: PlaceRef[] = [];
   private stopOverlays: Overlay[] = [];
-  private preview: Overlay | null = null;
   private me: (Overlay & { setPosition(position: ReturnType<KakaoCourseMap['latLng']>): void }) | null = null;
   private pinOverlays: Overlay[] = [];
   private nearbyOverlays = new Map<string, KakaoOverlay>();
@@ -328,19 +326,6 @@ export class KakaoCourseMap implements CourseMap {
     this.me = new this.maps.CustomOverlay({ position: this.latLng(center), content: createMyLocationElement(), yAnchor: 0.5, zIndex: 5, map: this.map });
   }
 
-  setPreview(place: PlaceRef | null): void {
-    this.preview?.setMap(null);
-    this.preview = place
-      ? new this.maps.CustomOverlay({
-          position: this.latLng(place.center),
-          content: createPreviewElement(place),
-          yAnchor: 0.5,
-          zIndex: 3,
-          map: this.map,
-        })
-      : null;
-  }
-
   // setBounds jumps, so there's no glide to time (`glideMs` is moot here).
   fitCourse(padding: MapPadding, _glideMs?: number): Promise<void> {
     return this.fitPoints(
@@ -365,8 +350,12 @@ export class KakaoCourseMap implements CourseMap {
     this.map.setDraggable(enabled);
   }
 
-  centerOn(center: [number, number]): void {
-    this.map.panTo(this.latLng(center));
+  centerOn(center: [number, number], dropPx = 0): void {
+    if (!dropPx) return this.map.panTo(this.latLng(center));
+    // The map's middle goes that far above the place, so the place sits below it.
+    const projection = this.map.getProjection();
+    const at = projection.containerPointFromCoords(this.latLng(center));
+    this.map.panTo(projection.coordsFromContainerPoint(new this.maps.Point(at.x, at.y - dropPx)));
   }
 
   getCenter(): [number, number] {
@@ -388,7 +377,6 @@ export class KakaoCourseMap implements CourseMap {
     this.pinOverlays.forEach((o) => o.setMap(null));
     this.guide?.setMap(null);
     this.stopOverlays.forEach((o) => o.setMap(null));
-    this.preview?.setMap(null);
     this.me?.setMap(null);
   }
 }

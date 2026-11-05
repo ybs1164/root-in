@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as R
 import { createPortal } from 'react-dom';
 import { getSticker } from '../domain/decor';
 import { outlinedSticker } from '../lib/stickerEdge';
-import { SWIPE, swipeCommits } from '../domain/appTabs';
+import { SHEET_PULL, swipeCommits } from '../domain/appTabs';
 import { peelFold, STICKER_SHEETS, type PeelFold, type SheetSlot, type StickerDrop, type StickerSheet } from '../domain/stickerSheets';
 
 /** Less movement than this is a tap on a sticker, not a pull (px). */
@@ -428,7 +428,7 @@ export default function StickerSheets({
     if (!r || r.id !== e.pointerId) return;
     const dy = e.clientY - r.y;
     if (!r.on) {
-      if (Math.abs(dy) < SWIPE.startPx) return;
+      if (Math.abs(dy) < SHEET_PULL.startPx) return;
       r.on = true;
       e.currentTarget.setPointerCapture(e.pointerId);
     }
@@ -444,7 +444,7 @@ export default function StickerSheets({
     const velocity = r.dy / Math.max(1, performance.now() - r.t);
     // Either way it glides on from where the finger left it (up, or back down to its band).
     placeSheets(null, true);
-    if (swipeCommits(-1, r.dy, r.down, velocity)) setPeek(false);
+    if (swipeCommits(-1, r.dy, r.down, velocity, SHEET_PULL)) setPeek(false);
   };
 
   // Up, the pack can be dragged down by its band or bare paper the same way:
@@ -465,7 +465,7 @@ export default function StickerSheets({
     if (!r || r.id !== e.pointerId) return;
     const dy = e.clientY - r.y;
     if (!r.on) {
-      if (Math.abs(dy) < SWIPE.startPx) return;
+      if (Math.abs(dy) < SHEET_PULL.startPx) return;
       r.on = true;
       try {
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -484,7 +484,7 @@ export default function StickerSheets({
     window.setTimeout(() => (lowered.current = false), 0);
     const velocity = r.dy / Math.max(1, performance.now() - r.t);
     placeSheets(null, true);
-    if (e.type !== 'pointercancel' && swipeCommits(1, r.dy, r.down, velocity)) setPeek(true);
+    if (e.type !== 'pointercancel' && swipeCommits(1, r.dy, r.down, velocity, SHEET_PULL)) setPeek(true);
   };
 
   if (!sheet) return null;

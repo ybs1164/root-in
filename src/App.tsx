@@ -5,7 +5,7 @@ import ShareStudio from './components/ShareStudio';
 import { analytics, type PinSource, type ShareKind } from './services/analytics';
 import ConfirmDialog from './components/ConfirmDialog';
 import { routeSubject, type ShareSubject } from './domain/shareSubject';
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { useBackButton } from './hooks/useBackButton';
 import { closeTopDialog } from './lib/native';
 import { LOCATION_MESSAGES } from './lib/geolocation';
@@ -34,9 +34,11 @@ import { categoryLinkUrl, categoryShareService } from './services/categoryShareS
 import { calendarAgain, pageSwipes, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { COURSE_LIMITS } from './domain/course';
 import type { MapViewport } from './domain/districtMap';
-import { filterPinsByCategories, isUncategorized, pinStyle, UNCATEGORIZED } from './domain/pin';
+import { addPlacesAsPins, filterPinsByCategories, isUncategorized, pinStyle, UNCATEGORIZED } from './domain/pin';
+import { placePhotos, visitedPlaces } from './domain/visitedPlaces';
+import { loadVisitedPings, saveVisitedPings } from './services/visitedPinRepository';
 import { placeKindService } from './services/placeKindService';
-import { pinRailNext, tapAll, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
+import { isAllPicked, pinRailNext, tapAll, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
 import { pingsForDate, PRESS, TODAY_PING_RADIUS_M } from './domain/dayPings';
 import { buildRouteLook, EMPTY_BUILD_LOOK, nextRouteName, ROUTE_NOTE_MAX, toggleBuildStop, withBuildEdge, withBuildShape, type BuildLook } from './domain/routeBuild';
 import { addEditStop, moveStop, toggleEditStop, withEditStops, type RouteEdit } from './domain/routeEdit';
@@ -63,7 +65,7 @@ import { useUnreadTalk } from './hooks/useUnreadTalk';
 import { loadGroupOrder, saveGroupOrder } from './services/groupOrderRepository';
 import { loadGroupSeen, loadMemberSeen, memberSeenKey, saveGroupSeen, saveMemberSeen, type GroupSeen, type MemberSeen } from './services/groupSeenRepository';
 import { useStoredPings } from './hooks/useStoredPings';
-import { dateKey } from './domain/diary';
+import { dateKey, timeKey } from './domain/diary';
 import GroupMapView, { type GroupPlace } from './components/GroupMapView';
 import GroupChat from './components/GroupChat';
 import PhotoGallery from './components/PhotoGallery';
@@ -71,7 +73,8 @@ import { useHeartNews } from './hooks/useHeartNews';
 import { useGroupNews } from './hooks/useGroupNews';
 import { useGalleryPhotos } from './hooks/useGalleryPhotos';
 import { usePingPhotos } from './hooks/usePingPhotos';
-import { localGalleryPhotos, type GalleryTab } from './domain/gallery';
+import { galleryDayLabel, localGalleryPhotos, type GalleryTab } from './domain/gallery';
+import PhotoViewer from './components/PhotoViewer';
 import CameraScreen from './components/CameraScreen';
 import GroupSendDialog from './components/GroupSendDialog';
 import GroupFormDialog from './components/GroupFormDialog';
@@ -84,6 +87,7 @@ import { planShare } from './services/shareTargets';
 import { usePageSwipe } from './hooks/usePageSwipe';
 import { usePins } from './hooks/usePins';
 import { usePinKinds } from './hooks/usePinKinds';
+import { isSamePoi, kindsFromPlaces, withPinKinds } from './domain/pinKinds';
 import { useRouteFolders } from './hooks/useRouteFolders';
 import { usePlaceSearch } from './hooks/usePlaceSearch';
 import { useSettings } from './hooks/useSettings';
@@ -106,6 +110,11 @@ const DESKTOP_QUERY = '(min-width: 900px)';
 // it moves, and how far it must have moved to be worth asking again.
 const AIM_LOOKUP_MS = 300;
 const AIM_MIN_MOVE_M = 8;
+// A pin and a nearby POI of the same name this close are the same place
+// (a searched place keeps the search's id, not the POI data's).
+// A pin's card opens with the pin this far below the map's middle, leaving
+// room above the card for the photos taken there (.place-card--pin's bottom).
+const PIN_CARD_DROP_PX = 96;
 /** Shown on a shared route's popup until share counts are tracked somewhere. */
 
 /** Matches `tray-down` in styles.css: the 경로 폴더 sheet stays mounted while it slides away. */
@@ -155,7 +164,9 @@ export default function App() {
   // The route behind the 꾸미기 screen, when it's a route's card: its link is what 링크 복사 copies.
   const [studioCourse, setStudioCourse] = useState<Course | null>(null);
   const [studioTheme, setStudioTheme] = useState<ThemeId>('default');
-  const dayTheme = studio ? studioTheme : calendarTheme;
+  // TODAY swiped aside: the theme goes with its screen, not over We Now under it.
+  const [todaySwiping, setTodaySwiping] = useState(false);
+  const dayTheme = studio ? studioTheme : todaySwiping ? 'default' : calendarTheme;
   useEffect(() => {
     const root = document.documentElement;
     if (dayTheme === 'default') delete root.dataset.theme;
@@ -432,6 +443,31 @@ export default function App() {
   const galleryIds = useMemo(() => (galleryTab ? groupList.map((g) => g.id) : null), [galleryTab, groupList]);
   const gallery = useGalleryPhotos(galleryIds);
   const pingPhotos = usePingPhotos();
+  // The photos I took at the place a card is open on (above the card).
+  const activePinPhotos = useMemo(
+    () => (activePin ? placePhotos(activePin.place, activePin.id, storedPings, pingPhotos) : []),
+    [activePin, storedPings, pingPhotos],
+  );
+  const previewPhotos = useMemo(() => (preview ? placePhotos(preview, null, storedPings, pingPhotos) : []), [preview, storedPings, pingPhotos]);
+  // One of them open big (its index, newest first); another card closes it.
+  const [placePhoto, setPlacePhoto] = useState<number | null>(null);
+  const cardPhotos = preview ? previewPhotos : activePinPhotos;
+  const cardPlace = preview ?? activePin?.place ?? null;
+  useEffect(() => setPlacePhoto(null), [preview?.id, activePinId]);
+  // Places I've been (my pings) become 미분류 pins, each ping looked at once.
+  useEffect(() => {
+    const done = loadVisitedPings();
+    let settled: string[] = [];
+    const ready = pinStore.transform(({ pins: now, categories: kinds }, make) => {
+      const visit = visitedPlaces(storedPings, now, done);
+      settled = visit.settled;
+      if (!visit.places.length) return null;
+      return { pins: addPlacesAsPins(now, visit.places, make.pin).pins, categories: kinds };
+    });
+    if (!ready || !settled.length) return;
+    settled.forEach((id) => done.add(id));
+    saveVisitedPings(done);
+  }, [storedPings, pins, pinStore.transform]);
   const myMember = useMemo<GroupMember>(
     () =>
       groupList.flatMap((g) => g.members).find((m) => m.userId === myId) ?? {
@@ -443,14 +479,20 @@ export default function App() {
     () => (galleryTab ? localGalleryPhotos(storedPings, pingPhotos, myMember.userId) : []),
     [galleryTab, storedPings, pingPhotos, myMember.userId],
   );
-  const openGallery = (to: GalleryTab) => {
+  // A place card's gallery button opens MY searched for that place.
+  const [galleryPlace, setGalleryPlace] = useState<string | null>(null);
+  const openGallery = (to: GalleryTab, place: string | null = null) => {
     setGallerySeq(null);
     setGalleryTab(to);
+    setGalleryPlace(place);
   };
   const closeGallery = useCallback(() => {
     setGallerySeq(null);
     setGalleryTab(null);
+    setGalleryPlace(null);
   }, []);
+  // The gallery search's suggestions: every place I've pinged.
+  const visitedNames = useMemo(() => [...new Set(storedPings.map((p) => p.name))], [storedPings]);
   // A group's tab that's gone (left, deleted) falls back to MY.
   useEffect(() => {
     if (galleryTab && galleryTab !== 'my' && !groupList.some((g) => g.id === galleryTab)) openGallery('my');
@@ -534,6 +576,10 @@ export default function App() {
     swipeTo.left ? () => changeTab(swipeTo.left!) : null,
     swipeTo.right ? () => changeTab(swipeTo.right!) : null,
   );
+  // Left to right on TODAY takes it back to We Now, which shows under it meanwhile
+  // (not while drawing, a ping is picked or a photo is big: those fingers are theirs).
+  const todaySwipe = usePageSwipe(null, todayOpen && !decorating && !todayPhoto && !pingRemove ? () => setTodayOpen(false) : null);
+  useLayoutEffect(() => setTodaySwiping(todaySwipe.moving), [todaySwipe.moving]);
   // While the page is swiped off, the map screen under it stays whole.
   const pageMoving = swipe.moving;
   // The screen the moving page is heading for (the bottom row turns to it meanwhile).
@@ -608,19 +654,16 @@ export default function App() {
     // (its stops, shaped or numbered, stand in for the places).
     // Editing it, they come back to be picked.
     if (shownRoute && !isEditing && pinsGone) return [];
-    return shownPins.map((pin) => {
-      const style = pinStyle(categories, pin.categoryId, pin.place);
-      return {
-        id: pin.id,
-        center: pin.place.center,
-        name: pin.place.name,
-        icon: style.icon,
-        color: style.color,
-        // While making a route, chosen pins show their order as numbered stops instead.
-        selected: pin.id === activePinId,
-      };
-    });
-  }, [mapUi, shownPins, categories, activePinId, shownRoute, isEditing, pinsGone, openGroup]);
+    return shownPins.map((pin) => ({
+      id: pin.id,
+      center: pin.place.center,
+      name: pin.place.name,
+      // The map draws the place as its POI; its group shows nowhere on the map.
+      place: pin.place,
+      // While making a route, chosen pins show their order as numbered stops instead.
+      selected: pin.id === activePinId,
+    }));
+  }, [mapUi, shownPins, activePinId, shownRoute, isEditing, pinsGone, openGroup]);
 
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
   // 제외 주소 are located with the same place search (search failing just leaves the address text to match).
@@ -786,10 +829,30 @@ export default function App() {
   nearbyContext.current = { places: nearbyPlaces, viewport };
   const refreshAim = useRef(() => {});
   useEffect(() => { refreshAim.current(); }, [nearbyPlaces, viewport]);
+  // A pinned place is drawn by its pin, which looks just like its POI: the POI
+  // steps aside so the two don't stack.
+  // A category picked (not ALL): only that category's places — the places
+  // that aren't pins step off the map too.
+  const categoryPicked = !isAllPicked(picked, [UNCATEGORIZED.id, ...categories.map((c) => c.id)]);
+  const unpinnedNearby = useMemo(() => {
+    if (categoryPicked) return [];
+    if (pinMarkers.length === 0) return nearbyPlaces;
+    return nearbyPlaces.filter((place) => !pinMarkers.some((pin) => isSamePoi(pin.place, place)));
+  }, [nearbyPlaces, pinMarkers, categoryPicked]);
+  // A pin with no kind (made from a ping, a long press) hides the POI it stands
+  // for and would show no sticker: it takes that POI's kind, kept on the pin.
+  useEffect(() => {
+    const matches = kindsFromPlaces(pins, nearbyPlaces);
+    if (!matches.length) return;
+    pinStore.transform((current) => {
+      const next = withPinKinds(current.pins, matches);
+      return next === current.pins ? null : { ...current, pins: next };
+    });
+  }, [pins, nearbyPlaces, pinStore.transform]);
   useEffect(() => {
     // Nor nearby places or landmarks on a group's map.
-    mapRef.current?.setNearbyPlaces(groupOpen ? [] : nearbyPlaces);
-  }, [nearbyPlaces, mapProvider, groupOpen]);
+    mapRef.current?.setNearbyPlaces(groupOpen ? [] : unpinnedNearby);
+  }, [unpinnedNearby, mapProvider, groupOpen]);
   useEffect(() => {
     mapRef.current?.setAreaMap(areaMap);
   }, [areaMap, mapProvider]);
@@ -1056,14 +1119,6 @@ export default function App() {
     });
   }, [editPlaces, pinMarkers, pins, mapProvider]);
 
-  // Keyed by the spot, not the object: the address name landing a moment
-  // later mustn't re-make the marker (and drop it in a second time).
-  const previewSpot = preview ? `${preview.id}|${preview.center.join(',')}` : '';
-  useEffect(() => {
-    mapRef.current?.setPreview(preview);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewSpot, mapProvider]);
-
   useEffect(() => {
     const onResize = () => mapRef.current?.resize();
     window.addEventListener('resize', onResize);
@@ -1126,7 +1181,7 @@ export default function App() {
     pinSource.current = source;
     setPreview(place);
     // Into the middle at the current zoom; the new pin's card stands above it.
-    mapRef.current?.centerOn(place.center);
+    mapRef.current?.centerOn(place.center, PIN_CARD_DROP_PX);
     if (nearby) return;
     const named = await searchService?.reverse(center);
     // Only if the user is still looking at that spot.
@@ -1171,7 +1226,7 @@ export default function App() {
     pinSource.current = 'search';
     setPreview(place);
     // Into the middle at the current zoom; the new pin's card stands above it.
-    mapRef.current?.centerOn(place.center);
+    mapRef.current?.centerOn(place.center, PIN_CARD_DROP_PX);
   };
   mapEvents.current.nearby = (place) => {
     if ((building && routeMode) || shownRoute) return;
@@ -1187,7 +1242,7 @@ export default function App() {
     setPreview(null);
     setActivePinId(id);
     // Into the middle of the map at the current zoom; its card opens just above it.
-    mapRef.current?.centerOn(pin.place.center);
+    mapRef.current?.centerOn(pin.place.center, PIN_CARD_DROP_PX);
   };
 
   // A pin picked from a 핀 카테고리 list: as if tapped on the map. If the
@@ -1472,6 +1527,7 @@ export default function App() {
     if (groupPhotoBig) return setGroupPhotoBig(false), true;
     if (openGroupId) return setOpenGroupId(null), true;
     if (todayPhoto !== null) return setTodayPhoto(null), true;
+    if (placePhoto !== null) return setPlacePhoto(null), true;
     if (todayOpen) return setTodayOpen(false), true;
     if (searchOpen) return setSearchOpen(false), setQuery(''), searchInput.current?.blur(), true;
     if (preview) return setPreview(null), true;
@@ -1955,6 +2011,9 @@ export default function App() {
           key={preview.id}
           place={preview}
           categories={categories}
+          photos={previewPhotos}
+          onOpenPhoto={setPlacePhoto}
+          onOpenGallery={() => openGallery('my', preview.name)}
           onSave={confirmNewPin}
           onClose={closeNewPin}
         />
@@ -1964,6 +2023,9 @@ export default function App() {
         <PinCard
           pin={activePin}
           categories={categories}
+          photos={activePinPhotos}
+          onOpenPhoto={setPlacePhoto}
+          onOpenGallery={() => openGallery('my', activePin.place.name)}
           onRecategorize={(id) => {
             pinStore.updatePin(activePin.id, { categoryId: id });
             updateSettings((s) => withRecentCategory(s, id));
@@ -1975,6 +2037,27 @@ export default function App() {
         />
       )}
 
+      {/* A card's photo big: oldest to newest, the newest on the right as in the gallery. */}
+      {placePhoto !== null && cardPlace && cardPhotos[placePhoto] && (
+        <PhotoViewer
+          items={[...cardPhotos].reverse().map((p) => ({
+            photo: p.url,
+            name: cardPlace.name,
+            who: timeKey(new Date(p.at)),
+            face: null,
+            date: galleryDayLabel(dateKey(new Date(p.at)), dateKey()),
+          }))}
+          seq={cardPhotos.length - 1 - placePhoto}
+          onSeq={(seq) => setPlacePhoto(cardPhotos.length - 1 - seq)}
+          onClose={() => setPlacePhoto(null)}
+          prevLabel="이전 사진"
+          nextLabel="다음 사진"
+          counted={false}
+          // Just the photo: no 💬 or ★ here, and no ‹ › either (paging is by drag and the arrow keys).
+          side={false}
+        />
+      )}
+
       {onPage ? (
         <section
           className="page"
@@ -1982,36 +2065,10 @@ export default function App() {
           style={swipe.style}
           {...swipe.handlers}
         >
-          {calendarZoom && <DayPattern pattern={dayPattern} />}
           {/* No head bar: TODAY's own heading takes the stage, and We Now shows
               no title (named for screen readers only). */}
           <h1 className="sr-only">{PAGE_TITLES[tab]}</h1>
-          {calendarZoom ? (
-            <CalendarZoom
-              command={calendarCommand}
-              nameAt={async (center) => (await searchService?.reverse(center)) ?? null}
-              onToast={(text) => setToast({ text })}
-              excluded={privacy.excluded}
-              here={me?.center ?? null}
-              pins={pinStore.pins}
-              categories={pinStore.categories}
-              onDecorating={setDecorating}
-              onPingPicked={(remove) => setPingRemove(() => remove)}
-              pingDropZone={() => barEl.current?.querySelector('.bar-cal') ?? null}
-              onPingDropHover={setPingDropHot}
-              onDayTheme={setDayTheme}
-              onDayPattern={setDayPattern}
-              onMode={setCalendarMode}
-              photoSeq={todayPhoto}
-              onPhotoSeq={setTodayPhoto}
-            />
-          ) : null}
-          {calendarZoom && tab === 'people' && (
-            <button className="today-back" aria-label="그룹 목록으로" onClick={() => setTodayOpen(false)}>
-              <ChevronLeft size={24} strokeWidth={2.2} />
-            </button>
-          )}
-          {tab === 'people' && !todayOpen && (
+          {tab === 'people' && (!todayOpen || todaySwipe.moving) && (
             <WeNowPage
               todayPings={todayPings}
               // The same look TODAY gives a ping (CalendarZoom's pinLookOf).
@@ -2034,6 +2091,39 @@ export default function App() {
           )}
         </section>
       ) : null}
+
+      {onPage && calendarZoom && (
+        <section
+          className={`page ${todaySwipe.moving ? 'theme-scope' : ''}`}
+          aria-label="TODAY"
+          data-theme={todaySwipe.moving && calendarTheme !== 'default' ? calendarTheme : undefined}
+          style={todaySwipe.style}
+          {...todaySwipe.handlers}
+        >
+          <DayPattern pattern={dayPattern} />
+          <CalendarZoom
+            command={calendarCommand}
+            nameAt={async (center) => (await searchService?.reverse(center)) ?? null}
+            onToast={(text) => setToast({ text })}
+            excluded={privacy.excluded}
+            here={me?.center ?? null}
+            pins={pinStore.pins}
+            categories={pinStore.categories}
+            onDecorating={setDecorating}
+            onPingPicked={(remove) => setPingRemove(() => remove)}
+            pingDropZone={() => barEl.current?.querySelector('.bar-cal') ?? null}
+            onPingDropHover={setPingDropHot}
+            onDayTheme={setDayTheme}
+            onDayPattern={setDayPattern}
+            onMode={setCalendarMode}
+            photoSeq={todayPhoto}
+            onPhotoSeq={setTodayPhoto}
+          />
+          <button className="today-back" aria-label="그룹 목록으로" onClick={() => setTodayOpen(false)}>
+            <ChevronLeft size={24} strokeWidth={2.2} />
+          </button>
+        </section>
+      )}
 
       {openGroup && (
         <>
@@ -2120,10 +2210,12 @@ export default function App() {
           me={myId}
           meMember={myMember}
           tab={galleryTab}
-          onTab={openGallery}
+          onTab={(to) => openGallery(to)}
           state={gallery.state}
           onRetry={gallery.retry}
           local={galleryLocal}
+          visited={visitedNames}
+          place={galleryPlace}
           seq={gallerySeq}
           onSeq={setGallerySeq}
           onClose={closeGallery}
@@ -2238,7 +2330,7 @@ export default function App() {
         <BottomBar
           tab={pageMoving && swipeTarget ? swipeTarget : tab}
           calendarMode={calendarMode}
-          today={calendarZoom}
+          today={calendarZoom && !todaySwipe.leaving}
           onCalendar={calendarButton}
           onDeletePing={onPage && calendarZoom && calendarMode === 'day' && pingRemove ? pingRemove : undefined}
           deleteHot={pingDropHot}

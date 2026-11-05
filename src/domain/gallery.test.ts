@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayPosters, feedAlertKind, filterGallery, metDays, galleryDayLabel, galleryDays, galleryTabDays, localGalleryPhotos, viewerOrder, unreadBy, type GalleryPhoto } from './gallery';
+import { dayPosters, feedAlertKind, filterGallery, metDays, galleryDayLabel, galleryDays, galleryTabDays, localGalleryPhotos, placeSuggestions, viewerOrder, unreadBy, type GalleryPhoto } from './gallery';
 import type { StoredPing } from './dayPings';
 
 const photo = (id: string, groupId: string, day: string, time: string, path = `p/${id}`): GalleryPhoto => ({
@@ -105,5 +105,25 @@ describe('unreadBy', () => {
     expect(unreadBy(item, members, { b: '2026-11-02T10:00:00.000Z' }, 'me')).toBe(1);
     expect(unreadBy(item, members, { b: '2026-11-02T11:00:00.000Z', c: '2026-11-02T09:59:00.000Z' }, 'me')).toBe(1);
     expect(unreadBy(item, members, { b: '2026-11-02T11:00:00.000Z', c: '2026-11-02T11:00:00.000Z' }, 'me')).toBe(0);
+  });
+});
+
+describe('place search', () => {
+  it("suggests the places I've been with the words in them, starting-with first", () => {
+    const names = ['서촌 카페', '카페 온화', '서촌', '카페 온화', '통인시장', ' Cafe Mori '];
+    expect(placeSuggestions(names, '카페')).toEqual(['카페 온화', '서촌 카페']);
+    expect(placeSuggestions(names, 'cafe')).toEqual(['Cafe Mori']);
+    expect(placeSuggestions(names, '  ')).toEqual([]);
+    expect(placeSuggestions(names, '서', 1)).toEqual(['서촌']);
+  });
+
+  it('shows only the photos taken at the searched place, by its full name', () => {
+    const days = galleryDays([
+      { ...photo('a', 'g', '2026-10-27', '01:00'), name: '서촌 카페' },
+      { ...photo('b', 'g', '2026-10-28', '01:00'), name: '서촌' },
+      { ...photo('c', 'g', '2026-10-28', '05:00'), name: '서촌 카페' },
+    ]);
+    expect(filterGallery(days, { place: '서촌 카페' }).flatMap((d) => d.photos.map((p) => p.id))).toEqual(['c', 'a']);
+    expect(filterGallery(days, { place: '서촌 카' })).toEqual([]);
   });
 });
