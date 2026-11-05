@@ -1,6 +1,6 @@
-import { RefreshCw, RotateCcw, Send, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { captureFrame, openCamera, stopCamera, type Facing } from '../lib/camera';
+import { Minus, Plus, RefreshCw, RotateCcw, Send, X } from 'lucide-react';
+import { useEffect, useRef, useState, type PointerEvent } from 'react';
+import { CAMERA_ZOOM, captureFrame, clampCameraZoom, openCamera, stopCamera, type Facing } from '../lib/camera';
 
 /**
  * The camera, from the camera button: a square (1:1) live view, a big
@@ -16,12 +16,46 @@ export default function CameraScreen({ onSend, onClose }: { onSend: (photo: stri
   // When the shutter went: the photo's time wherever it's shown, however long 전송 takes.
   const takenAt = useRef(new Date());
   const [flash, setFlash] = useState(0);
+  const [zoom, setZoom] = useState<number>(1);
+  const zoomRef = useRef(1);
+  const fingers = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ distance: number; zoom: number } | null>(null);
+  const changeZoom = (value: number) => {
+    zoomRef.current = clampCameraZoom(value);
+    setZoom(zoomRef.current);
+  };
+  const distance = () => {
+    const [a, b] = [...fingers.current.values()];
+    return a && b ? Math.hypot(b.x - a.x, b.y - a.y) : 0;
+  };
+  const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
+    if (shot || state !== 'live' || fingers.current.size >= 2) return;
+    fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    e.currentTarget.setPointerCapture(e.pointerId);
+    if (fingers.current.size === 2) pinch.current = { distance: distance(), zoom: zoomRef.current };
+  };
+  const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
+    if (!fingers.current.has(e.pointerId)) return;
+    fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const start = pinch.current;
+    if (start && start.distance > 0) changeZoom(start.zoom * distance() / start.distance);
+  };
+  const onPointerEnd = (e: PointerEvent<HTMLDivElement>) => {
+    if (fingers.current.delete(e.pointerId)) pinch.current = null;
+  };
+
+  useEffect(() => {
+    fingers.current.clear();
+    pinch.current = null;
+  }, [shot, facing, state]);
 
   // A new stream for each camera; the old one is stopped so the light goes off.
   useEffect(() => {
     let stream: MediaStream | null = null;
     let gone = false;
     setState('starting');
+    zoomRef.current = 1;
+    setZoom(1);
     void openCamera(facing).then((s) => {
       if (gone) return stopCamera(s);
       stream = s;
@@ -54,7 +88,7 @@ export default function CameraScreen({ onSend, onClose }: { onSend: (photo: stri
     // Always a square, whatever shape the view ended up on screen: its middle.
     const { width, height } = el.getBoundingClientRect();
     const side = Math.min(width, height);
-    const url = captureFrame(el, { width: side, height: side }, facing === 'user');
+    const url = captureFrame(el, { width: side, height: side }, facing === 'user', zoomRef.current);
     if (!url) return;
     setFlash((n) => n + 1);
     takenAt.current = new Date();
@@ -64,8 +98,15 @@ export default function CameraScreen({ onSend, onClose }: { onSend: (photo: stri
   return (
     <div className="camera" role="dialog" aria-modal="true" aria-label="카메라">
       {/* Square: the photo is cropped to exactly this box (captureFrame reads its size). */}
-      <div className="camera__frame">
-        <video ref={video} className={`camera__view ${facing === 'user' ? 'is-mirrored' : ''}`} playsInline muted autoPlay />
+      <div
+        className="camera__frame"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerEnd}
+        onPointerCancel={onPointerEnd}
+        onLostPointerCapture={onPointerEnd}
+      >
+        <video ref={video} className={`camera__view ${facing === 'user' ? 'is-mirrored' : ''}`} style={{ transform: `scale(${zoom})` }} playsInline muted autoPlay />
         {flash > 0 && <div key={flash} className="camera__flash" aria-hidden />}
         {shot && <img className="camera__shot" src={shot} alt="찍은 사진" />}
       </div>
@@ -95,6 +136,26 @@ export default function CameraScreen({ onSend, onClose }: { onSend: (photo: stri
           </>
         ) : (
           <>
+            <div className="camera__zoom" role="group" aria-label="카메라 줌">
+              <button type="button" className="camera__btn" aria-label="줌 아웃" disabled={state !== 'live' || zoom <= CAMERA_ZOOM.min} onClick={() => changeZoom(zoomRef.current - CAMERA_ZOOM.step)}>
+                <Minus size={20} strokeWidth={2.2} />
+              </button>
+              <input
+                type="range"
+                min={CAMERA_ZOOM.min}
+                max={CAMERA_ZOOM.max}
+                step={CAMERA_ZOOM.step}
+                value={zoom}
+                disabled={state !== 'live'}
+                aria-label="카메라 줌 배율"
+                aria-valuetext={`${zoom.toFixed(1)}배`}
+                onChange={(e) => changeZoom(Number(e.target.value))}
+              />
+              <output className="camera__zoom-value" aria-label="현재 줌 배율">{zoom.toFixed(1)}×</output>
+              <button type="button" className="camera__btn" aria-label="줌 인" disabled={state !== 'live' || zoom >= CAMERA_ZOOM.max} onClick={() => changeZoom(zoomRef.current + CAMERA_ZOOM.step)}>
+                <Plus size={20} strokeWidth={2.2} />
+              </button>
+            </div>
             <span className="camera__spacer" aria-hidden />
             <button type="button" className="camera__shutter" aria-label="사진 찍기" disabled={state !== 'live'} onClick={shoot} />
             <button

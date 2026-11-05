@@ -5540,6 +5540,7 @@ button:disabled {
   height: var(--side);
   overflow: hidden;
   translate: -50% -50%;
+  touch-action: none;
 }
 
 @supports (height: 1dvh) {
@@ -5616,6 +5617,41 @@ button:disabled {
   align-items: center;
   justify-items: center;
   padding: 0 24px;
+  row-gap: 16px;
+}
+
+.camera__zoom {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 320px);
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--camera-bg);
+}
+
+.camera__zoom .camera__btn {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  touch-action: manipulation;
+}
+
+.camera__zoom .camera__btn:disabled {
+  opacity: 0.4;
+}
+
+.camera__zoom input {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+}
+
+.camera__zoom-value {
+  min-width: 42px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .camera__spacer {

@@ -32,20 +32,20 @@ const AFTER_DRAG_MS = 350;
  * gallery), on a dark veil: the photo whole (not cropped), and under it the
  * place, who and n / N with ‹ › (an
  * empty frame for a place with no photo). Dragged sideways the photo
- * follows the finger and, let go far or fast enough, pages to the place
+ * follows the finger and, let go far or fast enough, pages to the photo
  * before or after — stopping at the first and last (it gives a little and
- * springs back) rather than going round as the panel's ‹ › do. Pulled down
- * from anywhere, the photo follows the finger as the veil clears and, let go
- * far or fast enough, drops off the screen and closes. The veil, ✕, Esc or
- * the back button also close it, back to where it was opened.
+ * springs back). Pulled down from anywhere, the photo follows the finger as
+ * the veil clears and, let go far or fast enough, drops off the screen and
+ * closes. The veil, ✕, Esc or the back button also close it, back to where it
+ * was opened.
  */
 export default function PhotoViewer({
   items,
   seq,
   onSeq,
   onClose,
-  prevLabel = '이전 장소',
-  nextLabel = '다음 장소',
+  prevLabel = '이전 사진',
+  nextLabel = '다음 사진',
   counted = true,
   side,
   commentPath,

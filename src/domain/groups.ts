@@ -191,6 +191,11 @@ export function photoKey(url: string | undefined): string | null {
 /** The photos to draw over a ping, oldest first: all of them, or its one. */
 export const pingPhotos = (ping: GroupPing): string[] => ping.photos ?? (ping.photo ? [ping.photo] : []);
 
+/** Each photo in a member's day, oldest first, with its place and stack index for map selection. */
+export function memberPhotoItems(pings: readonly GroupPing[]): { seq: number; photo: number; url: string }[] {
+  return pings.flatMap((ping, seq) => pingPhotos(ping).map((url, photo) => ({ seq, photo, url })));
+}
+
 /** When each of `pingPhotos(ping)` was taken. */
 const pingPhotoAts = (ping: GroupPing): string[] => ping.photoAts ?? (ping.photo ? [ping.at] : []);
 
@@ -305,7 +310,7 @@ export function photoPings(member: GroupMember): Set<number> {
 }
 
 /**
- * Paging the big photo (drag or ‹ ›): the place before or after, stopping at
+ * Paging the big photo (drag or ‹ ›): the photo before or after, stopping at
  * the ends rather than going round — null when there's nothing that way.
  */
 export function viewerStep(seq: number, dir: -1 | 1, count: number): number | null {

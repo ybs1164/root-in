@@ -1,5 +1,12 @@
 export type Facing = 'environment' | 'user';
 
+/** Digital zoom works on both cameras, including devices without track zoom controls. */
+export const CAMERA_ZOOM = { min: 1, max: 4, step: 0.1 } as const;
+
+export function clampCameraZoom(zoom: number): number {
+  return Number.isFinite(zoom) ? Math.round(Math.min(CAMERA_ZOOM.max, Math.max(CAMERA_ZOOM.min, zoom)) * 10) / 10 : CAMERA_ZOOM.min;
+}
+
 /**
  * The phone's camera as a live stream, or null when there is none or the
  * person said no — never rejects, like the network services.
@@ -25,14 +32,14 @@ const MAX_PX = 1080;
 
 /**
  * The frame on screen as a JPEG data URL, cropped the way the screen shows it
- * (`object-fit: cover` into `box`) and mirrored for the front camera, so the
+ * (`object-fit: cover` into `box`), zoomed and mirrored for the front camera, so the
  * photo is exactly what was in the viewfinder (at most MAX_PX).
  */
-export function captureFrame(video: HTMLVideoElement, box: { width: number; height: number }, mirror: boolean): string | null {
+export function captureFrame(video: HTMLVideoElement, box: { width: number; height: number }, mirror: boolean, zoom = 1): string | null {
   const vw = video.videoWidth;
   const vh = video.videoHeight;
   if (!vw || !vh || !box.width || !box.height) return null;
-  const scale = Math.max(box.width / vw, box.height / vh);
+  const scale = Math.max(box.width / vw, box.height / vh) * clampCameraZoom(zoom);
   const sw = box.width / scale;
   const sh = box.height / scale;
   const canvas = document.createElement('canvas');

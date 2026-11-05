@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { parsePlaceArea, poiAppearance, poiStickerUrl } from './poiAppearance';
 import { APPROVED_POI_STICKERS } from './poiStickerKinds';
 import { parseLandmarks } from './landmarkPlaces';
@@ -15,7 +16,10 @@ describe('approved map stickers', () => {
     expect(Object.keys(manifest.assets).sort()).toEqual([...APPROVED_POI_STICKERS].sort());
     expect(readdirSync('public/poi-stickers').filter((p) => p.endsWith('.png'))).toHaveLength(103);
     expect(manifest.assets.bank.reviewId).toBe('bank_cash');
-    expect(readFileSync('public/poi-stickers/bank.png')).toEqual(readFileSync(manifest.assets.bank.source));
+    for (const id of APPROVED_POI_STICKERS) {
+      const digest = createHash('sha256').update(readFileSync(`public/poi-stickers/${id}.png`)).digest('hex');
+      expect(digest, id).toBe(manifest.assets[id].sha256);
+    }
     expect(manifest.assets.dessert.source).toContain('dessert-fresh.png');
     for (const kind of ['police', 'fire_station', 'government', 'building'] as const) expect(poiStickerUrl(kind)).toContain(`${kind}.png`);
     for (const id of APPROVED_POI_STICKERS) expect(existsSync(`public/poi-stickers/${id}.png`)).toBe(true);

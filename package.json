@@ -12,6 +12,7 @@
     "check": "tsc -b && vitest run",
     "check:changed": "tsc -b && vitest run --changed",
     "shots": "node scripts/ui-shots.mjs",
+    "icons:generate": "node scripts/generate-app-icons.mjs",
     "android:sync": "node scripts/android-sync.mjs",
     "android:apk": "node scripts/android-apk.mjs",
     "ios:sync": "node scripts/android-sync.mjs --ios",
