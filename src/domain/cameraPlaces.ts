@@ -44,3 +44,19 @@ export function cameraPlaces(
   }
   return out;
 }
+
+/** How long a typed place name can be (as a pin's name). */
+export const TYPED_PLACE_MAX = 40;
+
+/**
+ * 직접 입력 at the bottom of 위치 선택: a place named by hand, standing on the
+ * spot itself — `spot` is the first of `cameraPlaces`, where I am, carrying
+ * the address reverse geocoding found nearest. Null while the name is blank.
+ * Its own id, so it never folds into a pin or a place around of the same spot.
+ */
+export function typedCameraPlace(spot: PlaceRef, name: string): PlaceRef | null {
+  const typed = name.trim().slice(0, TYPED_PLACE_MAX);
+  if (!typed) return null;
+  const { center } = spot;
+  return { ...(spot.address ? { address: spot.address } : {}), id: `typed:${center[0]},${center[1]}`, name: typed, center };
+}

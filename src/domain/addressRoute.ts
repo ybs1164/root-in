@@ -103,8 +103,8 @@ export function addressRoute(address: string | undefined): AddressRoute | null {
   const city = PROVINCES[tokens[0]] ?? tokens[0].replace(/(특별자치시|특별자치도|특별시|광역시)$/, '');
   if (!HANGUL.test(city)) return null;
   const rest = tokens.slice(1);
-  // A 동·읍·면 first (성수동1가 → 성수, 신당5동 → 신당), else the most specific 시·군·구.
-  const dong = rest.map((t) => /^([가-힣]+?)\d*(동|읍|면)(\d+가)?$/.exec(t)?.[1]).find(Boolean);
+  // A 동·읍·면 first (성수동1가 → 성수, 신당5동 → 신당, 종로1·2·3·4가동 → 종로), else the most specific 시·군·구.
+  const dong = rest.map((t) => /^([가-힣]+?)(?:[\d·.,]+가?)?(동|읍|면)(\d+가)?$/.exec(t)?.[1]).find(Boolean);
   const district = [...rest].reverse().map((t) => /^([가-힣]+)(구|군|시)$/.exec(t)?.[1]).find(Boolean);
   const area = dong ?? district;
   return {
@@ -119,7 +119,7 @@ export function addressRoute(address: string | undefined): AddressRoute | null {
  */
 export function addressArea(address: string | undefined): string | null {
   const tokens = (address ?? '').trim().split(/\s+/).filter(Boolean).slice(1);
-  const dong = tokens.map((t) => /^([가-힣]+?)\d*(동|읍|면)(\d+가)?$/.exec(t)?.[1]).find(Boolean);
+  const dong = tokens.map((t) => /^([가-힣]+?)(?:[\d·.,]+가?)?(동|읍|면)(\d+가)?$/.exec(t)?.[1]).find(Boolean);
   const district = [...tokens].reverse().map((t) => /^([가-힣]+)(구|군|시)$/.exec(t)?.[1]).find(Boolean);
   return dong ?? district ?? null;
 }

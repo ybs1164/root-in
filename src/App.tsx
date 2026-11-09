@@ -34,7 +34,7 @@ import { categoryLinkUrl, categoryShareService } from './services/categoryShareS
 import { calendarAgain, pageSwipes, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { COURSE_LIMITS } from './domain/course';
 import type { MapViewport } from './domain/districtMap';
-import { addPlacesAsPins, filterPinsByCategories, isUncategorized, pinStyle, UNCATEGORIZED } from './domain/pin';
+import { addPlacesAsPins, filterPinsByCategories, isUncategorized, kindCategoryId, pinStyle, UNCATEGORIZED } from './domain/pin';
 import { placePhotos, visitedPlaces } from './domain/visitedPlaces';
 import { loadVisitedPings, saveVisitedPings } from './services/visitedPinRepository';
 import { placeKindService } from './services/placeKindService';
@@ -85,6 +85,7 @@ import { markKey } from './hooks/useAtlas';
 import { shareLinkService } from './services/shareLinkService';
 import { planShare } from './services/shareTargets';
 import { usePageSwipe } from './hooks/usePageSwipe';
+import { usePlaceAddress } from './hooks/usePlaceAddress';
 import { usePins } from './hooks/usePins';
 import { usePinKinds } from './hooks/usePinKinds';
 import { isSamePoi, kindsFromPlaces, withPinKinds } from './domain/pinKinds';
@@ -449,6 +450,12 @@ export default function App() {
     [activePin, storedPings, pingPhotos],
   );
   const previewPhotos = useMemo(() => (preview ? placePhotos(preview, null, storedPings, pingPhotos) : []), [preview, storedPings, pingPhotos]);
+  // Every card shows its FROM → TO line: a place saved without an address
+  // borrows the one nearest its spot.
+  const reverseAddress = useMemo(() => (searchService ? (center: [number, number]) => searchService.reverse(center) : null), [searchService]);
+  // The card waits for it (briefly), so its name and that line come up together.
+  const activePinAddress = usePlaceAddress(activePin?.place ?? null, reverseAddress);
+  const previewAddress = usePlaceAddress(preview, reverseAddress);
   // One of them open big (its index, newest first); another card closes it.
   const [placePhoto, setPlacePhoto] = useState<number | null>(null);
   const cardPhotos = preview ? previewPhotos : activePinPhotos;
@@ -832,13 +839,19 @@ export default function App() {
   // A pinned place is drawn by its pin, which looks just like its POI: the POI
   // steps aside so the two don't stack.
   // A category picked (not ALL): only that category's places — the places
-  // that aren't pins step off the map too.
+  // that aren't pins stay only when they're of that category's kind (a kind
+  // category, `kindCategoryId`: 카페·디저트 shows every café around too).
   const categoryPicked = !isAllPicked(picked, [UNCATEGORIZED.id, ...categories.map((c) => c.id)]);
   const unpinnedNearby = useMemo(() => {
-    if (categoryPicked) return [];
-    if (pinMarkers.length === 0) return nearbyPlaces;
-    return nearbyPlaces.filter((place) => !pinMarkers.some((pin) => isSamePoi(pin.place, place)));
-  }, [nearbyPlaces, pinMarkers, categoryPicked]);
+    const ofPicked = categoryPicked
+      ? nearbyPlaces.filter((place) => {
+          const id = kindCategoryId(place.kind);
+          return !!id && picked.has(id);
+        })
+      : nearbyPlaces;
+    if (pinMarkers.length === 0) return ofPicked;
+    return ofPicked.filter((place) => !pinMarkers.some((pin) => isSamePoi(pin.place, place)));
+  }, [nearbyPlaces, pinMarkers, categoryPicked, picked]);
   // A pin with no kind (made from a ping, a long press) hides the POI it stands
   // for and would show no sticker: it takes that POI's kind, kept on the pin.
   useEffect(() => {
@@ -2006,10 +2019,11 @@ export default function App() {
         </>
       )}
 
-      {preview && !searchOpen && (
+      {preview && !searchOpen && previewAddress.ready && (
         <NewPinCard
           key={preview.id}
           place={preview}
+          address={previewAddress.address}
           categories={categories}
           photos={previewPhotos}
           onOpenPhoto={setPlacePhoto}
@@ -2019,9 +2033,10 @@ export default function App() {
         />
       )}
 
-      {activePin && !preview && !searchOpen && onPinHome && (
+      {activePin && !preview && !searchOpen && onPinHome && activePinAddress.ready && (
         <PinCard
           pin={activePin}
+          address={activePinAddress.address}
           categories={categories}
           photos={activePinPhotos}
           onOpenPhoto={setPlacePhoto}

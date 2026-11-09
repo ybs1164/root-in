@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PlaceRef } from '../types/course';
-import { cameraPlaces, CAMERA_PLACE_LIMIT, HERE_NAME } from './cameraPlaces';
+import { cameraPlaces, CAMERA_PLACE_LIMIT, HERE_NAME, TYPED_PLACE_MAX, typedCameraPlace } from './cameraPlaces';
 import type { ExcludedPlace } from './privacy';
 
 const here: [number, number] = [127.0582, 37.5447];
@@ -46,5 +46,17 @@ describe('cameraPlaces (where a camera shot says it was taken)', () => {
   it('offers at most CAMERA_PLACE_LIMIT', () => {
     const around = Array.from({ length: 20 }, (_, i) => at(`kakao:${i}`, `곳 ${i}`, 0.0001 * (i + 1)));
     expect(cameraPlaces(here, null, [], around, [])).toHaveLength(CAMERA_PLACE_LIMIT);
+  });
+});
+
+describe('typedCameraPlace', () => {
+  const spot = { id: 'here:127,37.5', name: '서울 종로구 세종대로 172', center: [127, 37.5] as [number, number], address: '서울 종로구 세종대로 172' };
+  it('names the spot I am on by hand, keeping its nearest address', () => {
+    expect(typedCameraPlace(spot, '  우리 집 앞 벤치 ')).toEqual({ id: 'typed:127,37.5', name: '우리 집 앞 벤치', center: [127, 37.5], address: '서울 종로구 세종대로 172' });
+  });
+  it('is nothing while the name is blank, and caps a long one', () => {
+    expect(typedCameraPlace(spot, '  ')).toBeNull();
+    expect(typedCameraPlace(spot, '가'.repeat(60))?.name).toHaveLength(TYPED_PLACE_MAX);
+    expect(typedCameraPlace({ ...spot, address: undefined }, '벤치')).not.toHaveProperty('address');
   });
 });

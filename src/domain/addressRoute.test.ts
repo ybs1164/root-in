@@ -23,6 +23,8 @@ describe('romanize', () => {
 describe('addressRoute', () => {
   it('takes the city and the 동 of a lot-number address', () => {
     expect(addressRoute('서울 성동구 성수동1가 685-20')).toEqual({ from: 'Seoul', to: 'Seongsu' });
+    expect(addressRoute('서울특별시 종로1·2·3·4가동 사직로')).toEqual({ from: 'Seoul', to: 'Jongno' });
+    expect(addressRoute('서울 강서구 가양동 1')).toEqual({ from: 'Seoul', to: 'Gayang' });
     expect(addressRoute('서울특별시 중구 신당5동 12')).toEqual({ from: 'Seoul', to: 'Sindang' });
   });
 

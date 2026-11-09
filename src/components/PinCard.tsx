@@ -9,6 +9,8 @@ import PlaceSticker from './PlaceSticker';
 import type { PlacePhoto } from '../domain/visitedPlaces';
 
 interface PinCardProps {
+  /** The address the FROM → TO line reads, when the place's own can't give one (usePlaceAddress). */
+  address?: string;
   pin: Pin;
   categories: PinCategory[];
   /** The photos I took there, newest first: shown above the card. */
@@ -32,11 +34,11 @@ interface PinCardProps {
  * The category can always be changed directly. The pen opens the name and
  * memo for editing; tapped again (or Enter) it saves them. A touch outside the card saves any edit and closes it.
  */
-export default function PinCard({ pin, categories, photos = [], onOpenPhoto, onOpenGallery, onRecategorize, onRename, onMemo, onDelete, onClose }: PinCardProps) {
+export default function PinCard({ pin, categories, address, photos = [], onOpenPhoto, onOpenGallery, onRecategorize, onRename, onMemo, onDelete, onClose }: PinCardProps) {
   const [editing, setEditing] = useState(false);
   const [picking, setPicking] = useState(false);
   const style = pinStyle(categories, pin.categoryId, pin.place);
-  const route = addressRoute(pin.place.address);
+  const route = addressRoute(address ?? pin.place.address);
   const cardEl = useRef<HTMLDivElement | null>(null);
   const nameEl = useRef<HTMLInputElement | null>(null);
   const memoEl = useRef<HTMLInputElement | null>(null);
@@ -121,19 +123,8 @@ export default function PinCard({ pin, categories, photos = [], onOpenPhoto, onO
       <PlaceSticker place={pin.place} />
 
       <div className="pin-card__main">
-        {route && (
-          <p className="pin-card__route" aria-label={`${route.from}${route.to ? `, ${route.to}` : ''}`}>
-            <span>{route.from}</span>
-            {route.to && (
-              <>
-                <span className="pin-card__arrow" aria-hidden>
-                  →
-                </span>
-                <span>{route.to}</span>
-              </>
-            )}
-          </p>
-        )}
+        {/* Just the 동 (the city when there's none): a long city name pushed it off the ticket. */}
+        {route && <p className="pin-card__route">{route.to ?? route.from}</p>}
         {editing ? (
           <>
             <input

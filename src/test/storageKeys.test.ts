@@ -18,6 +18,7 @@ const KEYS: Record<string, KeyInfo> = {
   'goodroot:group-seen:v1': { status: 'current', what: '그룹을 마지막으로 본 때 (새 핑 배지)' },
   'goodroot:opened-shares:v1': { status: 'current', what: '이 브라우저에서 연 짧은 링크 (한 번만 셈)' },
   'goodroot:pin-categories:v2': { status: 'current', what: '핀 카테고리' },
+  'goodroot:kind-categories:v1': { status: 'current', what: '장소 종류 카테고리를 이 기기에 넣었는지' },
   'goodroot:pings:v1': { status: 'current', what: 'TODAY 핑' },
   'goodroot:pins:v1': { status: 'current', what: '핀' },
   'goodroot:privacy:v1': { status: 'current', what: '제외 주소' },
