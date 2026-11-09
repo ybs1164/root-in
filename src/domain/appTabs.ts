@@ -57,20 +57,29 @@ export function pageSwipes(tab: AppTab): { left: AppTab | null; right: AppTab | 
 }
 
 export const SWIPE = {
-  /** Horizontal travel before a touch counts as a swipe rather than a tap or scroll. */
-  startPx: 12,
-  /** Released past this share of the width, the page goes. */
-  distance: 0.3,
+  /** Travel before a touch counts as a swipe rather than a tap or scroll. */
+  startPx: 8,
+  /** Released past this share of the width, the screen goes: a short swipe is enough. */
+  distance: 0.12,
   /** …or flicked at least this fast (px/ms) the right way. */
-  flick: 0.5,
-  flickMinPx: 30,
+  flick: 0.25,
+  flickMinPx: 16,
 } as const;
 
-/** Whether a finished swipe (signed dx in px, velocity in px/ms) should uncover the map. */
-export function swipeCommits(dir: -1 | 1, dx: number, width: number, velocity: number): boolean {
+/** Pulling a sheet up or down isn't changing screens: it stays deliberate. */
+export const SHEET_PULL = { startPx: 12, distance: 0.3, flick: 0.5, flickMinPx: 30 } as const;
+
+/** Whether a finished swipe (signed dx in px, velocity in px/ms) should go through. */
+export function swipeCommits(
+  dir: -1 | 1,
+  dx: number,
+  width: number,
+  velocity: number,
+  rule: { readonly distance: number; readonly flick: number; readonly flickMinPx: number } = SWIPE,
+): boolean {
   const along = dx * dir;
-  if (along >= width * SWIPE.distance) return true;
-  return along >= SWIPE.flickMinPx && velocity * dir >= SWIPE.flick;
+  if (along >= width * rule.distance) return true;
+  return along >= rule.flickMinPx && velocity * dir >= rule.flick;
 }
 
 export type IncomingKind = 'course' | 'day' | 'pins';

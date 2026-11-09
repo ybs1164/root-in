@@ -60,12 +60,17 @@ describe('one place per kind on a screen', () => {
     expect(names(selectScene([best, c(place('park', 'park', ...at(0, 80), '공원'), 0.1)], view))).toEqual(['bank', 'park']);
   });
 
-  it('never draws a place over one of the user’s pins', () => {
+  it('never draws a place over one of the user’s pins, nor repeats a pin’s kind', () => {
     const cafe = c(place('cafe', 'cafe', 127.005, 37.005, '카페'), 0.9);
-    expect(names(selectScene([cafe], view, EMPTY_PROFILE, new Set(), [[127.005 + 30 * px, 37.005]]))).toEqual([]);
+    const pin = (dxPx: number, kind: PlaceRef['kind'] = 'bank') => place('pin', kind, 127.005 + dxPx * px, 37.005, '내 핀');
+    expect(names(selectScene([cafe], view, EMPTY_PROFILE, new Set(), [pin(30)]))).toEqual([]);
     // Even one already on screen gives way.
-    expect(names(selectScene([cafe], view, EMPTY_PROFILE, new Set(['cafe']), [[127.005, 37.005]]))).toEqual([]);
-    expect(names(selectScene([cafe], view, EMPTY_PROFILE, new Set(), [[127.005 + 80 * px, 37.005]]))).toEqual(['cafe']);
+    expect(names(selectScene([cafe], view, EMPTY_PROFILE, new Set(['cafe']), [pin(0)]))).toEqual([]);
+    expect(names(selectScene([cafe], view, EMPTY_PROFILE, new Set(), [pin(80)]))).toEqual(['cafe']);
+    // A cafe pin on this screen: no second cafe sticker, wherever it is.
+    expect(names(selectScene([cafe], view, EMPTY_PROFILE, new Set(), [pin(150, 'cafe')]))).toEqual([]);
+    // Off screen, it takes nothing.
+    expect(names(selectScene([cafe], view, EMPTY_PROFILE, new Set(), [place('far', 'cafe', 127.5, 37.5)]))).toEqual(['cafe']);
   });
 
   it('keeps the better of two crowded places, whichever kind', () => {

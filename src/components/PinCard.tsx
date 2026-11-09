@@ -4,10 +4,21 @@ import { addressRoute } from '../domain/addressRoute';
 import { categoriesWithUncategorized, categoryStyle, findCategory, PIN_LIMITS, pinColorCss, pinStyle } from '../domain/pin';
 import type { Pin, PinCategory } from '../types/pin';
 import PinGlyph from './PinGlyph';
+import PlacePhotos from './PlacePhotos';
+import PlaceSticker from './PlaceSticker';
+import type { PlacePhoto } from '../domain/visitedPlaces';
 
 interface PinCardProps {
+  /** The address the FROM → TO line reads, when the place's own can't give one (usePlaceAddress). */
+  address?: string;
   pin: Pin;
   categories: PinCategory[];
+  /** The photos I took there, newest first: shown above the card. */
+  photos?: readonly PlacePhoto[];
+  /** The middle photo tapped: open it big (its index in `photos`). */
+  onOpenPhoto?: (index: number) => void;
+  /** The photos' gallery button: MY, searched for this place. */
+  onOpenGallery?: () => void;
   onRecategorize: (categoryId: string) => void;
   onRename: (name: string) => void;
   onMemo: (memo: string) => void;
@@ -17,17 +28,17 @@ interface PinCardProps {
 
 /**
  * What tapping a pin opens: a boarding-pass ticket standing just above the
- * pin, which the map has centred. Left: the place's city → neighbourhood in
+ * pin, which the map has centred. Far left, the place's sticker; then the place's city → neighbourhood in
  * English (from its address, read-only), its name, its one-line memo, and a
  * pen. Right, past the tear line: GROUP, the category's icon and the bin.
  * The category can always be changed directly. The pen opens the name and
  * memo for editing; tapped again (or Enter) it saves them. A touch outside the card saves any edit and closes it.
  */
-export default function PinCard({ pin, categories, onRecategorize, onRename, onMemo, onDelete, onClose }: PinCardProps) {
+export default function PinCard({ pin, categories, address, photos = [], onOpenPhoto, onOpenGallery, onRecategorize, onRename, onMemo, onDelete, onClose }: PinCardProps) {
   const [editing, setEditing] = useState(false);
   const [picking, setPicking] = useState(false);
   const style = pinStyle(categories, pin.categoryId, pin.place);
-  const route = addressRoute(pin.place.address);
+  const route = addressRoute(address ?? pin.place.address);
   const cardEl = useRef<HTMLDivElement | null>(null);
   const nameEl = useRef<HTMLInputElement | null>(null);
   const memoEl = useRef<HTMLInputElement | null>(null);
@@ -59,7 +70,8 @@ export default function PinCard({ pin, categories, onRecategorize, onRename, onM
   useEffect(() => {
     const away = (e: PointerEvent) => {
       const t = e.target as Element | null;
-      if (cardEl.current?.contains(t) || t?.closest('.map-marker--pin')) return;
+      // Nor does the big view of one of its photos.
+      if (cardEl.current?.contains(t) || t?.closest('.map-marker--pin, .group-photo-viewer')) return;
       saveRef.current();
       onClose();
     };
@@ -106,20 +118,13 @@ export default function PinCard({ pin, categories, onRecategorize, onRename, onM
         </div>
       )}
 
+      {!picking && <PlacePhotos key={pin.id} photos={photos} onOpen={onOpenPhoto} onGallery={onOpenGallery} />}
+
+      <PlaceSticker place={pin.place} />
+
       <div className="pin-card__main">
-        {route && (
-          <p className="pin-card__route" aria-label={`${route.from}${route.to ? `, ${route.to}` : ''}`}>
-            <span>{route.from}</span>
-            {route.to && (
-              <>
-                <span className="pin-card__arrow" aria-hidden>
-                  →
-                </span>
-                <span>{route.to}</span>
-              </>
-            )}
-          </p>
-        )}
+        {/* Just the 동 (the city when there's none): a long city name pushed it off the ticket. */}
+        {route && <p className="pin-card__route">{route.to ?? route.from}</p>}
         {editing ? (
           <>
             <input

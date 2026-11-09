@@ -38,8 +38,11 @@ export function parseKindShops(value: unknown): KindShop[] | null {
   return shops;
 }
 
-/** A spot the user picked on the map (long press, aiming), not a named search result. */
-export const isPickedSpot = (place: PlaceRef) => place.id.startsWith('pin:');
+/**
+ * A spot rather than a named search result: picked on the map (long press,
+ * aiming), or pinned from a ping, which may be named only by reverse geocoding.
+ */
+export const isPickedSpot = (place: PlaceRef) => place.id.startsWith('pin:') || place.id.startsWith('visit:');
 
 export class StaticPlaceKindService implements PlaceKindService {
   private files = new Map<string, Promise<KindShop[] | null>>();

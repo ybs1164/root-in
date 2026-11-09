@@ -32,8 +32,16 @@ export const stickerBounds = (kind: PlaceRef['kind']) => (kind && POI_STICKER_BO
 /** How far a scaled sticker reaches below its 48px square: the name moves down that much. */
 export const stickerBelow = (kind: PlaceRef['kind']) => Math.max(0, Math.ceil(stickerBounds(kind)[3] - 24));
 
+/** A pin whose kind is unknown (yet) still shows a sticker; POIs always know theirs. */
+const PIN_FALLBACK_KIND = 'building';
+
+/** The place as a pin draws it: only on the map, so a kind found later still replaces the fallback. */
+export function pinPlaceLook(place: PlaceRef): PlaceRef {
+  return poiStickerUrl(place.kind) ? place : { ...place, kind: PIN_FALLBACK_KIND };
+}
+
 /** Shared visual area, compensating for each image's transparent padding and shape. */
-export function poiAppearance(place: PlaceRef) {
+export function poiAppearance(place: Pick<PlaceRef, 'kind'>) {
   return {
     sticker: poiStickerUrl(place.kind),
     size: 48,

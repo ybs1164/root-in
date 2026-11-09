@@ -9,17 +9,17 @@ import type { PlaceRef } from '../types/course';
 
 const isLandmark = (place: PlaceRef): place is Landmark => place.id.startsWith('landmark:') && 'importance' in place;
 
-type Point = [number, number];
-const NO_PINS: Point[] = [];
+const NO_PINS: PlaceRef[] = [];
 
 /**
  * One screen's map places, one per kind, none touching another or one of
- * `pins` (the user's pins on the map; domain/poiScene.ts). Independent of
- * terrain rendering: a slow place file never delays the map.
+ * `pins` (the user's pins on the map, each as the place it draws; they
+ * always win — domain/poiScene.ts). Independent of terrain rendering: a slow
+ * place file never delays the map.
  */
-export function useNearbyPlaces(viewport: MapViewport | null, profile: PlaceProfile = EMPTY_PROFILE, pins: Point[] = NO_PINS): PlaceRef[] {
+export function useNearbyPlaces(viewport: MapViewport | null, profile: PlaceProfile = EMPTY_PROFILE, pins: PlaceRef[] = NO_PINS): PlaceRef[] {
   const [places, setPlaces] = useState<PlaceRef[]>([]);
-  const client = useRef<{ request(viewport: MapViewport): void; setProfile(profile: PlaceProfile): void; setPins(pins: Point[]): void } | null>(null);
+  const client = useRef<{ request(viewport: MapViewport): void; setProfile(profile: PlaceProfile): void; setPins(pins: PlaceRef[]): void } | null>(null);
   useEffect(() => {
     let worker: Worker | null = null;
     let local: NearbyPlacesService | null = null;
@@ -29,7 +29,7 @@ export function useNearbyPlaces(viewport: MapViewport | null, profile: PlaceProf
     let shown: PlaceRef[] = [];
     let shownScale = Infinity;
     let currentProfile = EMPTY_PROFILE;
-    let avoid: Point[] = [];
+    let avoid: PlaceRef[] = [];
     const show = (next: PlaceRef[], view: MapViewport | null) => {
       shown = next;
       if (view) shownScale = landmarkScale(view);
@@ -48,7 +48,7 @@ export function useNearbyPlaces(viewport: MapViewport | null, profile: PlaceProf
     };
     const fallback = (id: number, view: MapViewport, keep: string[]) => {
       local ??= new NearbyPlacesService();
-      void local.fetch(view, { profile: currentProfile, keep: new Set(keep), avoid }, (result) => apply(id, result, true))
+      void local.fetch(view, { profile: currentProfile, keep: new Set(keep), pins: avoid }, (result) => apply(id, result, true))
         .then((result) => apply(id, result));
     };
     const send = (view: MapViewport) => {
@@ -57,7 +57,7 @@ export function useNearbyPlaces(viewport: MapViewport | null, profile: PlaceProf
       // Zoomed out, the scene starts over (a better place may now be in view);
       // moved or zoomed in, what is on screen stays while it stays on screen.
       const keep = landmarkScale(view) <= shownScale * 1.0001 ? shown.map((place) => place.id) : [];
-      if (worker) worker.postMessage({ id, viewport: view, keep, avoid });
+      if (worker) worker.postMessage({ id, viewport: view, keep, pins: avoid });
       else fallback(id, view, keep);
     };
     if (typeof Worker !== 'undefined') {

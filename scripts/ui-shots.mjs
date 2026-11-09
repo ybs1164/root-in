@@ -53,7 +53,7 @@ async function seed(page) {
     await courseRepository.save(uid, course);
     await courseRepository.save(uid, { ...course, title: '을지로 노포 투어', theme: 'food', stops: course.stops.slice(0, 2), sharedBy: undefined });
     const { pinRepository } = await import('/src/services/pinRepository.ts');
-    const cats = ['cafe', 'food', 'togo'];
+    const cats = ['kind-cafe', 'kind-food', 'kind-photo'];
     await pinRepository.saveAll(uid, course.stops.map((s, i) => ({
       id: `shot-pin-${i}`, userId: uid, place: s.place, categoryId: cats[i], memo: s.memo, createdAt: course.sharedAt,
     })));
@@ -141,7 +141,7 @@ async function poiList(page) {
   let steady = 0;
   for (let tries = 0; tries < 60 && steady < 10; tries++) {
     await page.waitForTimeout(1000);
-    const now = await page.evaluate(() => [...document.querySelectorAll('.map-nearby-place')].map((e) => `${e.dataset.kind}:${e.title}`).join(', '));
+    const now = await page.evaluate(() => [...document.querySelectorAll('.map-nearby-place:not(.map-marker--pin)')].map((e) => `${e.dataset.kind}:${e.title}`).join(', '));
     steady = now && now === last ? steady + 1 : 0;
     last = now;
   }
@@ -158,15 +158,14 @@ async function poiList(page) {
       const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
       return { left: cx + l, top: cy + t, right: cx + rr, bottom: cy + bb, width: rr - l, height: bb - t };
     };
-    const places = [...document.querySelectorAll('.map-nearby-place')];
+    // The user's pins are drawn as places too (sticker and name): they count, shown ones only.
+    const places = [...document.querySelectorAll('.map-nearby-place')]
+      .filter((el) => el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
     const boxes = places.map((el, i) =>
       [el.classList.contains('map-nearby-place--sticker') && el.querySelector('.map-nearby-place__art'), el.querySelector('span')]
-        .filter(Boolean).map((b) => ({ i, el, b, r: box(el, b) }))).flat();
-    // The user's pins on the map count too (shown ones only).
-    const pins = [...document.querySelectorAll('.map-marker--pin')].filter((el) => el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
-    pins.forEach((el, k) => boxes.push({ i: places.length + k, el, b: el, pin: true, r: el.getBoundingClientRect() }));
+        .filter(Boolean).map((b) => ({ i, el, b, pin: el.classList.contains('map-marker--pin'), r: box(el, b) }))).flat();
     const n = [];
-    const show = ({ el, b, r }) => `${el.title || el.getAttribute('aria-label')}/${b === el ? 'pin' : b.tagName === 'SPAN' ? 'name' : 'art'}[${[r.left, r.top, r.width, r.height].map(Math.round)}]`;
+    const show = ({ el, b, r, pin }) => `${pin ? 'pin ' : ''}${el.title || el.getAttribute('aria-label')}/${b.tagName === 'SPAN' ? 'name' : 'art'}[${[r.left, r.top, r.width, r.height].map(Math.round)}]`;
     for (let a = 0; a < boxes.length; a++) for (let b = a + 1; b < boxes.length; b++) {
       const p = boxes[a], q = boxes[b];
       // A sticker against its own name counts too: that is the layout failing.

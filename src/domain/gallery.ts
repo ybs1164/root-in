@@ -117,11 +117,29 @@ export function metDays(pairs: readonly MetPair[], tab: GalleryTab, me: string |
 }
 
 /** What the gallery shows with its switches on: 즐겨찾기 only starred photos, 만난 날 every photo of a day that was one (both: both). */
-export function filterGallery(days: readonly GalleryDay[], filter: { stars?: ReadonlySet<string>; met?: ReadonlySet<string> }): GalleryDay[] {
+export function filterGallery(
+  days: readonly GalleryDay[],
+  filter: { stars?: ReadonlySet<string>; met?: ReadonlySet<string>; place?: string },
+): GalleryDay[] {
   return days
     .filter((d) => !filter.met || filter.met.has(d.day))
     .map((d) => (filter.stars ? { ...d, photos: d.photos.filter((p) => filter.stars!.has(p.path)) } : d))
+    // A searched place: its full name, exactly.
+    .map((d) => (filter.place !== undefined ? { ...d, photos: d.photos.filter((p) => p.name === filter.place) } : d))
     .filter((d) => d.photos.length > 0);
+}
+
+/**
+ * The gallery search's suggestions: the places I've been whose name has the
+ * typed words in it (any case), each once — names starting with it first,
+ * then the shorter ones.
+ */
+export function placeSuggestions(names: Iterable<string>, query: string, limit = 8): string[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const found = [...new Set([...names].map((n) => n.trim()).filter(Boolean))].filter((n) => n.toLowerCase().includes(q));
+  const starts = (n: string) => (n.toLowerCase().startsWith(q) ? 0 : 1);
+  return found.sort((a, b) => starts(a) - starts(b) || a.length - b.length || a.localeCompare(b, 'ko')).slice(0, limit);
 }
 
 /** A comment under a photo opened big. */

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { parsePlaceArea, poiAppearance, poiStickerUrl } from './poiAppearance';
+import { parsePlaceArea, pinPlaceLook, poiAppearance, poiStickerUrl } from './poiAppearance';
 import { APPROVED_POI_STICKERS } from './poiStickerKinds';
 import { parseLandmarks } from './landmarkPlaces';
 import { parseKindShops } from '../services/placeKindService';
@@ -49,5 +49,12 @@ describe('approved map stickers', () => {
     const rows = names.map((name, i) => [`n${i + 1}`, name, 12700000, 3700000, 'building', '공공시설', 1]);
     rows.push(['n6', '경찰서 앞 상가', 12700000, 3700000, 'building', '건물', 2]);
     expect(parseLandmarks({ v: 1, r: rows })!.map((p) => p.kind)).toEqual(['police', 'police', 'fire_station', 'fire_station', 'government', 'building']);
+  });
+
+  it('a pin of unknown kind still draws a sticker, and keeps a kind it has', () => {
+    const place = { id: 'visit:1', name: '어딘가', center: [127, 37] as [number, number] };
+    expect(poiStickerUrl(pinPlaceLook(place).kind)).toMatch(/building\.png$/);
+    expect(pinPlaceLook({ ...place, kind: 'cafe' }).kind).toBe('cafe');
+    expect(place).not.toHaveProperty('kind'); // only drawn so: a real kind can still arrive
   });
 });

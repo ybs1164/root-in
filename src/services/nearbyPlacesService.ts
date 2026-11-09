@@ -14,8 +14,8 @@ export interface SceneOptions {
   profile?: PlaceProfile;
   /** Ids on screen now; they stay while still on screen (see selectScene). */
   keep?: ReadonlySet<string>;
-  /** The user's pins on the map: no place sticker or name goes over them. */
-  avoid?: readonly (readonly [number, number])[];
+  /** The user's pins on the map, as drawn (their place's sticker and name): they always win. */
+  pins?: readonly PlaceRef[];
 }
 
 export class NearbyPlacesService {
@@ -33,12 +33,12 @@ export class NearbyPlacesService {
     const profile = options.profile ?? EMPTY_PROFILE;
     const landmarks = this.landmarks.fetch(viewport).catch(() => [] as Landmark[]).then((places) => {
       const candidates: SceneCandidate[] = places.map((place) => ({ place, fame: landmarkFame(place) }));
-      onLandmarks?.(selectScene(candidates, viewport, profile, options.keep, options.avoid));
+      onLandmarks?.(selectScene(candidates, viewport, profile, options.keep, options.pins));
       return candidates;
     });
     const shops = nearbyPlacesEnabled(viewport) ? this.fetchShops(viewport) : Promise.resolve([]);
     const [named, nearby] = await Promise.all([landmarks, shops]);
-    return selectScene([...named, ...nearby], viewport, profile, options.keep, options.avoid);
+    return selectScene([...named, ...nearby], viewport, profile, options.keep, options.pins);
   }
 
   private async fetchShops(viewport: MapViewport): Promise<SceneCandidate[]> {

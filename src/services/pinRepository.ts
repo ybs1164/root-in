@@ -7,6 +7,9 @@ const PINS_KEY = 'goodroot:pins:v1';
 // v2 (2026-10-04): flat — sub-categories (v1's `parentId`) are gone.
 const CATEGORIES_KEY = 'goodroot:pin-categories:v2';
 const LEGACY_CATEGORIES_KEY = 'goodroot:pin-categories:v1';
+// Set once the kind categories (식당, 카페·디저트 …, 2026-11-09) were added on
+// this device: one I delete afterwards doesn't come back.
+const KIND_CATEGORIES_KEY = 'goodroot:kind-categories:v1';
 
 /** Same seam as CourseRepository: a server-backed version can replace localStorage later. */
 export interface PinRepository {
@@ -112,6 +115,19 @@ export function readStoredCategories(): PinCategory[] | null {
 
 export function writeStoredCategories(categories: PinCategory[]): void {
   writeJson(CATEGORIES_KEY, categories);
+}
+
+/** Whether this device already added the kind categories (`withKindCategories`). */
+export function kindCategoriesAdded(): boolean {
+  return readJson(KIND_CATEGORIES_KEY) === true;
+}
+
+export function markKindCategoriesAdded(): void {
+  try {
+    window.localStorage.setItem(KIND_CATEGORIES_KEY, 'true');
+  } catch {
+    // Storage disabled: they're added again next time, which changes nothing once they're there.
+  }
 }
 
 export const pinRepository: PinRepository = new LocalPinRepository();

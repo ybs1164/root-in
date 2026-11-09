@@ -7,10 +7,13 @@ import {
   removeCategory,
   updateCategory,
   upsertPin,
+  withKindCategories,
   type NewCategoryInput,
 } from '../domain/pin';
 import { getCurrentUserId } from '../lib/currentUser';
 import {
+  kindCategoriesAdded,
+  markKindCategoriesAdded,
   pinCategoryRepository,
   pinRepository,
   type PinCategoryRepository,
@@ -39,8 +42,14 @@ export function usePins(pinsRepo: PinRepository = pinRepository, categoriesRepo:
   useEffect(() => {
     let cancelled = false;
     const load = () =>
-      Promise.all([pinsRepo.listByUser(userId), categoriesRepo.list()]).then(([p, c]) => {
+      Promise.all([pinsRepo.listByUser(userId), categoriesRepo.list()]).then(([stored, storedCategories]) => {
         if (cancelled) return;
+        // Onto the kind categories (old defaults out, kinds in once per device).
+        const addKinds = !kindCategoriesAdded();
+        const { pins: p, categories: c } = withKindCategories(stored, storedCategories, addKinds);
+        if (addKinds) markKindCategoriesAdded();
+        if (c !== storedCategories) void categoriesRepo.saveAll(c);
+        if (p !== stored) void pinsRepo.saveAll(userId, p);
         latest.current = { pins: p, categories: c };
         loaded.current = true;
         setPins(p);

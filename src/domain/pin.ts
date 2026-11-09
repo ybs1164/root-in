@@ -1,5 +1,5 @@
 import type { PlaceRef } from '../types/course';
-import { kindIcon } from './placeKinds';
+import { KIND_GROUPS, kindIcon } from './placeKinds';
 import {
   PIN_ICONS,
   type Pin,
@@ -26,14 +26,72 @@ export const PIN_LIMITS = {
 /** Pins whose category was deleted land here; it is never stored. */
 export const UNCATEGORIZED: PinCategory = { id: 'none', name: '미분류', icon: 'pin', color: 8, order: 9999 };
 
-export const DEFAULT_CATEGORIES: PinCategory[] = [
-  { id: 'cafe', name: '카페', icon: 'cafe', color: 1, order: 0 },
-  { id: 'food', name: '맛집', icon: 'food', color: 2, order: 1 },
-  { id: 'bar', name: '술집', icon: 'bar', color: 3, order: 2 },
-  { id: 'photo', name: '사진 명소', icon: 'photo', color: 4, order: 3 },
-  { id: 'shop', name: '쇼핑', icon: 'shop', color: 5, order: 4 },
-  { id: 'togo', name: '가볼 곳', icon: 'flag', color: 6, order: 5 },
-];
+/**
+ * The categories everyone starts with (2026-11-09): one per group of place
+ * kinds (`KIND_GROUPS` — 식당, 카페·디저트 … the groups every place sticker
+ * already belongs to), so a category also gathers the places around that
+ * aren't pins yet (`kindCategoryId`). Their ids name the group: never rename.
+ */
+export const KIND_CATEGORY_PREFIX = 'kind-';
+export const DEFAULT_CATEGORIES: PinCategory[] = KIND_GROUPS.map(({ icon, label }, order) => ({
+  id: `${KIND_CATEGORY_PREFIX}${icon}`,
+  name: label,
+  icon,
+  color: ((order % 7) + 1) as PinPaletteColor,
+  order,
+}));
+
+/** The category a place of this kind belongs to (whether or not it still exists). */
+export function kindCategoryId(kind: PlaceRef['kind']): string | null {
+  const icon = kindIcon(kind);
+  return icon ? `${KIND_CATEGORY_PREFIX}${icon}` : null;
+}
+
+/**
+ * The defaults before 2026-11-09 (카페·맛집·술집·사진 명소·쇼핑·가볼 곳): gone,
+ * their pins moving to the kind category that took each one's place (가볼 곳
+ * has none: 미분류).
+ */
+const OLD_DEFAULTS: Record<string, string | null> = {
+  cafe: 'kind-cafe',
+  food: 'kind-food',
+  bar: 'kind-bar',
+  photo: 'kind-photo',
+  shop: 'kind-shop',
+  togo: null,
+};
+
+/**
+ * Brings stored pins and categories onto the kind categories: the old default
+ * categories go (always — a sync may bring them back from an account), their
+ * pins moving over; and once (`addKinds`, the first time on this device) the
+ * kind categories missing are added after mine, as many as the limit allows.
+ * The same arrays back when nothing changes.
+ */
+export function withKindCategories(
+  pins: Pin[],
+  categories: PinCategory[],
+  addKinds: boolean,
+): { pins: Pin[]; categories: PinCategory[] } {
+  let next = categories.filter((c) => !Object.hasOwn(OLD_DEFAULTS, c.id));
+  if (addKinds) {
+    const missing = DEFAULT_CATEGORIES.filter((d) => !next.some((c) => c.id === d.id));
+    const room = Math.max(0, PIN_LIMITS.maxCategories - next.length);
+    const start = next.reduce((top, c) => Math.max(top, c.order + 1), 0);
+    if (missing.length && room) next = [...next, ...missing.slice(0, room).map((c, i) => ({ ...c, order: start + i }))];
+  }
+  const moved = pins.some((p) => Object.hasOwn(OLD_DEFAULTS, p.categoryId));
+  return {
+    categories: next.length === categories.length && next.every((c, i) => c === categories[i]) ? categories : next,
+    pins: moved
+      ? pins.map((p) => {
+          if (!Object.hasOwn(OLD_DEFAULTS, p.categoryId)) return p;
+          const to = OLD_DEFAULTS[p.categoryId];
+          return { ...p, categoryId: to && next.some((c) => c.id === to) ? to : UNCATEGORIZED.id };
+        })
+      : pins,
+  };
+}
 
 export const isPinIcon = (value: unknown): value is PinIcon => typeof value === 'string' && value in PIN_ICONS;
 export const isPinColor = (value: unknown): value is PinColor =>
@@ -102,6 +160,9 @@ export function pinStyle(categories: PinCategory[], categoryId: string, place?: 
  * icon. None, or several to choose between, leaves it in 미분류.
  */
 export function suggestCategory(categories: PinCategory[], kind: PlaceRef['kind']): string {
+  // Its own kind category first, if I still have it.
+  const own = kindCategoryId(kind);
+  if (own && categories.some((c) => c.id === own)) return own;
   const icon = kindIcon(kind);
   const matches = icon ? categories.filter((c) => c.icon === icon) : [];
   return matches.length === 1 ? matches[0].id : UNCATEGORIZED.id;

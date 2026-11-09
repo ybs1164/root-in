@@ -197,21 +197,22 @@ export function placeBoxes(place: PlaceRef, x: number, y: number): Box[] {
 const touches = (a: Box, b: Box) =>
   a.left < b.right + 1 && b.left < a.right + 1 && a.top < b.bottom + 1 && b.top < a.bottom + 1;
 
-/** A saved pin on the map: its 38px marker, centred on the place (styles.css `.map-marker--pin`). */
-const PIN_HALF = 19;
-
 /**
  * Keeps places in the given order, leaving out any whose sticker or name
- * would overlap one already kept, or that repeats a kept kind. `avoid` are
- * the user's pins shown on the map: they always win, so no place sticker or
- * name is drawn over them.
+ * would overlap one already kept, or that repeats a kept kind. `pins` are the
+ * user's pins on the map, each drawn as its place (sticker and name): they
+ * always win, so no place is drawn over one, and a kind a pin shows on this
+ * screen is not shown again.
  */
-export function declutter(ordered: PlaceRef[], viewport: MapViewport, avoid: readonly (readonly [number, number])[] = []): PlaceRef[] {
+export function declutter(ordered: PlaceRef[], viewport: MapViewport, pins: readonly PlaceRef[] = []): PlaceRef[] {
   const kinds = new Set<string>();
-  const taken: Box[] = avoid.map((center) => {
-    const { x, y } = screenPoint([center[0], center[1]], viewport);
-    return { left: x - PIN_HALF, top: y - PIN_HALF, right: x + PIN_HALF, bottom: y + PIN_HALF };
-  });
+  const taken: Box[] = [];
+  for (const pin of pins) {
+    if (!inScene(pin.center, viewport)) continue;
+    if (pin.kind) kinds.add(pin.kind);
+    const { x, y } = screenPoint(pin.center, viewport);
+    taken.push(...placeBoxes(pin, x, y));
+  }
   const chosen: PlaceRef[] = [];
   for (const place of ordered) {
     const kind = place.kind ?? `id:${place.id}`;
@@ -239,7 +240,7 @@ const hash = (key: string) => {
  */
 export function selectScene(
   candidates: SceneCandidate[], viewport: MapViewport, profile: PlaceProfile = EMPTY_PROFILE,
-  keep: ReadonlySet<string> = new Set(), avoid: readonly (readonly [number, number])[] = [],
+  keep: ReadonlySet<string> = new Set(), pins: readonly PlaceRef[] = [],
 ): PlaceRef[] {
   const familiar = spotIndex(profile);
   const seenIds = new Set<string>();
@@ -249,5 +250,5 @@ export function selectScene(
     const score = placeScore(fame, (place.kind && profile.kinds[place.kind]) || 0, familiar(place));
     return [{ place, score, kept: keep.has(place.id), tie: hash(place.id) }];
   }).sort((a, b) => Number(b.kept) - Number(a.kept) || b.score - a.score || a.tie - b.tie || a.place.id.localeCompare(b.place.id));
-  return declutter(ranked.map((r) => r.place), viewport, avoid);
+  return declutter(ranked.map((r) => r.place), viewport, pins);
 }

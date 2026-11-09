@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { pointPlace } from './placeSearch/placeSearchService';
-import { parseKindShops, StaticPlaceKindService } from './placeKindService';
+import { isPickedSpot, parseKindShops, StaticPlaceKindService } from './placeKindService';
 
 const file = { v: 1, k: ['bakery', 'nope', 'salon'], r: [['어니언', 12705820, 3754480, 0], ['미용실', 12705822, 3754472, 2], ['이상한', 12705820, 3754470, 1]] };
 const onion = { id: 'kakao:1', name: '어니언 성수', center: [127.0582, 37.5447] as [number, number] };
@@ -56,5 +56,14 @@ describe('StaticPlaceKindService', () => {
     const controller = new AbortController();
     controller.abort();
     expect(await svc.lookup(onion, controller.signal)).toBeNull();
+  });
+
+  it('a pin made from a ping is a spot: with no shop of its name, the one shop right there says', async () => {
+    const { svc } = service();
+    const near = [127.0582, 37.5447] as [number, number];
+    expect(await svc.lookup({ id: 'visit:1', name: '성수동2가 건물', center: near })).toBeNull(); // two kinds within 15m
+    expect(await svc.lookup({ id: 'visit:1', name: '어니언', center: near })).toBe('bakery');
+    expect(isPickedSpot({ id: 'visit:1', name: 'n', center: near })).toBe(true);
+    expect(isPickedSpot({ id: 'kakao:1', name: 'n', center: near })).toBe(false);
   });
 });

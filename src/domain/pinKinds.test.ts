@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Pin } from '../types/pin';
-import { pinKindKey, withPinKinds } from './pinKinds';
+import { kindsFromPlaces, pinKindKey, withPinKinds } from './pinKinds';
 import { pinStyle } from './pin';
 
 const pin: Pin = { id: 'one', userId: 'user', categoryId: 'favorites', memo: '내 메모', createdAt: '2026-10-01', place: { id: 'cafe', name: '동네 카페', center: [127, 37] } };
@@ -28,5 +28,23 @@ describe('saved place icons', () => {
   it('keeps unmatched pins as they were without triggering another save', () => {
     const pins = [pin];
     expect(withPinKinds(pins, [])).toBe(pins);
+  });
+});
+
+describe('kinds from the map', () => {
+  const visit: Pin = { id: 'v', userId: 'user', categoryId: 'none', createdAt: '2026-11-04', place: { id: 'visit:p1', name: '숭의여자대학교 별관', center: [126.95, 37.55] } };
+  const poi = { id: 'landmark:n1', name: '숭의여자대학교 별관', center: [126.9503, 37.5502] as [number, number], kind: 'school' as const };
+
+  it("give a pin made from a ping the kind of the POI it stands for", () => {
+    const matches = kindsFromPlaces([visit], [poi]);
+    expect(matches).toEqual([{ pinId: 'v', placeKey: pinKindKey(visit.place), kind: 'school' }]);
+    expect(withPinKinds([visit], matches)[0].place.kind).toBe('school');
+  });
+
+  it('leave pins with a kind, other names and far places alone', () => {
+    const known = { ...visit, place: { ...visit.place, kind: 'cafe' as const } };
+    const far = { ...poi, center: [126.96, 37.56] as [number, number] };
+    expect(kindsFromPlaces([known], [poi])).toEqual([]);
+    expect(kindsFromPlaces([visit], [{ ...poi, name: '다른 곳' }, far])).toEqual([]);
   });
 });

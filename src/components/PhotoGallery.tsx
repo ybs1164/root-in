@@ -1,10 +1,11 @@
-import { ChevronLeft, Images, Star } from 'lucide-react';
+import { ChevronLeft, Images, MapPin, Search, Star, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { dayPosters, filterGallery, galleryDayLabel, galleryTabDays, metDays, viewerOrder, type GalleryItem, type GalleryPhoto, type GalleryTab } from '../domain/gallery';
+import { dayPosters, filterGallery, galleryDayLabel, galleryTabDays, metDays, placeSuggestions, viewerOrder, type GalleryItem, type GalleryPhoto, type GalleryTab } from '../domain/gallery';
 import { memberColor, memberInk, type Group, type GroupMember } from '../domain/groups';
 import { centeredScrollLeft } from '../domain/routeFolders';
 import { useGalleryDecors, useMetDays, type GalleryState } from '../hooks/useGalleryPhotos';
 import { usePhotoMarks } from '../hooks/usePhotoMarks';
+import { useSwipeBack } from '../hooks/useSwipeBack';
 import { HighFive } from './icons';
 import { dateKey } from '../domain/diary';
 import { MemberFace } from './WeNowPage';
@@ -25,6 +26,10 @@ interface PhotoGalleryProps {
   onRetry(): void;
   /** TODAY's photos kept on this phone, in MY. */
   local: GalleryPhoto[];
+  /** The names of the places I've been (my pings): the search's suggestions. */
+  visited: readonly string[];
+  /** Open already searched for this place (a place card's gallery button). */
+  place?: string | null;
   /** The photo open big, in the viewer's order (oldest first; App holds it, for the back button); null = the grid. */
   seq: number | null;
   onSeq(seq: number | null): void;
@@ -49,8 +54,14 @@ const goneMember = (userId: string): GroupMember => ({ userId, slot: 0, color: 0
  * that one in its tab): we pinged the same place. A
  * heart beside the star (on someone else's photo) tells its sender; how many
  * a photo has is never shown.
+ *
+ * Before them a 🔍 (every tab): typing a place shows the places I've been
+ * with those words in them; picking one, or searching a full name, leaves
+ * only the photos taken there.
  */
-export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, onRetry, local, seq, onSeq, onClose }: PhotoGalleryProps) {
+export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, onRetry, local, visited, place, seq, onSeq, onClose }: PhotoGalleryProps) {
+  // Left to right takes the gallery back (a big photo over it has its own swipes).
+  const swipeBack = useSwipeBack(onClose, seq === null);
   const ready = state.status === 'ready' || tab === 'my';
   const allDays = useMemo(
     () => galleryTabDays(tab, state.status === 'ready' ? state.photos : [], local),
@@ -58,6 +69,37 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
   );
   const [starsOn, setStarsOn] = useState(false);
   const [metOn, setMetOn] = useState(false);
+  // MY has no 만난 날 switch: going there turns it off.
+  useEffect(() => {
+    if (tab === 'my') setMetOn(false);
+  }, [tab]);
+  // The place search: the words typed, and the full name searched (the filter).
+  const [searchOpen, setSearchOpen] = useState(!!place);
+  const [query, setQuery] = useState(place ?? '');
+  const [searched, setSearched] = useState<string | null>(place ?? null);
+  useEffect(() => {
+    if (!place) return;
+    setSearchOpen(true);
+    setQuery(place);
+    setSearched(place);
+  }, [place]);
+  const searchInput = useRef<HTMLInputElement>(null);
+  // Where I've been: my pings, and the photos I sent to groups.
+  const placeNames = useMemo(
+    () => [...visited, ...(state.status === 'ready' ? state.photos.filter((p) => p.userId === me).map((p) => p.name) : [])],
+    [visited, state, me],
+  );
+  const suggestions = useMemo(() => (query === searched ? [] : placeSuggestions(placeNames, query)), [placeNames, query, searched]);
+  const search = (name: string) => {
+    const full = name.trim();
+    setQuery(full);
+    setSearched(full || null);
+    searchInput.current?.blur();
+  };
+  const clearSearch = () => {
+    setQuery('');
+    setSearched(null);
+  };
   const marks = usePhotoMarks();
   const { stars } = marks;
   // While a photo is open big, 즐겨찾기 keeps what it showed when it opened:
@@ -72,8 +114,13 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
   );
   const metSet = useMemo(() => (metOn ? metDays(met.pairs, tab, me) : undefined), [metOn, met.pairs, tab, me]);
   const days = useMemo(
-    () => filterGallery(allDays, { stars: starsOn ? (viewStars ?? stars) : undefined, met: metOn ? metSet : undefined }),
-    [allDays, starsOn, viewStars, stars, metOn, metSet],
+    () =>
+      filterGallery(allDays, {
+        stars: starsOn ? (viewStars ?? stars) : undefined,
+        met: metOn ? metSet : undefined,
+        place: searched ?? undefined,
+      }),
+    [allDays, starsOn, viewStars, stars, metOn, metSet, searched],
   );
   const viewer = useMemo(() => viewerOrder(days), [days]);
   const byGroup = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
@@ -112,10 +159,34 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
     if (row && el) row.scrollTo({ left: centeredScrollLeft(el.offsetLeft, el.offsetWidth, row.clientWidth, row.scrollWidth), behavior: 'smooth' });
   }, [tab]);
 
+  // 🔍: opens the field; with words in it, searches; empty, closes it. No animation.
+  const searchButton = (
+    <button
+      type="button"
+      className={`gallery__filter gallery__filter--search ${searchOpen ? 'is-inside' : ''}`}
+      aria-label={searchOpen && query.trim() ? '검색' : '장소 검색'}
+      aria-expanded={searchOpen}
+      onClick={() => {
+        if (!searchOpen) {
+          setSearchOpen(true);
+          // Straight to the keyboard (after the field is there).
+          requestAnimationFrame(() => searchInput.current?.focus());
+        } else if (query.trim()) {
+          search(query);
+        } else {
+          setSearchOpen(false);
+          clearSearch();
+        }
+      }}
+    >
+      <Search size={searchOpen ? 19 : 22} strokeWidth={2.2} aria-hidden />
+    </button>
+  );
+
   const today = dateKey();
   const tabs: { id: GalleryTab; label: string }[] = [{ id: 'my', label: 'MY' }, ...groups.map((g) => ({ id: g.id, label: g.name }))];
   return (
-    <div className="gallery" role="dialog" aria-modal="true" aria-label="갤러리">
+    <div className="gallery" role="dialog" aria-modal="true" aria-label="갤러리" {...swipeBack}>
       <header className="gallery__head">
         <button className="gallery__back" aria-label="닫기" onClick={onClose}>
           <ChevronLeft size={24} strokeWidth={2.2} />
@@ -123,7 +194,7 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
         <h2 className="gallery__title">GALLERY</h2>
       </header>
 
-      <div ref={tabsEl} className="route-folders__tabs gallery__tabs" role="tablist" aria-label="갤러리">
+      <div ref={tabsEl} className="route-folders__tabs gallery__tabs" role="tablist" aria-label="갤러리" data-swipe-keep>
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -149,27 +220,70 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
           </p>
         )}
         {ready && allDays.length > 0 && (
-          <div className="gallery__tools">
-            {/* Icons only; switched on, the accent. */}
-            <button className={`gallery__filter ${starsOn ? 'is-on' : ''}`} aria-label="즐겨찾기" aria-pressed={starsOn} onClick={() => setStarsOn((on) => !on)}>
-              <Star size={18} strokeWidth={2.2} aria-hidden />
+          <div className={`gallery__tools ${searchOpen ? 'is-searching' : ''}`}>
+            {/* 🔍 opens the field across the row, 🔍 then inside its right end. */}
+            {searchOpen && (
+              <form
+                className="gallery__search"
+                role="search"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  search(query);
+                }}
+              >
+                <input
+                  ref={searchInput}
+                  className="gallery__search-input"
+                  type="search"
+                  enterKeyHint="search"
+                  aria-label="장소 이름"
+                  placeholder="장소 이름을 입력하세요"
+                  value={query}
+                  maxLength={80}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+                {query && (
+                  <button type="button" className="gallery__search-clear" aria-label="지우기" onClick={clearSearch}>
+                    <X size={16} strokeWidth={2.4} aria-hidden />
+                  </button>
+                )}
+                {searchButton}
+                {suggestions.length > 0 && (
+                  <ul className="gallery__suggest" aria-label="추천 검색어">
+                    {suggestions.map((name) => (
+                      <li key={name}>
+                        <button type="button" onClick={() => search(name)}>
+                          <MapPin size={15} strokeWidth={2.2} aria-hidden />
+                          <Marked text={name} words={query} />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </form>
+            )}
+            {/* Closed, 🔍 sits in the row; open, it's inside the field's right end (searchIcon). */}
+            {!searchOpen && searchButton}
+            {/* Icons only, no outline; switched on, they fill and pop like the big photo's ♥ ★. */}
+            <button className={`gallery__filter gallery__filter--star ${starsOn ? 'is-on' : ''}`} aria-label="즐겨찾기" aria-pressed={starsOn} onClick={() => setStarsOn((on) => !on)}>
+              <Star size={22} strokeWidth={2.2} aria-hidden />
             </button>
-            <button className={`gallery__filter ${metOn ? 'is-on' : ''}`} aria-label="만난 날" aria-pressed={metOn} onClick={() => setMetOn((on) => !on)}>
-              <HighFive size={21} />
-            </button>
+            {/* 만난 날 is a group's: not in MY. */}
+            {tab !== 'my' && (
+              <button className={`gallery__filter ${metOn ? 'is-on' : ''}`} aria-label="만난 날" aria-pressed={metOn} onClick={() => setMetOn((on) => !on)}>
+                <HighFive size={25} />
+              </button>
+            )}
           </div>
         )}
-        {ready && allDays.length > 0 && !days.length && (
+        {/* Nothing left by a switch: no explaining, the grid is just empty (a search, or 만난 날 still loading, still says so). */}
+        {ready && allDays.length > 0 && !days.length && (searched || (metOn && met.status !== 'ready')) && (
           <p className="gallery__note">
-            {metOn && met.status === 'loading'
-              ? '만난 날을 찾는 중…'
-              : metOn && met.status === 'error'
-                ? '만난 날을 불러오지 못했어요.'
-                : starsOn && metOn
-                  ? '만난 날에 즐겨찾기한 사진이 없어요.'
-                  : starsOn
-                    ? '즐겨찾기한 사진이 없어요. 큰 사진의 ☆를 눌러 보세요.'
-                    : '아직 만난 날이 없어요. 같은 곳에서 핑을 찍으면 만난 날이 돼요.'}
+            {searched
+              ? `'${searched}'에서 찍은 사진이 없어요.`
+              : met.status === 'loading'
+                ? '만난 날을 찾는 중…'
+                : '만난 날을 불러오지 못했어요.'}
           </p>
         )}
         {ready && !allDays.length && (
@@ -253,6 +367,20 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
         />
       )}
     </div>
+  );
+}
+
+/** A suggestion with the typed words in bold. */
+function Marked({ text, words }: { text: string; words: string }) {
+  const at = text.toLowerCase().indexOf(words.trim().toLowerCase());
+  if (at < 0 || !words.trim()) return <span>{text}</span>;
+  const end = at + words.trim().length;
+  return (
+    <span>
+      {text.slice(0, at)}
+      <b>{text.slice(at, end)}</b>
+      {text.slice(end)}
+    </span>
   );
 }
 
