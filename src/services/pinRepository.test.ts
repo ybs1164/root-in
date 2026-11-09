@@ -50,7 +50,7 @@ describe('pin storage', () => {
     localStorage.setItem('goodroot:pins:v1', JSON.stringify([pin('ok', 'u1'), { id: 'bad', userId: 'u1' }, null]));
     localStorage.setItem('goodroot:pin-categories:v2', JSON.stringify([DEFAULT_CATEGORIES[0], { id: 'x', name: 'x', icon: 'unknown-icon', color: 1 }]));
     expect((await new LocalPinRepository().listByUser('u1')).map((p) => p.id)).toEqual(['ok']);
-    expect((await new LocalPinCategoryRepository().list()).map((c) => c.id)).toEqual(['cafe']);
+    expect((await new LocalPinCategoryRepository().list()).map((c) => c.id)).toEqual([DEFAULT_CATEGORIES[0].id]);
   });
 
   it('v1 categories move to v2 flat: each sub-category becomes a category of its own, right after its old parent', async () => {

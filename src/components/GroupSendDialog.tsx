@@ -1,5 +1,6 @@
-import { CalendarCheck, Check, MapPin } from 'lucide-react';
+import { CalendarCheck, Check, MapPin, PenLine } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { TYPED_PLACE_MAX, typedCameraPlace } from '../domain/cameraPlaces';
 import type { Group } from '../domain/groups';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import type { GroupsStatus } from '../hooks/useGroups';
@@ -40,8 +41,15 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
   const [problem, setProblem] = useState<string | null>(null);
   const [step, setStep] = useState<'place' | 'groups'>('place');
   const [placeId, setPlaceId] = useState<string | null>(null);
-  // Nothing picked yet: the first one (where I'm standing).
-  const place = places?.find((p) => p.id === placeId) ?? places?.[0] ?? null;
+  // 직접 입력: picked, and the name typed for it (kept if another place is picked meanwhile).
+  const [typing, setTyping] = useState(false);
+  const [typedName, setTypedName] = useState('');
+  const typedRef = useRef<HTMLInputElement | null>(null);
+  // Typed: a ping of that name on the spot I'm on (the first place, with its
+  // nearest address); nothing until a name is in. Otherwise the place picked,
+  // and with nothing picked yet the first one (where I'm standing).
+  const spot = places?.[0] ?? null;
+  const place = typing ? (spot && typedCameraPlace(spot, typedName)) : (places?.find((p) => p.id === placeId) ?? spot);
   // No close() in cleanup: it would fire onClose during StrictMode's check (as ConfirmDialog).
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -109,10 +117,19 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
             ) : (
               <ul className="group-send__list" role="radiogroup" aria-label="보낼 위치">
                 {places.map((p, i) => {
-                  const on = p.id === place?.id;
+                  const on = !typing && p.id === place?.id;
                   return (
                     <li key={p.id}>
-                      <button type="button" role="radio" aria-checked={on} className={`group-send__item ${on ? 'is-on' : ''}`} onClick={() => setPlaceId(p.id)}>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        className={`group-send__item ${on ? 'is-on' : ''}`}
+                        onClick={() => {
+                          setTyping(false);
+                          setPlaceId(p.id);
+                        }}
+                      >
                         <span className="group-send__spot" aria-hidden>
                           <MapPin size={20} strokeWidth={2.2} />
                         </span>
@@ -128,6 +145,59 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
                     </li>
                   );
                 })}
+                {spot && (
+                  <li>
+                    {/* A div, not a button: the name field sits inside it. */}
+                    <div
+                      role="radio"
+                      aria-checked={typing}
+                      aria-label="직접 입력"
+                      tabIndex={typing ? -1 : 0}
+                      className={`group-send__item group-send__item--typed ${typing ? 'is-on' : ''}`}
+                      onClick={() => {
+                        if (!typing) setTyping(true);
+                        typedRef.current?.focus();
+                      }}
+                      onKeyDown={(event) => {
+                        if (typing || (event.key !== 'Enter' && event.key !== ' ')) return;
+                        event.preventDefault();
+                        setTyping(true);
+                        typedRef.current?.focus();
+                      }}
+                    >
+                      <span className="group-send__spot" aria-hidden>
+                        <PenLine size={20} strokeWidth={2.2} />
+                      </span>
+                      <span className="group-send__place">
+                        {typing ? (
+                          <input
+                            ref={typedRef}
+                            autoFocus
+                            className="group-send__name group-send__input"
+                            value={typedName}
+                            maxLength={TYPED_PLACE_MAX}
+                            placeholder="장소 이름을 입력하세요"
+                            aria-label="장소 이름"
+                            enterKeyHint="next"
+                            onChange={(event) => setTypedName(event.target.value)}
+                            onKeyDown={(event) => {
+                              if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
+                              event.preventDefault();
+                              if (place) setStep('groups');
+                            }}
+                          />
+                        ) : (
+                          <span className="group-send__name">{typedName.trim() || '직접 입력'}</span>
+                        )}
+                        {/* Where the ping lands: the address nearest to where I am. */}
+                        <span className="group-send__sub">{spot.address ?? '현재 위치'}</span>
+                      </span>
+                      <span className="group-send__check" aria-hidden>
+                        {typing && <Check size={16} strokeWidth={3} />}
+                      </span>
+                    </div>
+                  </li>
+                )}
               </ul>
             )}
           </div>

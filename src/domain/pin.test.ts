@@ -1,14 +1,26 @@
 import { describe, expect, it } from 'vitest';
 import { samplePlaces } from '../test/fixtures';
 import type { Pin, PinCategory } from '../types/pin';
+
+// The six defaults before the kind categories (2026-11-09): a small, known set to edit.
+const DEFAULT_CATEGORIES: PinCategory[] = [
+  { id: 'cafe', name: '카페', icon: 'cafe', color: 1, order: 0 },
+  { id: 'food', name: '맛집', icon: 'food', color: 2, order: 1 },
+  { id: 'bar', name: '술집', icon: 'bar', color: 3, order: 2 },
+  { id: 'photo', name: '사진 명소', icon: 'photo', color: 4, order: 3 },
+  { id: 'shop', name: '쇼핑', icon: 'shop', color: 5, order: 4 },
+  { id: 'togo', name: '가볼 곳', icon: 'flag', color: 6, order: 5 },
+];
 import {
+  DEFAULT_CATEGORIES as KIND_DEFAULTS,
+  kindCategoryId,
+  withKindCategories,
   addCategory,
   buildPinSet,
   categoriesWithUncategorized,
   categoryStyle,
   pinStyle,
   suggestCategory,
-  DEFAULT_CATEGORIES,
   filterPins,
   filterPinsByCategories,
   addPlacesAsPins,
@@ -179,5 +191,38 @@ describe('kind icons for 미분류 pins', () => {
     expect(suggestCategory(cats, 'chicken')).toBe('none'); // two 식당 categories
     expect(suggestCategory(cats, 'park')).toBe('none');
     expect(suggestCategory(cats, undefined)).toBe('none');
+  });
+});
+
+describe('kind categories', () => {
+  it('start one per place kind group, and a place finds its own', () => {
+    expect(KIND_DEFAULTS.map((c) => c.name).slice(0, 3)).toEqual(['식당', '카페·디저트', '술집']);
+    expect(KIND_DEFAULTS.every((c) => c.name.length <= PIN_LIMITS.categoryName && c.color !== 8)).toBe(true);
+    expect(kindCategoryId('bakery')).toBe('kind-cafe');
+    expect(kindCategoryId(undefined)).toBeNull();
+    expect(suggestCategory(KIND_DEFAULTS, 'pub')).toBe('kind-bar');
+  });
+
+  it('replace the old defaults, moving their pins over (가볼 곳 to 미분류), and keep my own', () => {
+    const mine: PinCategory = { id: 'cat-1', name: '데이트', icon: 'heart', color: 2, order: 9 };
+    const pins = [pin(onionSeongsu, 'cafe', 'p1'), pin(onionSeongsu, 'togo', 'p2'), pin(onionSeongsu, 'cat-1', 'p3')];
+    const out = withKindCategories(pins, [...DEFAULT_CATEGORIES, mine], true);
+    expect(out.categories.map((c) => c.id)).toEqual(['cat-1', ...KIND_DEFAULTS.map((c) => c.id)]);
+    expect(out.categories.slice(1).every((c, i) => c.order === 10 + i)).toBe(true);
+    expect(out.pins.map((p) => p.categoryId)).toEqual(['kind-cafe', 'none', 'cat-1']);
+  });
+
+  it('are added once: one deleted later stays gone, old defaults from a sync still go', () => {
+    const kept = KIND_DEFAULTS.filter((c) => c.id !== 'kind-bar');
+    const same = withKindCategories([], kept, false);
+    expect(same.categories).toBe(kept);
+    const pulled = withKindCategories([pin(onionSeongsu, 'bar', 'p1')], [...kept, DEFAULT_CATEGORIES[2]], false);
+    expect(pulled.categories.map((c) => c.id)).toEqual(kept.map((c) => c.id));
+    expect(pulled.pins[0].categoryId).toBe('none');
+  });
+
+  it('never go over the category limit', () => {
+    const full = Array.from({ length: PIN_LIMITS.maxCategories - 2 }, (_, i) => ({ ...DEFAULT_CATEGORIES[5], id: `c${i}`, order: i }));
+    expect(withKindCategories([], full, true).categories).toHaveLength(PIN_LIMITS.maxCategories);
   });
 });

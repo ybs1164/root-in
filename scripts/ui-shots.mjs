@@ -52,7 +52,7 @@ async function seed(page) {
     await courseRepository.save(uid, course);
     await courseRepository.save(uid, { ...course, title: '을지로 노포 투어', theme: 'food', stops: course.stops.slice(0, 2), sharedBy: undefined });
     const { pinRepository } = await import('/src/services/pinRepository.ts');
-    const cats = ['cafe', 'food', 'togo'];
+    const cats = ['kind-cafe', 'kind-food', 'kind-photo'];
     await pinRepository.saveAll(uid, course.stops.map((s, i) => ({
       id: `shot-pin-${i}`, userId: uid, place: s.place, categoryId: cats[i], memo: s.memo, createdAt: course.sharedAt,
     })));

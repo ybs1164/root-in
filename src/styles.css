@@ -669,6 +669,9 @@ button:disabled {
   height: 100%;
   height: 100dvh;
   overflow: hidden;
+  /* Hidden still scrolls from code: a lowered sheet hangs below the screen, and
+     scrolled down to it the whole app stayed shifted up. Clip can't scroll. */
+  overflow: clip;
 }
 
 /* `.app >` outranks the map libraries' own `position: relative`. */
@@ -4610,6 +4613,27 @@ button:disabled {
   white-space: nowrap;
 }
 
+/* 직접 입력, the last place: picked, its name becomes a field in the same
+   spot and size as the other names (16px also keeps iOS from zooming). */
+.group-send__item--typed {
+  cursor: pointer;
+}
+
+.group-send__input {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+}
+
+.group-send__input::placeholder {
+  color: var(--muted);
+}
+
 .group-send__where {
   color: var(--accent);
   font-weight: inherit;
@@ -5069,9 +5093,6 @@ button:disabled {
 }
 
 .pin-card__route {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
   min-width: 0;
   margin: 0;
   overflow: hidden;
@@ -5080,14 +5101,9 @@ button:disabled {
   font-size: 21px;
   letter-spacing: 0.06em;
   line-height: 1.1;
+  text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
-}
-
-.pin-card__arrow {
-  color: var(--ticket-arrow);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-size: 15px;
 }
 
 .pin-card__name {
@@ -6972,8 +6988,9 @@ button:disabled {
   animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 
+/* Half the screen at most (2026-11-09): the map stays in view above it. */
 .category-sheet .share-sheet__body {
-  max-height: 88dvh;
+  max-height: 50dvh;
   overflow-y: auto;
 }
 
