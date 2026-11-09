@@ -289,12 +289,12 @@ const pingRow = (p: StoredPing): SyncRow => ({
   pin_id: p.pinId ?? null,
   day: p.day,
   at: p.at,
-  place: { name: p.name, center: p.center, ...(p.address ? { address: p.address } : {}) },
+  place: { name: p.name, center: p.center, ...(p.address ? { address: p.address } : {}), ...(p.kind ? { kind: p.kind } : {}) },
 });
 
 const pingFrom = (raw: Record<string, unknown>): StoredPing | null => {
   const place = (raw.place ?? {}) as Record<string, unknown>;
-  return parsePing({ id: raw.id, pinId: raw.pin_id, day: raw.day, at: raw.at, name: place.name, center: place.center, address: place.address });
+  return parsePing({ id: raw.id, pinId: raw.pin_id, day: raw.day, at: raw.at, name: place.name, center: place.center, address: place.address, kind: place.kind });
 };
 
 export const pingsCollection: SyncCollectionDef = {

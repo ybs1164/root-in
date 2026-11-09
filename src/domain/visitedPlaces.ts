@@ -36,6 +36,7 @@ export function visitedPlaces(
       name: ping.name,
       center: ping.center,
       ...(ping.address ? { address: ping.address } : {}),
+      ...(ping.kind ? { kind: ping.kind } : {}),
     });
   }
   return { places, settled };

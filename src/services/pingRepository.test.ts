@@ -75,4 +75,10 @@ describe('pingRepository', () => {
     expect(loadPings()).toEqual([{ id: 'a', day: '2026-10-08', at: '2026-10-08T05:00:00.000Z', name: 'ok', center: [127, 37.5] }]);
     expect(parsePing({ id: 'x'.repeat(65), day: '2026-10-08', at: '2026-10-08T05:00:00Z', name: 'n', center: [127, 37.5] })).toBeNull();
   });
+
+  it('keeps what kind of place a ping is, for the pin made from it; an unknown kind is dropped', () => {
+    const id = recordPlacePing({ id: 'p', name: '어니언', center: [127.05, 37.54], kind: 'bakery' }, []);
+    expect(loadPings().find((p) => p.id === id)?.kind).toBe('bakery');
+    expect(parsePing({ id: 'x', day: '2026-10-08', at: '2026-10-08T05:00:00Z', name: 'n', center: [127, 37.5], kind: 'nope' })?.kind).toBeUndefined();
+  });
 });

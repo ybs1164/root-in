@@ -74,4 +74,9 @@ describe('placePhotos', () => {
     const got = placePhotos({ id: 'visit:old', name: '내 카페', center: CAFE }, 'p9', pings, photos);
     expect(got.map((p) => p.id)).toEqual(['old']);
   });
+
+  it('a pin made from a ping keeps what kind of place it was', () => {
+    const { places } = visitedPlaces([ping('k', '내 카페', CAFE, '2026-11-04T10:00:00.000Z', { kind: 'cafe' })], [], new Set());
+    expect(places[0].kind).toBe('cafe');
+  });
 });
