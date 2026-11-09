@@ -25,6 +25,14 @@ export function poiStickerUrl(kind: PlaceRef['kind']): string | null {
   return kind && approved.has(kind) ? `${import.meta.env.BASE_URL}poi-stickers/${kind}.png` : null;
 }
 
+/** A pin whose kind is unknown (yet) still shows a sticker; POIs always know theirs. */
+const PIN_FALLBACK_KIND = 'building';
+
+/** The place as a pin draws it: only on the map, so a kind found later still replaces the fallback. */
+export function pinPlaceLook(place: PlaceRef): PlaceRef {
+  return poiStickerUrl(place.kind) ? place : { ...place, kind: PIN_FALLBACK_KIND };
+}
+
 /** Shared visual area, compensating for each image's transparent padding and shape. */
 export function poiAppearance(place: Pick<PlaceRef, 'kind'>) {
   return {

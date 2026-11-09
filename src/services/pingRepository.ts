@@ -1,6 +1,7 @@
 import { dateKey, isDateKey } from '../domain/diary';
 import { isExcluded, type ExcludedPlace } from '../domain/privacy';
 import type { StoredPing } from '../domain/dayPings';
+import { isPlaceKind } from '../domain/placeKinds';
 import type { PlaceRef } from '../types/course';
 import { inKorea } from './pinShareService';
 import { localWrote } from './syncBus';
@@ -23,13 +24,14 @@ const isCenter = (value: unknown): value is [number, number] =>
 /** A stored or received ping, checked; null drops it. */
 export function parsePing(raw: unknown): StoredPing | null {
   if (!raw || typeof raw !== 'object') return null;
-  const { id, pinId, day, at, name, center, address, local } = raw as Record<string, unknown>;
+  const { id, pinId, day, at, name, center, address, kind, local } = raw as Record<string, unknown>;
   if (typeof id !== 'string' || !id || id.length > 64 || !isDateKey(day) || typeof at !== 'string') return null;
   const time = Date.parse(at);
   if (Number.isNaN(time) || typeof name !== 'string' || !name.trim() || !isCenter(center)) return null;
   const ping: StoredPing = { id, day, at: new Date(time).toISOString(), name: name.trim().slice(0, PING_LIMITS.name), center: [center[0], center[1]] };
   if (typeof pinId === 'string' && pinId && pinId.length <= 64) ping.pinId = pinId;
   if (typeof address === 'string' && address.trim()) ping.address = address.trim().slice(0, PING_LIMITS.address);
+  if (isPlaceKind(kind)) ping.kind = kind;
   if (local === true) ping.local = true;
   return ping;
 }
@@ -104,6 +106,7 @@ function addPing(place: PlaceRef, excluded: ExcludedPlace[], now: Date, pinId?: 
     name: place.name,
     center: place.center,
     address: place.address,
+    kind: place.kind,
     // At a 제외 주소: on this phone's TODAY, never on the server.
     local: isExcluded(place, excluded),
   });

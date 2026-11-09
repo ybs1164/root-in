@@ -1,6 +1,7 @@
 import { addDays } from './calendar';
 import { dateKey, timeKey } from './diary';
 import { haversineMeters } from './geo';
+import type { PlaceKind } from './placeKinds';
 
 /** One place visited on a day, as drawn on the calendar's day screen. */
 export interface DayPing {
@@ -30,6 +31,8 @@ export interface StoredPing {
   name: string;
   center: [number, number];
   address?: string;
+  /** What the place is, when it was known: the pin made from this ping keeps it for its sticker. */
+  kind?: PlaceKind;
   local?: boolean;
 }
 

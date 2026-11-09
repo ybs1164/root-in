@@ -1,4 +1,4 @@
-import { poiAppearance } from '../domain/poiAppearance';
+import { pinPlaceLook, poiAppearance } from '../domain/poiAppearance';
 import type { AreaLabel, AreaShapes } from '../domain/adminAreas';
 import type { MapViewport } from '../domain/districtMap';
 import type { PlaceRef } from '../types/course';
@@ -326,7 +326,7 @@ export function createGroupPingElement(mark: GroupPingMark): HTMLElement {
 export function createPinElement(pin: PinMarker, onClick?: (id: string) => void): HTMLElement {
   // A pinned place carries no mark of its own (no group icon, no colour): it
   // is drawn exactly as the nearby POI it replaces — its sticker and name.
-  const el = createNearbyPlaceElement(pin.place);
+  const el = createNearbyPlaceElement(pinPlaceLook(pin.place));
   el.classList.add('map-marker--pin');
   if (pin.selected) el.classList.add('is-selected');
   el.setAttribute('aria-label', pin.name);
