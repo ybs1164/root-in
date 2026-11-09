@@ -46,6 +46,7 @@ import { useCourses } from './hooks/useCourses';
 import { useAreaMap } from './hooks/useAreaMap';
 import { useNearbyPlaces } from './hooks/useNearbyPlaces';
 import { nearbyPlaceAt } from './domain/nearbyPlaces';
+import { buildPlaceProfile } from './domain/poiScene';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
 import { useMyLocation } from './hooks/useMyLocation';
 import { loadPings, recordPing, recordPlacePing, removePingsOfPin, todayPingOfPin } from './services/pingRepository';
@@ -780,7 +781,12 @@ export default function App() {
     };
   }, [viewport, mapPadding]);
   const areaMap = useAreaMap(viewport, areaView?.cover);
-  const nearbyPlaces = useNearbyPlaces(viewport);
+  // On this device only: what the user saved and visited ranks same-kind places.
+  const placeProfile = useMemo(() => buildPlaceProfile({ pins, pings: storedPings, courses: course.courses }),
+    [pins, storedPings, course.courses]);
+  // Pins on the map always win: no place sticker or name is drawn over one.
+  const nearbyAvoid = useMemo(() => pinMarkers.map((pin) => pin.center), [pinMarkers]);
+  const nearbyPlaces = useNearbyPlaces(viewport, placeProfile, nearbyAvoid);
   // Drag handlers stay attached while place data and the camera update.
   const nearbyContext = useRef({ places: nearbyPlaces, viewport });
   nearbyContext.current = { places: nearbyPlaces, viewport };

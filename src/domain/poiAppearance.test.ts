@@ -5,7 +5,7 @@ import { parsePlaceArea, poiAppearance, poiStickerUrl } from './poiAppearance';
 import { APPROVED_POI_STICKERS } from './poiStickerKinds';
 import { parseLandmarks } from './landmarkPlaces';
 import { parseKindShops } from '../services/placeKindService';
-import { selectNearbyPlaces } from './nearbyPlaces';
+import { shopCandidates } from './nearbyPlaces';
 
 const place = { id: 'landmark:r123', name: '학교', center: [127, 37] as [number, number], kind: 'school' as const };
 
@@ -40,8 +40,8 @@ describe('approved map stickers', () => {
     const landmark = parseLandmarks({ v: 1, r: [['r1', '학교', 12700000, 3700000, 'school', '학교', 1, { areaM2: 900 }]] })![0];
     expect(landmark.areaM2).toBe(900);
     const shops = parseKindShops({ v: 1, k: ['pizza'], r: [['피자', 12700400, 3700500, 0, { landAreaM2: 1600 }]] })!;
-    const selected = selectNearbyPlaces(shops, { bounds: { west: 127, south: 37, east: 127.01, north: 37.01 }, widthPx: 400 });
-    expect(selected[0].landAreaM2).toBe(1600);
+    const [selected] = shopCandidates(shops, { bounds: { west: 127, south: 37, east: 127.01, north: 37.01 }, widthPx: 400 });
+    expect(selected.place.landAreaM2).toBe(1600);
   });
 
   it('separates public facilities in existing landmark tiles without reclassifying ordinary buildings', () => {

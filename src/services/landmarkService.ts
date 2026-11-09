@@ -1,6 +1,5 @@
 import type { MapViewport } from '../domain/districtMap';
-import { landmarksEnabled, landmarkScale, parseLandmarks, selectLandmarks, type Landmark } from '../domain/landmarkPlaces';
-import type { PlaceRef } from '../types/course';
+import { eligibleLandmarks, landmarksEnabled, landmarkScale, parseLandmarks, type Landmark } from '../domain/landmarkPlaces';
 
 interface LandmarkIndex { levels: { name: string; step: number; tiles: Set<string> }[] }
 
@@ -10,7 +9,7 @@ export class LandmarkService {
   private tiles = new Map<string, Promise<Landmark[]>>();
   constructor(private readonly base = `${import.meta.env.BASE_URL}map-landmarks/`) {}
 
-  async fetch(view: MapViewport): Promise<PlaceRef[]> {
+  async fetch(view: MapViewport): Promise<Landmark[]> {
     if (!landmarksEnabled(view)) return [];
     this.index ??= fetch(`${this.base}index.json`, { signal: AbortSignal.timeout(10000) })
       .then(async (r) => {
@@ -35,7 +34,7 @@ export class LandmarkService {
       }
     }
     const lists = await Promise.all(keys.map((key) => this.loadTile(key)));
-    return selectLandmarks(lists.flat(), view);
+    return eligibleLandmarks(lists.flat(), view);
   }
 
   private loadTile(key: string): Promise<Landmark[]> {

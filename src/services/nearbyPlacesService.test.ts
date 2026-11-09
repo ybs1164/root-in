@@ -17,7 +17,7 @@ describe('nearby places service', () => {
     const shops = { loadShops: vi.fn(async (code: string) => rows[code]) };
     const places = await new NearbyPlacesService(admin(), shops).fetch(viewport);
     expect(shops.loadShops.mock.calls.map(([code]) => code)).toEqual(['11110', '41110']);
-    expect(places.map((p) => p.kind)).toEqual(['cafe', 'restaurant']);
+    expect(places.map((p) => p.kind).sort()).toEqual(['cafe', 'restaurant']);
   });
   it('loads neighboring districts covering whole selection cells, even beyond the screen', async () => {
     const areas = admin();
@@ -45,20 +45,32 @@ describe('nearby places service', () => {
   });
 
   it('shows landmarks before slow shops, and still shows them if shop loading fails', async () => {
-    const school = { id: 'landmark:r1', name: '숭실대학교', center: [127.004, 37.005] as [number, number], kind: 'school' as const };
+    const school = { id: 'landmark:r1', name: '숭실대학교', center: [127.004, 37.005] as [number, number], kind: 'school' as const, importance: 0 as const };
     let fail!: () => void;
     const shops = { loadShops: () => new Promise<KindShop[]>((_, reject) => { fail = () => reject(new Error('offline')); }) };
     const areas = { sggAreasInBounds: async () => [{ code: '11110' } as AdminArea] };
     const progress = vi.fn();
-    const pending = new NearbyPlacesService(areas, shops, { fetch: async () => [school] }).fetch(viewport, progress);
+    const pending = new NearbyPlacesService(areas, shops, { fetch: async () => [school] }).fetch(viewport, {}, progress);
     await vi.waitFor(() => expect(progress).toHaveBeenCalledWith([school]));
     fail();
     expect(await pending).toEqual([school]);
   });
 
+  it('keeps one place per kind on the screen, preferring a familiar one', async () => {
+    const twins: Record<string, KindShop[]> = { '11110': [
+      { name: '체인카페', x: 12700200, y: 3700200, kind: 'cafe' }, { name: '체인카페', x: 12700900, y: 3700900, kind: 'cafe' },
+      { name: '골목카페', x: 12700500, y: 3700500, kind: 'cafe' },
+    ] };
+    const service = new NearbyPlacesService({ sggAreasInBounds: async () => [{ code: '11110' } as AdminArea] }, { loadShops: async (code) => twins[code] });
+    const plain = await service.fetch(viewport);
+    expect(plain.map((p) => p.name)).toEqual(['체인카페']);
+    const visited = await service.fetch(viewport, { profile: { kinds: {}, spots: [{ x: 12700500, y: 3700500, name: '골목카페' }] } });
+    expect(visited.map((p) => p.name)).toEqual(['골목카페']);
+  });
+
   it('shows campuses at district scale without downloading shop files', async () => {
     const areas = admin();
-    const school = { id: 'landmark:r1', name: '숭실대학교', center: [127.004, 37.005] as [number, number], kind: 'school' as const };
+    const school = { id: 'landmark:r1', name: '숭실대학교', center: [127.004, 37.005] as [number, number], kind: 'school' as const, importance: 0 as const };
     const service = new NearbyPlacesService(areas, { loadShops: async () => [] }, { fetch: async () => [school] });
     expect(await service.fetch({ ...viewport, widthPx: 40 })).toEqual([school]);
     expect(areas.sggAreasInBounds).not.toHaveBeenCalled();

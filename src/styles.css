@@ -1027,6 +1027,7 @@ button:disabled {
     drop-shadow(0 1.5px 0 var(--sticker-edge)) drop-shadow(0 -1.5px 0 var(--sticker-edge));
 }
 .map-nearby-place span { max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-nearby-place--sticker span { margin-top: var(--poi-art-below, 0px); }
 .map-nearby-place--landmark { width: 116px; color: var(--text); font-size: 11px; font-weight: 600; }
 .map-nearby-place--landmark span { max-width: 110px; }
 .map-nearby-place--major span { padding: 1px 4px; border-radius: 4px; background: var(--surface); }

@@ -5,6 +5,7 @@ import { KIND_GROUPS, kindIcon } from './placeKinds';
 import type { KindShop } from './placeMatch';
 import type { PlaceRef } from '../types/course';
 import { landmarksEnabled } from './landmarkPlaces';
+import type { SceneCandidate } from './poiScene';
 
 /** Neighborhood scale at a fixed latitude: panning cannot change density. */
 export const NEARBY_MAX_MPP = 12;
@@ -38,41 +39,38 @@ export function nearbyPlaceBounds(viewport: MapViewport): Bbox {
   };
 }
 
+const NO_NAME = /^(업소명|상호명?)?없음$/u;
 const shopKey = (shop: KindShop) => `${shop.x}:${shop.y}:${shop.kind}:${shop.name}`;
-const priority = (key: string) => {
-  let hash = 2166136261;
-  for (let i = 0; i < key.length; i++) hash = Math.imul(hash ^ key.charCodeAt(i), 16777619);
-  return hash >>> 0;
-};
+
+export const shopPlace = (shop: KindShop): PlaceRef => ({
+  id: `nearby:${shopKey(shop)}`,
+  name: shop.name,
+  center: [shop.x / 1e5, shop.y / 1e5],
+  kind: shop.kind,
+  ...parsePlaceArea(shop),
+  category: KIND_GROUPS.find((group) => group.icon === kindIcon(shop.kind))?.label,
+});
 
 /**
- * One stable representative per geographic cell. Selection happens before
- * screen clipping and never uses bearing, panels, labels, pins or a screen cap.
- * Zooming in preserves every previous representative and adds finer cells.
+ * Shops in the loaded cells, scored by brand recognition: how often the same
+ * name appears in the loaded districts (상가정보 has no renown of its own).
+ * The scene then keeps one per kind (domain/poiScene.ts).
  */
-export function selectNearbyPlaces(shops: KindShop[], viewport: MapViewport): PlaceRef[] {
+export function shopCandidates(shops: KindShop[], viewport: MapViewport): SceneCandidate[] {
   if (!nearbyPlacesEnabled(viewport)) return [];
-  const size = nearbyPlaceCellSize(viewport);
   const bounds = nearbyPlaceBounds(viewport);
-  const cells = new Map<string, { shop: KindShop; key: string; rank: number }>();
+  const counts = new Map<string, number>();
+  // One-letter names (수, 별…) repeat without being one brand.
+  for (const shop of shops) if (Array.from(shop.name).length > 1) counts.set(shop.name, (counts.get(shop.name) ?? 0) + 1);
+  const result: SceneCandidate[] = [];
   for (const shop of shops) {
+    // 상가정보's placeholder for a missing name: no place to show, and it repeats like a big brand.
+    if (NO_NAME.test(shop.name)) continue;
     const lon = shop.x / 1e5, lat = shop.y / 1e5;
     if (lon < bounds.west || lon >= bounds.east || lat < bounds.south || lat >= bounds.north) continue;
-    const cell = `${Math.floor(lon / size)}:${Math.floor(mercatorY(lat) / size)}`;
-    const key = shopKey(shop), rank = priority(key);
-    const previous = cells.get(cell);
-    if (!previous || rank < previous.rank || (rank === previous.rank && key < previous.key)) cells.set(cell, { shop, key, rank });
+    result.push({ place: shopPlace(shop), fame: 0.3 * Math.min(1, Math.log2(counts.get(shop.name) ?? 1) / 5) });
   }
-  return [...cells.values()]
-    .sort((a, b) => a.shop.x - b.shop.x || a.shop.y - b.shop.y || a.key.localeCompare(b.key))
-    .map(({ shop, key }) => ({
-      id: `nearby:${key}`,
-      name: shop.name,
-      center: [shop.x / 1e5, shop.y / 1e5],
-      kind: shop.kind,
-      ...parsePlaceArea(shop),
-      category: KIND_GROUPS.find((group) => group.icon === kindIcon(shop.kind))?.label,
-    }));
+  return result;
 }
 
 /** The bubble and a pin opened there use exactly the same nearby place. */

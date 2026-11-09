@@ -4,7 +4,11 @@ import { isPlaceKind } from './placeKinds';
 import { publicFacilityKind } from './placeKindRules';
 import type { PlaceRef } from '../types/course';
 
-export interface Landmark extends PlaceRef { importance: 0 | 1 | 2 }
+export interface Landmark extends PlaceRef {
+  importance: 0 | 1 | 2;
+  /** 0..100 renown from OSM tags and footprint (build_landmarks.py `fame`). */
+  fame?: number;
+}
 const MAX_MPP = [40, 16, 4] as const;
 const REFERENCE_METERS_PER_DEGREE = 111_320 * Math.cos(37.5 * Math.PI / 180);
 export const landmarkScale = (view: MapViewport) => view.worldDegreesPerPixel ?? (view.bounds.east - view.bounds.west) / view.widthPx;
@@ -23,28 +27,39 @@ export function parseLandmarks(value: unknown): Landmark[] | null {
       !Number.isInteger(x) || !Number.isInteger(y) || x < 124e5 || x > 132e5 || y < 33e5 || y > 39e5 ||
       !isPlaceKind(kind) || typeof category !== 'string' || ![0, 1, 2].includes(importance)) return [];
     const resolvedKind = kind === 'building' && category === '공공시설' ? publicFacilityKind(name) : kind;
-    return [{ id: `landmark:${id}`, name, center: [x / 1e5, y / 1e5] as [number, number], kind: resolvedKind, category, importance, ...parsePlaceArea(row[7]) }];
+    const extra = row[7] as { f?: unknown } | undefined;
+    const fame = typeof extra?.f === 'number' && Number.isInteger(extra.f) && extra.f > 0 && extra.f <= 100 ? extra.f : undefined;
+    return [{ id: `landmark:${id}`, name, center: [x / 1e5, y / 1e5] as [number, number], kind: resolvedKind, category, importance,
+      ...(fame ? { fame } : {}), ...parsePlaceArea(row[7]) }];
   });
 }
 
-/** Dedicated stable cells keep campuses and stations out of the shop lottery. */
-export function selectLandmarks(places: Landmark[], view: MapViewport): PlaceRef[] {
+/** OSM renown from which a neighbourhood landmark (a palace, a famous museum) shows as far out as campuses. */
+export const PROMOTE_FAME = 70;
+/**
+ * Shown from this scale down: campuses and stations far out, named buildings
+ * close in. Only tier 1 can be promoted: overview tiles carry no tier 2 rows.
+ */
+export const landmarkEligible = (place: Landmark, view: MapViewport) => {
+  const tier = place.importance === 1 && (place.fame ?? 0) >= PROMOTE_FAME ? 0 : place.importance;
+  return landmarksEnabled(view) && landmarkScale(view) * REFERENCE_METERS_PER_DEGREE <= MAX_MPP[tier];
+};
+
+/** Landmarks the screen (plus a margin for dragging) may show at this scale; the scene picks among them. */
+export function eligibleLandmarks(places: Landmark[], view: MapViewport): Landmark[] {
   if (!landmarksEnabled(view)) return [];
-  const scale = landmarkScale(view), mpp = scale * REFERENCE_METERS_PER_DEGREE;
-  const size = 2 ** Math.ceil(Math.log2(scale * 120) - 1e-9);
-  const margin = size;
+  const margin = 2 ** Math.ceil(Math.log2(landmarkScale(view) * 120) - 1e-9);
   const b = view.bounds;
-  const cells = new Map<string, Landmark>();
-  // At broad scales, a campus remains an orientation point even when its
-  // station is represented by a node with a smaller OSM id in the same cell.
-  const rank = (place: Landmark) => place.importance === 0 && place.kind === 'school' ? 0 : 1;
-  for (const place of [...places].sort((a, b) => rank(a) - rank(b) || a.id.localeCompare(b.id))) {
-    if (mpp > MAX_MPP[place.importance]) continue;
+  const seen = new Set<string>();
+  return places.filter((place) => {
     const [lon, lat] = place.center;
-    if (lon < b.west - margin || lon > b.east + margin || lat < b.south - margin || lat > b.north + margin) continue;
-    const y = Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360)) * 180 / Math.PI;
-    const key = `${place.importance}:${Math.floor(lon / size)}:${Math.floor(y / size)}`;
-    if (!cells.has(key)) cells.set(key, place);
-  }
-  return [...cells.values()];
+    if (seen.has(place.id) || !landmarkEligible(place, view) ||
+      lon < b.west - margin || lon > b.east + margin || lat < b.south - margin || lat > b.north + margin) return false;
+    seen.add(place.id);
+    return true;
+  });
 }
+
+const TIER_FAME = [0.45, 0.3, 0.15] as const;
+/** Tier sets the floor; OSM renown (wikidata, heritage, size) adds up to 0.55, so a famous palace outranks a plain station. */
+export const landmarkFame = (place: Landmark) => TIER_FAME[place.importance] + 0.55 * ((place.fame ?? 0) / 100);

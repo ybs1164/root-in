@@ -1,6 +1,7 @@
 import type { PlaceRef } from '../types/course';
 import { APPROVED_POI_STICKERS } from './poiStickerKinds';
 import { POI_STICKER_SCALE } from './poiStickerScale';
+import { POI_STICKER_BOUNDS } from './poiStickerBounds';
 
 export interface PlaceArea {
   /** Place/building footprint in square metres. */
@@ -25,12 +26,19 @@ export function poiStickerUrl(kind: PlaceRef['kind']): string | null {
   return kind && approved.has(kind) ? `${import.meta.env.BASE_URL}poi-stickers/${kind}.png` : null;
 }
 
+const SQUARE: readonly [number, number, number, number] = [-24, -24, 24, 24];
+/** Where a kind's sticker is visible, in px from the 48px square's centre: [left, top, right, bottom]. */
+export const stickerBounds = (kind: PlaceRef['kind']) => (kind && POI_STICKER_BOUNDS[kind]) || SQUARE;
+/** How far a scaled sticker reaches below its 48px square: the name moves down that much. */
+export const stickerBelow = (kind: PlaceRef['kind']) => Math.max(0, Math.ceil(stickerBounds(kind)[3] - 24));
+
 /** Shared visual area, compensating for each image's transparent padding and shape. */
 export function poiAppearance(place: PlaceRef) {
   return {
     sticker: poiStickerUrl(place.kind),
     size: 48,
     artScale: (place.kind && POI_STICKER_SCALE[place.kind]) || 1,
+    below: stickerBelow(place.kind),
     rotation: 0,
     source: 'uniform',
   };

@@ -53,13 +53,41 @@ def classify(tags):
     return None
 
 
+def fame(tags, area_m2=0.0):
+    """0..100 from what OSM says about renown; the app ranks same-kind places with it."""
+    score = 0
+    if tags.get("wikidata") or tags.get("wikipedia") or tags.get("brand:wikidata"):
+        score += 50
+    if tags.get("heritage") or tags.get("historic"):
+        score += 20
+    if tags.get("tourism") in {"attraction", "museum", "gallery", "viewpoint"}:
+        score += 10
+    try:
+        if float(tags.get("building:levels") or 0) >= 20 or float((tags.get("height") or "0").split()[0]) >= 80:
+            score += 10
+    except ValueError:
+        pass
+    if area_m2 > 1000:
+        score += round(20 * min(1, math.log10(area_m2 / 1000) / 3))
+    return min(100, score)
+
+
+def extras(area_m2, renown):
+    data = {}
+    if area_m2 >= 1:
+        data["areaM2"] = round(area_m2)
+    if renown:
+        data["f"] = renown
+    return data
+
+
 class Landmarks(osmium.SimpleHandler):
     def __init__(self):
         super().__init__()
         self.rows = []
         self.factory = osmium.geom.GeoJSONFactory()
 
-    def add(self, tags, identity, point):
+    def add(self, tags, identity, point, area_m2=0.0):
         name = (tags.get("name:ko") or tags.get("name") or "").strip()
         category = classify(tags)
         if not name or not category or len(name) > 80:
@@ -70,7 +98,9 @@ class Landmarks(osmium.SimpleHandler):
         kind, label, importance = category
         if kind == "building" and re.fullmatch(r"[0-9]+[A-Za-z]?(?:동|호)?", name):
             return
-        self.rows.append([identity, name, round(lon * 1e5), round(lat * 1e5), kind, label, importance])
+        row = [identity, name, round(lon * 1e5), round(lat * 1e5), kind, label, importance]
+        extra = extras(area_m2, fame(tags, area_m2))
+        self.rows.append(row + [extra] if extra else row)
 
     def node(self, node):
         if (node.tags.get("name:ko") or node.tags.get("name")) and node.location.valid():
@@ -82,7 +112,9 @@ class Landmarks(osmium.SimpleHandler):
         try:
             geometry = shape(json.loads(self.factory.create_multipolygon(area)))
             point = geometry.representative_point()
-            self.add(area.tags, f"{'w' if area.from_way() else 'r'}{area.orig_id()}", (point.x, point.y))
+            # Degrees² → m² at this latitude; plenty for a log-scaled renown term.
+            area_m2 = geometry.area * 111_320 ** 2 * math.cos(math.radians(point.y))
+            self.add(area.tags, f"{'w' if area.from_way() else 'r'}{area.orig_id()}", (point.x, point.y), area_m2)
         except (RuntimeError, ValueError):
             return
 
@@ -109,14 +141,24 @@ def main():
             elif entity.is_area():
                 handler.area(entity)
     tiles = defaultdict(list)
-    seen = set()
+    seen = {}
     kept = []
     for row in sorted(handler.rows, key=lambda r: (r[6], r[0])):
-        # OSM often has both a labelled node and a polygon for one facility.
+        # OSM often has both a labelled node and a polygon for one facility:
+        # keep the first, but with the polygon's area and the larger renown.
         key = (row[1], row[4], round(row[2] / 20), round(row[3] / 20))
         if key in seen:
+            first = seen[key]
+            extra = first[7] if len(first) > 7 else {}
+            more = row[7] if len(row) > 7 else {}
+            merged = extras(max(extra.get("areaM2", 0), more.get("areaM2", 0)), max(extra.get("f", 0), more.get("f", 0)))
+            if merged:
+                if len(first) > 7:
+                    first[7] = merged
+                else:
+                    first.append(merged)
             continue
-        seen.add(key)
+        seen[key] = row
         kept.append(row)
         for level, step in [("overview", STEP), ("detail", .1)]:
             if level == "overview" and row[6] > 1:
@@ -125,6 +167,7 @@ def main():
             tiles[tile].append(row)
     args.out.mkdir(parents=True, exist_ok=True)
     for key, rows in sorted(tiles.items()):
+        # Rows are shared between levels, so extras merged above are in both.
         (args.out / key).parent.mkdir(parents=True, exist_ok=True)
         (args.out / f"{key}.json").write_text(json.dumps({"v": 1, "r": rows}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     index = {"v": 2, "levels": [{"name": level, "step": step, "tiles": sorted(key.split("/")[1] for key in tiles if key.startswith(f"{level}/"))}

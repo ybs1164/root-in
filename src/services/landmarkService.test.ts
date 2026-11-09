@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { parseLandmarks, selectLandmarks } from '../domain/landmarkPlaces';
+import { eligibleLandmarks, landmarkFame, parseLandmarks } from '../domain/landmarkPlaces';
+import { selectScene } from '../domain/poiScene';
 import { LandmarkService } from './landmarkService';
 
 const view = { bounds: { west: 126.95, south: 37.49, east: 126.97, north: 37.51 }, widthPx: 400 };
@@ -21,14 +22,29 @@ describe('orientation landmarks', () => {
 
   it('keeps campuses visible at district scale and adds named buildings when zoomed in', () => {
     const places = parseLandmarks(rows)!;
-    expect(selectLandmarks(places, { ...view, widthPx: 100 }).map((p) => p.name)).toEqual(['숭실대학교']);
-    expect(selectLandmarks(places, { ...view, widthPx: 800 }).map((p) => p.name)).toEqual(['숭실대학교', '주변 건물']);
-    expect(selectLandmarks(places, { ...view, widthPx: 20 })).toEqual([]);
+    expect(eligibleLandmarks(places, { ...view, widthPx: 100 }).map((p) => p.name)).toEqual(['숭실대학교']);
+    expect(eligibleLandmarks(places, { ...view, widthPx: 800 }).map((p) => p.name)).toEqual(['숭실대학교', '주변 건물']);
+    expect(eligibleLandmarks(places, { ...view, widthPx: 20 })).toEqual([]);
   });
 
-  it('does not let a station at the same broad-scale cell displace the campus', () => {
-    const places = parseLandmarks({ v: 1, r: [...rows.r, ['n1', '숭실대입구', 12695700, 3749650, 'station', '역·터미널', 0]] })!;
-    expect(selectLandmarks(places, { ...view, widthPx: 100 }).map((p) => p.name)).toEqual(['숭실대학교']);
+  it('reads OSM renown and lets the better known of two same-kind landmarks win', () => {
+    const places = parseLandmarks({ v: 1, r: [
+      ['n1', '작은역', 12695700, 3749650, 'station', '역·터미널', 0],
+      ['n2', '큰역', 12696500, 3750500, 'station', '역·터미널', 0, { areaM2: 50000, f: 70 }],
+      ['n3', '나쁜값', 12696000, 3750000, 'station', '역·터미널', 0, { f: 400 }],
+    ] })!;
+    expect(places.map((p) => p.fame)).toEqual([undefined, 70, undefined]);
+    expect(landmarkFame(places[1])).toBeCloseTo(0.835);
+    const scene = selectScene(places.map((place) => ({ place, fame: landmarkFame(place) })), view);
+    expect(scene.map((p) => p.name)).toEqual(['큰역']);
+  });
+
+  it('shows a famous neighbourhood landmark as far out as campuses', () => {
+    const places = parseLandmarks({ v: 1, r: [
+      ['r1', '궁궐', 12695700, 3749650, 'attraction', '명소', 1, { f: 95 }],
+      ['r2', '공원', 12695800, 3749750, 'park', '공원', 1, { f: 30 }],
+    ] })!;
+    expect(eligibleLandmarks(places, { ...view, widthPx: 100 }).map((p) => p.name)).toEqual(['궁궐']);
   });
 
   it('fetches only intersecting existing tiles and caches them across pans', async () => {

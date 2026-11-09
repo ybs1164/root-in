@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from build_landmarks import classify
+from build_landmarks import classify, fame
 
 
 class LandmarkBuildTest(unittest.TestCase):
@@ -16,6 +16,14 @@ class LandmarkBuildTest(unittest.TestCase):
         self.assertEqual(classify({"building": "apartments"}), ("building", "건물", 2))
         self.assertIsNone(classify({"railway": "subway_entrance"}))
         self.assertIsNone(classify({"building": "garage"}))
+
+    def test_renown_from_tags_and_area(self):
+        self.assertEqual(fame({}), 0)
+        self.assertEqual(fame({"wikidata": "Q1"}), 50)
+        self.assertEqual(fame({"heritage": "2", "tourism": "attraction"}), 30)
+        self.assertEqual(fame({}, 1_000_000), 20)
+        self.assertEqual(fame({"wikidata": "Q1", "heritage": "1", "tourism": "museum", "building:levels": "30"}, 10**7), 100)
+        self.assertEqual(fame({"height": "tall"}), 0)
 
     def test_extracts_relation_campus_and_building_but_skips_unnamed_geometry(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -42,6 +50,9 @@ class LandmarkBuildTest(unittest.TestCase):
             self.assertEqual({row[1] for row in rows}, {"숭실대학교", "도서관 건물"})
             campus = next(row for row in rows if row[1] == "숭실대학교")
             self.assertEqual(campus[0], "r20")
-            self.assertEqual(campus[4:], ["school", "대학교", 0])
+            self.assertEqual(campus[4:7], ["school", "대학교", 0])
+            # A 350 m × 440 m campus: its polygon area feeds the renown score.
+            self.assertTrue(140_000 < campus[7]["areaM2"] < 170_000)
+            self.assertGreater(campus[7]["f"], 0)
             self.assertTrue(12695600 <= campus[2] <= 12696000)
             self.assertTrue(3749600 <= campus[3] <= 3750000)

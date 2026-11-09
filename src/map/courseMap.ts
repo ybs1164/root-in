@@ -161,6 +161,8 @@ export function createNearbyPlaceElement(place: PlaceRef, onClick?: (place: Plac
   const appearance = poiAppearance(place);
   el.style.setProperty('--poi-size', `${appearance.size}px`);
   el.style.setProperty('--poi-art-scale', String(appearance.artScale));
+  // Scaled art can reach below its square: keep the name clear of it.
+  if (appearance.sticker && appearance.below) el.style.setProperty('--poi-art-below', `${appearance.below}px`);
   el.dataset.sizeSource = appearance.source;
   const art = document.createElement('div');
   art.className = 'map-nearby-place__art';

@@ -4,10 +4,11 @@
 //   npm run shots -- calendar pin  -> only states whose name contains a filter
 //   npm run shots -- minimap       -> TODAY's 미니맵 on six example days
 //   npm run shots -- mainmap       -> the main map: 4 places × 3 scales, with drag frame timing (docs/plan-mainmap-style.md M0)
+//   npm run shots -- poi           -> map places (one sticker per kind per screen) in 2 places × 3 scales, kinds listed (docs/plan-poi-priority.md)
 //   npm run shots -- silhouettes   -> 미니맵 outlines, before | after, filled in one colour (the silhouette test)
 //   SHOTS_SCHEME=dark npm run shots -- mainmap -> the same in the phone's dark mode (…-dark.png)
 // Output: ui-shots/<width>-<state>.png (git-ignored).
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const BASE = process.env.SHOTS_URL ?? 'http://localhost:5188';
@@ -128,6 +129,54 @@ const MAIN_PLACES = {
   yangpyeong: [127.4875, 37.4917],
 };
 const MAIN_SCALES = { gu: 40, dong: 12, block: 1.5 };
+// Map places (docs/plan-poi-priority.md): 구 (campuses, famous palaces), 동 (shops join), 블록.
+const POI_PLACES = { jongno: [126.985, 37.574], seongsu: [127.056, 37.544] };
+const POI_SCALES = { far: 30, near: 11, close: 3 };
+
+/** Waits for the map places to settle and lists them as kind:name. */
+async function poiList(page) {
+  // Shop files come after the landmarks (and from the remote data host):
+  // wait until the list has stayed the same for 10 s.
+  let last = '';
+  let steady = 0;
+  for (let tries = 0; tries < 60 && steady < 10; tries++) {
+    await page.waitForTimeout(1000);
+    const now = await page.evaluate(() => [...document.querySelectorAll('.map-nearby-place')].map((e) => `${e.dataset.kind}:${e.title}`).join(', '));
+    steady = now && now === last ? steady + 1 : 0;
+    last = now;
+  }
+  const kinds = last ? last.split(', ').map((x) => x.split(':')[0]) : [];
+  // Stickers and names that touch on screen: each sticker by its visible
+  // outline (src/domain/poiStickerBounds.ts) around its 48px square's centre.
+  const bounds = Object.fromEntries([...(await readFile('src/domain/poiStickerBounds.ts', 'utf8'))
+    .matchAll(/"([a-z_]+)": \[([^\]]+)\]/g)].map(([, k, v]) => [k, v.split(',').map(Number)]));
+  const overlaps = await page.evaluate((bounds) => {
+    const box = (el, b) => {
+      const r = b.getBoundingClientRect();
+      if (b.tagName === 'SPAN') return r;
+      const [l, t, rr, bb] = bounds[el.dataset.kind] ?? [-24, -24, 24, 24];
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      return { left: cx + l, top: cy + t, right: cx + rr, bottom: cy + bb, width: rr - l, height: bb - t };
+    };
+    const places = [...document.querySelectorAll('.map-nearby-place')];
+    const boxes = places.map((el, i) =>
+      [el.classList.contains('map-nearby-place--sticker') && el.querySelector('.map-nearby-place__art'), el.querySelector('span')]
+        .filter(Boolean).map((b) => ({ i, el, b, r: box(el, b) }))).flat();
+    // The user's pins on the map count too (shown ones only).
+    const pins = [...document.querySelectorAll('.map-marker--pin')].filter((el) => el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
+    pins.forEach((el, k) => boxes.push({ i: places.length + k, el, b: el, pin: true, r: el.getBoundingClientRect() }));
+    const n = [];
+    const show = ({ el, b, r }) => `${el.title || el.getAttribute('aria-label')}/${b === el ? 'pin' : b.tagName === 'SPAN' ? 'name' : 'art'}[${[r.left, r.top, r.width, r.height].map(Math.round)}]`;
+    for (let a = 0; a < boxes.length; a++) for (let b = a + 1; b < boxes.length; b++) {
+      const p = boxes[a], q = boxes[b];
+      // A sticker against its own name counts too: that is the layout failing.
+      // (Pins against pins are not the places' doing.)
+      if (!(p.pin && q.pin) && p.r.left < q.r.right && q.r.left < p.r.right && p.r.top < q.r.bottom && q.r.top < p.r.bottom) n.push(`${show(p)} × ${show(q)}`);
+    }
+    return n;
+  }, bounds);
+  return `${kinds.length} places, ${new Set(kinds).size} kinds, ${overlaps.length} overlaps${overlaps.length ? ` (${overlaps.join('; ')})` : ''} — ${last}`;
+}
 
 /**
  * Puts the map on `center` at `mpp` (fitting a span that wide), through the
@@ -146,6 +195,9 @@ async function mainMapAt(page, center, mpp) {
     if (await page.evaluate(() => [...document.fonts].some((f) => f.family.includes('Oswald') && f.status === 'loaded'))) break;
     await page.reload({ waitUntil: 'domcontentloaded' });
   }
+  // The app opens on We Now; the map is the tab to its right.
+  await page.getByRole('button', { name: '지도', exact: true }).click({ timeout: 3000 }).catch(() => {});
+  await page.waitForTimeout(800);
   for (let tries = 0; tries < 4; tries++) {
     const stayed = await page.evaluate(async ([[lng, lat], mpp]) => {
       const half = (mpp * innerWidth) / 2 / (111320 * Math.cos((lat * Math.PI) / 180));
@@ -270,6 +322,15 @@ const STATES = {
       const engine = await page.evaluate(() => globalThis.__courseMap.constructor.name.replace('CourseMap', ''));
       await shoot();
       return { note: `${engine}, ${await panFrames(page)}, at ${at}`, shot: true };
+    },
+  ]))),
+  ...Object.fromEntries(Object.entries(POI_PLACES).flatMap(([where, center]) => Object.entries(POI_SCALES).map(([scale, mpp]) => [
+    `poi-${where}-${scale}`,
+    async (page, vp, reload, shoot) => {
+      await mainMapAt(page, center, mpp);
+      const note = await poiList(page);
+      await shoot();
+      return { note, shot: true };
     },
   ]))),
   'silhouettes': async (page) => { await silhouetteSheet(page); },
