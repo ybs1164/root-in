@@ -336,6 +336,7 @@ function TodayTile({ pings, pinLookOf, onOpen }: { pings: DayPing[]; pinLookOf: 
             onEdgeStyle={(from, to, style) => change((d) => ({ ...d, edges: { ...d.edges, [edgeKey(today, from, to)]: style } }))}
             pinLookOf={pinLookOf}
             onDelete={(ping) => ping.id && setDeleting(ping)}
+            draggable={false}
             pressable={() => true}
             showNames={!decor.hideNames}
             showTimes={!decor.hideTimes}
