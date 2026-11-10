@@ -61,6 +61,8 @@ interface DayPingsProps {
   dropZone?: () => Element | null;
   /** A dragged ping is over `dropZone` (it lights up). */
   onDropHover?: (over: boolean) => void;
+  /** False where a ping can't be picked up and dragged (the We Now TODAY tile). */
+  draggable?: boolean;
   /** False while a pinch or a day swipe is running, so its fingers don't count as presses. */
   pressable: () => boolean;
   /** Drawn inside the same box, above the pins (stickers and pen strokes). */
@@ -104,7 +106,7 @@ function EdgeSample({ style }: { style: EdgeStyle }) {
  * again. Long-press a ping to change its shape, or a line to change its
  * style; a short tap on a ping is reported through `onTap`.
  */
-export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, pinLookOf, photoOf, onPhoto, onDelete, onPickedChange, dropZone, onDropHover, pressable, children, showNames = true, showTimes = true }: DayPingsProps) {
+export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, pinLookOf, photoOf, onPhoto, onDelete, onPickedChange, dropZone, onDropHover, draggable = true, pressable, children, showNames = true, showTimes = true }: DayPingsProps) {
   const latest = latestPingIndex(pings);
   // The real map behind the pings; the stops are fitted with its areas.
   const centers = pings.map((p) => p.center);
@@ -200,7 +202,7 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
     }
     if (classifyPress(0, Math.hypot(dx, dy)) !== 'none') return;
     // A ping pressed and moved is picked up (and picked: the calendar button turns ✕).
-    if (p.target.kind === 'ping' && onDelete && pressable()) {
+    if (p.target.kind === 'ping' && onDelete && draggable && pressable()) {
       window.clearTimeout(p.timer);
       dragging.current = true;
       setPressed(null);

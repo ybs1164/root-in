@@ -173,7 +173,7 @@ export default function BottomBar({ tab, today = false, calendarMode, onCalendar
       {!cal && tab === 'people' && onGallery && <GalleryButton className={`bar-corner ${onChats ? 'bar-corner--up' : ''}`} onOpen={onGallery} />}
       {!cal && tab === 'people' && onChats && (
         <button type="button" className="camera-btn bar-corner bar-chats" aria-label={chatsUnread ? `대화 목록, 안 읽은 메시지 ${chatsUnread}` : '대화 목록'} onClick={onChats}>
-          <TalkBubbles size={28} />
+          <TalkBubbles size={30} />
           <TalkBadge count={chatsUnread} />
         </button>
       )}

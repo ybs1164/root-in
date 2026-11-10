@@ -8,7 +8,7 @@ import { usePhotoMarks } from '../hooks/usePhotoMarks';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 import { HighFive } from './icons';
 import { dateKey } from '../domain/diary';
-import { MemberFace } from './WeNowPage';
+import { GroupCover, MemberFace } from './WeNowPage';
 import PhotoViewer, { PhotoMarkButtons } from './PhotoViewer';
 import { DoodleLayers } from './PhotoDoodle';
 
@@ -179,7 +179,7 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
         }
       }}
     >
-      <Search size={searchOpen ? 19 : 22} strokeWidth={2.2} aria-hidden />
+      <Search size={22} strokeWidth={2.2} aria-hidden />
     </button>
   );
 
@@ -193,21 +193,6 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
         </button>
         <h2 className="gallery__title">GALLERY</h2>
       </header>
-
-      <div ref={tabsEl} className="route-folders__tabs gallery__tabs" role="tablist" aria-label="갤러리" data-swipe-keep>
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            data-tab={t.id}
-            role="tab"
-            aria-selected={tab === t.id}
-            className={`route-folders__tab ${tab === t.id ? 'is-on' : ''} ${t.id === 'my' ? 'gallery__tab--my' : ''}`}
-            onClick={() => onTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
 
       <div className="gallery__body" role="tabpanel">
         {!ready && state.status === 'loading' && <p className="gallery__note">사진을 불러오는 중…</p>}
@@ -331,6 +316,35 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
             </div>
           </section>
         ))}
+      </div>
+
+      <div className="gallery__rule" aria-hidden />
+      {/* At the bottom (2026-11-09): the tabs are the groups' covers (MY: my photo), the open one a little bigger. */}
+      <div ref={tabsEl} className="gallery__covers" role="tablist" aria-label="갤러리" data-swipe-keep>
+        {tabs.map((t) => {
+          const group = groups.find((g) => g.id === t.id);
+          return (
+            <button
+              key={t.id}
+              data-tab={t.id}
+              role="tab"
+              aria-selected={tab === t.id}
+              className={`gallery__cover-tab ${tab === t.id ? 'is-on' : ''} ${t.id === 'my' ? 'gallery__cover-tab--my' : ''}`}
+              onClick={() => onTab(t.id)}
+            >
+              <span className="gallery__cover" aria-hidden>
+                {group ? (
+                  <svg viewBox="0 0 100 100">
+                    <GroupCover cover={group.cover} photo={group.coverPhoto} />
+                  </svg>
+                ) : (
+                  meMember.photo && <img src={meMember.photo} alt="" draggable={false} />
+                )}
+              </span>
+              <span className="gallery__cover-name">{t.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {seq !== null && viewer[seq] && (

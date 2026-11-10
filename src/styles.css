@@ -1,9 +1,9 @@
 :root {
   /* 여행 theme (pastel): cream paper, one soft blue (#6c90d8) and navy ink. */
   color-scheme: light;
-  --bg: #fbf8f1;
-  --surface: #fffdf8;
-  --surface-2: #f1ede3;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f1f2f5;
   --text: #2a3354;
   --muted: #979bab;
   --border: rgba(42, 51, 84, 0.09);
@@ -2472,10 +2472,18 @@ button:disabled {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  animation: settle 0.3s var(--settle-ease) both;
+  /* First shown, the pack settles in from just below (settle, upside down). */
+  animation: sticker-pack-up 0.36s var(--settle-ease) both;
   transition:
     opacity 0.2s ease,
     transform 0.3s var(--slide-ease);
+}
+
+@keyframes sticker-pack-up {
+  from {
+    opacity: 0;
+    translate: 0 40px;
+  }
 }
 
 /* Tucked down, the band's surroundings bring it back up: edge to edge,
@@ -2958,7 +2966,7 @@ button:disabled {
 .studio__back {
   position: absolute;
   top: calc(var(--safe-top) + 12px);
-  left: 12px;
+  left: 2px;
   z-index: 3;
   display: grid;
   place-items: center;
@@ -2966,10 +2974,9 @@ button:disabled {
   height: 44px;
   padding: 0;
   border: 0;
-  border-radius: 50%;
-  background: var(--surface);
+  /* Back buttons are a bare ‹ (no circle, no shadow), 2026-11-09. */
+  background: transparent;
   color: var(--text);
-  box-shadow: var(--shadow-sm);
 }
 
 .studio .decor-rail {
@@ -8310,6 +8317,15 @@ button:disabled {
     transform: none;
   }
 
+  /* We Now's gallery and 대화 목록 follow the profile down. */
+  .bar-corner {
+    top: calc(24px + 52px + 10px + 48px + 10px);
+  }
+
+  .bar-corner--up {
+    top: calc(24px + 52px + 10px);
+  }
+
   .pin-rail {
     top: calc(24px + 52px + 12px);
   }
@@ -8549,7 +8565,7 @@ button:disabled {
 .today-back {
   position: absolute;
   top: calc(12px + var(--safe-top));
-  left: 12px;
+  left: 2px;
   z-index: 18;
   display: grid;
   place-items: center;
@@ -8557,9 +8573,8 @@ button:disabled {
   height: 48px;
   padding: 0;
   border: 0;
-  border-radius: 50%;
-  background: var(--surface);
-  box-shadow: var(--shadow);
+  /* Back buttons are a bare ‹ (no circle, no shadow), 2026-11-09. */
+  background: transparent;
   color: var(--text);
 }
 
@@ -8900,7 +8915,10 @@ button:disabled {
 }
 
 .group-view__btn--back {
-  left: 12px;
+  left: 2px;
+  /* Back buttons are a bare ‹ (no circle, no shadow), 2026-11-09. */
+  background: transparent;
+  box-shadow: none;
 }
 
 .group-view__btn--settings {
@@ -10225,6 +10243,8 @@ button.group-photo-panel__photo {
   place-items: center;
   width: 44px;
   height: 44px;
+  /* As far left as the other back buttons' ‹. */
+  margin-left: -10px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -10462,16 +10482,26 @@ button.group-photo-panel__photo {
   height: 24px;
 }
 
-/* We Now's list: the gallery in the row's bottom-right corner, the camera's old place —
-   over the 대화 목록 (as TODAY's calendar over its gallery, 12px apart). */
+/* We Now's list: the gallery and, under it, the 대화 목록, in a column under
+   the profile button (top-right, 2026-11-10). Fixed, so they line up with the
+   profile whatever the row's height. The size of a group's ⚙ column (48px,
+   22px icons), centred under the 52px profile. */
 .bar-corner {
-  position: absolute;
-  right: 16px;
-  bottom: -8px;
+  position: fixed;
+  top: calc(12px + var(--safe-top) + 52px + 10px + 48px + 10px);
+  right: 14px;
+  width: 48px;
+  height: 48px;
 }
 
 .bar-corner--up {
-  bottom: 56px;
+  top: calc(12px + var(--safe-top) + 52px + 10px);
+}
+
+.bar-corner--up > svg,
+.group-view__btn--gallery > svg {
+  width: 22px;
+  height: 22px;
 }
 
 /* Unread 대화 lines on a 대화 button's top-right: the member faces' badge (group-rail__count) without the ring. */
@@ -10619,16 +10649,15 @@ button.group-photo-panel__photo {
 .gallery__back {
   position: absolute;
   top: calc(var(--safe-top) + 12px);
-  left: 12px;
+  left: 2px;
   display: grid;
   place-items: center;
   width: 48px;
   height: 48px;
   padding: 0;
   border: 0;
-  border-radius: 50%;
-  background: var(--surface);
-  box-shadow: var(--shadow);
+  /* Back buttons are a bare ‹ (no circle, no shadow), 2026-11-09. */
+  background: transparent;
   color: var(--text);
 }
 
@@ -10641,23 +10670,108 @@ button.group-photo-panel__photo {
   line-height: 48px;
 }
 
-/* The tabs stand on the sheet's top edge; the open one is the sheet's colour.
-   Well below the title, so the folders read as their own block. */
-.route-folders__tabs.gallery__tabs {
-  padding-top: 24px;
+/* The tabs: a row of the groups' covers (MY: my photo) with their names
+   under them, the open one ringed in the accent — as the We Now tiles.
+   Positioned, so a tab's offsetLeft is from the row (centring it). */
+.gallery__covers {
+  position: relative;
+  flex: none;
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  /* Room for the open cover's grown size (it scales from its middle); at
+     the bottom of the screen, clear of the home bar. */
+  padding: 16px 20px calc(var(--safe-bottom) + 16px);
+  scrollbar-width: none;
 }
 
-.gallery__tab--my {
+.gallery__covers::-webkit-scrollbar {
+  display: none;
+}
+
+.gallery__cover-tab {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 72px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+}
+
+.gallery__cover {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--map-land);
+  /* A soft shadow lifts it off the page (the covers are pale). */
+  box-shadow: var(--ticket-shadow);
+  /* Pressed it shrinks and springs back (scale, so the row never moves); picked, a ring. */
+  transition:
+    scale 0.2s var(--pop-ease),
+    box-shadow 0.18s ease;
+}
+
+.gallery__cover svg,
+.gallery__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gallery__cover-tab--my .gallery__cover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.gallery__cover-tab.is-on .gallery__cover {
+  box-shadow: 0 0 0 2.5px var(--bg), 0 0 0 5px var(--accent-soft), var(--ticket-shadow);
+}
+
+/* Pressed, it shrinks; let go, it springs back up. */
+.gallery__cover-tab:active .gallery__cover {
+  scale: 0.9;
+  transition-duration: 0.1s;
+  transition-timing-function: ease-out;
+}
+
+.gallery__cover-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gallery__cover-tab.is-on .gallery__cover-name {
+  color: var(--text);
+}
+
+.gallery__cover-tab--my .gallery__cover-name {
   font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
-  font-size: 19px;
-  font-weight: 400;
+  font-size: 16px;
   letter-spacing: 0.06em;
+}
+
+.gallery__rule {
+  flex: none;
+  height: 1px;
+  margin: 0 16px;
+  background: var(--border);
 }
 
 .gallery__body {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 16px calc(var(--safe-bottom) + 32px);
+  /* The cover row sits under it now, so only a little room at the end. */
+  padding: 16px 16px 24px;
   background: var(--surface);
 }
 
@@ -10701,13 +10815,28 @@ button.group-photo-panel__photo {
 }
 
 /* 🔍 inside the open field's right end: no colour, no animation. */
+/* Same box as when shut (44px wide, the field's right end where its right
+   edge was), so the glass doesn't move when the field opens. */
 .gallery__filter--search.is-inside {
   position: absolute;
-  right: 3px;
+  right: 0;
   top: 50%;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 40px;
   translate: 0 -50%;
+  /* Open, its lines turn blue (only the lines: never filled). */
+  color: var(--accent);
+}
+
+/* The same 22px glass shut or open: nothing in the field (a webview's
+   search-input styles, a flex squeeze) may shrink it. */
+.gallery__filter--search svg {
+  flex: none;
+  width: 22px;
+  min-width: 22px;
+  height: 22px;
+  min-height: 22px;
+  fill: none;
 }
 
 /* Searching, the row clears the first day's heading (the field runs across it). */
@@ -10721,7 +10850,6 @@ button.group-photo-panel__photo {
   position: relative;
   flex: 1;
   min-width: 0;
-  margin: 0 4px 0 0;
 }
 
 .gallery__search-input {
@@ -10752,7 +10880,7 @@ button.group-photo-panel__photo {
 
 .gallery__search-clear {
   position: absolute;
-  right: 40px;
+  right: 42px;
   top: 50%;
   translate: 0 -50%;
   display: grid;
@@ -10840,17 +10968,17 @@ button.group-photo-panel__photo {
   animation: pop-in 0.28s var(--pop-ease) both;
 }
 
-/* A group's 대화 button: bottom-right on its map, level with the member
-   row's faces (their middle 70px up), a blue circle with two white bubbles. */
+/* A group's 대화 button: fourth in the column under ⚙, right under the
+   gallery (2026-11-10; the group buttons' 48px), a blue circle with two white bubbles. */
 .group-view__chat {
   position: fixed;
+  top: calc(12px + var(--safe-top) + 3 * (48px + 10px));
   right: 14px;
-  bottom: calc(var(--safe-bottom) + 44px);
   z-index: 21;
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   padding: 0;
   border: 0;
   border-radius: 50%;
