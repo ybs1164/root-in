@@ -121,7 +121,7 @@ export class KakaoCourseMap implements CourseMap {
    */
   private tint(i: number): Fill {
     const tone = this.areas?.partTones?.[i] ?? 0;
-    const { colour, alpha } = colourAlpha(TONE_TOKENS[tone] ?? '--map-tint', '#6c90d8', 0.12);
+    const { colour, alpha } = colourAlpha(TONE_TOKENS[tone] ?? '--map-tint', '#ffd85f', 0.12);
     return { fillColor: colour, fillOpacity: this.tintShown ? alpha : 0 };
   }
 

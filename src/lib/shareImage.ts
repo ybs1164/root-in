@@ -159,7 +159,9 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
     onCard(ctx, cards.back, () => {
       drawPaper(ctx, c);
       ctx.fillStyle = c.photo;
-      ctx.fillRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
+      ctx.beginPath();
+      ctx.roundRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h, PHOTO_RADIUS);
+      ctx.fill();
     });
   }
   // 없음 (bare): no paper and no photo ground — the drawing sits on the scene's ground.
@@ -167,7 +169,7 @@ export async function renderShareImage({ pings, marks, edges, decor, withoutPiec
     if (!bare) drawPaper(ctx, c);
     ctx.save();
     ctx.beginPath();
-    ctx.rect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h);
+    ctx.roundRect(PHOTO.x, PHOTO.y, PHOTO.w, PHOTO.h, PHOTO_RADIUS);
     ctx.clip();
     // A day's photo is its day screen as it looks there: its page colour,
     // pattern, pin colours and pieces, in its own theme.
@@ -480,16 +482,26 @@ function drawTicket(ctx: CanvasRenderingContext2D, c: Tokens, stamp?: CardStamp)
   ctx.restore();
 }
 
-/** The card's paper, with a soft shadow on what's under it. */
+/**
+ * The card's paper, with a soft shadow on what's under it: a plain card with
+ * round corners (미니멀 · 떠 있는, 2026-11-11).
+ */
 function drawPaper(ctx: CanvasRenderingContext2D, c: ReturnType<typeof tokens>) {
   ctx.save();
   ctx.shadowColor = c.cardShadow;
   ctx.shadowBlur = 46;
   ctx.shadowOffsetY = 14;
   ctx.fillStyle = c.card;
-  ctx.fillRect(0, 0, POLAROID.w, POLAROID.h);
+  ctx.beginPath();
+  ctx.roundRect(0, 0, POLAROID.w, POLAROID.h, PAPER_RADII);
+  ctx.fill();
   ctx.restore();
 }
+
+/** The card's corners (card px, 1080 wide). */
+const PAPER_RADII = 48;
+/** The photo on it, rounded to match. */
+const PHOTO_RADIUS = 28;
 
 /**
  * 미니맵: its parts (domain/miniMap) painted in order behind the stops, in

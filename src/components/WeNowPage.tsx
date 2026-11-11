@@ -12,7 +12,7 @@ import AppLinksSection from './AppLinksSection';
 import DayPattern from './DayPattern';
 import DayPings from './DayPings';
 import DecorLayer from './DecorLayer';
-import { DEFAULT_PEN, EMPTY_DECOR } from '../domain/decor';
+import { DEFAULT_PEN, EMPTY_DECOR, dayTintClass } from '../domain/decor';
 import { removePing } from '../services/pingRepository';
 import { ProfileAvatar } from './ProfileSheet';
 import type { GroupsStatus } from '../hooks/useGroups';
@@ -299,11 +299,10 @@ function TodayTile({ pings, pinLookOf, onOpen }: { pings: DayPing[]; pinLookOf: 
   const [deleting, setDeleting] = useState<DayPing | null>(null);
   return (
     <>
-      {/* Dressed as TODAY is: the day's theme on just this card (.theme-scope), its
+      {/* Dressed as TODAY is: the day's theme tint on its land and pings (.day-tint), its
           background pattern, and its stickers, ink and text over the drawing. */}
       <div
-        className="today-tile theme-scope"
-        data-theme={theme === 'default' ? undefined : theme}
+        className={`today-tile ${dayTintClass(theme)}`}
         role="button"
         tabIndex={0}
         aria-label={`TODAY 열기, 오늘 핑 ${pings.length}`}

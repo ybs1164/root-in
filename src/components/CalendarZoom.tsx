@@ -32,6 +32,7 @@ import {
   type PatternId,
   type PenSettings,
   type ThemeId,
+  dayTintClass,
 } from '../domain/decor';
 import { loadDays, saveDays, type DayStore } from '../services/dayRepository';
 import { onPulled } from '../services/syncBus';
@@ -105,8 +106,6 @@ interface CalendarZoomProps {
   /** The calendar button (✕ while a ping is picked): drop a dragged ping on it to delete it. */
   pingDropZone?: () => Element | null;
   onPingDropHover?: (over: boolean) => void;
-  /** The theme of the day on screen (each day keeps its own); the app wears it. */
-  onDayTheme: (theme: ThemeId) => void;
   /** Likewise the day's background pattern, which the app lays across the page. */
   onDayPattern: (pattern: PatternId) => void;
   /** 제외 주소: pings there are left out of the shared card (and added ones stay on this phone). */
@@ -137,7 +136,7 @@ interface CalendarZoomProps {
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
 
-export default function CalendarZoom({ command, onMode, onDecorating, onPingPicked, pingDropZone, onPingDropHover, onDayTheme, onDayPattern, excluded, here, pins, categories, holdIntro = false, onCamera, nameAt, onToast, photoSeq = null, onPhotoSeq }: CalendarZoomProps) {
+export default function CalendarZoom({ command, onMode, onDecorating, onPingPicked, pingDropZone, onPingDropHover, onDayPattern, excluded, here, pins, categories, holdIntro = false, onCamera, nameAt, onToast, photoSeq = null, onPhotoSeq }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
   const [date, setDate] = useState(today);
@@ -364,11 +363,9 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
     setDayDecor(result.decor);
   };
 
-  // The app shows the day's theme while the day is on screen; the month and
-  // the rest of the app stay default.
+  // The day's theme tints only its own land and pings (.day-tint, 2026-11-11); the
+  // page, buttons and the rest keep the app's theme.
   const dayTheme = mode === 'day' ? (dayDecor.theme ?? 'default') : 'default';
-  useEffect(() => onDayTheme(dayTheme), [dayTheme]);
-  useEffect(() => () => onDayTheme('default'), []);
   // While a pinch-out only previews a day, its pattern waits for the landing, like its pins.
   const dayPattern = mode === 'day' && !preview ? (dayDecor.pattern ?? 'none') : 'none';
   useEffect(() => onDayPattern(dayPattern), [dayPattern]);
@@ -630,7 +627,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
   return (
     <div
       ref={stageEl}
-      className="cal-zoom"
+      className={`cal-zoom ${dayTintClass(dayTheme)}`}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}

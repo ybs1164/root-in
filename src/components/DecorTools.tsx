@@ -12,7 +12,6 @@ import {
   GalleryVerticalEnd,
   Highlighter,
   Italic,
-  Palette,
   PenLine,
   Pencil,
   Redo2,
@@ -25,7 +24,7 @@ import {
   Undo2,
   Wallpaper,
 } from 'lucide-react';
-import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { useId, useRef, useState, type ComponentType, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import ColorPicker from './ColorPicker';
 import {
   BASE_COLORS,
@@ -56,13 +55,31 @@ import DayPattern from './DayPattern';
 import StickerSheets from './StickerSheets';
 import type { StickerDrop } from '../domain/stickerSheets';
 
-const RAIL: { tool: DecorTool; label: string; Icon: typeof Sticker }[] = [
+const RAIL: { tool: DecorTool; label: string; Icon: ComponentType<{ size?: number; 'aria-hidden'?: boolean }> }[] = [
   { tool: 'sticker', label: '스티커', Icon: Sticker },
   { tool: 'pen', label: '펜', Icon: PenLine },
   { tool: 'text', label: '텍스트', Icon: Type },
-  { tool: 'theme', label: '테마', Icon: Palette },
+  { tool: 'theme', label: '테마', Icon: PinLand },
   { tool: 'pattern', label: '꾸미기', Icon: Wallpaper },
 ];
+/** 테마 (2026-11-12): a ping standing on a flat oval of land — what a day theme now tints. */
+function PinLand({ size = 24 }: { size?: number }) {
+  const mask = useId();
+  const pin = 'M17 9c0 3.6-5 8-5 8s-5-4.4-5-8a5 5 0 0 1 10 0Z';
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <mask id={mask}>
+        <rect width="24" height="24" fill="white" stroke="none" />
+        {/* The land's outline stops a little short of the pin in front of it. */}
+        <path d={pin} fill="black" stroke="black" strokeWidth="4" />
+      </mask>
+      <ellipse cx="12" cy="17.5" rx="9.5" ry="3.8" mask={`url(#${mask})`} />
+      <path d={pin} />
+      <circle cx="12" cy="9" r="1.8" />
+    </svg>
+  );
+}
+
 /** How long the name / time switches take to tuck away (matches `.decor-rail__switch.is-leaving`). */
 const SWITCH_OUT_MS = 160;
 
@@ -514,12 +531,15 @@ export function DecorTray(p: DecorTrayProps) {
               aria-label={name}
               onClick={() => p.onTheme(id)}
             >
-              <span className="theme-card" aria-hidden>
+              {/* A day's theme tints only its land and pings: the card is that land with a ping on it. */}
+              <span className="theme-card theme-card--map" aria-hidden>
+                <svg className="theme-card__land" viewBox="0 0 100 56">
+                  <ellipse cx="50" cy="34" rx="43" ry="15" />
+                </svg>
                 <svg className="theme-card__pin" viewBox={`${PIN_BOX.x} ${PIN_BOX.y} ${PIN_BOX.w} ${PIN_BOX.h}`}>
                   <path d={PIN_PATH} />
                   <circle cx="12" cy="10" r="3" />
                 </svg>
-                <i />
               </span>
             </button>
           ))}

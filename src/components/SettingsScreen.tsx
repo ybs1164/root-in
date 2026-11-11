@@ -5,14 +5,13 @@ import { createPortal } from 'react-dom';
 import { GROUP_ALERT_KINDS, GROUP_ALERT_LABELS, groupAlertOn, PING_ALERT_HOURS, toggleGroupAlert, toggleGroupAlertsAll } from '../domain/profile';
 import type { Group } from '../domain/groups';
 import type { Account } from '../hooks/useAccount';
-import type { ColorScheme, Profile } from '../services/profileRepository';
+import type { AppTheme, Profile } from '../services/profileRepository';
 import { clearAppData } from '../services/settingsRepository';
 import { SWIPE, swipeCommits } from '../domain/appTabs';
 import { motionMs, slideOff, springBack } from '../lib/swipeSlide';
 import { ADMIN_ATTRIBUTION } from '../map/courseMap';
 import AlertBoard, { FlipCell } from './AlertBoard';
 import { GroupCover } from './WeNowPage';
-import Logo from './Logo';
 import PrivacySection from './PrivacySection';
 import LocationSection from './LocationSection';
 import AppLinksSection from './AppLinksSection';
@@ -21,17 +20,13 @@ import type { MyLocationControl } from '../hooks/useMyLocation';
 /** 알림 설정 → 투데이 알림's board, by hour. */
 const PING_STEPS = PING_ALERT_HOURS.map((hour) => ({ value: hour, text: `${hour}:00` }));
 
-/** 디스플레이 및 언어 → 디스플레이's two choices. */
-const SCHEMES: { id: ColorScheme; label: string }[] = [
-  { id: 'light', label: '기본' },
-  { id: 'dark', label: '다크' },
+/** 디스플레이 및 언어 → 디스플레이's two choices: the app's colour theme. */
+const APP_THEME_CHOICES: { id: AppTheme; label: string }[] = [
+  { id: 'matcha', label: '말차' },
+  { id: 'banana', label: '바나나' },
+  { id: 'choco', label: '초코' },
+  { id: 'strawberry', label: '딸기' },
 ];
-
-/** The scheme on screen: the one picked, or the phone's own until then. */
-function shownScheme(picked: ColorScheme | null): ColorScheme {
-  if (picked) return picked;
-  return typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
 
 type Page = 'main' | 'location' | 'links' | 'privacy' | 'alerts' | 'display' | 'account' | 'terms';
 
@@ -146,7 +141,6 @@ export default function SettingsScreen({ profile, onChange, account, privacy, lo
     springBack(el, sw.dx);
   };
   const current = PAGES.find((p) => p.id === page);
-  const scheme = shownScheme(profile.scheme);
 
   const bodyOf = (page: Page): ReactNode => {
     let body: ReactNode;
@@ -189,12 +183,16 @@ export default function SettingsScreen({ profile, onChange, account, privacy, lo
         <section className="privacy display" aria-label="디스플레이 및 언어">
           <h3 className="privacy__title">디스플레이</h3>
           <div className="display__schemes" role="group" aria-label="디스플레이">
-            {SCHEMES.map(({ id, label }) => (
-              <button key={id} className={`display__scheme ${scheme === id ? 'is-on' : ''}`} aria-pressed={scheme === id} onClick={() => onChange({ ...profile, scheme: id })}>
-                {/* That mode's app icon (tile + mark) in its own logo colours. */}
-                <span className={`display__swatch display__swatch--${id}`} aria-hidden>
-                  <Logo />
-                </span>
+            {APP_THEME_CHOICES.map(({ id, label }) => (
+              <button
+                key={id}
+                className={`display__scheme ${profile.appTheme === id ? 'is-on' : ''}`}
+                aria-pressed={profile.appTheme === id}
+                onClick={() => onChange({ ...profile, appTheme: id })}
+              >
+                {/* The same sample card as the 테마 tray's, in that theme's own colours. */}
+                {/* The app icon this theme switches the phone to (scripts/generate-app-icons.mjs). */}
+                <img className="display__swatch" src={`${import.meta.env.BASE_URL}brand/root-in-${id}.svg`} alt="" />
                 {label}
               </button>
             ))}
