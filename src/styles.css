@@ -1,13 +1,13 @@
 :root {
-  /* 여행 theme (pastel): cream paper, one soft blue (#6c90d8) and navy ink. */
+  /* 바나나 우유 theme (2026-11-10, from the user's banana-milk reference): white page, banana yellow #ffd85f and #fce89d, orange #fea200 (icons), amber #f7b736 (the map), caramel #a66726 (routes, ink on yellow) and a darker #8e571f for text; white icons on the yellow. */
   color-scheme: light;
   --bg: #ffffff;
   --surface: #ffffff;
-  --surface-2: #f1f2f5;
-  --text: #2a3354;
-  --muted: #979bab;
-  --border: rgba(42, 51, 84, 0.09);
-  --accent: #6c90d8;
+  --surface-2: #fff7d8;
+  --text: #8e571f;
+  --muted: #c49a6c;
+  --border: rgba(166, 103, 38, 0.14);
+  --accent: #ffd85f;
   /* Logo (Logo.tsx, public/brand/): light version — navy pin, blue route (cream tile when shown).
      Follows the light/dark scheme only; decoration themes leave it alone. */
   --logo-light-tile: #fbf8f1;
@@ -16,24 +16,26 @@
   --logo-dark-tile: #2a3354;
   --logo-dark-pin: #ffffff;
   --logo-dark-ink: #6c90d8;
-  --logo-tile: var(--logo-light-tile);
-  --logo-pin: var(--logo-light-pin);
-  --logo-ink: var(--logo-light-ink);
-  --accent-strong: #5576c2;
-  --accent-soft: #e5edfa;
-  --on-accent: #ffffff;
-  --route: #6c90d8;
-  --sage: #4f9a72;
-  --sage-soft: #e1f1e7;
+  /* The logo follows the app theme (2026-11-11): the theme's colour tile, a white pin,
+     a deep route — the same as that theme's launcher icon (scripts/generate-app-icons.mjs). */
+  --logo-tile: #ffd85f;
+  --logo-pin: #ffffff;
+  --logo-ink: #a66726;
+  --accent-strong: #fea200;
+  --accent-soft: #fce89d;
+  --on-accent: #a66726;
+  --route: #a66726;
+  --sage: #6f9f45;
+  --sage-soft: #e8f2d8;
   --sky: #3f7fc4;
   --sky-soft: #e2eefa;
   --on-sky: #ffffff;
   --amber: #b7791f;
   --amber-soft: #fbefd9;
   --danger: #d14b4b;
-  --shadow: 0 10px 30px rgba(27, 36, 64, 0.12);
-  --shadow-sm: 0 2px 10px rgba(27, 36, 64, 0.08);
-  --pin-shadow: 0 2px 3px rgba(27, 36, 64, 0.22);
+  --shadow: 0 4px 14px rgba(200, 101, 10, 0.08), 0 1px 2px rgba(200, 101, 10, 0.06);
+  --shadow-sm: 0 2px 8px rgba(200, 101, 10, 0.08);
+  --pin-shadow: 0 2px 3px rgba(96, 56, 29, 0.22);
   /* We Now: a place two or more members pinged wears a pastel aurora edge. */
   --aurora-1: #ffb8d9;
   --aurora-2: #ffd9a8;
@@ -41,22 +43,22 @@
   --aurora-4: #a8e4f5;
   --aurora-5: #c9b8ff;
   /* Boarding-pass tear line on the pin card. */
-  --perforation: rgba(27, 36, 64, 0.22);
+  --perforation: rgba(96, 56, 29, 0.22);
   /* drop-shadow() for the ticket-shaped tab bar (a box-shadow would be cut by its notches). */
-  --ticket-shadow: 0 6px 12px rgba(27, 36, 64, 0.14);
-  --dialog-shadow: 0 18px 36px rgba(27, 36, 64, 0.28);
+  --ticket-shadow: 0 4px 10px rgba(200, 101, 10, 0.12);
+  --dialog-shadow: 0 12px 30px rgba(200, 101, 10, 0.2);
   /* The orange arrow between the ticket's two places. */
-  --ticket-arrow: #f08a2b;
+  --ticket-arrow: #fea200;
   /* The share polaroid's card: white paper in every theme. */
   --polaroid: #ffffff;
-  --polaroid-shadow: rgba(27, 36, 64, 0.22);
+  --polaroid-shadow: rgba(96, 56, 29, 0.22);
   /* Sticker sheets (StickerSheets): the printed paper, each sticker's white
      die-cut edge, its paper back while it peels, the bend's shade. */
   --sticker-sheet: #ffffff;
   --sticker-edge: #ffffff;
-  --sticker-back: #efeee9;
-  --sticker-fold: rgba(27, 36, 64, 0.2);
-  --sticker-shadow: rgba(27, 36, 64, 0.3);
+  --sticker-back: #fff7d8;
+  --sticker-fold: rgba(96, 56, 29, 0.2);
+  --sticker-shadow: rgba(96, 56, 29, 0.3);
   /* 빨랫줄 layout: the wooden clothespins (not themed, like the card's paper). */
   --clothespin: #e3c690;
   --clothespin-shade: #c9a467;
@@ -66,6 +68,15 @@
   --ink-black: #151515;
   /* Icons on the round white buttons (꾸미기 rail, the share screen's 저장·링크): black, white in dark mode. */
   --round-icon: var(--ink-black);
+  /* Icons (2026-11-10): light orange instead of the dark ink, white on the yellow accent.
+     A rule that sets color also sets --icon-ink: dark text colours give --icon,
+     colours that mean something (danger, star, a member, selected) keep theirs. */
+  --icon: #fea200;
+  --on-accent-icon: #ffffff;
+  /* The land's colour on the map: the palette's light orange (the yellow alone is too close to the cream). Themes and dark use their accent. */
+  --map-ground: #f7b736;
+  /* The map's water (2026-11-11): banana milk — a deep banana yellow mixed in at 30%. Themes and dark use their accent. */
+  --map-sea: #ffc62d;
   --ink-white: #ffffff;
   /* A plain dark see-through fill, no backdrop blur: blurring re-ran every
      frame while a sheet slid or a pattern flowed behind it. */
@@ -91,14 +102,14 @@
   --hue-240: #0000ff;
   --hue-300: #ff00ff;
   --hue-shade: #000000;
-  --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
+  --shadow-up: 0 -4px 14px rgba(200, 101, 10, 0.08);
   --backdrop: rgba(0, 0, 0, 0.4);
   /* 출발 안내판 (알림 설정's hour switches): a navy board of flip cells, the lit ones blue. */
-  --board: #2a3354;
-  --board-cell: #384369;
+  --board: #a66726;
+  --board-cell: #b87a3a;
   --board-off: rgba(255, 255, 255, 0.5);
-  --board-split: rgba(10, 14, 28, 0.55);
-  --step-arrow: #cdcfd8; /* the < > beside a route's name: light grey, no button behind */
+  --board-split: rgba(50, 26, 6, 0.55);
+  --step-arrow: #f6dc9a; /* the < > beside a route's name: light grey, no button behind */
 }
 
 /* Layout tokens and the pin palette (same in light and dark: a pin keeps
@@ -154,10 +165,10 @@
      rule) and the full accent is left to the pins and the line on top.
      Canvases and map SDKs cannot read color-mix as written: resolve them
      with lib/cssColour.ts. The main map reads them once, in the 기본 theme. */
-  --map-land: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  --map-land: color-mix(in srgb, var(--map-ground) 16%, var(--surface));
   /* Water a step deeper than land, so rivers read as the edges they are —
      also darkened a little, or a light accent (노랑) leaves it level with the land. */
-  --map-water-hue: color-mix(in srgb, var(--accent) 30%, var(--surface));
+  --map-water-hue: color-mix(in srgb, var(--map-sea) 30%, var(--surface));
   --map-water: color-mix(in srgb, var(--map-water-hue) 95%, var(--ink-black));
   /* Parks: the one hue that is not the theme's (a park should read as a park). */
   --park-green: #c4efd5;
@@ -173,9 +184,14 @@
      shouting over the pins (the MZ draft's strong pink and yellow did, and a
      zoomed-in screen became one loud colour): paper, faint butter, faint mint.
      Nearly opaque — a river through a 동 still shows faintly. */
-  --map-pastel-0: color-mix(in srgb, var(--accent) 5%, var(--surface));
-  --map-pastel-1: color-mix(in srgb, var(--pin-7) 16%, var(--surface));
-  --map-pastel-2: color-mix(in srgb, var(--pin-6) 14%, var(--surface));
+  /* 2026-11-11: the banana-milk palette itself (white #ffffff, cream
+     #fff7d8, banana #fce89d, yellow #ffd85f, orange #fea200), lightened for a
+     map ground: cream for most 동, then banana and a light apricot; the
+     water is banana milk (--map-sea). Themes and dark keep tones made from
+     their own accent. */
+  --map-pastel-0: #fff8e6;
+  --map-pastel-1: #fdefbf;
+  --map-pastel-2: #ffe6c4;
   --map-tone-0: color-mix(in srgb, var(--map-pastel-0) 90%, transparent);
   --map-tone-1: color-mix(in srgb, var(--map-pastel-1) 90%, transparent);
   --map-tone-2: color-mix(in srgb, var(--map-pastel-2) 90%, transparent);
@@ -187,10 +203,15 @@
   /* The air over the land's far side (aerial perspective): the page itself, faded out toward the near side. */
   --map-haze: var(--surface);
   /* We Now's atlas: Korea behind the islands, a shade off the page. */
-  --atlas-land: color-mix(in srgb, var(--text) 9%, var(--bg));
+  /* Korea behind the group's islands: a pale yellow, so the deep yellow islands stand out on it. */
+  --atlas-land: color-mix(in srgb, var(--mini-ground) 30%, var(--bg));
   /* TODAY's 미니맵 roles (domain/miniMap.ts MapRole) are the same colours. */
-  --mini-land: var(--map-land);
-  --mini-side: var(--map-side);
+  /* The small maps (TODAY, the group tiles and the group's islands, share
+     images) stand on deep yellow land (2026-11-11), the main map stays pale.
+     Themes and dark keep the main map's land (--mini-ground there). */
+  --mini-ground: #f7c948;
+  --mini-land: var(--mini-ground);
+  --mini-side: color-mix(in srgb, var(--mini-ground) 85%, var(--ink-black));
   --mini-water: var(--map-water);
   --mini-park: var(--map-park);
   --mini-road: var(--map-road);
@@ -202,38 +223,45 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-scheme='light']) {
     color-scheme: dark;
-    --bg: #0f1626;
-    --surface: #172036;
-    --surface-2: #1f2a42;
-    --text: #e8edf7;
-    --muted: #8d98b3;
-    --border: rgba(232, 237, 247, 0.12);
-    --accent: #6688cc;
-    --accent-strong: #8aa5dc;
-    --accent-soft: #1d2d52;
-    --on-accent: #ffffff;
-    --route: #6688cc;
-    --sage: #7cc39b;
-    --sage-soft: #23382c;
+    --bg: #26160b;
+    --surface: #351f10;
+    --surface-2: #a66726;
+    --text: #fff7d8;
+    --muted: #d6b48a;
+    --border: rgba(255, 247, 216, 0.12);
+    --accent: #ffd85f;
+    --accent-strong: #fea200;
+    --accent-soft: #4a3d10;
+    --on-accent: #6b3f15;
+    --route: #ffd85f;
+    --sage: #9cc46a;
+    --sage-soft: #2c3a20;
     --sky: #7fb1e6;
     --sky-soft: #1f3044;
     --on-sky: #10161d;
     --amber: #e3b25e;
     --amber-soft: #3d3020;
     --danger: #ff7b7b;
-    --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
-    --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.45);
+    --shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+    --shadow-up: 0 -4px 14px rgba(0, 0, 0, 0.35);
     --backdrop: rgba(0, 0, 0, 0.6);
-    --perforation: rgba(232, 237, 247, 0.22);
-    --ticket-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
-    --dialog-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
-    --park-green: #22402f;
+    --perforation: rgba(255, 247, 216, 0.22);
+    --ticket-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    --dialog-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+    --park-green: #2c4026;
     --round-icon: var(--ink-white);
-    /* The map's 동 tones on navy: the pin colours at the light scheme's share
+    --icon: #fea200;
+    --map-ground: var(--accent);
+    --map-sea: var(--accent);
+    --mini-ground: var(--map-land);
+    --jar-rim: rgba(0, 0, 0, 0.35);
+    --jar-rim-accent: #b8871c;
+      /* The map's 동 tones on navy: the pin colours at the light scheme's share
        turned muddy (butter → brown), so only a trace of them. */
-    --map-pastel-1: color-mix(in srgb, var(--pin-7) 7%, var(--surface));
-    --map-pastel-2: color-mix(in srgb, var(--pin-6) 7%, var(--surface));
+    --map-pastel-0: color-mix(in srgb, var(--accent) 5%, var(--surface));
+    --map-pastel-1: color-mix(in srgb, var(--accent) 8%, var(--surface));
+    --map-pastel-2: color-mix(in srgb, var(--accent-strong) 7%, var(--surface));
     /* Logo, dark version: white pin, blue route (navy tile when shown). */
     --logo-tile: var(--logo-dark-tile);
     --logo-pin: var(--logo-dark-pin);
@@ -243,36 +271,43 @@
 
 :root[data-scheme='dark'] {
   color-scheme: dark;
-  --bg: #0f1626;
-  --surface: #172036;
-  --surface-2: #1f2a42;
-  --text: #e8edf7;
-  --muted: #8d98b3;
-  --border: rgba(232, 237, 247, 0.12);
-  --accent: #6688cc;
-  --accent-strong: #8aa5dc;
-  --accent-soft: #1d2d52;
-  --on-accent: #ffffff;
-  --route: #6688cc;
-  --sage: #7cc39b;
-  --sage-soft: #23382c;
+  --bg: #26160b;
+  --surface: #351f10;
+  --surface-2: #a66726;
+  --text: #fff7d8;
+  --muted: #d6b48a;
+  --border: rgba(255, 247, 216, 0.12);
+  --accent: #ffd85f;
+  --accent-strong: #fea200;
+  --accent-soft: #4a3d10;
+  --on-accent: #6b3f15;
+  --route: #ffd85f;
+  --sage: #9cc46a;
+  --sage-soft: #2c3a20;
   --sky: #7fb1e6;
   --sky-soft: #1f3044;
   --on-sky: #10161d;
   --amber: #e3b25e;
   --amber-soft: #3d3020;
   --danger: #ff7b7b;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
-  --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.45);
+  --shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-up: 0 -4px 14px rgba(0, 0, 0, 0.35);
   --backdrop: rgba(0, 0, 0, 0.6);
-  --perforation: rgba(232, 237, 247, 0.22);
-  --ticket-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
-  --dialog-shadow: 0 18px 40px rgba(0, 0, 0, 0.6);
-  --park-green: #22402f;
+  --perforation: rgba(255, 247, 216, 0.22);
+  --ticket-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  --dialog-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+  --park-green: #2c4026;
   --round-icon: var(--ink-white);
-  --map-pastel-1: color-mix(in srgb, var(--pin-7) 7%, var(--surface));
-  --map-pastel-2: color-mix(in srgb, var(--pin-6) 7%, var(--surface));
+    --icon: #fea200;
+    --map-ground: var(--accent);
+    --map-sea: var(--accent);
+    --mini-ground: var(--map-land);
+    --jar-rim: rgba(0, 0, 0, 0.35);
+    --jar-rim-accent: #b8871c;
+    --map-pastel-0: color-mix(in srgb, var(--accent) 5%, var(--surface));
+  --map-pastel-1: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  --map-pastel-2: color-mix(in srgb, var(--accent-strong) 7%, var(--surface));
   --logo-tile: var(--logo-dark-tile);
   --logo-pin: var(--logo-dark-pin);
   --logo-ink: var(--logo-dark-ink);
@@ -292,16 +327,44 @@
   /* settle: coming down from just above without a bounce (the 루트 hints,
      the pen palette, a day's stickers and ink). */
   --settle-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --pin-drop-shadow: 0 1px 2px rgba(27, 36, 64, 0.28);
+  --pin-drop-shadow: 0 1px 2px rgba(96, 56, 29, 0.28);
   /* Round action buttons (공유, 수정): short enough to stay clear of what's below them. */
-  --round-btn-shadow: 0 3px 8px rgba(27, 36, 64, 0.22), 0 1px 2px rgba(27, 36, 64, 0.12);
+  /* The rims under buttons: amber under the yellow ones (--lift-accent), red under 삭제. */
+  --jar-rim: #f6e2b4;
+  --jar-rim-accent: #f7b736;
+  --danger-rim: #a93a3a;
+  /* 미니멀 · 떠 있는 (2026-11-11): white things float on a wide, soft
+     deep-orange shadow; yellow buttons stand on an amber rim with an orange glow. */
+  --lift: var(--shadow);
+  --lift-sm: var(--shadow-sm);
+  --lift-accent: 0 4px 0 var(--jar-rim-accent), 0 3px 8px rgba(234, 140, 20, 0.18);
+  --lift-pick: 0 3px 8px rgba(200, 101, 10, 0.25);
+  /* Buttons (2026-11-11): the yellow (and red) ones two-tone — a 4px rim
+     under them; the white ones only a faint shadow. */
+  --round-btn-shadow: 0 2px 0 var(--jar-rim), 0 2px 6px rgba(200, 101, 10, 0.08);
+  --round-btn-shadow-accent: 0 4px 0 var(--jar-rim-accent), 0 3px 8px rgba(234, 140, 20, 0.18);
+  --danger-btn-shadow: 0 4px 0 var(--danger-rim), 0 3px 8px rgba(200, 101, 10, 0.08);
+  /* Faces of what used to be told apart by fills (미니멀 · 면); white again. */
+  --card-face: var(--surface);
+  --btn-face: var(--surface);
   /* The eraser's ring while rubbing (DecorLayer): reads on light and dark ink alike. */
   --eraser-fill: rgba(255, 255, 255, 0.35);
   --eraser-ring: rgba(40, 40, 40, 0.55);
-  --swatch-default-bg: #fbf8f1;
-  --swatch-default-accent: #6c90d8;
-  --swatch-matcha-bg: #eef1e3;
-  --swatch-matcha-accent: #6b8e3e;
+  --swatch-default-bg: #fff7d8;
+  --swatch-default-accent: #ffd85f;
+  --swatch-banana-bg: #fff7d8;
+  --swatch-banana-accent: #ffd85f;
+  /* A day's theme tints its land: the app themes keep their own small-map land. */
+  --tint-land-banana: #f7c948;
+  --tint-land-matcha: #d4e4b0;
+  --tint-land-choco: #e2c9b3;
+  --tint-land-strawberry: #f9c4d0;
+  --swatch-matcha-bg: #f3f7e9;
+  --swatch-matcha-accent: #a3c46f;
+  --swatch-choco-bg: #f7efe8;
+  --swatch-choco-accent: #a8704b;
+  --swatch-strawberry-bg: #fff0f3;
+  --swatch-strawberry-accent: #f48fa6;
   --swatch-custard-bg: #fdf3d8;
   --swatch-custard-accent: #a8692a;
   --swatch-yellow-bg: #fff8d6;
@@ -341,6 +404,10 @@
    just for itself (We Now's TODAY tile shows the day's theme, 2026-10-19). */
 :root[data-theme='matcha'],
 .theme-scope[data-theme='matcha'],
+:root[data-theme='choco'],
+.theme-scope[data-theme='choco'],
+:root[data-theme='strawberry'],
+.theme-scope[data-theme='strawberry'],
 :root[data-theme='custard'],
 .theme-scope[data-theme='custard'],
 :root[data-theme='yellow'],
@@ -388,11 +455,17 @@
   --danger: #d14b4b;
   --shadow: 0 10px 30px rgba(47, 38, 34, 0.16);
   --shadow-sm: 0 2px 10px rgba(47, 38, 34, 0.12);
-  --shadow-up: 0 -6px 24px rgba(0, 0, 0, 0.12);
+  --shadow-up: 0 -4px 14px rgba(0, 0, 0, 0.35);
   --backdrop: rgba(0, 0, 0, 0.4);
   --round-icon: var(--ink-black);
   /* Themes stay light: the light park green, even under a dark phone. */
   --park-green: #c4efd5;
+  --map-ground: var(--accent);
+  --map-sea: var(--accent);
+  --mini-ground: var(--map-land);
+  --map-pastel-0: color-mix(in srgb, var(--accent) 5%, var(--surface));
+  --map-pastel-1: color-mix(in srgb, var(--pin-7) 16%, var(--surface));
+  --map-pastel-2: color-mix(in srgb, var(--pin-6) 14%, var(--surface));
 }
 
 :root[data-theme='mint'],
@@ -464,15 +537,95 @@
   --route: #2b2b2b;
 }
 
+/* 말차 = 말차 라떼 (2026-11-11, the drafts' 말차 A): milky matcha green on a
+   white page, like 바나나 with only the colours changed — deep-forest text,
+   a darker matcha for icons and lines, a green rim under the green buttons. */
 :root[data-theme='matcha'],
 .theme-scope[data-theme='matcha'] {
-  --bg: #f3f5ec;
-  --surface: #fbfcf7;
-  --surface-2: #e7ecd9;
-  --accent: #6b8e3e;
-  --accent-strong: #557330;
-  --accent-soft: #e1e9cf;
-  --route: #6b8e3e;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f3f7e9;
+  --text: #3e5329;
+  --muted: #8a9c74;
+  --accent: #a3c46f;
+  --accent-strong: #6e9a3c;
+  --accent-soft: #dfeac6;
+  --on-accent: #2f4220;
+  --icon: #6e9a3c;
+  --jar-rim-accent: #7fa14e;
+  --round-btn-shadow: 0 2px 8px rgba(76, 110, 40, 0.12), 0 1px 2px rgba(76, 110, 40, 0.08);
+  --route: #6e9a3c;
+  /* Map: 말차 라떼 greens only (no oat) — the area tones, land, water and the
+     small maps' (TODAY, group islands) light matcha land. */
+  --map-ground: #8fb35a;
+  --map-sea: #8ec5b0;
+  --map-pastel-0: #f6f9ec;
+  --map-pastel-1: #e7f1d0;
+  --map-pastel-2: #e2f0dc;
+  --mini-ground: #d4e4b0;
+  --logo-tile: #a3c46f;
+  --logo-pin: #ffffff;
+  --logo-ink: #3e5329;
+}
+
+/* 초코 = 밀크 초콜릿 (2026-11-11): milk-chocolate brown on a white page, like
+   바나나 and 말차 with only the colours changed — dark-chocolate text, a deeper
+   chocolate for icons and lines and the rim under brown buttons, white on them.
+   The map's water is choco-mint. */
+:root[data-theme='choco'],
+.theme-scope[data-theme='choco'] {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f7efe8;
+  --text: #4a2a1a;
+  --muted: #a88a78;
+  --accent: #a8704b;
+  --accent-strong: #6f4128;
+  --accent-soft: #ecdccf;
+  --on-accent: #ffffff;
+  --icon: #8a5537;
+  --jar-rim-accent: #6f4128;
+  --round-btn-shadow: 0 2px 8px rgba(90, 50, 25, 0.12), 0 1px 2px rgba(90, 50, 25, 0.08);
+  --route: #6f4128;
+  --map-ground: #b07c58;
+  --map-sea: #86c9b8;
+  --map-pastel-0: #fbf5ef;
+  --map-pastel-1: #f2e4d8;
+  --map-pastel-2: #f6eadc;
+  --mini-ground: #e2c9b3;
+  --logo-tile: #a8704b;
+  --logo-pin: #ffffff;
+  --logo-ink: #4a2a1a;
+}
+
+/* 딸기 = 딸기 우유 (2026-11-12): strawberry-milk pink on a white page, like
+   초코 with only the colours changed — berry-red text, a deeper strawberry for
+   icons, lines and the rim under pink buttons, white on them. The map's water
+   is a leafy mint. */
+:root[data-theme='strawberry'],
+.theme-scope[data-theme='strawberry'] {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #fff0f3;
+  --text: #6b2337;
+  --muted: #c48f9d;
+  --accent: #f48fa6;
+  --accent-strong: #c94a6a;
+  --accent-soft: #fcdbe3;
+  --on-accent: #ffffff;
+  --icon: #e0607e;
+  --jar-rim-accent: #c94a6a;
+  --round-btn-shadow: 0 2px 8px rgba(150, 40, 70, 0.12), 0 1px 2px rgba(150, 40, 70, 0.08);
+  --route: #c94a6a;
+  --map-ground: #f27b97;
+  --map-sea: #9fd6c0;
+  --map-pastel-0: #fff6f8;
+  --map-pastel-1: #fde4eb;
+  --map-pastel-2: #ffeef0;
+  --mini-ground: #f9c4d0;
+  --logo-tile: #f48fa6;
+  --logo-pin: #ffffff;
+  --logo-ink: #a8324f;
 }
 
 /* 커스터드: pudding yellow with caramel brown. */
@@ -618,6 +771,7 @@ body,
 body {
   background: var(--bg);
   color: var(--text);
+  --icon-ink: var(--icon);
   /* Tall and condensed throughout, like the TODAY title: Oswald sets Latin
      and digits, Do Hyeon (which Oswald lacks) the Hangul. */
   font-family: "Oswald", "Do Hyeon", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
@@ -632,6 +786,7 @@ input,
 textarea {
   font: inherit;
   color: inherit;
+  --icon-ink: var(--icon);
 }
 
 button {
@@ -734,9 +889,10 @@ button:disabled {
   max-width: 240px;
   padding: 7px 12px;
   border-radius: 12px;
-  background: var(--surface);
+  background: var(--btn-face);
   box-shadow: var(--round-btn-shadow);
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 15px;
   font-weight: 700;
   white-space: nowrap;
@@ -783,7 +939,7 @@ button:disabled {
   min-height: 52px;
   /* A full pill (2026-10-21): the ends round right off, so a little more room inside them. */
   padding: 4px 8px 4px 20px;
-  background: var(--surface);
+  background: var(--card-face);
   border-radius: 999px;
   box-shadow: var(--shadow);
 }
@@ -838,6 +994,7 @@ button:disabled {
 
 .search__icon {
   color: var(--muted);
+  --icon-ink: var(--icon);
   cursor: text;
 }
 
@@ -849,7 +1006,7 @@ button:disabled {
   margin-top: 8px;
   max-height: calc(100dvh - 100px - var(--safe-top) - var(--safe-bottom));
   overflow-y: auto;
-  background: var(--surface);
+  background: var(--card-face);
   border-radius: 16px;
   box-shadow: var(--shadow);
   padding: 6px;
@@ -860,6 +1017,7 @@ button:disabled {
   margin: 0;
   padding: 14px 12px;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 14px;
 }
 
@@ -896,6 +1054,7 @@ button:disabled {
 .result__meta {
   font-size: 13px;
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 /* Searching takes over the screen; the sheet gets out of the way. */
@@ -917,6 +1076,7 @@ button:disabled {
   border-radius: 50%;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   font-weight: 800;
   font-size: 14px;
   box-shadow: var(--shadow-sm);
@@ -942,8 +1102,9 @@ button:disabled {
   transform: translateX(-50%);
   padding: 2px 7px;
   border-radius: 8px;
-  background: var(--surface);
+  background: var(--card-face);
   color: var(--text);
+  --icon-ink: var(--icon);
   box-shadow: var(--shadow-sm);
   font-size: 11px;
   font-weight: 650;
@@ -954,6 +1115,7 @@ button:disabled {
    every marker and never in the way of a tap. */
 .map-area-label {
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 13px;
   line-height: 20px;
   white-space: nowrap;
@@ -970,6 +1132,7 @@ button:disabled {
 
 .map-area-label--other {
   color: var(--muted);
+  --icon-ink: var(--icon);
   opacity: 0.9 !important;
 }
 
@@ -990,6 +1153,7 @@ button:disabled {
   border: 0;
   background: transparent;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font: inherit;
   font-size: 10px;
   line-height: 14px;
@@ -1021,7 +1185,7 @@ button:disabled {
   bottom: calc(var(--sheet-peek) + var(--bar-h) + var(--safe-bottom) + 12px);
   z-index: 15;
   padding: 14px 14px 12px;
-  background: var(--surface);
+  background: var(--card-face);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   transition: transform 0.25s ease;
@@ -1099,14 +1263,16 @@ button:disabled {
   border-radius: 9px;
   background: transparent;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-weight: 700;
   font-size: 14px;
   white-space: nowrap;
 }
 
 .tabs button.is-on {
-  background: var(--surface);
+  background: var(--card-face);
   color: var(--text);
+  --icon-ink: var(--icon);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1116,6 +1282,7 @@ button:disabled {
   border-radius: 10px;
   background: var(--accent-soft);
   color: var(--accent-strong);
+  --icon-ink: currentColor;
   font-size: 12px;
 }
 
@@ -1179,11 +1346,13 @@ button:disabled {
   border-color: var(--accent);
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .summary-line {
   margin: 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
   font-weight: 600;
 }
@@ -1192,6 +1361,7 @@ button:disabled {
   margin: 0;
   font-size: 13px;
   color: var(--accent-strong);
+  --icon-ink: currentColor;
 }
 
 /* ---------- Stops ---------- */
@@ -1219,6 +1389,7 @@ button:disabled {
   border-radius: 50%;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   font-weight: 800;
   font-size: 14px;
 }
@@ -1255,6 +1426,7 @@ button:disabled {
 .stop__cat,
 .stop__addr {
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 12px;
 }
 
@@ -1297,6 +1469,7 @@ button:disabled {
 .leg__text {
   flex: 1;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
 }
 
@@ -1309,6 +1482,7 @@ button:disabled {
   border-radius: 10px;
   background: var(--sky-soft);
   color: var(--sky);
+  --icon-ink: currentColor;
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
@@ -1340,6 +1514,7 @@ button:disabled {
 
 .icon-btn--danger {
   color: var(--danger);
+  --icon-ink: currentColor;
 }
 
 .btn {
@@ -1360,6 +1535,7 @@ button:disabled {
 .btn--primary {
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .btn--primary:not(:disabled):active {
@@ -1369,11 +1545,13 @@ button:disabled {
 .btn--secondary {
   background: var(--accent-soft);
   color: var(--accent-strong);
+  --icon-ink: currentColor;
 }
 
 .btn--ghost {
   background: var(--surface-2);
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .action-bar {
@@ -1402,21 +1580,25 @@ button:disabled {
 .badge--date {
   background: var(--accent-soft);
   color: var(--accent-strong);
+  --icon-ink: currentColor;
 }
 
 .badge--trip {
   background: var(--sky-soft);
   color: var(--sky);
+  --icon-ink: currentColor;
 }
 
 .badge--food {
   background: var(--amber-soft);
   color: var(--amber);
+  --icon-ink: currentColor;
 }
 
 .badge--etc {
   background: var(--surface-2);
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 /* ---------- Shared course ---------- */
@@ -1433,6 +1615,7 @@ button:disabled {
   gap: 8px;
   margin: 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
   font-weight: 600;
 }
@@ -1464,6 +1647,7 @@ button:disabled {
   border-radius: 22px 22px 0 0;
   background: var(--surface);
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .share-sheet::backdrop {
@@ -1510,12 +1694,14 @@ button:disabled {
   font-size: 13px;
   font-weight: 600;
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .field input {
   height: 46px;
   padding: 0 14px;
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 /* ---------- 꾸미기 (calendar day): stickers, pen, theme ---------- */
@@ -1556,15 +1742,17 @@ button:disabled {
   border: 0;
   border-radius: 50%;
   /* Same round white buttons as the tab bar; the one in use only changes colour. */
-  background: var(--surface);
+  background: var(--btn-face);
   /* Black icons (white in dark mode, where the round is dark too). */
   color: var(--round-icon);
+  --icon-ink: var(--icon);
   box-shadow: var(--shadow-sm);
   transition: color 0.15s ease;
 }
 
 .decor-rail__btn.is-on {
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 /* On the day screen the rail matches the map's 핀/경로 rail: 48px rounds,
@@ -1594,6 +1782,7 @@ button:disabled {
 /* The day rail's ↓ / ↑: shows the rest of the tools (name and time) or folds them away. */
 .decor-rail__more {
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 /* Unfolding, the switches drop out one after another as the map's category
@@ -1637,6 +1826,7 @@ button:disabled {
 
 .decor-rail__switch.is-off {
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .decor-rail__switch.is-off::after {
@@ -1659,6 +1849,7 @@ button:disabled {
   margin-top: 8px;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 /* The drawing box measures stickers (cqw) so they scale with it. */
@@ -1747,6 +1938,7 @@ button:disabled {
   border-radius: 50%;
   background: var(--surface-2);
   color: var(--muted);
+  --icon-ink: var(--icon);
   translate: -50% 0;
   pointer-events: none;
   animation: pop-in 0.18s var(--pop-ease) backwards;
@@ -1765,7 +1957,8 @@ button:disabled {
 
 .decor__trash.is-over {
   background: var(--danger);
-  color: var(--on-accent);
+  color: var(--ink-white);
+  --icon-ink: var(--ink-white);
   scale: 1.25;
 }
 
@@ -1835,6 +2028,7 @@ button:disabled {
   resize: none;
   background: transparent;
   color: inherit;
+  --icon-ink: var(--icon);
   caret-color: var(--accent);
   font: inherit;
   letter-spacing: inherit;
@@ -1857,6 +2051,7 @@ button:disabled {
   border-radius: 20px 20px 0 0;
   background: var(--tray-bg);
   color: var(--tray-fg);
+  --icon-ink: currentColor;
   animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 
@@ -1945,6 +2140,7 @@ button:disabled {
   border: 0;
   background: transparent;
   color: inherit;
+  --icon-ink: var(--icon);
 }
 
 /* No double-tap handling on the tool buttons: taps land straight away. */
@@ -1991,11 +2187,13 @@ button:disabled {
 
 .decor-tray__tool {
   color: var(--tray-dim);
+  --icon-ink: currentColor;
 }
 
 .decor-tray__tool.is-on {
   background: var(--tray-hi);
   color: var(--tray-fg);
+  --icon-ink: currentColor;
 }
 
 .decor-tray__width span {
@@ -2079,6 +2277,7 @@ button:disabled {
 
 .decor-tray__undo:disabled {
   color: var(--tray-dim);
+  --icon-ink: currentColor;
   opacity: 0.5;
 }
 
@@ -2212,6 +2411,7 @@ button:disabled {
   border: 0;
   background: transparent;
   color: var(--tray-fg);
+  --icon-ink: currentColor;
   font: inherit;
   font-size: 16px; /* no iOS zoom-in */
   font-variant-numeric: tabular-nums;
@@ -2237,6 +2437,7 @@ button:disabled {
   padding: 0 6px;
   border-radius: 12px;
   color: var(--tray-dim);
+  --icon-ink: currentColor;
   font-size: 17px;
   white-space: nowrap;
 }
@@ -2244,6 +2445,7 @@ button:disabled {
 .decor-tray__font.is-on {
   background: var(--tray-hi);
   color: var(--tray-fg);
+  --icon-ink: currentColor;
 }
 
 .decor-tray--theme,
@@ -2307,6 +2509,7 @@ button:disabled {
   gap: 4px;
   padding: 2px;
   color: var(--tray-dim);
+  --icon-ink: currentColor;
   font-size: 12px;
   line-height: 14px;
   font-weight: 700;
@@ -2314,6 +2517,7 @@ button:disabled {
 
 .decor-tray__theme.is-on {
   color: var(--tray-fg);
+  --icon-ink: currentColor;
 }
 
 /* A little screen: the theme's background, a pin and an accent bar. */
@@ -2352,6 +2556,38 @@ button:disabled {
   background: var(--card-accent);
 }
 
+/* 꾸미기 → 테마 cards: what a day's theme changes — its land, with its ping on it
+   (2026-11-11); the card itself is the app's own page colour. */
+/* 날짜 테마 (2026-11-11): just the land with a ping half over it, on no
+   card at all — a square the picture stays inside. */
+.theme-card--map {
+  aspect-ratio: 1;
+  background: none;
+  box-shadow: none;
+}
+
+.theme-card--map .theme-card__pin {
+  top: 18%;
+  width: 34%;
+  z-index: 1;
+  fill: var(--tint-ping);
+  filter: drop-shadow(var(--pin-shadow));
+}
+
+.theme-card--map .theme-card__pin circle {
+  fill: var(--ink-white);
+}
+
+.theme-card__land {
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: 10%;
+  height: auto;
+  fill: var(--tint-land);
+  filter: drop-shadow(0 3px 0 color-mix(in srgb, var(--tint-land) 85%, var(--ink-black)));
+}
+
 .decor-tray__theme.is-on .theme-card {
   box-shadow:
     0 0 0 2px var(--tray-bg),
@@ -2385,6 +2621,8 @@ button:disabled {
 
 .theme-card--default { --card-bg: var(--swatch-default-bg); --card-accent: var(--swatch-default-accent); }
 .theme-card--matcha { --card-bg: var(--swatch-matcha-bg); --card-accent: var(--swatch-matcha-accent); }
+.theme-card--choco { --card-bg: var(--swatch-choco-bg); --card-accent: var(--swatch-choco-accent); }
+.theme-card--strawberry { --card-bg: var(--swatch-strawberry-bg); --card-accent: var(--swatch-strawberry-accent); }
 .theme-card--custard { --card-bg: var(--swatch-custard-bg); --card-accent: var(--swatch-custard-accent); }
 .theme-card--yellow { --card-bg: var(--swatch-yellow-bg); --card-accent: var(--swatch-yellow-accent); }
 .theme-card--y2k { --card-bg: var(--swatch-y2k-bg); --card-accent: var(--swatch-y2k-accent); }
@@ -2401,6 +2639,57 @@ button:disabled {
 .theme-card--wine { --card-bg: var(--swatch-wine-bg); --card-accent: var(--swatch-wine-accent); }
 .theme-card--cocoa { --card-bg: var(--swatch-cocoa-bg); --card-accent: var(--swatch-cocoa-accent); }
 .theme-card--sage { --card-bg: var(--swatch-sage-bg); --card-accent: var(--swatch-sage-accent); }
+.theme-card--banana { --card-bg: var(--swatch-banana-bg); --card-accent: var(--swatch-banana-accent); }
+
+/* A calendar day's theme (꾸미기 → 테마, 2026-11-11): it tints only that day's land and
+   pings — on TODAY (CalendarZoom) and the We Now TODAY tile. The page, buttons and
+   everything else keep the app's theme (설정 → 디스플레이). */
+.day-tint {
+  --mini-land: var(--tint-land);
+  --mini-side: color-mix(in srgb, var(--tint-land) 85%, var(--ink-black));
+  --day-ping: var(--tint-ping);
+}
+
+.day-tint--banana,
+.theme-card--banana { --tint-ping: var(--swatch-banana-accent); --tint-land: var(--tint-land-banana); }
+.day-tint--matcha,
+.theme-card--matcha { --tint-ping: var(--swatch-matcha-accent); --tint-land: var(--tint-land-matcha); }
+.day-tint--choco,
+.theme-card--choco { --tint-ping: var(--swatch-choco-accent); --tint-land: var(--tint-land-choco); }
+.day-tint--strawberry,
+.theme-card--strawberry { --tint-ping: var(--swatch-strawberry-accent); --tint-land: var(--tint-land-strawberry); }
+.day-tint--sky,
+.theme-card--sky { --tint-ping: var(--swatch-sky-accent); --tint-land: color-mix(in srgb, var(--swatch-sky-accent) 30%, var(--ink-white)); }
+.day-tint--mint,
+.theme-card--mint { --tint-ping: var(--swatch-mint-accent); --tint-land: color-mix(in srgb, var(--swatch-mint-accent) 30%, var(--ink-white)); }
+.day-tint--custard,
+.theme-card--custard { --tint-ping: var(--swatch-custard-accent); --tint-land: color-mix(in srgb, var(--swatch-custard-accent) 30%, var(--ink-white)); }
+.day-tint--yellow,
+.theme-card--yellow { --tint-ping: var(--swatch-yellow-accent); --tint-land: color-mix(in srgb, var(--swatch-yellow-accent) 30%, var(--ink-white)); }
+.day-tint--lovely,
+.theme-card--lovely { --tint-ping: var(--swatch-lovely-accent); --tint-land: color-mix(in srgb, var(--swatch-lovely-accent) 30%, var(--ink-white)); }
+.day-tint--love,
+.theme-card--love { --tint-ping: var(--swatch-love-accent); --tint-land: color-mix(in srgb, var(--swatch-love-accent) 30%, var(--ink-white)); }
+.day-tint--lavender,
+.theme-card--lavender { --tint-ping: var(--swatch-lavender-accent); --tint-land: color-mix(in srgb, var(--swatch-lavender-accent) 30%, var(--ink-white)); }
+.day-tint--tangerine,
+.theme-card--tangerine { --tint-ping: var(--swatch-tangerine-accent); --tint-land: color-mix(in srgb, var(--swatch-tangerine-accent) 30%, var(--ink-white)); }
+.day-tint--ocean,
+.theme-card--ocean { --tint-ping: var(--swatch-ocean-accent); --tint-land: color-mix(in srgb, var(--swatch-ocean-accent) 30%, var(--ink-white)); }
+.day-tint--midnight,
+.theme-card--midnight { --tint-ping: var(--swatch-midnight-accent); --tint-land: color-mix(in srgb, var(--swatch-midnight-accent) 30%, var(--ink-white)); }
+.day-tint--plum,
+.theme-card--plum { --tint-ping: var(--swatch-plum-accent); --tint-land: color-mix(in srgb, var(--swatch-plum-accent) 30%, var(--ink-white)); }
+.day-tint--wine,
+.theme-card--wine { --tint-ping: var(--swatch-wine-accent); --tint-land: color-mix(in srgb, var(--swatch-wine-accent) 30%, var(--ink-white)); }
+.day-tint--cocoa,
+.theme-card--cocoa { --tint-ping: var(--swatch-cocoa-accent); --tint-land: color-mix(in srgb, var(--swatch-cocoa-accent) 30%, var(--ink-white)); }
+.day-tint--sage,
+.theme-card--sage { --tint-ping: var(--swatch-sage-accent); --tint-land: color-mix(in srgb, var(--swatch-sage-accent) 30%, var(--ink-white)); }
+.day-tint--y2k,
+.theme-card--y2k { --tint-ping: var(--swatch-y2k-accent); --tint-land: color-mix(in srgb, var(--swatch-y2k-accent) 30%, var(--ink-white)); }
+.day-tint--mono,
+.theme-card--mono { --tint-ping: var(--swatch-mono-accent); --tint-land: color-mix(in srgb, var(--swatch-mono-accent) 30%, var(--ink-white)); }
 
 /* Eraser masks: keep everything, except where the eraser rubbed. */
 .decor__mask-keep {
@@ -2454,6 +2743,7 @@ button:disabled {
   border-radius: 0;
   background: none;
   color: var(--muted);
+  --icon-ink: var(--icon);
   pointer-events: none;
   animation: none;
 }
@@ -2533,6 +2823,7 @@ button:disabled {
   height: 88px;
   pointer-events: auto;
   color: var(--muted);
+  --icon-ink: var(--icon);
   touch-action: manipulation;
 }
 
@@ -2588,6 +2879,7 @@ button:disabled {
   border-radius: 10px 10px 0 0;
   background: var(--pack);
   color: var(--pack-ink);
+  --icon-ink: currentColor;
 }
 
 .sticker-pack__name {
@@ -2679,6 +2971,7 @@ button:disabled {
   border-radius: 999px;
   background: var(--pack-ink);
   color: var(--pack);
+  --icon-ink: currentColor;
   font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 10px;
   line-height: 1.1;
@@ -2790,6 +3083,7 @@ button:disabled {
   border: 0;
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
   filter: drop-shadow(var(--dialog-shadow));
 }
 
@@ -2868,6 +3162,7 @@ button:disabled {
   border: 0;
   background: transparent;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 16px;
 }
 
@@ -2878,7 +3173,8 @@ button:disabled {
 .ticket-dialog__split > .is-danger {
   border-left-color: transparent;
   background: var(--danger);
-  color: var(--on-accent);
+  color: var(--ink-white);
+  --icon-ink: var(--ink-white);
 }
 
 .ticket-dialog__split > button:active {
@@ -2924,14 +3220,16 @@ button:disabled {
   height: 64px;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .route-action--edit {
   right: 88px;
   width: 50px;
   height: 50px;
-  background: var(--surface);
+  background: var(--btn-face);
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 
@@ -2977,6 +3275,7 @@ button:disabled {
   /* Back buttons are a bare ‹ (no circle, no shadow), 2026-11-09. */
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .studio .decor-rail {
@@ -3046,6 +3345,7 @@ button:disabled {
   bottom: calc(var(--safe-bottom) + 80px);
   margin: 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
   text-align: center;
 }
@@ -3078,8 +3378,9 @@ button:disabled {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--surface);
+  background: var(--btn-face);
   color: var(--round-icon);
+  --icon-ink: var(--icon);
   box-shadow: var(--shadow-sm);
 }
 
@@ -3088,10 +3389,12 @@ button:disabled {
   height: 72px;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .studio__action:disabled {
   color: var(--muted);
+  --icon-ink: var(--icon);
   opacity: 0.55;
 }
 
@@ -3111,6 +3414,7 @@ button:disabled {
   border-radius: 12px;
   background: var(--text);
   color: var(--bg);
+  --icon-ink: currentColor;
   font-size: 14px;
   font-weight: 600;
   opacity: 0;
@@ -3167,9 +3471,10 @@ button:disabled {
   padding: 0;
   border: 0;
   border-radius: 16px;
-  background: var(--surface);
+  background: var(--btn-face);
   box-shadow: var(--shadow);
   color: var(--text);
+  --icon-ink: var(--icon);
   transition: transform 0.25s ease;
 }
 
@@ -3207,15 +3512,17 @@ button:disabled {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--surface);
+  background: var(--btn-face);
   box-shadow: var(--shadow);
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 /* The open entry wears the accent colour. */
 .pin-rail__btn.is-on:not(.pin-rail__pin) {
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 /* Each entry's slot carries the gap below it, so collapsing one closes the space too. */
@@ -3254,6 +3561,7 @@ button:disabled {
   /* Up to about the middle of the screen, the rail and search bar stay clear above. */
   height: 44dvh;
   color: var(--text);
+  --icon-ink: var(--icon);
   animation: tray-up 0.26s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 
@@ -3308,6 +3616,7 @@ button:disabled {
     inset -1px 0 0 var(--border),
     inset 0 1px 0 var(--border);
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 15px;
   font-weight: 700;
   white-space: nowrap;
@@ -3358,7 +3667,8 @@ button:disabled {
   border: 2px solid var(--surface);
   border-radius: 50%;
   background: var(--danger);
-  color: var(--on-accent);
+  color: var(--ink-white);
+  --icon-ink: var(--ink-white);
   animation: rise-in 0.16s ease both;
 }
 
@@ -3374,6 +3684,7 @@ button:disabled {
   box-shadow: none;
   background: var(--surface);
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .route-folders__icon {
@@ -3424,11 +3735,13 @@ button:disabled {
   min-width: 0;
   margin: 0;
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 22px;
 }
 
 .route-folders__current-name {
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 16px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3452,6 +3765,7 @@ button:disabled {
   /* Just a grey +, no circle. */
   background: none;
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .route-folders__new:active {
@@ -3461,6 +3775,7 @@ button:disabled {
 /* 다중 선택 on: the ✓ in the accent colour. */
 .route-folders__select.is-on {
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 /* 다중 선택: each row's checkbox, left of its name. (Doubled class: the
@@ -3474,6 +3789,7 @@ button:disabled {
   border-radius: 50%;
   box-shadow: inset 0 0 0 2px var(--border);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .route-row__check.route-row__check.is-on {
@@ -3499,9 +3815,10 @@ button:disabled {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--surface);
+  background: var(--card-face);
   box-shadow: var(--shadow);
   color: var(--danger);
+  --icon-ink: currentColor;
   animation: rise-in 0.18s ease both;
   transition:
     scale 0.12s ease,
@@ -3525,18 +3842,21 @@ button:disabled {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--surface);
+  background: var(--card-face);
   box-shadow: var(--shadow);
   color: var(--text);
+  --icon-ink: var(--icon);
   animation: rise-in 0.18s ease both;
 }
 
 .route-folders__move.is-on {
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 .route-folders__move:disabled {
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 /* Its folders open above it, right-aligned to it. */
@@ -3547,11 +3867,13 @@ button:disabled {
 
 .route-folders__trash:disabled {
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .route-folders__trash.is-over {
   background: var(--danger);
-  color: var(--on-accent);
+  color: var(--ink-white);
+  --icon-ink: var(--ink-white);
   scale: 1.2;
 }
 
@@ -3567,6 +3889,7 @@ button:disabled {
   border-radius: 999px;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   font-size: 13px;
   font-weight: 800;
 }
@@ -3731,6 +4054,7 @@ button:disabled {
   max-width: 140px;
   overflow: hidden;
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 13px;
   font-weight: 700;
   line-height: 1.2;
@@ -3825,6 +4149,7 @@ button:disabled {
   margin: 0;
   overflow: hidden;
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 38px;
   font-weight: 800;
   letter-spacing: 0.03em;
@@ -3872,6 +4197,7 @@ button:disabled {
   outline: none;
   background: transparent;
   color: inherit;
+  --icon-ink: var(--icon);
   caret-color: var(--accent);
   text-align: center;
   text-shadow: inherit;
@@ -3889,6 +4215,7 @@ button:disabled {
   border: 0;
   background: none;
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 /* The description's toggle, where the pen used to be: a bare chevron that turns over when open. */
@@ -3904,12 +4231,14 @@ button:disabled {
   border: 0;
   background: none;
   color: var(--muted);
+  --icon-ink: var(--icon);
   transition: rotate 0.2s ease;
 }
 
 .route-title__toggle.is-open {
   rotate: 180deg;
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 .route-title__toggle::after {
@@ -3926,6 +4255,7 @@ button:disabled {
   max-width: min(480px, calc(100% - 88px));
   margin: 8px 0 0;
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 15px;
   font-weight: 600;
   line-height: 1.5;
@@ -3948,6 +4278,7 @@ button:disabled {
 
 .route-title__pen[aria-pressed='true'] {
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 /* < > stepping to the route above / below in the open tab: bare light-grey
@@ -3966,6 +4297,7 @@ button:disabled {
   border: 0;
   background: none;
   color: var(--step-arrow);
+  --icon-ink: currentColor;
   translate: 0 -50%;
 }
 
@@ -4021,6 +4353,7 @@ button:disabled {
 .route-style-picker__num {
   font-weight: 800;
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 .route-build__trail {
@@ -4044,6 +4377,7 @@ button:disabled {
   background: var(--surface);
   box-shadow: var(--shadow-up);
   color: var(--text);
+  --icon-ink: var(--icon);
   animation: tray-up 0.3s cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 
@@ -4078,6 +4412,7 @@ button:disabled {
   /* The sheet's shadow mustn't show where the two meet. */
   clip-path: inset(-30px -30px 0 -30px);
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 22px;
   line-height: 1;
 }
@@ -4085,6 +4420,7 @@ button:disabled {
 .route-edit__folder[aria-expanded='true'],
 .route-create__btn.route-create__btn[aria-expanded='true'] {
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 /* The folder grid pops up above the button, over the map, like a folder tab's. */
@@ -4107,6 +4443,7 @@ button:disabled {
   background: var(--accent);
   box-shadow: var(--shadow);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 /* The route's own trash at the sheet's bottom right (the same round button as 다중 선택's). */
@@ -4122,14 +4459,16 @@ button:disabled {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--surface);
+  background: var(--card-face);
   box-shadow: var(--shadow);
   color: var(--danger);
+  --icon-ink: currentColor;
 }
 
 .route-edit__done:disabled {
   background: var(--surface-2);
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .route-edit__body {
@@ -4154,6 +4493,7 @@ button:disabled {
   resize: none;
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
   font: inherit;
   font-size: 16px; /* no iOS zoom on focus */
   line-height: 1.4;
@@ -4161,6 +4501,7 @@ button:disabled {
 
 .route-edit__note::placeholder {
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .route-edit__note:focus {
@@ -4214,6 +4555,7 @@ button:disabled {
   border-radius: 50%;
   background: var(--route);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   font-size: 14px;
   font-weight: 800;
 }
@@ -4248,6 +4590,7 @@ button:disabled {
   border: 0;
   background: none;
   color: var(--muted);
+  --icon-ink: var(--icon);
   cursor: grab;
   touch-action: none;
 }
@@ -4259,6 +4602,7 @@ button:disabled {
 .route-edit__hint {
   margin: 12px 4px 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 14px;
 }
 
@@ -4300,6 +4644,7 @@ button:disabled {
   white-space: nowrap; /* one line; at 13px it stays clear of the rail on a 375px phone */
   background: var(--tray-bg);
   color: var(--tray-fg);
+  --icon-ink: currentColor;
   font-size: 13px;
   font-weight: 600;
   text-align: center;
@@ -4390,6 +4735,7 @@ button:disabled {
   outline: none;
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
   font: inherit;
   font-size: 22px;
   font-weight: 800;
@@ -4399,6 +4745,7 @@ button:disabled {
 .route-create__pen {
   flex: none;
   color: var(--muted);
+  --icon-ink: var(--icon);
   opacity: 0.5;
 }
 
@@ -4429,6 +4776,7 @@ button:disabled {
   resize: none;
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
   font: inherit;
   font-size: 16px; /* no iOS zoom-in */
   line-height: 1.4;
@@ -4437,6 +4785,7 @@ button:disabled {
 .route-create__note::placeholder,
 .route-create__name input::placeholder {
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .route-create__go {
@@ -4447,6 +4796,7 @@ button:disabled {
   border-radius: 12px;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   font: inherit;
   font-size: 16px;
   font-weight: 700;
@@ -4455,6 +4805,7 @@ button:disabled {
 .route-folders__empty {
   margin: 18px 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   text-align: center;
 }
 
@@ -4473,6 +4824,7 @@ button:disabled {
 
 .confirm-dialog p span {
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 15px;
   white-space: pre-line;
 }
@@ -4480,6 +4832,7 @@ button:disabled {
 /* A word picked out in the quieter lines (a route's name): the accent, bold. */
 .confirm-dialog__em {
   color: var(--accent);
+  --icon-ink: currentColor;
   font-weight: 700;
 }
 
@@ -4502,6 +4855,7 @@ button:disabled {
 .group-send__lead {
   margin: 8px 0 14px;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 14px;
   line-height: 1.5;
   text-align: center;
@@ -4512,6 +4866,7 @@ button:disabled {
 .group-send__problem {
   margin: 8px 6px 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 14px;
   line-height: 1.5;
   text-align: center;
@@ -4520,6 +4875,7 @@ button:disabled {
 
 .group-send__problem {
   color: var(--danger);
+  --icon-ink: currentColor;
 }
 
 .group-send__list {
@@ -4544,6 +4900,7 @@ button:disabled {
   border-radius: 14px;
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
   text-align: left;
 }
 
@@ -4570,6 +4927,7 @@ button:disabled {
 
 .group-send__count {
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
 }
 
@@ -4582,6 +4940,7 @@ button:disabled {
   border: 2px solid var(--muted);
   border-radius: 50%;
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .group-send__item.is-on .group-send__check {
@@ -4600,6 +4959,7 @@ button:disabled {
   border-radius: 10px;
   background: var(--surface-2);
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 .group-send__place {
@@ -4616,6 +4976,7 @@ button:disabled {
 .group-send__sub {
   overflow: hidden;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4634,16 +4995,19 @@ button:disabled {
   outline: none;
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
   font: inherit;
   font-size: 16px;
 }
 
 .group-send__input::placeholder {
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .group-send__where {
   color: var(--accent);
+  --icon-ink: currentColor;
   font-weight: inherit;
 }
 
@@ -4669,6 +5033,7 @@ button:disabled {
   border-radius: 50%;
   background: var(--surface-2);
   color: var(--muted);
+  --icon-ink: var(--icon);
   overflow: hidden;
 }
 
@@ -4680,17 +5045,20 @@ button:disabled {
 
 .shared-route-dialog__who b {
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 .shared-route-dialog__count {
   margin-top: 2px;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 15px;
 }
 
 .btn--danger {
   background: var(--danger);
-  color: var(--on-accent);
+  color: var(--ink-white);
+  --icon-ink: var(--ink-white);
 }
 
 /* The open folder's icon picker: a bubble popping up above its tab (like a
@@ -4706,7 +5074,7 @@ button:disabled {
   width: max-content;
   padding: 8px;
   border-radius: 18px;
-  background: var(--surface);
+  background: var(--card-face);
   box-shadow: var(--shadow);
   animation: rise-in 0.18s ease both;
 }
@@ -4802,7 +5170,7 @@ button:disabled {
   padding: 0 12px;
   border-radius: 14px;
   border-bottom: 0;
-  background: var(--surface);
+  background: var(--card-face);
   box-shadow: var(--shadow);
   pointer-events: none;
 }
@@ -4829,6 +5197,7 @@ button:disabled {
   border: 0;
   background: none;
   color: var(--text);
+  --icon-ink: var(--icon);
   text-align: left;
 }
 
@@ -4845,6 +5214,7 @@ button:disabled {
   max-width: 40%;
   overflow: hidden;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 14px;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -4858,6 +5228,7 @@ button:disabled {
   margin: -14px 0 0;
   padding: 0 0 8px 32px;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
   line-height: 1.2;
   pointer-events: none;
@@ -4883,6 +5254,7 @@ button:disabled {
   border-radius: 10px;
   background: none;
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .route-row__tool:active {
@@ -4891,6 +5263,7 @@ button:disabled {
 
 .route-row__tool--danger {
   color: var(--danger);
+  --icon-ink: currentColor;
 }
 
 .route-row__main strong {
@@ -4902,16 +5275,19 @@ button:disabled {
 
 .route-row__main span {
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
 }
 
 /* The route drawn on the map. */
 .route-row.is-shown .route-row__main strong {
   color: var(--accent-strong);
+  --icon-ink: currentColor;
 }
 
 .route-row__file {
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .route-row__file:not(:disabled):active {
@@ -5041,8 +5417,9 @@ button:disabled {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--surface);
+  background: var(--btn-face);
   color: var(--text);
+  --icon-ink: var(--icon);
   box-shadow: var(--shadow-sm);
 }
 
@@ -5073,6 +5450,7 @@ button:disabled {
   height: 40px;
   margin-left: 16px;
   color: var(--muted);
+  --icon-ink: var(--icon);
   pointer-events: none;
 }
 
@@ -5105,6 +5483,7 @@ button:disabled {
   margin: 0;
   overflow: hidden;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 21px;
   letter-spacing: 0.06em;
@@ -5132,6 +5511,7 @@ button:disabled {
   padding-right: 34px;
   overflow: hidden;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 14px;
   line-height: 1.4;
   text-overflow: ellipsis;
@@ -5165,6 +5545,7 @@ button:disabled {
 .pin-card__name-input {
   margin-top: 2px;
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 20px;
   font-weight: 800;
   line-height: 1.25;
@@ -5177,6 +5558,7 @@ button:disabled {
   height: 19.6px;
   margin-top: 8px;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 16px;
   line-height: 19.6px;
   scale: 0.875;
@@ -5185,6 +5567,7 @@ button:disabled {
 
 .pin-card__memo-input::placeholder {
   color: var(--muted);
+  --icon-ink: var(--icon);
   letter-spacing: 0.12em;
 }
 
@@ -5202,10 +5585,12 @@ button:disabled {
   right: 6px;
   bottom: 4px;
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .pin-card.is-editing .pin-card__pen {
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 /* The stub, past the tear line. */
@@ -5223,6 +5608,7 @@ button:disabled {
 
 .pin-card__group {
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 16px;
   letter-spacing: 0.1em;
@@ -5242,6 +5628,7 @@ button:disabled {
   border-radius: 50%;
   background: transparent;
   color: var(--pin, var(--muted));
+  --icon-ink: currentColor;
 }
 
 .pin-card__category .pin-glyph {
@@ -5257,12 +5644,14 @@ button:disabled {
 .pin-card__bin {
   margin-bottom: -4px;
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 /* A new pin's +, where an existing pin's bin is. */
 .pin-card__confirm {
   margin-bottom: -4px;
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 .pin-card__icon-opt .pin-glyph {
@@ -5284,6 +5673,7 @@ button:disabled {
   border-radius: 50%;
   background: var(--pin, var(--surface-2));
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 /* The current one keeps its colour (the folder bubble would tint it) and gets a ring. */
@@ -5348,6 +5738,7 @@ button:disabled {
   /* The category's colour with its glyph cut out in white. */
   background: var(--pin, var(--surface-2));
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   /* A tighter shadow than the other buttons: the scroll box would clip a wide one. */
   box-shadow: var(--shadow-sm);
 }
@@ -5370,6 +5761,7 @@ button:disabled {
 .pin-rail__btn.pin-rail__all.is-on {
   background: var(--surface);
   color: var(--accent);
+  --icon-ink: currentColor;
   box-shadow:
     inset 0 0 0 2px var(--accent),
     var(--shadow-sm);
@@ -5378,6 +5770,7 @@ button:disabled {
 /* ↓ under the categories: the next five. */
 .pin-rail__more {
   color: var(--muted);
+  --icon-ink: var(--icon);
   box-shadow: var(--shadow-sm);
 }
 
@@ -5385,6 +5778,7 @@ button:disabled {
 .pin-rail__add {
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   box-shadow: var(--shadow-sm);
 }
 
@@ -5403,6 +5797,7 @@ button:disabled {
 .pin-rail__pin--none.is-on {
   background: var(--surface);
   color: var(--pin-0);
+  --icon-ink: currentColor;
 }
 
 .bottom-bar-wrap {
@@ -5445,8 +5840,9 @@ button:disabled {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--surface);
+  background: var(--btn-face);
   color: var(--text);
+  --icon-ink: var(--icon);
   box-shadow: var(--round-btn-shadow);
   transform-origin: 50% 100%;
   /* On a switch the colours flip at once and the boxes jump to their new
@@ -5479,6 +5875,7 @@ button:disabled {
   height: 80px;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .bar-slot-c svg {
@@ -5503,11 +5900,13 @@ button:disabled {
 .bottom-bar--cal .bar-cal.is-delete {
   background: var(--text);
   color: var(--surface);
+  --icon-ink: currentColor;
 }
 
 .bottom-bar--cal .bar-cal.is-hot {
   background: var(--danger);
-  color: var(--on-accent);
+  color: var(--ink-white);
+  --icon-ink: var(--ink-white);
   scale: 1.12;
 }
 
@@ -5522,8 +5921,9 @@ button:disabled {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--surface);
+  background: var(--btn-face);
   color: var(--text);
+  --icon-ink: var(--icon);
   box-shadow: var(--round-btn-shadow);
   transition: scale 0.12s ease;
   -webkit-touch-callout: none;
@@ -5550,6 +5950,7 @@ button:disabled {
   overflow: hidden;
   background: var(--camera-bg);
   color: var(--tray-fg);
+  --icon-ink: currentColor;
   animation: veil-in 0.2s ease both;
 }
 
@@ -5594,6 +5995,7 @@ button:disabled {
   font-size: 16px;
   line-height: 1.5;
   color: var(--tray-dim);
+  --icon-ink: currentColor;
 }
 
 .camera__flash {
@@ -5623,6 +6025,7 @@ button:disabled {
   border-radius: 50%;
   background: var(--tray-hi);
   color: var(--tray-fg);
+  --icon-ink: currentColor;
 }
 
 .camera__close {
@@ -5712,6 +6115,7 @@ button:disabled {
   border-radius: 999px;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   font: inherit;
   font-size: 18px;
 }
@@ -5743,6 +6147,7 @@ button:disabled {
   background: transparent;
   box-shadow: none;
   color: var(--pin);
+  --icon-ink: currentColor;
 }
 
 .pin-glyph {
@@ -5770,15 +6175,18 @@ button:disabled {
   width: 76px;
   height: auto;
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .map-nearby-place--landmark.map-marker--pin {
   width: 116px;
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .map-nearby-place--major.map-marker--pin {
   color: var(--accent-strong);
+  --icon-ink: currentColor;
 }
 
 .map-nearby-place.map-marker--pin.is-selected {
@@ -5792,6 +6200,7 @@ button:disabled {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent-strong);
+  --icon-ink: currentColor;
 }
 
 /* ---------- Pin list ---------- */
@@ -5842,12 +6251,14 @@ button:disabled {
   border-radius: 50%;
   background: var(--pin, var(--surface-2));
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 /* 미분류 (as on the 핀 rail): white, with the glyph in its map pings' colour. */
 .pin-badge--none {
   background: var(--surface);
   color: var(--pin-0);
+  --icon-ink: currentColor;
   box-shadow: inset 0 0 0 1px var(--border);
 }
 
@@ -5871,6 +6282,7 @@ button:disabled {
 
 .pin-row__text span {
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
   overflow: hidden;
   white-space: nowrap;
@@ -5912,6 +6324,7 @@ button:disabled {
   border: 0;
   background: transparent;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
   font-weight: 600;
   text-decoration: underline dotted;
@@ -5940,6 +6353,7 @@ button:disabled {
   border-radius: 9px;
   background: transparent;
   color: var(--accent);
+  --icon-ink: currentColor;
   font-weight: 800;
 }
 
@@ -5960,6 +6374,7 @@ button:disabled {
 .calendar__weekday {
   padding: 4px 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 12px;
   font-weight: 700;
   text-align: center;
@@ -5983,6 +6398,7 @@ button:disabled {
 
 .calendar__day.is-out {
   color: var(--muted);
+  --icon-ink: var(--icon);
   opacity: 0.45;
 }
 
@@ -5994,6 +6410,7 @@ button:disabled {
   border-radius: 50%;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .calendar__day.is-plan {
@@ -6048,12 +6465,14 @@ button:disabled {
   background: var(--surface-2);
   box-shadow: 0 0 0 1.5px var(--surface);
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 10px;
   font-weight: 700;
 }
 
 .calendar__day:disabled {
   color: var(--muted);
+  --icon-ink: var(--icon);
   opacity: 0.5;
 }
 
@@ -6069,6 +6488,7 @@ button:disabled {
   padding-top: var(--safe-top);
   background: var(--surface);
   color: var(--text);
+  --icon-ink: var(--icon);
   animation: veil-in 0.2s ease both;
 }
 
@@ -6096,6 +6516,7 @@ button:disabled {
   margin: 2px 0 0;
   overflow: hidden;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 15px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -6120,6 +6541,7 @@ button:disabled {
 .group-calendar__note {
   margin: 12px 0 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 14px;
   text-align: center;
 }
@@ -6149,8 +6571,9 @@ button:disabled {
 .corner-btn--profile {
   overflow: hidden;
   border-radius: 50%;
-  background: var(--surface-2);
+  background: var(--btn-face);
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 
@@ -6179,8 +6602,10 @@ button:disabled {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--surface-2);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.5px var(--border);
   color: var(--muted);
+  --icon-ink: var(--icon);
   overflow: hidden;
 }
 
@@ -6204,7 +6629,8 @@ button:disabled {
   border: 2px solid var(--surface);
   border-radius: 50%;
   background: var(--accent);
-  color: var(--on-accent);
+  color: var(--on-accent-icon);
+  --icon-ink: var(--on-accent-icon);
 }
 
 /* Profile photo adjustment uses the same ticket and modal stack as the profile. */
@@ -6230,6 +6656,7 @@ button:disabled {
 .avatar-editor__hint {
   margin: 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
 }
 
@@ -6244,6 +6671,7 @@ button:disabled {
   border-radius: 12px;
   background: var(--surface-2);
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
   touch-action: none;
   user-select: none;
@@ -6303,12 +6731,14 @@ button:disabled {
   border-radius: 12px;
   background: var(--surface-2);
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 13px;
 }
 
 .avatar-editor__error {
   margin: 0;
   color: var(--danger);
+  --icon-ink: currentColor;
   font-size: 13px;
   text-align: center;
 }
@@ -6316,6 +6746,7 @@ button:disabled {
 .ticket-dialog__split > .avatar-editor__apply {
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .avatar-editor button:disabled {
@@ -6340,6 +6771,7 @@ button:disabled {
 
 .profile__text.is-empty {
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .profile__edit input {
@@ -6350,6 +6782,7 @@ button:disabled {
   border-bottom: 1.5px solid var(--accent);
   background: transparent;
   color: inherit;
+  --icon-ink: var(--icon);
   font: inherit;
   font-size: max(16px, 1em);
   text-align: center;
@@ -6367,6 +6800,7 @@ button:disabled {
   border: 0;
   background: transparent;
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .profile__nick {
@@ -6377,11 +6811,13 @@ button:disabled {
 .profile__handle {
   font-size: 16px;
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .profile__handle .profile__text,
 .profile__handle .profile__edit {
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .profile__hint,
@@ -6389,10 +6825,12 @@ button:disabled {
   margin: 6px 0 0;
   font-size: 12px;
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .profile__hint.is-refused {
   color: var(--danger);
+  --icon-ink: currentColor;
 }
 
 .profile__stub {
@@ -6442,10 +6880,12 @@ button:disabled {
   border-radius: 50%;
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .profile__switch.is-off {
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .profile__switch:active {
@@ -6467,6 +6907,7 @@ button:disabled {
   border: 0;
   background: transparent;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 14px;
   font-weight: 700;
 }
@@ -6490,12 +6931,14 @@ button:disabled {
 
 .profile__leave {
   color: var(--danger);
+  --icon-ink: currentColor;
 }
 
 .profile__account-note {
   margin: -4px 0 10px;
   font-size: 12px;
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 /* 개인 정보 → 제외 주소: places never shared. Left-aligned rows in the stub. */
@@ -6517,12 +6960,14 @@ button:disabled {
 .privacy__status {
   margin: 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 12px;
 }
 
 .privacy__notice {
   margin: 0;
   color: var(--danger);
+  --icon-ink: currentColor;
   font-size: 13px;
 }
 
@@ -6532,8 +6977,10 @@ button:disabled {
 /* 디스플레이: each mode's app icon with its name under it;
    the one in use has an accent ring round its square. */
 .display__schemes {
-  display: flex;
-  gap: 16px;
+  /* Four app themes share the row evenly, never wider than the screen. */
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
   margin-top: 6px;
 }
 
@@ -6542,26 +6989,30 @@ button:disabled {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  min-width: 64px;
+  min-width: 0;
   padding: 4px;
   border: 0;
   background: transparent;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font: inherit;
   font-size: 14px;
 }
 
 .display__scheme.is-on {
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .display__swatch {
   position: relative;
   display: block;
-  width: 52px;
-  height: 52px;
-  border-radius: 12px;
-  box-shadow: 0 0 0 1px var(--border);
+  width: 100%;
+  max-width: 64px;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
   outline: 2px solid transparent;
   outline-offset: 3px;
 }
@@ -6570,25 +7021,6 @@ button:disabled {
   outline-color: var(--accent);
 }
 
-/* Each mode's sample is its app-icon tile (Logo), in that mode's logo colours whatever the
-   app is showing now. */
-.display__swatch .logo {
-  width: 100%;
-  height: 100%;
-  clip-path: inset(0 round 12px);
-}
-
-.display__swatch--light {
-  --logo-tile: var(--logo-light-tile);
-  --logo-pin: var(--logo-light-pin);
-  --logo-ink: var(--logo-light-ink);
-}
-
-.display__swatch--dark {
-  --logo-tile: var(--logo-dark-tile);
-  --logo-pin: var(--logo-dark-pin);
-  --logo-ink: var(--logo-dark-ink);
-}
 
 /* 언어 with its (only) choice on the same line, at its right. */
 .display__lang {
@@ -6605,6 +7037,7 @@ button:disabled {
   border-radius: 999px;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   font: inherit;
   font-size: 13px;
 }
@@ -6624,6 +7057,7 @@ button:disabled {
 .terms__credit {
   margin: 6px 0 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 14px;
 }
 
@@ -6700,6 +7134,7 @@ button:disabled {
 .alerts__empty {
   margin: 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 14px;
 }
 
@@ -6711,6 +7146,7 @@ button:disabled {
   border-radius: 6px;
   background: transparent;
   color: var(--accent);
+  --icon-ink: currentColor;
   font: inherit;
   font-size: 13px;
   cursor: pointer;
@@ -6745,6 +7181,7 @@ button:disabled {
   border-radius: 6px;
   background: var(--board-cell);
   color: var(--board-off);
+  --icon-ink: currentColor;
   font: inherit;
   font-size: 14px;
   cursor: pointer;
@@ -6774,6 +7211,7 @@ button:disabled {
 .alerts__hour.is-on {
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .alerts__flip {
@@ -6793,12 +7231,14 @@ button:disabled {
   border-radius: 6px;
   background: var(--board-cell);
   color: var(--board-off);
+  --icon-ink: currentColor;
   backface-visibility: hidden;
 }
 
 .alerts__face.is-on {
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 /* Each half spins on its own middle: the top half on the upper quarter line,
@@ -6898,14 +7338,17 @@ button:disabled {
   border: 0;
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .privacy__label--edit svg {
-  color: var(--muted);
+  color: var(--icon);
+  --icon-ink: var(--icon);
 }
 
 .privacy__required {
   color: var(--accent);
+  --icon-ink: currentColor;
   font-size: 11px;
   font-style: normal;
 }
@@ -6913,6 +7356,7 @@ button:disabled {
 /* 집 still empty: the required tag turns red. */
 .privacy__row.is-missing .privacy__required {
   color: var(--danger);
+  --icon-ink: currentColor;
 }
 
 .privacy__address {
@@ -6925,6 +7369,7 @@ button:disabled {
   border: 0;
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 14px;
   text-align: left;
 }
@@ -6938,11 +7383,13 @@ button:disabled {
 
 .privacy__address svg {
   flex: none;
-  color: var(--muted);
+  color: var(--icon);
+  --icon-ink: var(--icon);
 }
 
 .privacy__address.is-empty span {
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 /* 16px so iOS doesn't zoom in. */
@@ -6954,6 +7401,7 @@ button:disabled {
   border-radius: 10px;
   background: var(--surface-2);
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 16px;
   outline: none;
 }
@@ -6972,6 +7420,7 @@ button:disabled {
   grid-column: 2;
   grid-row: 1 / span 2;
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .privacy__status {
@@ -6988,6 +7437,7 @@ button:disabled {
   border: 0;
   background: transparent;
   color: var(--accent);
+  --icon-ink: currentColor;
   font-size: 14px;
   font-weight: 700;
 }
@@ -7037,6 +7487,7 @@ button:disabled {
 
 .cat-item__count {
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
 }
 
@@ -7054,6 +7505,7 @@ button:disabled {
   border-radius: 12px;
   background: var(--surface);
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .icon-grid__btn .pin-glyph {
@@ -7121,6 +7573,7 @@ button:disabled {
 .category-sheet__pen.is-on {
   background: var(--accent-soft);
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 /* 편집 상태: the drag handle at the far left of each row. touch-action none:
@@ -7133,6 +7586,7 @@ button:disabled {
   height: 44px;
   margin-right: -4px;
   color: var(--muted);
+  --icon-ink: var(--icon);
   cursor: grab;
   touch-action: none;
 }
@@ -7170,7 +7624,7 @@ button:disabled {
 .cat-manager__list.is-sorting .cat-item.is-dragged {
   z-index: 1;
   transition: none;
-  background: var(--surface);
+  background: var(--card-face);
   box-shadow: var(--shadow-sm);
 }
 
@@ -7189,6 +7643,7 @@ button:disabled {
   border: 0;
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 15px;
   text-align: left;
   overflow: hidden;
@@ -7203,6 +7658,7 @@ button:disabled {
 .cat-item__empty {
   padding: 10px 4px;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 14px;
 }
 
@@ -7210,6 +7666,7 @@ button:disabled {
 .cat-item__mark {
   margin-left: 6px;
   color: var(--muted);
+  --icon-ink: var(--icon);
   vertical-align: -1px;
 }
 
@@ -7225,6 +7682,7 @@ button:disabled {
 .cat-item__share-note {
   flex-basis: 100%;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
 }
 
@@ -7238,6 +7696,7 @@ button:disabled {
   border-radius: 999px;
   background: var(--surface);
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 14px;
 }
 
@@ -7245,10 +7704,12 @@ button:disabled {
   border-color: var(--accent);
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .cat-share-btn.is-danger {
   color: var(--danger);
+  --icon-ink: currentColor;
 }
 
 /* A received category link: the category under the sharer's name. */
@@ -7263,6 +7724,7 @@ button:disabled {
 
 .shared-category__count {
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 14px;
   font-weight: 400;
 }
@@ -7293,6 +7755,7 @@ button:disabled {
   border-radius: 28px;
   background: var(--surface);
   color: var(--text);
+  --icon-ink: var(--icon);
   box-shadow: var(--dialog-shadow);
 }
 
@@ -7313,6 +7776,7 @@ button:disabled {
   gap: 14px;
   margin: 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-family: "Bebas Neue", "Oswald", sans-serif;
   font-size: 17px;
   font-weight: 400;
@@ -7334,6 +7798,7 @@ button:disabled {
   padding: 0 22px 14px;
   /* Like the category sheet's CATEGORY: the app's own face, ink colour, no dash. */
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 22px;
 }
 
@@ -7368,6 +7833,7 @@ button:disabled {
   border-radius: 12px;
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .category-icon-picker__option .pin-glyph {
@@ -7378,6 +7844,7 @@ button:disabled {
 .category-icon-picker__option.is-on {
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .category-icon-picker__option:not(.is-on):active {
@@ -7430,6 +7897,7 @@ button:disabled {
   border-radius: 12px;
   background: var(--surface-2);
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 16px;
   text-align: center;
   outline: none;
@@ -7442,6 +7910,7 @@ button:disabled {
 .cat-form__problem {
   margin: -6px 0 0;
   color: var(--danger);
+  --icon-ink: currentColor;
   font-size: 13px;
 }
 
@@ -7450,6 +7919,7 @@ button:disabled {
   border-left-color: transparent;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .ticket-dialog__split > button:disabled {
@@ -7634,6 +8104,7 @@ button:disabled {
   border: 0;
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
   /* 여행: a boarding pass's condensed caps (TODAY, DAY n are Latin); the
      system sans stands in until it loads. */
   font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
@@ -7864,6 +8335,7 @@ button:disabled {
 .ping__own {
   display: grid;
   color: var(--pin);
+  --icon-ink: currentColor;
   fill: currentColor;
 }
 
@@ -7889,6 +8361,7 @@ button:disabled {
   border-radius: 50%;
   background: var(--text);
   color: var(--surface);
+  --icon-ink: currentColor;
   translate: calc(-50% + var(--cx) * var(--k) - 4px) calc(-50% - var(--cy) * var(--k) + 6px);
   animation: pop-in 0.2s var(--pop-ease) both;
 }
@@ -7989,7 +8462,8 @@ button:disabled {
   width: calc(var(--w) * var(--k));
   height: calc(var(--h) * var(--k));
   overflow: visible; /* the shapes touch the viewBox edge; don't shave them or their shadow */
-  fill: var(--accent);
+  /* The plain pin in the theme's colour (2026-11-11, 기본 핑 7차 Y1), or the day's tint. */
+  fill: var(--day-ping, var(--accent));
   filter: drop-shadow(var(--pin-shadow));
   transition: transform 0.15s ease;
 }
@@ -8011,7 +8485,7 @@ button:disabled {
   padding: 3px;
   border: 0;
   border-radius: 15px;
-  background: var(--accent);
+  background: var(--day-ping, var(--accent));
   box-shadow: var(--pin-shadow);
   translate: -50% 0;
   cursor: pointer;
@@ -8036,7 +8510,7 @@ button:disabled {
   bottom: -11px;
   translate: -50% 0;
   border: 7px solid transparent;
-  border-top: 12px solid var(--accent);
+  border-top: 12px solid var(--day-ping, var(--accent));
   border-bottom: 0;
 }
 
@@ -8054,6 +8528,7 @@ button:disabled {
   align-items: center;
   margin-top: 4px;
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
@@ -8131,6 +8606,7 @@ button:disabled {
 
 .ping__label small {
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 12px;
   font-weight: 600;
 }
@@ -8149,7 +8625,7 @@ button:disabled {
   gap: 4px;
   padding: 6px;
   border-radius: 16px;
-  background: var(--surface);
+  background: var(--card-face);
   box-shadow: var(--shadow);
   /* Centred right over the ping, just above its icon and its ✕ (DayPings sets
      left / top on the ping's point and --rise to the icon's height above it). */
@@ -8354,6 +8830,7 @@ button:disabled {
 
 .stop-shape--transparent svg {
   color: var(--stop-pin);
+  --icon-ink: currentColor;
   fill: currentColor;
 }
 
@@ -8370,6 +8847,7 @@ button:disabled {
   padding: 8px;
   font-size: 16px;
   color: var(--text);
+  --icon-ink: var(--icon);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -8515,6 +8993,7 @@ button:disabled {
   border-radius: 18px;
   background: var(--surface);
   color: var(--text);
+  --icon-ink: var(--icon);
   cursor: pointer;
 }
 
@@ -8554,6 +9033,7 @@ button:disabled {
   left: 0;
   right: 0;
   color: var(--text);
+  --icon-ink: var(--icon);
   font-family: "Bebas Neue", "Oswald", sans-serif;
   font-size: 56px;
   line-height: 1;
@@ -8576,6 +9056,7 @@ button:disabled {
   /* Back buttons are a bare ‹ (no circle, no shadow), 2026-11-09. */
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .we-now__grid {
@@ -8594,9 +9075,10 @@ button:disabled {
   overflow: hidden;
   border: 0;
   border-radius: 18px;
-  background: var(--surface);
+  background: var(--card-face);
   box-shadow: var(--shadow-sm);
   color: var(--text);
+  --icon-ink: var(--icon);
   text-align: left;
 }
 
@@ -8693,6 +9175,7 @@ button:disabled {
   background: var(--surface-2);
   box-shadow: 0 0 0 1.5px var(--surface);
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 10px;
 }
 
@@ -8706,6 +9189,7 @@ button:disabled {
   border-radius: 11px;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   font-size: 12px;
   font-weight: 700;
   line-height: 1;
@@ -8721,6 +9205,7 @@ button:disabled {
   background: transparent;
   box-shadow: none;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 16px;
   text-align: center;
 }
@@ -8733,11 +9218,13 @@ button:disabled {
   border-radius: 50%;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .we-now__note {
   margin: 40px 0 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   text-align: center;
 }
 
@@ -8758,6 +9245,7 @@ button:disabled {
   border-radius: 50%;
   background: var(--accent-soft);
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 .we-now__empty h3 {
@@ -8769,6 +9257,7 @@ button:disabled {
 .we-now__empty p {
   margin: 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 15px;
   line-height: 1.55;
   white-space: pre-line;
@@ -8784,6 +9273,7 @@ button:disabled {
   background: var(--accent);
   box-shadow: var(--round-btn-shadow);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   font-size: 17px;
 }
 
@@ -8797,6 +9287,7 @@ button:disabled {
   background: var(--member);
   box-shadow: 0 0 0 1.5px var(--surface);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   line-height: 1;
 }
 
@@ -8893,6 +9384,7 @@ button:disabled {
   top: 0;
   translate: -50% 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 14px;
   white-space: nowrap;
   text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg), 0 0 2px var(--bg);
@@ -8909,9 +9401,10 @@ button:disabled {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--surface);
+  background: var(--btn-face);
   box-shadow: var(--shadow);
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .group-view__btn--back {
@@ -8926,6 +9419,7 @@ button:disabled {
   /* The accent, white icon. */
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 /* The group's calendar, right under the ⚙ (GroupCalendar). */
@@ -8933,6 +9427,7 @@ button:disabled {
   top: calc(12px + var(--safe-top) + 48px + 10px);
   right: 14px;
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .group-view__title {
@@ -8952,6 +9447,7 @@ button:disabled {
   border: 0;
   background: none;
   color: inherit;
+  --icon-ink: var(--icon);
   font: inherit;
   pointer-events: auto;
   cursor: pointer;
@@ -8962,6 +9458,7 @@ button:disabled {
   margin: 0;
   overflow: hidden;
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 34px;
   font-weight: 400;
   line-height: 1.1;
@@ -8977,6 +9474,7 @@ button:disabled {
   display: block;
   margin: 4px 0 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 18px;
   letter-spacing: 0.06em;
@@ -9038,9 +9536,10 @@ button:disabled {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--surface);
+  background: var(--btn-face);
   box-shadow: var(--round-btn-shadow);
   color: var(--text);
+  --icon-ink: var(--icon);
   transition: scale 0.2s ease;
   /* Drops in one after another on opening the group — the pin rail's own motion. */
   animation: pin-rail-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
@@ -9049,6 +9548,7 @@ button:disabled {
 
 .group-rail__all {
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-family: "Bebas Neue", "Oswald", sans-serif;
   font-size: 18px;
 }
@@ -9056,6 +9556,7 @@ button:disabled {
 .group-rail__all.is-on {
   box-shadow: var(--round-btn-shadow), inset 0 0 0 2px var(--accent);
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 .group-rail__member.is-on {
@@ -9075,6 +9576,7 @@ button:disabled {
   background: var(--member);
   box-shadow: 0 0 0 2px var(--surface);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   font-family: "Bebas Neue", "Oswald", sans-serif;
   font-size: 14px;
   line-height: 20px;
@@ -9100,7 +9602,7 @@ button:disabled {
   margin: 0 auto;
   padding: 8px;
   border-radius: 20px;
-  background: var(--surface);
+  background: var(--card-face);
   box-shadow: var(--shadow);
   animation: settle 0.26s var(--settle-ease) both;
 }
@@ -9117,6 +9619,7 @@ button:disabled {
   border-radius: 14px;
   background: var(--surface-2);
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 12px;
   animation: settle 0.22s var(--settle-ease) both;
 }
@@ -9146,6 +9649,7 @@ button:disabled {
 
 .group-photo-panel__seq {
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-family: "Bebas Neue", "Oswald", sans-serif;
   font-size: 15px;
   letter-spacing: 0.06em;
@@ -9153,6 +9657,7 @@ button:disabled {
 
 .group-photo-panel__seq b {
   color: var(--text);
+  --icon-ink: var(--icon);
   font-weight: 400;
 }
 
@@ -9166,12 +9671,14 @@ button:disabled {
   border-radius: 50%;
   background: var(--surface-2);
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .group-photo-panel__name {
   align-self: center;
   overflow: hidden;
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 20px;
   font-weight: 400;
   line-height: 1.2;
@@ -9189,6 +9696,7 @@ button:disabled {
 .group-photo-panel__time {
   flex: none;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
   font-size: 22px;
   letter-spacing: 0.04em;
@@ -9209,6 +9717,7 @@ button:disabled {
   width: 40px;
   height: 40px;
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .group-photo-panel .gallery__mark svg {
@@ -9270,6 +9779,7 @@ button.group-photo-panel__photo {
   border-radius: 50%;
   background: var(--tray-hi);
   color: var(--tray-fg);
+  --icon-ink: currentColor;
   opacity: var(--veil, 1);
   transition: opacity var(--veil-ms, 0ms) var(--slide-ease);
 }
@@ -9289,6 +9799,7 @@ button.group-photo-panel__photo {
 .group-photo-viewer__date {
   margin: 0;
   color: var(--tray-fg);
+  --icon-ink: currentColor;
   font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
   font-size: 30px;
   letter-spacing: 0.08em;
@@ -9337,6 +9848,7 @@ button.group-photo-panel__photo {
   gap: 8px;
   background: var(--surface-2);
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 14px;
 }
 
@@ -9345,6 +9857,7 @@ button.group-photo-panel__photo {
   align-items: center;
   gap: 10px;
   color: var(--tray-fg);
+  --icon-ink: currentColor;
 }
 
 .group-photo-viewer__text {
@@ -9365,6 +9878,7 @@ button.group-photo-panel__photo {
 
 .group-photo-viewer__text span {
   color: var(--tray-dim);
+  --icon-ink: currentColor;
   font-size: 13px;
 }
 
@@ -9386,6 +9900,7 @@ button.group-photo-panel__photo {
   border: 0;
   background: none;
   color: var(--tray-fg);
+  --icon-ink: currentColor;
 }
 
 /* The thread from the panel down to the ping (GroupMapView moves it every frame). */
@@ -9456,6 +9971,7 @@ button.group-photo-panel__photo {
   font-family: "Bebas Neue", "Oswald", sans-serif;
   letter-spacing: 0.08em;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
 }
 
@@ -9467,6 +9983,7 @@ button.group-photo-panel__photo {
   display: block;
   overflow: hidden;
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 22px;
   font-weight: 400;
   line-height: 1;
@@ -9482,6 +9999,7 @@ button.group-photo-panel__photo {
   gap: 2px 0;
   margin: 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
   line-height: 1.35;
 }
@@ -9493,11 +10011,13 @@ button.group-photo-panel__photo {
 .member-pass__route i {
   margin: 0 4px;
   color: var(--ticket-arrow);
+  --icon-ink: currentColor;
   font-style: normal;
 }
 
 .member-pass__route .is-last {
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 15px;
 }
 
@@ -9512,6 +10032,7 @@ button.group-photo-panel__photo {
 
 .member-pass__count {
   color: var(--member);
+  --icon-ink: currentColor;
   font-family: "Bebas Neue", "Oswald", sans-serif;
   font-size: 44px;
   line-height: 0.9;
@@ -9550,6 +10071,7 @@ button.group-photo-panel__photo {
   background: var(--member);
   box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--member), var(--pin-shadow);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   font-size: 15px;
 }
 
@@ -9598,6 +10120,7 @@ button.group-photo-panel__photo {
   width: 28px;
   height: 28px;
   color: var(--member);
+  --icon-ink: currentColor;
   filter: drop-shadow(0 0 1.5px var(--surface)) drop-shadow(0 0 1px var(--surface));
 }
 
@@ -9757,18 +10280,23 @@ button.group-photo-panel__photo {
   0%,
   100% {
     color: var(--aurora-1);
+    --icon-ink: currentColor;
   }
   20% {
     color: var(--aurora-2);
+    --icon-ink: currentColor;
   }
   40% {
     color: var(--aurora-3);
+    --icon-ink: currentColor;
   }
   60% {
     color: var(--aurora-4);
+    --icon-ink: currentColor;
   }
   80% {
     color: var(--aurora-5);
+    --icon-ink: currentColor;
   }
 }
 
@@ -9779,6 +10307,7 @@ button.group-photo-panel__photo {
   }
   .group-ping.is-together .group-ping__pin {
     color: var(--aurora-5);
+    --icon-ink: currentColor;
   }
 }
 
@@ -9857,6 +10386,7 @@ button.group-photo-panel__photo {
   outline: 0;
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
   font: inherit;
   font-size: 20px;
 }
@@ -9865,12 +10395,14 @@ button.group-photo-panel__photo {
   flex: none;
   padding-bottom: 8px;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 12px;
 }
 
 .group-form__label {
   margin: 18px 0 8px;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-family: "Bebas Neue", "Oswald", sans-serif;
   font-size: 14px;
   letter-spacing: 0.12em;
@@ -9907,6 +10439,7 @@ button.group-photo-panel__photo {
   place-items: center;
   background: var(--surface-2);
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .group-form__covers .group-form__cover-photo svg {
@@ -9929,6 +10462,7 @@ button.group-photo-panel__photo {
   border-radius: 14px;
   background: var(--surface-2);
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
   line-height: 1.4;
 }
@@ -9941,12 +10475,14 @@ button.group-photo-panel__photo {
   border-radius: 18px;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   font-size: 14px;
 }
 
 .group-form__hint {
   margin: 10px 0 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 12px;
   line-height: 1.5;
 }
@@ -9972,6 +10508,7 @@ button.group-photo-panel__photo {
   border-radius: 999px;
   background: transparent;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font: inherit;
   font-size: 14px;
 }
@@ -9979,6 +10516,7 @@ button.group-photo-panel__photo {
 .group-form__modes button.is-on {
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 /* 개별 프로필: the group's photo (the profile popup's, smaller) over its nickname. */
@@ -10057,6 +10595,7 @@ button.group-photo-panel__photo {
   border-radius: 14px;
   background: transparent;
   color: var(--danger);
+  --icon-ink: currentColor;
   font-size: 16px;
 }
 
@@ -10066,13 +10605,15 @@ button.group-photo-panel__photo {
 
 .group-form__danger:active {
   background: var(--danger);
-  color: var(--on-accent);
+  color: var(--ink-white);
+  --icon-ink: var(--ink-white);
 }
 
 /* No photo: the default profile picture (as on the profile button), in the member's ring. */
 .member-face--default {
-  background: var(--surface-2);
+  background: var(--surface);
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .group-ping__face svg {
@@ -10080,8 +10621,9 @@ button.group-photo-panel__photo {
 }
 
 .group-ping__face:not(:has(img)) {
-  background: var(--surface-2);
+  background: var(--surface);
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 /* A group's invite link: a read-only field, tap anywhere to copy, the link icon at its right end. */
@@ -10096,6 +10638,7 @@ button.group-photo-panel__photo {
   border-radius: 14px;
   background: var(--surface-2);
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 14px;
   text-align: left;
 }
@@ -10111,6 +10654,7 @@ button.group-photo-panel__photo {
 .invite-field svg {
   flex: none;
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 /* 'Copied': the black pill of route-making, centred on the screen, over the dialog (a popover). */
@@ -10124,6 +10668,7 @@ button.group-photo-panel__photo {
   border-radius: 999px;
   background: var(--tray-bg);
   color: var(--tray-fg);
+  --icon-ink: currentColor;
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
@@ -10180,6 +10725,7 @@ button.group-photo-panel__photo {
 
 .group-members__name small {
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
 }
 
@@ -10192,6 +10738,7 @@ button.group-photo-panel__photo {
   border-radius: 18px;
   background: transparent;
   color: var(--danger);
+  --icon-ink: currentColor;
   font-size: 14px;
 }
 
@@ -10207,6 +10754,7 @@ button.group-photo-panel__photo {
   border: 0;
   background: var(--bg);
   color: var(--text);
+  --icon-ink: var(--icon);
   overflow: hidden;
 }
 
@@ -10249,6 +10797,7 @@ button.group-photo-panel__photo {
   border: 0;
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .settings__page {
@@ -10307,9 +10856,10 @@ button.group-photo-panel__photo {
   padding: 0 16px;
   border: 0;
   border-radius: 16px;
-  background: var(--surface);
+  background: var(--card-face);
   box-shadow: var(--shadow-sm);
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 16px;
   text-align: left;
 }
@@ -10322,10 +10872,12 @@ button.group-photo-panel__photo {
   display: grid;
   place-items: center;
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 .settings__icon.is-off {
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .settings__label {
@@ -10334,6 +10886,7 @@ button.group-photo-panel__photo {
 
 .location-settings__note {
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 16px;
   line-height: 1.6;
 }
@@ -10346,6 +10899,7 @@ button.group-photo-panel__photo {
 
 .settings__chevron {
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 /* 소리: a switch, on in the accent. */
@@ -10367,7 +10921,7 @@ button.group-photo-panel__photo {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--surface);
+  background: var(--card-face);
   box-shadow: var(--shadow-sm);
   transition: translate 0.2s ease;
 }
@@ -10424,6 +10978,7 @@ button.group-photo-panel__photo {
   max-width: 140px;
   overflow: hidden;
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 13px;
   font-weight: 700;
   line-height: 1.2;
@@ -10467,8 +11022,9 @@ button.group-photo-panel__photo {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--surface);
+  background: var(--btn-face);
   color: var(--text);
+  --icon-ink: var(--icon);
   box-shadow: var(--round-btn-shadow);
   transition: scale 0.12s ease;
 }
@@ -10514,7 +11070,8 @@ button.group-photo-panel__photo {
   padding: 0 5px;
   border-radius: 10px;
   background: var(--danger);
-  color: var(--on-accent);
+  color: var(--ink-white);
+  --icon-ink: var(--ink-white);
   font-family: "Bebas Neue", "Oswald", sans-serif;
   font-size: 14px;
   line-height: 20px;
@@ -10525,6 +11082,7 @@ button.group-photo-panel__photo {
 .bar-chats {
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 /* We Now's 대화 목록 (ChatList): a row per group, its cover, name and last line. */
@@ -10546,6 +11104,7 @@ button.group-photo-panel__photo {
   border: 0;
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
   text-align: left;
 }
 
@@ -10578,12 +11137,14 @@ button.group-photo-panel__photo {
 .chat-list__name small {
   margin-left: 6px;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 13px;
 }
 
 .chat-list__last {
   overflow: hidden;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -10600,6 +11161,7 @@ button.group-photo-panel__photo {
 
 .chat-list__at {
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 12px;
 }
 
@@ -10610,7 +11172,8 @@ button.group-photo-panel__photo {
   padding: 0 5px;
   border-radius: 10px;
   background: var(--danger);
-  color: var(--on-accent);
+  color: var(--ink-white);
+  --icon-ink: var(--ink-white);
   font-family: "Bebas Neue", "Oswald", sans-serif;
   font-size: 14px;
   line-height: 20px;
@@ -10632,6 +11195,7 @@ button.group-photo-panel__photo {
   flex-direction: column;
   background: var(--bg);
   color: var(--text);
+  --icon-ink: var(--icon);
   animation: veil-in 0.2s ease both;
   /* Up and down scroll the photos; sideways is the swipe back (useSwipeBack). */
   touch-action: pan-y;
@@ -10659,6 +11223,7 @@ button.group-photo-panel__photo {
   /* Back buttons are a bare ‹ (no circle, no shadow), 2026-11-09. */
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .gallery__title {
@@ -10700,6 +11265,7 @@ button.group-photo-panel__photo {
   border: 0;
   background: none;
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .gallery__cover {
@@ -10728,6 +11294,7 @@ button.group-photo-panel__photo {
 .gallery__cover-tab--my .gallery__cover {
   background: var(--accent-soft);
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 .gallery__cover-tab.is-on .gallery__cover {
@@ -10752,6 +11319,7 @@ button.group-photo-panel__photo {
 
 .gallery__cover-tab.is-on .gallery__cover-name {
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .gallery__cover-tab--my .gallery__cover-name {
@@ -10789,7 +11357,8 @@ button.group-photo-panel__photo {
 }
 
 .gallery__filter {
-  --fill: var(--accent);
+  /* Picked: deep orange (2026-11-11) — the yellow read as barely on next to the accent. */
+  --fill: var(--accent-strong);
   display: grid;
   place-items: center;
   width: 44px;
@@ -10798,15 +11367,13 @@ button.group-photo-panel__photo {
   border: 0;
   background: transparent;
   color: var(--muted);
-}
-
-.gallery__filter--star {
-  --fill: var(--star);
+  --icon-ink: var(--icon);
 }
 
 /* Switched on: the icon fills with its colour and pops, as the big photo's ♥ ★ do. */
 .gallery__filter.is-on {
   color: var(--fill);
+  --icon-ink: currentColor;
 }
 
 .gallery__filter.is-on svg {
@@ -10826,6 +11393,7 @@ button.group-photo-panel__photo {
   translate: 0 -50%;
   /* Open, its lines turn blue (only the lines: never filled). */
   color: var(--accent);
+  --icon-ink: currentColor;
 }
 
 /* The same 22px glass shut or open: nothing in the field (a webview's
@@ -10862,6 +11430,7 @@ button.group-photo-panel__photo {
   border-radius: 999px;
   background: var(--surface);
   color: var(--text);
+  --icon-ink: var(--icon);
   font: inherit;
   /* 16px: iOS doesn't zoom in. */
   font-size: 16px;
@@ -10892,6 +11461,7 @@ button.group-photo-panel__photo {
   border-radius: 50%;
   background: transparent;
   color: var(--muted);
+  --icon-ink: var(--icon);
 }
 
 .gallery__suggest {
@@ -10904,7 +11474,7 @@ button.group-photo-panel__photo {
   padding: 4px 0;
   list-style: none;
   border-radius: 16px;
-  background: var(--surface);
+  background: var(--card-face);
   box-shadow: var(--shadow);
   animation: unfold 0.16s ease both;
 }
@@ -10919,6 +11489,7 @@ button.group-photo-panel__photo {
   border: 0;
   background: transparent;
   color: var(--text);
+  --icon-ink: var(--icon);
   font: inherit;
   font-size: 15px;
   text-align: left;
@@ -10926,11 +11497,13 @@ button.group-photo-panel__photo {
 
 .gallery__suggest button svg {
   flex: none;
-  color: var(--muted);
+  color: var(--icon);
+  --icon-ink: var(--icon);
 }
 
 .gallery__suggest b {
   color: var(--accent-strong);
+  --icon-ink: currentColor;
 }
 
 /* Beside the big photo's caption, where ‹ › were: the heart, then the star —
@@ -10949,6 +11522,7 @@ button.group-photo-panel__photo {
   border: 0;
   background: none;
   color: var(--tray-fg);
+  --icon-ink: currentColor;
 }
 
 .gallery__mark.is-on svg {
@@ -10957,10 +11531,12 @@ button.group-photo-panel__photo {
 
 .gallery__star.is-on {
   color: var(--star);
+  --icon-ink: currentColor;
 }
 
 .gallery__heart.is-on {
   color: var(--heart);
+  --icon-ink: currentColor;
 }
 
 .gallery__heart.is-on svg,
@@ -10985,6 +11561,7 @@ button.group-photo-panel__photo {
   background: var(--accent);
   box-shadow: var(--round-btn-shadow);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   transition: scale 0.12s ease;
   animation: pop-in 0.28s var(--pop-ease) both;
 }
@@ -11010,6 +11587,7 @@ button.group-photo-panel__photo {
   background: var(--accent);
   box-shadow: var(--round-btn-shadow);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   transition: scale 0.12s ease;
 }
 
@@ -11034,6 +11612,7 @@ button.group-photo-panel__photo {
   flex-direction: column;
   background: var(--bg);
   color: var(--text);
+  --icon-ink: var(--icon);
   animation: veil-in 0.2s ease both;
   /* Up and down scroll the thread; sideways is the swipe back to the map (useSwipeBack). */
   touch-action: pan-y;
@@ -11060,6 +11639,7 @@ button.group-photo-panel__photo {
 .group-chat__group {
   margin: 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 14px;
 }
 
@@ -11097,6 +11677,7 @@ button.group-photo-panel__photo {
   border-radius: 999px;
   background: var(--surface-2);
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
   font-size: 15px;
   letter-spacing: 0.08em;
@@ -11141,6 +11722,7 @@ button.group-photo-panel__photo {
   border: 0;
   background: none;
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .chat-days__head button:disabled {
@@ -11156,6 +11738,7 @@ button.group-photo-panel__photo {
 .chat-days__weekday {
   padding: 2px 0 4px;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 11px;
 }
 
@@ -11169,6 +11752,7 @@ button.group-photo-panel__photo {
   border-radius: 50%;
   background: none;
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 14px;
   font-weight: 700;
 }
@@ -11179,12 +11763,14 @@ button.group-photo-panel__photo {
 
 .chat-days__day:disabled {
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-weight: 400;
 }
 
 /* Faint, but not the star under it. */
 .chat-days__day:disabled .chat-days__num {
   color: color-mix(in srgb, var(--muted) 45%, transparent);
+  --icon-ink: var(--icon);
 }
 
 /* A group's birthday (the day it was made, every year): its date stands on
@@ -11197,6 +11783,7 @@ button.group-photo-panel__photo {
   width: 30px;
   height: 30px;
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 
 .born-day::before {
@@ -11218,6 +11805,7 @@ button.group-photo-panel__photo {
 .chat-days__day.is-on {
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 /* A line: the face, then the name over a bubble whose tail points at it. */
@@ -11250,6 +11838,7 @@ button.group-photo-panel__photo {
 .group-chat__time {
   flex: none;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 11px;
 }
 
@@ -11267,6 +11856,7 @@ button.group-photo-panel__photo {
 
 .group-chat__unread {
   color: var(--accent);
+  --icon-ink: currentColor;
   font-family: "Bebas Neue", "Oswald", sans-serif;
   font-size: 14px;
 }
@@ -11287,6 +11877,7 @@ button.group-photo-panel__photo {
 .group-chat__who {
   padding-left: 4px;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 12px;
 }
 
@@ -11296,7 +11887,7 @@ button.group-photo-panel__photo {
   gap: 6px;
   padding: 8px 12px;
   border-radius: 4px 16px 16px 16px;
-  background: var(--surface);
+  background: var(--card-face);
   box-shadow: var(--shadow-sm);
 }
 
@@ -11304,6 +11895,7 @@ button.group-photo-panel__photo {
   border-radius: 16px 4px 16px 16px;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .group-chat__text {
@@ -11322,6 +11914,7 @@ button.group-photo-panel__photo {
   border: 0;
   background: none;
   color: inherit;
+  --icon-ink: var(--icon);
   text-align: left;
 }
 
@@ -11345,9 +11938,10 @@ button.group-photo-panel__photo {
   gap: 6px;
   padding: 0 0 6px;
   border: 0;
-  border-bottom: 1px dashed currentColor;
+  border-bottom: 1px solid currentColor;
   background: none;
   color: inherit;
+  --icon-ink: var(--icon);
   font-size: 12px;
   opacity: 0.75;
   text-align: left;
@@ -11387,6 +11981,7 @@ button.group-photo-panel__photo {
   border-radius: 999px;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   font: inherit;
   font-size: 14px;
   white-space: nowrap;
@@ -11435,6 +12030,7 @@ button.group-photo-panel__photo {
   border-radius: 999px;
   background: var(--surface);
   color: var(--text);
+  --icon-ink: var(--icon);
   font: inherit;
   font-size: 16px;
 }
@@ -11446,6 +12042,7 @@ button.group-photo-panel__photo {
   bottom: 100%;
   margin: 0;
   color: var(--danger);
+  --icon-ink: currentColor;
   font-size: 13px;
   text-align: center;
 }
@@ -11512,11 +12109,13 @@ button.group-photo-panel__photo {
   border-radius: 50%;
   background: var(--tray-hi);
   color: var(--tray-fg);
+  --icon-ink: currentColor;
 }
 
 .photo-doodle__tool.is-on {
   background: var(--doodle);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .photo-doodle__tool:disabled {
@@ -11568,6 +12167,7 @@ button.group-photo-panel__photo {
 .photo-comments__who {
   padding: 0 10px;
   color: var(--tray-dim);
+  --icon-ink: currentColor;
   font-size: 12px;
 }
 
@@ -11579,6 +12179,7 @@ button.group-photo-panel__photo {
   border-radius: 16px 16px 16px 4px;
   background: var(--surface);
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 14px;
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -11589,11 +12190,13 @@ button.group-photo-panel__photo {
   border-radius: 16px 16px 4px 16px;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .photo-comments__note {
   margin: 0;
   color: var(--tray-dim);
+  --icon-ink: currentColor;
   font-size: 13px;
   text-align: center;
 }
@@ -11614,12 +12217,14 @@ button.group-photo-panel__photo {
   border-radius: 999px;
   background: var(--tray-hi);
   color: var(--tray-fg);
+  --icon-ink: currentColor;
   font: inherit;
   font-size: 16px;
 }
 
 .photo-comments__input::placeholder {
   color: var(--tray-dim);
+  --icon-ink: currentColor;
 }
 
 .photo-comments__send {
@@ -11633,6 +12238,7 @@ button.group-photo-panel__photo {
   border-radius: 50%;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
 }
 
 .photo-comments__send:disabled {
@@ -11731,6 +12337,7 @@ button.group-photo-panel__photo {
   gap: 10px;
   margin: 48px 0;
   color: var(--muted);
+  --icon-ink: var(--icon);
   font-size: 15px;
   text-align: center;
 }
@@ -11742,6 +12349,7 @@ button.group-photo-panel__photo {
   border-radius: 999px;
   background: var(--accent);
   color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
   font: inherit;
 }
 
@@ -11751,12 +12359,14 @@ button.group-photo-panel__photo {
   gap: 8px;
   margin: 72px 16px;
   color: var(--muted);
+  --icon-ink: var(--icon);
   text-align: center;
 }
 
 .gallery__empty p {
   margin: 4px 0 0;
   color: var(--text);
+  --icon-ink: var(--icon);
   font-size: 17px;
 }
 
@@ -11772,6 +12382,7 @@ button.group-photo-panel__photo {
   padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
   background: var(--bg);
   color: var(--text);
+  --icon-ink: var(--icon);
 }
 .app-link-entry__card {
   width: min(100%, 360px);
@@ -11800,3 +12411,257 @@ button.group-photo-panel__photo {
 .app-link-entry__open { background: var(--accent); color: var(--on-accent); }
 .app-link-entry__card button { background: var(--surface); color: var(--text); }
 .app-link-entry__card small { color: var(--muted); line-height: 1.6; }
+
+/* Icons take --icon-ink, set beside each rule's color (light orange where the
+   text is dark ink); outside any such rule they are light orange too. */
+:where(svg.lucide, svg[stroke='currentColor'], svg[fill='currentColor']) {
+  color: var(--icon-ink, var(--icon));
+}
+
+/* ---------- 미니멀 · 떠 있는 (2026-11-11) ----------
+   The look picked from the drafts (4차 D), its shadows kept minimal: no
+   outlines anywhere; white things lift on a small, faint deep-orange shadow
+   (--shadow, --shadow-sm); buttons are two-tone — a rim under them, small
+   (2px cream) under the white ones, 4px amber under the yellow (and red)
+   ones. Corners 12–22px, tabs are underlines, yellow only on what's picked.
+   Kept here, after the base rules, so these win. */
+
+/* Round buttons: the small rim; accent ones the big one. */
+.corner-btn,
+.pin-rail__btn,
+.group-view__btn,
+.decor-rail__btn,
+.decor-rail__more,
+.studio__action {
+  box-shadow: var(--round-btn-shadow);
+}
+
+.group-view__btn--back {
+  box-shadow: none;
+}
+
+.bar-slot-c,
+.route-action--share,
+.pin-rail__btn.is-on:not(.pin-rail__pin),
+.pin-rail__add,
+.group-view__btn--settings,
+.bar-chats,
+.group-view__chat,
+.group-view__camera,
+.studio__action--primary,
+.photo-comments__send,
+.group-chat__news {
+  box-shadow: var(--round-btn-shadow-accent);
+}
+
+.search__bar {
+  border-radius: 14px;
+}
+
+/* Popups: plain floating cards — no notches, no tear line. */
+.ticket-dialog__main {
+  border-radius: 20px 20px 0 0;
+  -webkit-mask: none;
+  mask: none;
+}
+
+.ticket-dialog__stub,
+.ticket-dialog__stub--mid {
+  border-top: 0;
+  border-radius: 0;
+  -webkit-mask: none;
+  mask: none;
+}
+
+.ticket-dialog__stub:not(:has(~ .ticket-dialog__stub)) {
+  border-radius: 0 0 20px 20px;
+}
+
+/* 취소 | 확인: two two-tone buttons. */
+.ticket-dialog__split {
+  gap: 10px;
+  padding: 6px 16px 18px;
+  overflow: visible;
+}
+
+.ticket-dialog__split > button {
+  min-height: 46px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--round-btn-shadow);
+}
+
+.ticket-dialog__split > button + button {
+  border-left: 0;
+}
+
+.ticket-dialog__split > .is-action {
+  background: var(--accent);
+  box-shadow: var(--round-btn-shadow-accent);
+}
+
+.ticket-dialog__split > .is-danger {
+  background: var(--danger);
+  /* White: the brown on-accent ink was hard to read on the red. */
+  color: var(--ink-white);
+  box-shadow: var(--danger-btn-shadow);
+}
+
+.ticket-dialog__split > button:disabled {
+  box-shadow: none;
+}
+
+/* Route folders: the tabs are underlines on the sheet's white top. The
+   white is the whole sheet's, not just the tabs' and the list's: sliding the
+   list sideways to the next folder showed the map behind it. */
+.route-folders {
+  border-radius: 22px 22px 0 0;
+  background: var(--surface);
+  box-shadow: var(--shadow-up);
+}
+
+.route-folders__tabs {
+  gap: 18px;
+  padding: 14px 20px 0;
+}
+
+.route-folders__tab {
+  min-width: 0;
+  padding: 0 2px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.route-folders__tab.is-on {
+  background: transparent;
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+
+.route-folders__tab.is-lifted {
+  padding: 0 10px;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.route-folders__tab.is-drop {
+  padding: 0 10px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+}
+
+.route-folders__tab--add {
+  min-width: 44px;
+}
+
+/* Group chat: floating bubbles, mine two-tone. */
+.group-chat__bubble {
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.group-chat__line.is-mine .group-chat__bubble {
+  background: var(--accent);
+  box-shadow: var(--lift-accent);
+}
+
+.group-chat__photo img {
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.group-chat__day button span {
+  background: transparent;
+}
+
+.group-chat__input {
+  border: 0;
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* The member card: a plain floating card; its place count on a soft stub. */
+.member-pass {
+  filter: none;
+}
+
+.member-pass__ticket {
+  overflow: hidden;
+  border-radius: 18px;
+  -webkit-mask: none;
+  mask: none;
+  box-shadow: var(--shadow);
+}
+
+.member-pass__stub {
+  border-left: 0;
+  background: var(--surface-2);
+}
+
+/* Gallery: squares a little apart, each lifted; the tabs are buttons. */
+.gallery__grid {
+  gap: 8px;
+}
+
+.gallery__photo {
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+}
+
+.gallery__cover {
+  border-radius: 14px;
+  box-shadow: var(--round-btn-shadow);
+}
+
+.gallery__cover-tab.is-on .gallery__cover {
+  box-shadow: 0 0 0 3px var(--accent), var(--round-btn-shadow);
+}
+
+/* The 꾸미기 tray: a white sheet, its tools two-tone buttons.
+   Not the sticker tool's layer: it covers the whole screen, see-through,
+   and a round top and shadow there showed in the screen's top corners
+   whenever the sticker tool opened or closed. */
+.decor-tray:not(.decor-tray--sticker) {
+  --tray-bg: var(--surface);
+  --tray-fg: var(--text);
+  --tray-dim: var(--muted);
+  --tray-line: var(--border);
+  --tray-hi: var(--accent);
+  border-radius: 22px 22px 0 0;
+  box-shadow: var(--shadow-up);
+}
+
+.decor-tray__row {
+  gap: 4px;
+}
+
+.decor-tray__tool,
+.decor-tray__width,
+.decor-tray__undo {
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--round-btn-shadow);
+}
+
+.decor-tray__tool.is-on,
+.decor-tray__width.is-on,
+.decor-tray__palette.is-on {
+  background: var(--accent);
+  box-shadow: var(--round-btn-shadow-accent);
+  color: var(--on-accent-icon);
+  --icon-ink: var(--on-accent-icon);
+}
+
+.decor-tray__width.is-on span {
+  background: var(--on-accent-icon);
+}
+
+.decor-tray__undo:disabled {
+  box-shadow: none;
+}
+
+.decor-tray__color.is-on span {
+  box-shadow: 0 0 0 3px var(--tray-bg), var(--lift-pick);
+}

@@ -37,6 +37,7 @@ const KEYS: Record<string, KeyInfo> = {
   'goodroot:anonymous-user-id': { status: 'current', what: '이 기기의 익명 사용자 id (버전 없는 옛 키)' },
   'goodroot:share-display-name': { status: 'current', what: '공유할 때 이름 (버전 없는 옛 키)' },
   'goodroot:analytics-debug': { status: 'current', what: '개발 중 분석 이벤트 콘솔 출력 스위치' },
+  'goodroot:demo-pings:v1': { status: 'current', what: '개발 서버에서 예시 TODAY 핑을 넣었는지 (src/dev/demoPings.ts)' },
 
   'goodroot:pin-categories:v1': { status: 'legacy', what: '세부 카테고리가 있던 카테고리', into: 'goodroot:pin-categories:v2' },
   'goodroot:travel-routes:v1': { status: 'legacy', what: '옛 TravelRoute', into: 'goodroot:courses:v2' },

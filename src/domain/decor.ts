@@ -577,15 +577,21 @@ export function extendStroke(points: [number, number][], x: number, y: number, m
 
 /** Colour themes for the whole app (tokens in styles.css under :root[data-theme=…]). */
 export type ThemeId =
-  | 'default' | 'sky' | 'matcha' | 'mint' | 'custard' | 'yellow' | 'lovely' | 'love' | 'lavender'
+  | 'default' | 'banana' | 'sky' | 'matcha' | 'choco' | 'strawberry' | 'mint' | 'custard' | 'yellow' | 'lovely' | 'love' | 'lavender'
   | 'tangerine' | 'ocean' | 'midnight' | 'plum' | 'wine' | 'cocoa' | 'sage'
   | 'y2k' | 'mono';
 
-/** In the 테마 sheet's order. (밤 is gone: a day saved in it reads as the default.) */
+/** In the 테마 sheet's order. (밤 is gone: a day saved in it reads as the default.)
+ *  The default theme is 바나나 (2026-11-11): the app's own banana-milk colours.
+ *  Its id stays 'default' so days saved in it keep opening in it; the old
+ *  기본 (the travel theme's blue) is gone with it. 말차 leads the list, as the
+ *  app's default (설정 → 디스플레이), then 바나나 and 초코 (2026-11-11). */
 export const THEMES: { id: ThemeId; label: string }[] = [
-  { id: 'default', label: '기본' },
-  { id: 'sky', label: '하늘' },
   { id: 'matcha', label: '말차' },
+  { id: 'banana', label: '바나나' },
+  { id: 'choco', label: '초코' },
+  { id: 'strawberry', label: '딸기' },
+  { id: 'sky', label: '하늘' },
   { id: 'mint', label: '민트' },
   { id: 'custard', label: '커스터드' },
   { id: 'yellow', label: '노랑' },
@@ -628,6 +634,14 @@ export const PATTERNS: { id: PatternId; label: string }[] = [
 ];
 
 export const isPatternId = (value: unknown): value is PatternId => PATTERNS.some((p) => p.id === value);
+
+/**
+ * A calendar day's theme tints only its land and pings (2026-11-11): the class that
+ * does it (styles.css .day-tint--<id>), or none when the day follows the app's theme.
+ */
+export function dayTintClass(theme: ThemeId | undefined): string {
+  return theme && theme !== 'default' ? `day-tint day-tint--${theme}` : '';
+}
 
 export const isThemeId = (value: unknown): value is ThemeId => THEMES.some((t) => t.id === value);
 

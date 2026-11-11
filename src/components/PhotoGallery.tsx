@@ -282,8 +282,8 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
           <section key={d.day} className="gallery__day" aria-label={galleryDayLabel(d.day, today)}>
             <h3 className="gallery__date">
               {galleryDayLabel(d.day, today)}
-              {/* Who put photos up that day, in place of a count. */}
-              <span className="gallery__posters">
+              {/* Who put photos up that day, in place of a count — not on MY, where every photo is mine. */}
+              {tab !== 'my' && <span className="gallery__posters">
                 {dayPosters(d.photos).map((id) => {
                   const member = who(d.photos.find((p) => p.userId === id)!);
                   return (
@@ -292,7 +292,7 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
                     </span>
                   );
                 })}
-              </span>
+              </span>}
             </h3>
             <div className="gallery__grid">
               {d.photos.map((p) => {
@@ -307,9 +307,11 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
                   >
                     <img src={p.url} alt="" loading="lazy" draggable={false} />
                     {decors.get(p.path) && <DoodleLayers layers={decors.get(p.path)!} inkOf={inkIn(p)} />}
-                    <span className="gallery__face">
-                      <MemberFace member={member} size={22} />
-                    </span>
+                    {tab !== 'my' && (
+                      <span className="gallery__face">
+                        <MemberFace member={member} size={22} />
+                      </span>
+                    )}
                   </button>
                 );
               })}

@@ -1,5 +1,6 @@
 import { ChevronLeft, MapPin, Pencil, Share } from 'lucide-react';
 import type { PatternId, ThemeId } from './domain/decor';
+import { setAppIcon } from './lib/appIcon';
 import DayPattern from './components/DayPattern';
 import ShareStudio from './components/ShareStudio';
 import { analytics, type PinSource, type ShareKind } from './services/analytics';
@@ -153,7 +154,6 @@ export default function App() {
   // to share cards (the 꾸미기 screen reports its card's, over the day's while
   // it's up); the one showing lives on <html data-theme>, where styles.css
   // swaps the tokens.
-  const [calendarTheme, setDayTheme] = useState<ThemeId>('default');
   // …and so do background patterns, drawn across the calendar page.
   const [dayPattern, setDayPattern] = useState<PatternId>('none');
   // The card on the 꾸미기 screen (a calendar day's or a route's), while it's up.
@@ -167,14 +167,10 @@ export default function App() {
   // The route behind the 꾸미기 screen, when it's a route's card: its link is what 링크 복사 copies.
   const [studioCourse, setStudioCourse] = useState<Course | null>(null);
   const [studioTheme, setStudioTheme] = useState<ThemeId>('default');
-  // TODAY swiped aside: the theme goes with its screen, not over We Now under it.
-  const [todaySwiping, setTodaySwiping] = useState(false);
-  const dayTheme = studio ? studioTheme : todaySwiping ? 'default' : calendarTheme;
-  useEffect(() => {
-    const root = document.documentElement;
-    if (dayTheme === 'default') delete root.dataset.theme;
-    else root.dataset.theme = dayTheme;
-  }, [dayTheme]);
+  // A calendar day's theme only tints its own land and pings (CalendarZoom, the We Now
+  // TODAY tile; 2026-11-11), so the page keeps the app's theme; the 꾸미기 screen's card
+  // still dresses the whole screen while it's up.
+  const dayTheme = studio ? studioTheme : 'default';
   const pinStore = usePins();
   const routeFolders = useRouteFolders();
   const { pins, categories } = pinStore;
@@ -208,24 +204,31 @@ export default function App() {
     account.push(next);
     return true;
   };
-  // 디스플레이 및 언어 → 디스플레이: 기본 or 다크 on <html data-scheme>; not picked, the phone's setting decides.
-  const scheme = profile.scheme;
+  // 디스플레이 및 언어 → 디스플레이: 말차, 바나나 or 초코 is the app's own theme, under
+  // whatever a day or a share card picks (their 'default' means "the app's").
+  // There's no dark choice any more, so the page is always drawn light.
+  const appTheme: ThemeId = profile.appTheme === 'banana' ? 'default' : profile.appTheme;
+  const shownTheme: ThemeId = dayTheme === 'default' ? appTheme : dayTheme;
+  // …and so does the app's icon (the phone's launcher icon, or the browser's tab icon).
+  useEffect(() => {
+    void setAppIcon(profile.appTheme);
+  }, [profile.appTheme]);
   useEffect(() => {
     const root = document.documentElement;
-    if (scheme) root.dataset.scheme = scheme;
-    else delete root.dataset.scheme;
+    if (shownTheme === 'default') delete root.dataset.theme;
+    else root.dataset.theme = shownTheme;
+    root.dataset.scheme = 'light';
     // Phone browsers tint their own bars (and the strip under the page at the
     // bottom edge) from theme-color; left alone it keeps the default theme's
     // (and the phone's light/dark) colour, a pale band under a themed or dark page.
     const metas = document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]');
     metas.forEach((m) => {
       m.dataset.base ??= m.content;
-      const token = dayTheme !== 'default' ? '--surface' : scheme ? '--bg' : null;
-      m.content = token ? getComputedStyle(root).getPropertyValue(token).trim() : m.dataset.base;
+      m.content = getComputedStyle(root).getPropertyValue('--surface').trim() || m.dataset.base!;
     });
     // The map painted its areas from the old tokens.
     mapRef.current?.refreshColors();
-  }, [dayTheme, scheme]);
+  }, [shownTheme]);
   // 공유 before 집 is set opens the profile on 개인 정보 with this line.
   const [privacyNotice, setPrivacyNotice] = useState<string | null>(null);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
@@ -531,7 +534,6 @@ export default function App() {
   const [chatPhoto, setChatPhoto] = useState<number | null>(null);
   // Lines of each group's 대화 I haven't read: the 대화 buttons' badges (We Now only, signed in).
   const unreadTalk = useUnreadTalk(tab === 'people' && !!account.user && groups.status === 'ready');
-  const allUnreadTalk = groupList.reduce((n, g) => n + (unreadTalk.counts[g.id] ?? 0), 0);
   // We Now's 대화 목록 (every group's thread), and the group whose 대화 is open from it.
   const [chatsOpen, setChatsOpen] = useState(false);
   const [chatsGroupId, setChatsGroupId] = useState<string | null>(null);
@@ -588,7 +590,6 @@ export default function App() {
   // Left to right on TODAY takes it back to We Now, which shows under it meanwhile
   // (not while drawing, a ping is picked or a photo is big: those fingers are theirs).
   const todaySwipe = usePageSwipe(null, todayOpen && !decorating && !todayPhoto && !pingRemove ? () => setTodayOpen(false) : null);
-  useLayoutEffect(() => setTodaySwiping(todaySwipe.moving), [todaySwipe.moving]);
   // While the page is swiped off, the map screen under it stays whole.
   const pageMoving = swipe.moving;
   // The screen the moving page is heading for (the bottom row turns to it meanwhile).
@@ -2117,9 +2118,8 @@ export default function App() {
 
       {onPage && calendarZoom && (
         <section
-          className={`page ${todaySwipe.moving ? 'theme-scope' : ''}`}
+          className="page"
           aria-label="TODAY"
-          data-theme={todaySwipe.moving && calendarTheme !== 'default' ? calendarTheme : undefined}
           style={todaySwipe.style}
           {...todaySwipe.handlers}
         >
@@ -2136,7 +2136,6 @@ export default function App() {
             onPingPicked={(remove) => setPingRemove(() => remove)}
             pingDropZone={() => barEl.current?.querySelector('.bar-cal') ?? null}
             onPingDropHover={setPingDropHot}
-            onDayTheme={setDayTheme}
             onDayPattern={setDayPattern}
             onMode={setCalendarMode}
             photoSeq={todayPhoto}
@@ -2365,8 +2364,6 @@ export default function App() {
             setCameraOpen(true);
           }}
           onGallery={() => openGallery('my')}
-          onChats={() => setChatsOpen(true)}
-          chatsUnread={allUnreadTalk}
         />
       </div>
 

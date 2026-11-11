@@ -20,6 +20,9 @@ if (isNativeApp()) {
   if (import.meta.hot) import.meta.hot.dispose(() => { void links.then((stop) => stop()); });
 }
 
+// Dev only: sample TODAY pings (some days with, some without, some with a photo).
+if (import.meta.env.DEV) void import('./dev/demoPings').then((m) => m.seedDemoPings());
+
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <AppLinkEntry><App /></AppLinkEntry>

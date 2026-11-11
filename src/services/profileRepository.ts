@@ -15,18 +15,22 @@ export interface Profile {
   pingAlerts: number[];
   /** 알림 설정 → 그룹 알림: the cells switched off, `<group id>:<kind>` (GROUP_ALERT_KINDS); everything else, groups joined later too, is on. */
   groupAlertsOff: string[];
-  /** 디스플레이 및 언어 → 디스플레이: 기본 (light) or 다크. Null until picked: the phone's own setting decides. */
+  /** Old 디스플레이 choice (기본 / 다크). Kept for stored and synced rows; the app now always draws light. */
   scheme: ColorScheme | null;
+  /** 디스플레이 및 언어 → 디스플레이: the app's colour theme, 말차 until another is picked. */
+  appTheme: AppTheme;
 }
 
 export type ColorScheme = 'light' | 'dark';
+export type AppTheme = 'matcha' | 'banana' | 'choco' | 'strawberry';
+export const APP_THEMES: readonly AppTheme[] = ['matcha', 'banana', 'choco', 'strawberry'];
 
 export function isPhoto(value: unknown): value is string {
   return typeof value === 'string' && value.startsWith('data:image/') && value.length <= PROFILE_LIMITS.photoChars;
 }
 
 export function defaultProfile(handle = defaultHandle(getCurrentUserId())): Profile {
-  return { handle, photo: null, sound: true, pingAlerts: [...PING_ALERT_HOURS], groupAlertsOff: [], scheme: null };
+  return { handle, photo: null, sound: true, pingAlerts: [...PING_ALERT_HOURS], groupAlertsOff: [], scheme: null, appTheme: 'matcha' };
 }
 
 /**
@@ -44,6 +48,7 @@ export function profileFromRecord(parsed: Record<string, unknown> | null | undef
     // 공유수 알림 (shareAlerts) is gone; a stored one is dropped.
     groupAlertsOff: sanitizeGroupIds(parsed?.groupAlertsOff) ?? [],
     scheme: parsed?.scheme === 'light' || parsed?.scheme === 'dark' ? parsed.scheme : null,
+    appTheme: APP_THEMES.includes(parsed?.appTheme as AppTheme) ? (parsed!.appTheme as AppTheme) : 'matcha',
   };
 }
 

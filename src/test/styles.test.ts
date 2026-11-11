@@ -49,7 +49,14 @@ describe('styles.css', () => {
   };
   /** Each block that sets a palette (the base, dark, every theme), with its colour getter. */
   const palettes = () =>
-    blocks.filter((b) => b.tokens['--accent']).map(({ selector, tokens }) => ({ selector, get: colourIn(tokens) }));
+    blocks
+      .filter((b) => b.tokens['--accent'])
+      .map(({ selector, tokens }) => {
+        // A theme also wears the block all themes share (their ink, text and muted).
+        const parts = (s: string) => s.split(',').map((p) => p.trim());
+        const shared = blocks.filter((b) => b.selector !== selector && parts(b.selector).includes(parts(selector)[0]));
+        return { selector, get: colourIn(Object.assign({}, ...shared.map((b) => b.tokens), tokens)) };
+      });
 
   it('the map roles are made from the theme, so every theme and the dark scheme get their own map', () => {
     for (const role of ['--map-land', '--map-water', '--map-park', '--map-road', '--map-road-edge', '--map-tint', '--map-side', '--map-shadow']) {
@@ -59,7 +66,14 @@ describe('styles.css', () => {
       }
     }
     // The 미니맵 draws the same colours.
-    for (const role of ['land', 'side', 'water', 'park', 'road', 'shadow', 'haze']) expect(root[`--mini-${role}`]).toBe(`var(--map-${role})`);
+    for (const role of ['water', 'park', 'road', 'shadow', 'haze']) expect(root[`--mini-${role}`]).toBe(`var(--map-${role})`);
+    // …but its land (and the land's side) are their own: deep yellow on the 바나나 (default) theme and
+    // light matcha on 말차 and milk chocolate on 초코 (2026-11-11), the map's own land on every other theme and in dark.
+    for (const role of ['land', 'side']) expect(root[`--mini-${role}`]).toMatch(/^(color-mix|var)\(/);
+    for (const { selector, tokens } of blocks.filter((b) => b.selector !== ':root' && b.tokens['--map-ground'])) {
+      if (['matcha', 'choco', 'strawberry'].some((id) => selector.split(',').every((part) => part.includes(`'${id}'`)))) expect(tokens['--mini-ground'], selector).toMatch(/^#[0-9a-f]{6}$/);
+      else expect(tokens['--mini-ground'], `${selector} --mini-ground`).toBe('var(--map-land)');
+    }
   });
 
   it("the map's land stays quiet: the route line keeps most of its contrast on it, in every theme", () => {

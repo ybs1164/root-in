@@ -2,7 +2,7 @@ import { CalendarDays, Camera, MapPin, Users, X } from 'lucide-react';
 import { GalleryButton } from './PhotoGallery';
 import { useLayoutEffect, useRef } from 'react';
 import { barSlot, barTurn, type AppTab, type BarButton } from '../domain/appTabs';
-import { CalendarToday, TalkBadge, TalkBubbles } from './icons';
+import { CalendarToday } from './icons';
 
 const BUTTONS: BarButton[] = ['pins', 'people'];
 /** One turn of the row. */
@@ -34,12 +34,8 @@ interface BottomBarProps {
   deleteHot?: boolean;
   /** We Now and TODAY: the big middle button opens the camera screen. */
   onCamera?: () => void;
-  /** The gallery (every photo in my groups, by day): bottom-right on TODAY (under the calendar) and We Now. */
+  /** The gallery (every photo in my groups, by day): bottom-right on TODAY, under the calendar. */
   onGallery?: () => void;
-  /** We Now's list: every group's 대화, the button under the gallery. */
-  onChats?: () => void;
-  /** Lines of all my groups' 대화 I haven't read: a badge on that button. */
-  chatsUnread?: number;
 }
 
 /**
@@ -53,7 +49,7 @@ interface BottomBarProps {
  * bottom-right: the calendar (day ⇄ month, ✕ while a ping is picked) over
  * the gallery.
  */
-export default function BottomBar({ tab, today = false, calendarMode, onCalendar, onMap, onPin, onPeople, onDeletePing, deleteHot = false, onCamera, onGallery, onChats, chatsUnread = 0 }: BottomBarProps) {
+export default function BottomBar({ tab, today = false, calendarMode, onCalendar, onMap, onPin, onPeople, onDeletePing, deleteHot = false, onCamera, onGallery }: BottomBarProps) {
   const cal = today;
   const map = tab === 'pins';
   // Every move is played from where each button is on screen right now
@@ -169,14 +165,7 @@ export default function BottomBar({ tab, today = false, calendarMode, onCalendar
         </>
       )}
       {cal && onGallery && <GalleryButton className="bar-col bar-col--gallery" onOpen={onGallery} />}
-      {/* We Now's list: the gallery over the 대화 in the bottom-right corner (where the camera stood). */}
-      {!cal && tab === 'people' && onGallery && <GalleryButton className={`bar-corner ${onChats ? 'bar-corner--up' : ''}`} onOpen={onGallery} />}
-      {!cal && tab === 'people' && onChats && (
-        <button type="button" className="camera-btn bar-corner bar-chats" aria-label={chatsUnread ? `대화 목록, 안 읽은 메시지 ${chatsUnread}` : '대화 목록'} onClick={onChats}>
-          <TalkBubbles size={30} />
-          <TalkBadge count={chatsUnread} />
-        </button>
-      )}
+      {/* We Now's list has no gallery or 대화 buttons (2026-11-11): those live inside each group's map. */}
       {/* No small camera anywhere in the row: on We Now and TODAY the big middle button is the camera. */}
     </nav>
   );
