@@ -3,6 +3,15 @@ import type { AreaLabel, AreaShapes } from '../domain/adminAreas';
 import type { MapViewport } from '../domain/districtMap';
 import type { PlaceRef } from '../types/course';
 import { pinGlyphSvg } from '../lib/pinGlyphs';
+import { HEART_PATH, ROUND_BOX, STAR_PATH } from '../lib/pingPaths';
+import type { PingLook } from '../domain/dayPings';
+
+/** A group ping's long-pressed shape other than the pin, centred on its spot (TODAY's outlines). */
+function roundShapeSvg(shape: 'dot' | 'star' | 'heart'): string {
+  const { x, y, w, h } = ROUND_BOX;
+  const body = shape === 'dot' ? '<circle cx="12" cy="12" r="8.5"/>' : `<path d="${shape === 'star' ? STAR_PATH : HEART_PATH}"/>`;
+  return `<svg viewBox="${x} ${y} ${w} ${h}" fill="currentColor" aria-hidden="true" focusable="false">${body}</svg>`;
+}
 
 export interface MapPadding {
   top: number;
@@ -102,6 +111,8 @@ export interface GroupPingMark {
   faces?: { member: string; seq: number; color: string; photo: string | null }[];
   /** A shared place: whose ping each of `photos` came from, and which of that ping's photos it is. */
   photoOf?: { member: string; seq: number; photo: number }[];
+  /** The shape its member long-pressed it into in this group (not on a face or a shared place); none = the pin. */
+  shape?: PingLook;
 }
 
 export interface CourseMapOptions {
@@ -272,9 +283,12 @@ export function createGroupPingElement(mark: GroupPingMark): HTMLElement {
     el.append(faceElement(mark.face.photo));
   } else {
     // A ping, not a bare dot: the pin glyph in the member's colour, its tip on the spot.
+    // Or the shape long-pressed for it: a dot, star or heart centred on the
+    // spot; 투명 keeps the pin's box (still pressable) with nothing drawn.
+    const shape = mark.shape ?? 'pin';
     const pin = document.createElement('span');
-    pin.className = 'group-ping__pin';
-    pin.innerHTML = pinGlyphSvg('pin');
+    pin.className = `group-ping__pin${shape === 'pin' ? '' : ` group-ping__pin--${shape}`}`;
+    pin.innerHTML = shape === 'pin' || shape === 'transparent' ? pinGlyphSvg('pin') : roundShapeSvg(shape);
     el.append(pin);
   }
   // A shared place: whoever is there now, side by side over its one ping

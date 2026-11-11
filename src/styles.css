@@ -10391,6 +10391,44 @@ button.group-photo-panel__photo {
   display: none;
 }
 
+/* A leg its member long-pressed into another style (in this group): TODAY's
+   파선 · 점선 · 굵은 선, or 투명 (not drawn, still pressable to change back). */
+.group-lines .is-dashed line:not(.group-lines__case) {
+  stroke-dasharray: 9 6;
+  stroke-linecap: butt;
+}
+
+.group-lines .is-dotted line:not(.group-lines__case) {
+  stroke-width: 4;
+  stroke-dasharray: 0.1 8;
+}
+
+.group-lines .is-bold line {
+  stroke-width: 6.5;
+}
+
+.group-lines .is-bold .group-lines__case {
+  stroke-width: 10;
+}
+
+.group-lines .is-transparent line {
+  display: none;
+}
+
+/* A group ping long-pressed into a dot, star or heart: centred on its spot. */
+.group-ping__pin--dot,
+.group-ping__pin--star,
+.group-ping__pin--heart {
+  left: -10px;
+  top: -10px;
+  width: 20px;
+  height: 20px;
+}
+
+.group-ping__pin--transparent {
+  opacity: 0;
+}
+
 /* 새 그룹 / 그룹 설정: a boarding pass (ticket-dialog). */
 .group-form {
   width: min(340px, calc(100vw - 32px));

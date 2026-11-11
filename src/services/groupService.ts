@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { cleanGroupName, GROUP_LIMITS, readPingDays, type Group, type GroupMember, type GroupPing, type PingDays } from '../domain/groups';
+import { cleanGroupName, GROUP_LIMITS, readGroupLooks, readPingDays, type Group, type GroupMember, type GroupPing, type PingDays } from '../domain/groups';
 import { getSupabase, supabaseConfigured } from '../lib/supabase';
 import { inKorea } from './pinShareService';
 import { dataUrlToBlob } from './remoteProfileService';
@@ -73,6 +73,12 @@ export interface GroupService {
    * too. False when the server said no or couldn't be asked.
    */
   deletePhotos(groupId: string | null, paths: string[]): Promise<boolean>;
+  /**
+   * How one of my pings (`kind` 'ping') or the line between two (`'edge'`) is
+   * drawn in group `groupId`, by its look key; null = back to the plain one.
+   * False when it failed.
+   */
+  setLook(groupId: string, kind: 'ping' | 'edge', key: string, look: string | null): Promise<boolean>;
   /** My TODAY pings `ids` hidden from group `groupId` only (핀 삭제 there); false when it failed. */
   hidePings(groupId: string, ids: string[]): Promise<boolean>;
   /** TODAY's ✕: my photos sent from that place that day off every group (and the bucket); false when it failed. */
@@ -176,6 +182,9 @@ export interface PhotoPing {
 }
 
 const PHOTO_BUCKET = 'group-photos';
+/** A ping's or leg's look key (`pingLookKey` / `edgeLookKey`: times) and the looks it can be set to. */
+const LOOK_KEY = /^[0-9T:.\-Z>]{10,120}$/;
+const LOOKS = ['transparent', 'pin', 'dot', 'star', 'heart', 'solid', 'dashed', 'dotted', 'bold'];
 /** A path in group-photos: <uid>/<id>.jpg (as send_group_photo makes them). */
 const GROUP_PHOTO = /^[0-9a-f-]{36}\/[A-Za-z0-9_-]{6,40}\.jpg$/;
 
@@ -242,6 +251,8 @@ function readMember(raw: unknown, photoUrl: (path: string) => string | null, pin
   const color = typeof r.color === 'number' && Number.isInteger(r.color) && r.color >= 0 && r.color < GROUP_LIMITS.members ? r.color : r.slot;
   const member: GroupMember = { userId: r.user_id, slot: r.slot, color, nickname, alias, photo: path ? photoUrl(path) : null, pings };
   if (r.own_profile === true) member.ownProfile = true;
+  const looks = readGroupLooks(r.looks);
+  if (looks) member.looks = looks;
   // Sent for my own row alone.
   if ('group_alias' in r || 'group_photo' in r) {
     const stored = typeof r.group_alias === 'string' && r.group_alias.trim() ? r.group_alias.trim().slice(0, GROUP_LIMITS.alias) : null;
@@ -684,6 +695,19 @@ export function createSupabaseGroupService(
         if (error) return false;
         await removeGone(client, data);
         return true;
+      } catch {
+        return false;
+      }
+    },
+
+    async setLook(groupId, kind, key, look) {
+      try {
+        if (!UUID.test(groupId) || (kind !== 'ping' && kind !== 'edge') || !LOOK_KEY.test(key)) return false;
+        if (look !== null && !LOOKS.includes(look)) return false;
+        const client = await getClient();
+        if (!client) return false;
+        const { data, error } = await client.rpc('set_group_look', { gid: groupId, look_kind: kind, look_key: key, new_look: look });
+        return !error && data === true;
       } catch {
         return false;
       }

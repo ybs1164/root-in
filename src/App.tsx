@@ -40,7 +40,7 @@ import { placePhotos, visitedPlaces } from './domain/visitedPlaces';
 import { loadVisitedPings, saveVisitedPings } from './services/visitedPinRepository';
 import { placeKindService } from './services/placeKindService';
 import { isAllPicked, pinRailNext, tapAll, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
-import { pingsForDate, PRESS, TODAY_PING_RADIUS_M } from './domain/dayPings';
+import { pingsForDate, PRESS, TODAY_PING_RADIUS_M, type LineLook, type PingLook } from './domain/dayPings';
 import { buildRouteLook, EMPTY_BUILD_LOOK, nextRouteName, ROUTE_NOTE_MAX, toggleBuildStop, withBuildEdge, withBuildShape, type BuildLook } from './domain/routeBuild';
 import { addEditStop, moveStop, toggleEditStop, withEditStops, type RouteEdit } from './domain/routeEdit';
 import { cleanRouteLook, withEdgeStyle, withStopShape } from './domain/routeStyle';
@@ -62,7 +62,7 @@ import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
 import { useGroups, useGroupsOnDay } from './hooks/useGroups';
 import { groupService, groupsNeedLogin, inviteUrl } from './services/groupService';
-import { focusPoints, mergeSamePlace, orderGroups, pingPhotos as groupPingPhotos, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, photoKey, withoutPhotos, newPingCount, photoPings, sharedPlaces, withSentPhotos, type GroupMember, type SharedPlace } from './domain/groups';
+import { focusPoints, mergeSamePlace, orderGroups, pingPhotos as groupPingPhotos, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, photoKey, withoutPhotos, pingLookKey, edgeLookKey, withGroupLook, type GroupLooks, newPingCount, photoPings, sharedPlaces, withSentPhotos, type GroupMember, type SharedPlace } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
 import ChatList from './components/ChatList';
 import { useUnreadTalk } from './hooks/useUnreadTalk';
@@ -85,6 +85,7 @@ import GroupFormDialog from './components/GroupFormDialog';
 import GroupSettingsDialog from './components/GroupSettingsDialog';
 import type { GroupLine } from './components/GroupLines';
 import GroupAtlas, { type AtlasHandle } from './components/GroupAtlas';
+import GroupLookLayer from './components/GroupLookLayer';
 import { markKey } from './hooks/useAtlas';
 import { shareLinkService } from './services/shareLinkService';
 import { planShare } from './services/shareTargets';
@@ -999,6 +1000,25 @@ export default function App() {
   // every photo sent from there by anyone, in the order they were taken.
   // Each member's own ping there stays as an invisible point under it, where
   // their lines meet.
+  // My looks in each group (long-pressed pings and lines), kept here the
+  // moment they change rather than after the server and the next read.
+  const [myLooks, setMyLooks] = useState<Record<string, GroupLooks>>({});
+  const looksOf = useCallback(
+    (m: GroupMember): GroupLooks | undefined => (m.userId === myId && openGroup ? (myLooks[openGroup.id] ?? m.looks) : m.looks),
+    [myId, openGroup, myLooks],
+  );
+  const myGroupRow = openGroup && myId ? (openGroup.members.find((m) => m.userId === myId) ?? null) : null;
+  const setGroupLook = (kind: 'ping' | 'edge', key: string, look: PingLook | LineLook | null) => {
+    const group = openGroup;
+    if (!group || !myGroupRow) return;
+    const before = looksOf(myGroupRow);
+    setMyLooks((all) => ({ ...all, [group.id]: withGroupLook(before, kind, key, look) }));
+    void groupService.setLook(group.id, kind, key, look).then((ok) => {
+      if (ok) return;
+      setMyLooks((all) => ({ ...all, [group.id]: before ?? { pings: {}, edges: {} } }));
+      notify(kind === 'ping' ? '핑 모양을 바꾸지 못했어요.' : '선 모양을 바꾸지 못했어요.');
+    });
+  };
   const groupMarks = useMemo<GroupPingMark[]>(() => {
     if (!openGroup) return [];
     const isPicked = (member: string, seq: number) => groupPing?.member === member && groupPing.seq === seq;
@@ -1055,18 +1075,29 @@ export default function App() {
           // The picked member's places by name; nobody's while ALL.
           label: groupPicked === m.userId ? p.name : undefined,
           photos: photos.has(i) ? groupPingPhotos(p) : undefined,
+          // Not on a face: their latest stays their face.
+          shape: i === m.pings.length - 1 ? undefined : looksOf(m)?.pings[pingLookKey(p)],
           selected: isPicked(m.userId, i),
           selectedPhoto: isPicked(m.userId, i) ? groupPing?.photo : undefined,
         };
       });
     });
-  }, [openGroup, groupPicked, groupPing]);
+  }, [openGroup, groupPicked, groupPing, looksOf]);
   const groupLines = useMemo<GroupLine[]>(
     () =>
       (openGroup?.members ?? [])
         .filter((m) => m.pings.length > 1)
-        .map((m) => ({ member: m.userId, color: memberColor(m.color), count: m.pings.length, faded: !!groupPicked && groupPicked !== m.userId })),
-    [openGroup, groupPicked],
+        .map((m) => {
+          const edges = looksOf(m)?.edges;
+          return {
+            member: m.userId,
+            color: memberColor(m.color),
+            count: m.pings.length,
+            faded: !!groupPicked && groupPicked !== m.userId,
+            styles: edges ? m.pings.slice(1).map((p, k) => edges[edgeLookKey(m.pings[k], p)]) : undefined,
+          };
+        }),
+    [openGroup, groupPicked, looksOf],
   );
   // Opening a group fits all of it; picking someone brings the map in close on their day.
   const groupFitted = useRef<{ group: string; picked: string | null } | null>(null);
@@ -1143,7 +1174,8 @@ export default function App() {
       return found;
     };
     const down = (e: PointerEvent) => {
-      tap = e.isPrimary && el.contains(e.target as Node) ? { x: e.clientX, y: e.clientY, at: performance.now() } : null;
+      // A touch that only closes the ping / line picker isn't a tap on the map.
+      tap = e.isPrimary && el.contains(e.target as Node) && !document.querySelector('.group-look-picker') ? { x: e.clientX, y: e.clientY, at: performance.now() } : null;
     };
     const up = (e: PointerEvent) => {
       const t = tap;
@@ -2195,6 +2227,9 @@ export default function App() {
       {openGroup && (
         <>
           <GroupAtlas marks={groupMarks} lines={groupLines} handle={atlasRef} rootRef={atlasEl} />
+          {myGroupRow && (
+            <GroupLookLayer rootRef={atlasEl} me={myGroupRow.userId} pings={myGroupRow.pings} looks={looksOf(myGroupRow)} onLook={setGroupLook} />
+          )}
           <GroupMapView
             group={openGroup}
             picked={groupPicked}

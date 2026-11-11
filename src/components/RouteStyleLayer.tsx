@@ -18,7 +18,7 @@ type Target = { kind: 'stop' | 'edge'; index: number };
 /** How near a line a press must be to count as on it. */
 const EDGE_HIT_PX = 16;
 
-function distanceToSegment(p: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }): number {
+export function distanceToSegment(p: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }): number {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const len2 = dx * dx + dy * dy;
@@ -46,7 +46,7 @@ function targetAt(x: number, y: number, el: Element | null, stopCount: number): 
 }
 
 /** A short sample of a line style, for the picker. */
-function EdgeSample({ style }: { style: EdgeStyle }) {
+export function EdgeSample({ style }: { style: EdgeStyle }) {
   return (
     <svg viewBox="0 0 28 12" aria-hidden>
       <line className={`pings__seg pings__seg--${style}`} x1="3" y1="6" x2="25" y2="6" />

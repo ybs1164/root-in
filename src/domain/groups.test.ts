@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlaces, withSentPhotos, mergeSamePlace, pingPhotos, memberPhotoItems, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, orderGroups, moveId, withoutPhotos, type Group } from './groups';
+import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlaces, withSentPhotos, mergeSamePlace, pingPhotos, memberPhotoItems, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, orderGroups, moveId, withoutPhotos, pingLookKey, edgeLookKey, withGroupLook, readGroupLooks, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -137,7 +137,7 @@ describe('mergeSamePlace', () => {
       { at: at(2), center: near, name: '카페', photo: 'b.jpg' },
       { at: at(3), center: here, name: '카페', photo: 'c.jpg' },
     ]);
-    expect(merged).toEqual([{ at: at(3), center: here, name: '카페', photo: 'c.jpg', photos: ['a.jpg', 'b.jpg', 'c.jpg'], photoAts: [at(1), at(2), at(3)] }]);
+    expect(merged).toEqual([{ at: at(3), from: at(1), center: here, name: '카페', photo: 'c.jpg', photos: ['a.jpg', 'b.jpg', 'c.jpg'], photoAts: [at(1), at(2), at(3)] }]);
     expect(pingPhotos(merged[0])).toEqual(['a.jpg', 'b.jpg', 'c.jpg']);
     // Each photo keeps its own time: the tapped one's, else the newest's.
     const clock = (iso: string) => `${String(new Date(iso).getHours()).padStart(2, '0')}:00`;
@@ -147,7 +147,7 @@ describe('mergeSamePlace', () => {
 
   it('takes a TODAY ping and the photos after it at that place together', () => {
     expect(mergeSamePlace([{ at: at(1), center: here, name: '카페' }, { at: at(2), center: here, name: '카페', photo: 'a.jpg' }])).toEqual([
-      { at: at(2), center: here, name: '카페', photo: 'a.jpg', photoAts: [at(2)] },
+      { at: at(2), from: at(1), center: here, name: '카페', photo: 'a.jpg', photoAts: [at(2)] },
     ]);
     // A photo, then the TODAY ping it put there later: the photo's time, not the ping's.
     const [later] = mergeSamePlace([{ at: at(1), center: here, name: '카페', photo: 'a.jpg' }, { at: at(2), center: here, name: '카페' }]);
@@ -163,6 +163,31 @@ describe('mergeSamePlace', () => {
     ];
     expect(mergeSamePlace(pings).map((p) => p.at)).toEqual([at(1), at(2), at(3), at(4)]);
     expect(pingPhotos({ at: at(1), center: here })).toEqual([]);
+  });
+});
+
+describe('group looks', () => {
+  const at = (h: number) => `2026-10-29T0${h}:00:00.000Z`;
+  it('keeps a merged place by its first ping, so a new photo there keeps its shape', () => {
+    const [place, next] = mergeSamePlace([
+      { at: at(1), center: [127, 37.5], name: '카페' },
+      { at: at(2), center: [127, 37.5], name: '카페', photo: 'a.jpg' },
+      { at: at(3), center: [127.01, 37.51], name: '공원' },
+    ]);
+    expect(pingLookKey(place)).toBe(at(1));
+    expect(edgeLookKey(place, next)).toBe(`${at(1)}>${at(3)}`);
+  });
+
+  it('sets and clears a look, and reads only good ones from the server', () => {
+    const set = withGroupLook(undefined, 'ping', at(1), 'star');
+    expect(set).toEqual({ pings: { [at(1)]: 'star' }, edges: {} });
+    expect(withGroupLook(set, 'ping', at(1), null)).toEqual({ pings: {}, edges: {} });
+    expect(readGroupLooks({ pings: { [at(1)]: 'heart', [at(2)]: 'rocket', 'x': 'dot' }, edges: { [`${at(1)}>${at(2)}`]: 'dashed' } })).toEqual({
+      pings: { [at(1)]: 'heart' },
+      edges: { [`${at(1)}>${at(2)}`]: 'dashed' },
+    });
+    expect(readGroupLooks({ pings: {}, edges: {} })).toBeUndefined();
+    expect(readGroupLooks('nope')).toBeUndefined();
   });
 });
 

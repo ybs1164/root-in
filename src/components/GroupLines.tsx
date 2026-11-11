@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import type { LineLook } from '../domain/dayPings';
 
 export interface GroupLine {
   member: string;
@@ -7,10 +8,12 @@ export interface GroupLine {
   faded: boolean;
   /** Per leg: one from island to island on the atlas (a trip between regions), drawn dotted with no casing. */
   jumps?: boolean[];
+  /** Per leg: the style its member long-pressed it into (none = the plain solid line). */
+  styles?: (LineLook | undefined)[];
 }
 
 /** Screen centre of a member's `seq`th ping marker, if it's on the map. */
-function pingCentre(member: string, seq: number): [number, number] | null {
+export function pingCentre(member: string, seq: number): [number, number] | null {
   const el = document.querySelector<HTMLElement>(`.group-ping[data-member="${member}"][data-seq="${seq}"]`);
   if (!el) return null;
   const r = el.getBoundingClientRect();
@@ -60,7 +63,7 @@ export default function GroupLines({ lines }: { lines: GroupLine[] }) {
       {lines.map((line) => (
         <g key={line.member} className={line.faded ? 'is-faded' : undefined} style={{ stroke: line.color }}>
           {Array.from({ length: Math.max(0, line.count - 1) }, (_, k) => (
-            <g key={k} className={line.jumps?.[k] ? 'is-jump' : undefined}>
+            <g key={k} className={[line.jumps?.[k] && 'is-jump', line.styles?.[k] && line.styles[k] !== 'solid' && `is-${line.styles[k]}`].filter(Boolean).join(' ') || undefined}>
               <line
                 className="group-lines__case"
                 ref={(el) => {
