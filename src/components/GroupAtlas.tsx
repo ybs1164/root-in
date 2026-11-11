@@ -2,6 +2,7 @@ import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, 
 import { clampView, fitView, zoomAbout, type AtlasView, type Room } from '../domain/atlas';
 import { createGroupPingElement, type GroupPingMark } from '../map/courseMap';
 import { markKey, useAtlas } from '../hooks/useAtlas';
+import type { MapPart } from '../domain/miniMap';
 import MiniMap from './MiniMap';
 import GroupLines, { type GroupLine } from './GroupLines';
 
@@ -17,6 +18,9 @@ const ROOM_TOP = 100;
 const ROOM_BOTTOM = 120;
 const GLIDE_MS = 500;
 const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
+
+/** The islands are plain land (2026-11-09): TODAY's roads and parks read as clutter at this size. */
+const plainIsland = (parts: MapPart[]) => parts.filter((part) => part.fill.role !== 'road' && part.fill.role !== 'park');
 
 /**
  * We Now's group map as an atlas (docs/plan-group-atlas.md): a faint Korea,
@@ -267,7 +271,7 @@ export default function GroupAtlas({ marks, lines, handle, rootRef }: { marks: G
             className="group-atlas__island"
             style={{ left: island.at.x - island.size / 2, top: island.at.y - island.size / 2, width: island.size, height: island.size }}
           >
-            {island.parts.length ? <MiniMap parts={island.parts} /> : <span className="group-atlas__blob" />}
+            {island.parts.length ? <MiniMap parts={plainIsland(island.parts)} /> : <span className="group-atlas__blob" />}
           </div>
         ))}
       </div>
