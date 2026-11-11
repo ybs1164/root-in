@@ -9674,6 +9674,44 @@ button:disabled {
   --icon-ink: var(--icon);
 }
 
+/* My own place: … in place of ✕, its little menu just to its left. */
+.group-photo-panel__more {
+  position: relative;
+  flex: none;
+}
+
+.group-photo-panel__menu {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 6px);
+  z-index: 1;
+  display: grid;
+  min-width: 96px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--dialog-shadow);
+  animation: rise-in 0.16s var(--settle-ease) both;
+}
+
+.group-photo-panel__menu button {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--danger);
+  --icon-ink: currentColor;
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.group-photo-panel__menu button:active {
+  background: var(--surface-2);
+}
+
 .group-photo-panel__name {
   align-self: center;
   overflow: hidden;
@@ -9809,6 +9847,24 @@ button.group-photo-panel__photo {
 
 .group-photo-viewer__drag {
   cursor: grab;
+}
+
+/* Two fingers zoom the photo (and its doodles) about its top left
+   (PhotoViewer sets the transform); zoomed, it goes over the caption and
+   comments, under ✕, and one finger moves it around. */
+.group-photo-viewer__zoom {
+  position: relative;
+  transform-origin: 0 0;
+}
+
+.group-photo-viewer__drag.is-zoomed {
+  position: relative;
+  z-index: 2;
+  cursor: move;
+}
+
+.group-photo-viewer__drag.is-zoomed .group-photo-viewer__zoom {
+  will-change: transform;
 }
 
 .group-photo-viewer__photo {
@@ -10351,6 +10407,44 @@ button.group-photo-panel__photo {
 
 .group-lines .is-jump .group-lines__case {
   display: none;
+}
+
+/* A leg its member long-pressed into another style (in this group): TODAY's
+   파선 · 점선 · 굵은 선, or 투명 (not drawn, still pressable to change back). */
+.group-lines .is-dashed line:not(.group-lines__case) {
+  stroke-dasharray: 9 6;
+  stroke-linecap: butt;
+}
+
+.group-lines .is-dotted line:not(.group-lines__case) {
+  stroke-width: 4;
+  stroke-dasharray: 0.1 8;
+}
+
+.group-lines .is-bold line {
+  stroke-width: 6.5;
+}
+
+.group-lines .is-bold .group-lines__case {
+  stroke-width: 10;
+}
+
+.group-lines .is-transparent line {
+  display: none;
+}
+
+/* A group ping long-pressed into a dot, star or heart: centred on its spot. */
+.group-ping__pin--dot,
+.group-ping__pin--star,
+.group-ping__pin--heart {
+  left: -10px;
+  top: -10px;
+  width: 20px;
+  height: 20px;
+}
+
+.group-ping__pin--transparent {
+  opacity: 0;
 }
 
 /* 새 그룹 / 그룹 설정: a boarding pass (ticket-dialog). */

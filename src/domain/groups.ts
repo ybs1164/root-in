@@ -1,5 +1,5 @@
 import { haversineMeters } from './geo';
-import type { StoredPing } from './dayPings';
+import type { LineLook, PingLook, StoredPing } from './dayPings';
 import { dateKey } from './diary';
 /** We Now: a group whose members see each other's TODAY pings on one map. */
 export interface GroupPing {
@@ -13,6 +13,55 @@ export interface GroupPing {
   photos?: string[];
   /** When each of its photos (`pingPhotos`) was taken, same order; set on merged places, whose `at` is their last ping's. */
   photoAts?: string[];
+  /** My own row only: the TODAY pings (this phone's ids) the place is made of — what 핀 삭제 hides from a group. */
+  ids?: string[];
+  /** A merged place: its first ping's time (`at` is its last's) — what its look is kept by, as a new photo there moves `at`. */
+  from?: string;
+}
+
+/**
+ * How a member drew their pings and the lines between them in one group
+ * (long-pressed on its map, their own only): a shape per ping, a style per
+ * leg, by `pingLookKey` / `edgeLookKey`. Missing = the plain pin, the solid line.
+ */
+export interface GroupLooks {
+  pings: Record<string, PingLook>;
+  edges: Record<string, LineLook>;
+}
+
+export const GROUP_LOOK_LIMIT = 600;
+const PING_LOOKS: readonly PingLook[] = ['transparent', 'pin', 'dot', 'star', 'heart'];
+const LINE_LOOKS: readonly LineLook[] = ['transparent', 'solid', 'dashed', 'dotted', 'bold'];
+const LOOK_KEY = /^[0-9T:.\-Z>]{10,120}$/;
+
+/** A ping's key in `GroupLooks.pings`: when it began (its first ping's time). */
+export const pingLookKey = (ping: GroupPing): string => ping.from ?? ping.at;
+/** A leg's key in `GroupLooks.edges`: its two ends' keys. */
+export const edgeLookKey = (from: GroupPing, to: GroupPing): string => `${pingLookKey(from)}>${pingLookKey(to)}`;
+
+/** A member's looks as the server sent them, checked; undefined when there are none worth keeping. */
+export function readGroupLooks(raw: unknown): GroupLooks | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const pick = <T extends string>(value: unknown, allowed: readonly T[]): Record<string, T> => {
+    const out: Record<string, T> = {};
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return out;
+    for (const [key, look] of Object.entries(value).slice(0, GROUP_LOOK_LIMIT)) {
+      if (LOOK_KEY.test(key) && allowed.includes(look as T)) out[key] = look as T;
+    }
+    return out;
+  };
+  const { pings, edges } = raw as Record<string, unknown>;
+  const looks = { pings: pick(pings, PING_LOOKS), edges: pick(edges, LINE_LOOKS) };
+  return Object.keys(looks.pings).length || Object.keys(looks.edges).length ? looks : undefined;
+}
+
+/** `looks` with one ping's or leg's look set (null: back to the plain pin / solid line). */
+export function withGroupLook(looks: GroupLooks | undefined, kind: 'ping' | 'edge', key: string, look: PingLook | LineLook | null): GroupLooks {
+  const next: GroupLooks = { pings: { ...looks?.pings }, edges: { ...looks?.edges } };
+  const bag = (kind === 'ping' ? next.pings : next.edges) as Record<string, string>;
+  if (look === null) delete bag[key];
+  else bag[key] = look;
+  return next;
 }
 
 export interface GroupMember {
@@ -33,6 +82,8 @@ export interface GroupMember {
   groupProfile?: { alias: string | null; photo: string | null };
   /** Today's pings, oldest first. */
   pings: GroupPing[];
+  /** How they drew their pings and lines in this group (`GroupLooks`); none = the plain ones. */
+  looks?: GroupLooks;
 }
 
 export interface Group {
@@ -162,11 +213,13 @@ export function mergeSamePlace(pings: readonly GroupPing[]): GroupPing[] {
     }
     const photos = [...pingPhotos(last), ...pingPhotos(p)];
     const photoAts = [...pingPhotoAts(last), ...pingPhotoAts(p)];
-    const merged: GroupPing = { at: p.at, center: last.center };
+    const merged: GroupPing = { at: p.at, center: last.center, from: last.from ?? last.at };
     const name = last.name ?? p.name;
     if (name) merged.name = name;
     if (photos.length) merged.photo = photos[photos.length - 1], merged.photoAts = photoAts;
     if (photos.length > 1) merged.photos = photos;
+    const ids = [...(last.ids ?? []), ...(p.ids ?? [])];
+    if (ids.length) merged.ids = ids;
     out[out.length - 1] = merged;
   }
   return out;
@@ -358,11 +411,17 @@ export function withSentPhotos(mine: readonly GroupPing[], fromServer: readonly 
   return [...mine, ...sent].sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
 }
 
-export function myGroupPings(stored: readonly StoredPing[], day: string): GroupPing[] {
+export function myGroupPings(stored: readonly StoredPing[], day: string, hidden?: ReadonlySet<string>): GroupPing[] {
   return stored
-    .filter((p) => p.day === day && !p.local)
+    .filter((p) => p.day === day && !p.local && !hidden?.has(p.id))
     .sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0))
-    .map((p) => ({ at: p.at, center: p.center, name: p.name }));
+    .map((p) => ({ at: p.at, center: p.center, name: p.name, ids: [p.id] }));
+}
+
+/** A member's pings from the server without the photos I just deleted (before the next read drops them). */
+export function withoutPhotos(pings: readonly GroupPing[], gone: ReadonlySet<string>): GroupPing[] {
+  if (!gone.size) return pings as GroupPing[];
+  return pings.filter((p) => !p.photo || !gone.has(photoKey(p.photo) ?? ''));
 }
 
 /** A group's calendar: day (YYYY-MM-DD) → the ids of the members who pinged that day, each once. */

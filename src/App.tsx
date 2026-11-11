@@ -40,7 +40,7 @@ import { placePhotos, visitedPlaces } from './domain/visitedPlaces';
 import { loadVisitedPings, saveVisitedPings } from './services/visitedPinRepository';
 import { placeKindService } from './services/placeKindService';
 import { isAllPicked, pinRailNext, tapAll, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
-import { pingsForDate, PRESS, TODAY_PING_RADIUS_M } from './domain/dayPings';
+import { pingsForDate, PRESS, TODAY_PING_RADIUS_M, type LineLook, type PingLook } from './domain/dayPings';
 import { buildRouteLook, EMPTY_BUILD_LOOK, nextRouteName, ROUTE_NOTE_MAX, toggleBuildStop, withBuildEdge, withBuildShape, type BuildLook } from './domain/routeBuild';
 import { addEditStop, moveStop, toggleEditStop, withEditStops, type RouteEdit } from './domain/routeEdit';
 import { cleanRouteLook, withEdgeStyle, withStopShape } from './domain/routeStyle';
@@ -53,15 +53,16 @@ import { buildPlaceProfile } from './domain/poiScene';
 import { pinPlaceLook } from './domain/poiAppearance';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
 import { useMyLocation } from './hooks/useMyLocation';
-import { loadPings, recordPing, recordPlacePing, removePingsOfPin, todayPingOfPin } from './services/pingRepository';
+import { loadGroupPingHides, hideGroupPings, type GroupPingHides } from './services/groupPingHideRepository';
+import { loadPings, onPingRemoved, recordPing, recordPlacePing, removePingsOfPin, todayPingOfPin } from './services/pingRepository';
 import { PING_PHOTO_PX, savePingPhoto } from './services/pingPhotoRepository';
 import { avatarFromDataUrl } from './lib/avatarImage';
 import { useAccount } from './hooks/useAccount';
 import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
 import { useGroups, useGroupsOnDay } from './hooks/useGroups';
-import { groupsNeedLogin, inviteUrl } from './services/groupService';
-import { focusPoints, mergeSamePlace, orderGroups, pingPhotos as groupPingPhotos, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, newPingCount, photoPings, sharedPlaces, withSentPhotos, type GroupMember, type SharedPlace } from './domain/groups';
+import { groupService, groupsNeedLogin, inviteUrl } from './services/groupService';
+import { focusPoints, mergeSamePlace, orderGroups, pingPhotos as groupPingPhotos, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, photoKey, withoutPhotos, pingLookKey, edgeLookKey, withGroupLook, type GroupLooks, newPingCount, photoPings, sharedPlaces, withSentPhotos, type GroupMember, type SharedPlace } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
 import ChatList from './components/ChatList';
 import { useUnreadTalk } from './hooks/useUnreadTalk';
@@ -84,6 +85,7 @@ import GroupFormDialog from './components/GroupFormDialog';
 import GroupSettingsDialog from './components/GroupSettingsDialog';
 import type { GroupLine } from './components/GroupLines';
 import GroupAtlas, { type AtlasHandle } from './components/GroupAtlas';
+import GroupLookLayer from './components/GroupLookLayer';
 import { markKey } from './hooks/useAtlas';
 import { shareLinkService } from './services/shareLinkService';
 import { planShare } from './services/shareTargets';
@@ -382,7 +384,10 @@ export default function App() {
   // pings (the server's copy lags behind: a ping taken out of TODAY would
   // linger there until the next push and the next read).
   const myId = account.user?.id ?? null;
-  const myPings = useMemo(() => myGroupPings(storedPings, dateKey()), [storedPings]);
+  // TODAY pings I took off one group's map (핀 삭제 there) and photos I just deleted (until the next read drops them).
+  const [pingHides, setPingHides] = useState<GroupPingHides>(loadGroupPingHides);
+  const [goneShots, setGoneShots] = useState<ReadonlySet<string>>(() => new Set());
+  const hiddenIn = useCallback((groupId: string) => new Set(pingHides[groupId] ?? []), [pingHides]);
   // The order I dragged the groups into on We Now (this phone only): everywhere they're listed.
   const [groupOrder, setGroupOrder] = useState<string[]>(loadGroupOrder);
   const reorderGroups = (ids: string[]) => {
@@ -400,12 +405,53 @@ export default function App() {
                 ...m,
                 // 통합 프로필: this phone's photo and nickname (fresher than the server's); 개별: the group's own.
                 ...(m.ownProfile ? {} : { photo: profile.photo ?? m.photo, nickname: m.alias ?? (getDisplayName().trim() || m.nickname) }),
-                pings: mergeSamePlace(withSentPhotos(myPings, m.pings)),
+                pings: mergeSamePlace(withSentPhotos(myGroupPings(storedPings, dateKey(), hiddenIn(g.id)), withoutPhotos(m.pings, goneShots))),
               }
             : { ...m, pings: mergeSamePlace(m.pings) },
         ),
       })),
-    [groups.groups, groupOrder, myId, profile.photo, myPings],
+    [groups.groups, groupOrder, myId, profile.photo, storedPings, hiddenIn, goneShots],
+  );
+  // 사진 삭제 / 핀 삭제 from the photo panel's … menu (asked first): only in the open group.
+  const [placeDeleting, setPlaceDeleting] = useState<'photo' | 'place' | null>(null);
+  const deleteFromGroup = async (kind: 'photo' | 'place') => {
+    const group = openGroup;
+    const place = groupPing;
+    const ping = group && place?.member === myId ? group.members.find((m) => m.userId === myId)?.pings[place.seq] : undefined;
+    if (!group || !place || !ping) return;
+    const stack = groupPingPhotos(ping);
+    const index = place.photo !== undefined && stack[place.photo] ? place.photo : stack.length - 1;
+    const paths = (kind === 'photo' ? stack.slice(index, index + 1) : stack)
+      .map((url) => photoKey(url))
+      .filter((key): key is string => !!key && !key.startsWith('demo/'));
+    const ids = kind === 'place' ? (ping.ids ?? []) : [];
+    const [photosOk, hidden] = await Promise.all([groupService.deletePhotos(group.id, paths), groupService.hidePings(group.id, ids)]);
+    if (!photosOk || !hidden) return notify('삭제하지 못했어요. 잠시 뒤에 다시 시도해 주세요.');
+    if (paths.length) setGoneShots((before) => new Set([...before, ...paths]));
+    if (ids.length) setPingHides((before) => hideGroupPings(before, group.id, ids));
+    // The place stays when a photo goes and something else is left there (another photo, or the TODAY ping).
+    const stays = kind === 'photo' && (stack.length > 1 || !!ping.ids?.length);
+    setGroupPhotoBig(false);
+    setGroupPing(stays ? { member: place.member, seq: place.seq } : null);
+    notify(kind === 'photo' ? '사진을 삭제했어요.' : `'${ping.name || '이름 없는 곳'}' 핀을 이 그룹에서 삭제했어요.`);
+    groups.refresh();
+  };
+  // A ping taken out of TODAY by hand leaves every group: the ping itself
+  // goes with the next push (and from this phone's rows at once), the photos
+  // I sent from that place that day are deleted from all of them here.
+  const groupsRef = useRef({ refresh: groups.refresh, any: false, myId });
+  groupsRef.current = { refresh: groups.refresh, any: groupList.length > 0, myId };
+  useEffect(
+    () =>
+      onPingRemoved((ping) => {
+        const now = groupsRef.current;
+        if (ping.local || !now.myId || !now.any) return;
+        void groupService.deletePlacePhotos({ day: ping.day, at: ping.at, center: ping.center, name: ping.name }).then((ok) => {
+          if (!ok) notify('그룹에 보낸 사진은 삭제하지 못했어요.');
+          groupsRef.current.refresh();
+        });
+      }),
+    [notify],
   );
   // Back from TODAY to the group list: read the groups again rather than wait
   // for the minute's refresh (the others' pings may have moved on meanwhile).
@@ -435,15 +481,15 @@ export default function App() {
     const live = tab === 'people' && openGroupId ? (groupList.find((g) => g.id === openGroupId) ?? null) : null;
     if (!live || !groupDay) return live;
     const then = pastGroups.groups.find((g) => g.id === live.id);
-    const mine = myGroupPings(storedPings, groupDay);
+    const mine = myGroupPings(storedPings, groupDay, hiddenIn(live.id));
     return {
       ...live,
       members: live.members.map((m) => {
         const pings = then?.members.find((t) => t.userId === m.userId)?.pings ?? [];
-        return { ...m, pings: mergeSamePlace(m.userId === myId ? withSentPhotos(mine, pings) : pings) };
+        return { ...m, pings: mergeSamePlace(m.userId === myId ? withSentPhotos(mine, withoutPhotos(pings, goneShots)) : pings) };
       }),
     };
-  }, [tab, openGroupId, groupList, groupDay, pastGroups.groups, storedPings, myId]);
+  }, [tab, openGroupId, groupList, groupDay, pastGroups.groups, storedPings, myId, hiddenIn, goneShots]);
   const groupOpen = !!openGroup;
   const [gallerySeq, setGallerySeq] = useState<number | null>(null);
   const galleryIds = useMemo(() => (galleryTab ? groupList.map((g) => g.id) : null), [galleryTab, groupList]);
@@ -954,6 +1000,25 @@ export default function App() {
   // every photo sent from there by anyone, in the order they were taken.
   // Each member's own ping there stays as an invisible point under it, where
   // their lines meet.
+  // My looks in each group (long-pressed pings and lines), kept here the
+  // moment they change rather than after the server and the next read.
+  const [myLooks, setMyLooks] = useState<Record<string, GroupLooks>>({});
+  const looksOf = useCallback(
+    (m: GroupMember): GroupLooks | undefined => (m.userId === myId && openGroup ? (myLooks[openGroup.id] ?? m.looks) : m.looks),
+    [myId, openGroup, myLooks],
+  );
+  const myGroupRow = openGroup && myId ? (openGroup.members.find((m) => m.userId === myId) ?? null) : null;
+  const setGroupLook = (kind: 'ping' | 'edge', key: string, look: PingLook | LineLook | null) => {
+    const group = openGroup;
+    if (!group || !myGroupRow) return;
+    const before = looksOf(myGroupRow);
+    setMyLooks((all) => ({ ...all, [group.id]: withGroupLook(before, kind, key, look) }));
+    void groupService.setLook(group.id, kind, key, look).then((ok) => {
+      if (ok) return;
+      setMyLooks((all) => ({ ...all, [group.id]: before ?? { pings: {}, edges: {} } }));
+      notify(kind === 'ping' ? '핑 모양을 바꾸지 못했어요.' : '선 모양을 바꾸지 못했어요.');
+    });
+  };
   const groupMarks = useMemo<GroupPingMark[]>(() => {
     if (!openGroup) return [];
     const isPicked = (member: string, seq: number) => groupPing?.member === member && groupPing.seq === seq;
@@ -1010,18 +1075,29 @@ export default function App() {
           // The picked member's places by name; nobody's while ALL.
           label: groupPicked === m.userId ? p.name : undefined,
           photos: photos.has(i) ? groupPingPhotos(p) : undefined,
+          // Not on a face: their latest stays their face.
+          shape: i === m.pings.length - 1 ? undefined : looksOf(m)?.pings[pingLookKey(p)],
           selected: isPicked(m.userId, i),
           selectedPhoto: isPicked(m.userId, i) ? groupPing?.photo : undefined,
         };
       });
     });
-  }, [openGroup, groupPicked, groupPing]);
+  }, [openGroup, groupPicked, groupPing, looksOf]);
   const groupLines = useMemo<GroupLine[]>(
     () =>
       (openGroup?.members ?? [])
         .filter((m) => m.pings.length > 1)
-        .map((m) => ({ member: m.userId, color: memberColor(m.color), count: m.pings.length, faded: !!groupPicked && groupPicked !== m.userId })),
-    [openGroup, groupPicked],
+        .map((m) => {
+          const edges = looksOf(m)?.edges;
+          return {
+            member: m.userId,
+            color: memberColor(m.color),
+            count: m.pings.length,
+            faded: !!groupPicked && groupPicked !== m.userId,
+            styles: edges ? m.pings.slice(1).map((p, k) => edges[edgeLookKey(m.pings[k], p)]) : undefined,
+          };
+        }),
+    [openGroup, groupPicked, looksOf],
   );
   // Opening a group fits all of it; picking someone brings the map in close on their day.
   const groupFitted = useRef<{ group: string; picked: string | null } | null>(null);
@@ -1098,7 +1174,8 @@ export default function App() {
       return found;
     };
     const down = (e: PointerEvent) => {
-      tap = e.isPrimary && el.contains(e.target as Node) ? { x: e.clientX, y: e.clientY, at: performance.now() } : null;
+      // A touch that only closes the ping / line picker isn't a tap on the map.
+      tap = e.isPrimary && el.contains(e.target as Node) && !document.querySelector('.group-look-picker') ? { x: e.clientX, y: e.clientY, at: performance.now() } : null;
     };
     const up = (e: PointerEvent) => {
       const t = tap;
@@ -2150,6 +2227,9 @@ export default function App() {
       {openGroup && (
         <>
           <GroupAtlas marks={groupMarks} lines={groupLines} handle={atlasRef} rootRef={atlasEl} />
+          {myGroupRow && (
+            <GroupLookLayer rootRef={atlasEl} me={myGroupRow.userId} pings={myGroupRow.pings} looks={looksOf(myGroupRow)} onLook={setGroupLook} />
+          )}
           <GroupMapView
             group={openGroup}
             picked={groupPicked}
@@ -2173,6 +2253,7 @@ export default function App() {
               setCameraGroupId(openGroup.id);
               setCameraOpen(true);
             }}
+            onDelete={setPlaceDeleting}
           />
         </>
       )}
@@ -2272,6 +2353,21 @@ export default function App() {
           onDelete={() => setGroupDeleting(true)}
           onLeave={() => setGroupLeaving(true)}
           onClose={() => setGroupSettingsOpen(false)}
+        />
+      )}
+
+      {placeDeleting && openGroup && groupPing && (
+        <ConfirmDialog
+          label={placeDeleting === 'photo' ? '사진 삭제' : '핀 삭제'}
+          message={placeDeleting === 'photo' ? '이 사진을 삭제합니다.' : '이 핀을 삭제합니다.'}
+          detail={
+            placeDeleting === 'photo'
+              ? `'${openGroup.name}' 그룹에서만 삭제돼요.\n삭제한 사진은 복구할 수 없어요.`
+              : `이 장소의 사진도 모두 '${openGroup.name}' 그룹에서 삭제돼요.\nTODAY와 다른 그룹에는 남아요.`
+          }
+          confirmLabel="삭제"
+          onConfirm={() => void deleteFromGroup(placeDeleting)}
+          onClose={() => setPlaceDeleting(null)}
         />
       )}
 
