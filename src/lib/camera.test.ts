@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CAMERA_ZOOM, captureFrame, clampCameraZoom } from './camera';
+import { CAMERA_ZOOM, cameraZoomRange, captureFrame, clampCameraZoom, DIGITAL_ZOOM, splitCameraZoom } from './camera';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -30,6 +30,21 @@ describe('camera zoom', () => {
       expect(ctx.translate).toHaveBeenCalledWith(canvas.width, 0);
       expect(ctx.scale).toHaveBeenCalledWith(-1, 1);
     } else expect(ctx.scale).not.toHaveBeenCalled();
+  });
+
+  it("uses the camera's own zoom where it has one, out below 1× on an ultra-wide", () => {
+    const track = (zoom?: { min: number; max: number }) => ({ getCapabilities: () => (zoom ? { zoom } : {}) }) as unknown as MediaStreamTrack;
+    expect(cameraZoomRange(track())).toBe(DIGITAL_ZOOM);
+    expect(cameraZoomRange(null)).toBe(DIGITAL_ZOOM);
+    const wide = cameraZoomRange(track({ min: 0.5, max: 10 }));
+    expect(wide).toEqual({ min: 0.5, max: 10, lens: { min: 0.5, max: 10 } });
+    expect(clampCameraZoom(0.2, wide)).toBe(0.5);
+    expect(splitCameraZoom(0.5, wide)).toEqual({ lens: 0.5, digital: 1 });
+    // A short lens: its zoom first, then cropping on top up to 4×.
+    const short = cameraZoomRange(track({ min: 1, max: 2 }));
+    expect(short).toEqual({ min: 1, max: 4, lens: { min: 1, max: 2 } });
+    expect(splitCameraZoom(3, short)).toEqual({ lens: 2, digital: 1.5 });
+    expect(splitCameraZoom(3, DIGITAL_ZOOM)).toEqual({ lens: null, digital: 3 });
   });
 
   it('waits for the video to have a frame before capturing', () => {

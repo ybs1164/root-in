@@ -1,6 +1,6 @@
 import { Minus, Plus, RefreshCw, RotateCcw, Send, X } from 'lucide-react';
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
-import { CAMERA_ZOOM, captureFrame, clampCameraZoom, openCamera, stopCamera, type Facing } from '../lib/camera';
+import { CAMERA_ZOOM, cameraZoomRange, captureFrame, clampCameraZoom, DIGITAL_ZOOM, openCamera, setLensZoom, splitCameraZoom, stopCamera, type CameraZoomRange, type Facing } from '../lib/camera';
 
 /**
  * The camera, from the camera button: a square (1:1) live view, a big
@@ -18,11 +18,42 @@ export default function CameraScreen({ onSend, onClose }: { onSend: (photo: stri
   const [flash, setFlash] = useState(0);
   const [zoom, setZoom] = useState<number>(1);
   const zoomRef = useRef(1);
+  // How far this camera zooms: its own lens zoom where the browser offers it (out below 1× on an ultra-wide), else cropping.
+  const [range, setRange] = useState<CameraZoomRange>(DIGITAL_ZOOM);
+  const rangeRef = useRef(range);
+  const track = useRef<MediaStreamTrack | null>(null);
+  // The lens zoom is set one request at a time, always to the latest value a pinch asked for.
+  const lens = useRef<{ busy: boolean; want: number | null; set: number | null }>({ busy: false, want: null, set: null });
   const fingers = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<{ distance: number; zoom: number } | null>(null);
+  const driveLens = () => {
+    const l = lens.current;
+    const t = track.current;
+    if (l.busy || l.want === null || !t || l.want === l.set) return;
+    const value = l.want;
+    l.busy = true;
+    void setLensZoom(t, value).then((ok) => {
+      l.busy = false;
+      if (ok) l.set = value;
+      // The camera wouldn't: crop from here on, so the zoom still works.
+      else {
+        rangeRef.current = DIGITAL_ZOOM;
+        setRange(DIGITAL_ZOOM);
+        zoomRef.current = clampCameraZoom(zoomRef.current);
+        setZoom(zoomRef.current);
+        return;
+      }
+      driveLens();
+    });
+  };
   const changeZoom = (value: number) => {
-    zoomRef.current = clampCameraZoom(value);
+    zoomRef.current = clampCameraZoom(value, rangeRef.current);
     setZoom(zoomRef.current);
+    const { lens: want } = splitCameraZoom(zoomRef.current, rangeRef.current);
+    if (want !== null) {
+      lens.current.want = want;
+      driveLens();
+    }
   };
   const distance = () => {
     const [a, b] = [...fingers.current.values()];
@@ -56,11 +87,24 @@ export default function CameraScreen({ onSend, onClose }: { onSend: (photo: stri
     setState('starting');
     zoomRef.current = 1;
     setZoom(1);
+    track.current = null;
+    lens.current = { busy: false, want: null, set: null };
+    rangeRef.current = DIGITAL_ZOOM;
+    setRange(DIGITAL_ZOOM);
     void openCamera(facing).then((s) => {
       if (gone) return stopCamera(s);
       stream = s;
       const el = video.current;
       if (!s || !el) return setState('failed');
+      track.current = s.getVideoTracks()[0] ?? null;
+      const zooms = cameraZoomRange(track.current);
+      rangeRef.current = zooms;
+      setRange(zooms);
+      // Every camera opens at 1× (an ultra-wide's 0.5× is a pinch out away).
+      if (zooms.lens) {
+        lens.current.want = splitCameraZoom(1, zooms).lens;
+        driveLens();
+      }
       el.srcObject = s;
       void el.play().catch(() => {});
       setState('live');
@@ -88,7 +132,8 @@ export default function CameraScreen({ onSend, onClose }: { onSend: (photo: stri
     // Always a square, whatever shape the view ended up on screen: its middle.
     const { width, height } = el.getBoundingClientRect();
     const side = Math.min(width, height);
-    const url = captureFrame(el, { width: side, height: side }, facing === 'user', zoomRef.current);
+    // The lens zoom is already in the frame; only the crop on top of it is left to do.
+    const url = captureFrame(el, { width: side, height: side }, facing === 'user', splitCameraZoom(zoomRef.current, rangeRef.current).digital);
     if (!url) return;
     setFlash((n) => n + 1);
     takenAt.current = new Date();
@@ -106,7 +151,15 @@ export default function CameraScreen({ onSend, onClose }: { onSend: (photo: stri
         onPointerCancel={onPointerEnd}
         onLostPointerCapture={onPointerEnd}
       >
-        <video ref={video} className={`camera__view ${facing === 'user' ? 'is-mirrored' : ''}`} style={{ transform: `scale(${zoom})` }} playsInline muted autoPlay />
+        {/* The crop part of the zoom (the lens part is in the frames already); the mirror is its own `scale`. */}
+        <video
+          ref={video}
+          className={`camera__view ${facing === 'user' ? 'is-mirrored' : ''}`}
+          style={{ transform: `scale(${splitCameraZoom(zoom, range).digital})` }}
+          playsInline
+          muted
+          autoPlay
+        />
         {flash > 0 && <div key={flash} className="camera__flash" aria-hidden />}
         {shot && <img className="camera__shot" src={shot} alt="찍은 사진" />}
       </div>
@@ -137,13 +190,13 @@ export default function CameraScreen({ onSend, onClose }: { onSend: (photo: stri
         ) : (
           <>
             <div className="camera__zoom" role="group" aria-label="카메라 줌">
-              <button type="button" className="camera__btn" aria-label="줌 아웃" disabled={state !== 'live' || zoom <= CAMERA_ZOOM.min} onClick={() => changeZoom(zoomRef.current - CAMERA_ZOOM.step)}>
+              <button type="button" className="camera__btn" aria-label="줌 아웃" disabled={state !== 'live' || zoom <= range.min} onClick={() => changeZoom(zoomRef.current - CAMERA_ZOOM.step)}>
                 <Minus size={20} strokeWidth={2.2} />
               </button>
               <input
                 type="range"
-                min={CAMERA_ZOOM.min}
-                max={CAMERA_ZOOM.max}
+                min={range.min}
+                max={range.max}
                 step={CAMERA_ZOOM.step}
                 value={zoom}
                 disabled={state !== 'live'}
@@ -152,7 +205,7 @@ export default function CameraScreen({ onSend, onClose }: { onSend: (photo: stri
                 onChange={(e) => changeZoom(Number(e.target.value))}
               />
               <output className="camera__zoom-value" aria-label="현재 줌 배율">{zoom.toFixed(1)}×</output>
-              <button type="button" className="camera__btn" aria-label="줌 인" disabled={state !== 'live' || zoom >= CAMERA_ZOOM.max} onClick={() => changeZoom(zoomRef.current + CAMERA_ZOOM.step)}>
+              <button type="button" className="camera__btn" aria-label="줌 인" disabled={state !== 'live' || zoom >= range.max} onClick={() => changeZoom(zoomRef.current + CAMERA_ZOOM.step)}>
                 <Plus size={20} strokeWidth={2.2} />
               </button>
             </div>
