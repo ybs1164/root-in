@@ -124,8 +124,19 @@ export function removePingsOfPin(pinId: string): void {
   if (before.some((p) => p.pinId === pinId)) savePings(before.filter((p) => p.pinId !== pinId));
 }
 
+const removedListeners = new Set<(ping: StoredPing) => void>();
+
+/** Called when a ping is taken out of TODAY by hand (`removePing`): its photos leave every group too. */
+export function onPingRemoved(listener: (ping: StoredPing) => void): () => void {
+  removedListeners.add(listener);
+  return () => removedListeners.delete(listener);
+}
+
 /** Takes a ping out of its day (its ✕ on the day screen). The pin itself stays. */
 export function removePing(id: string): void {
   const before = loadPings();
-  if (before.some((p) => p.id === id)) savePings(before.filter((p) => p.id !== id));
+  const gone = before.find((p) => p.id === id);
+  if (!gone) return;
+  savePings(before.filter((p) => p.id !== id));
+  removedListeners.forEach((listener) => listener(gone));
 }

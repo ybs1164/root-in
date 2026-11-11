@@ -9674,6 +9674,44 @@ button:disabled {
   --icon-ink: var(--icon);
 }
 
+/* My own place: … in place of ✕, its little menu just to its left. */
+.group-photo-panel__more {
+  position: relative;
+  flex: none;
+}
+
+.group-photo-panel__menu {
+  position: absolute;
+  top: 0;
+  right: calc(100% + 6px);
+  z-index: 1;
+  display: grid;
+  min-width: 96px;
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--dialog-shadow);
+  animation: rise-in 0.16s var(--settle-ease) both;
+}
+
+.group-photo-panel__menu button {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--danger);
+  --icon-ink: currentColor;
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.group-photo-panel__menu button:active {
+  background: var(--surface-2);
+}
+
 .group-photo-panel__name {
   align-self: center;
   overflow: hidden;

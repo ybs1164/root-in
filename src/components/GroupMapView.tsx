@@ -1,4 +1,4 @@
-import { CalendarDays, Camera, ChevronLeft, ChevronRight, MessageCircle, Settings, X } from 'lucide-react';
+import { CalendarDays, Camera, ChevronLeft, ChevronRight, MessageCircle, MoreHorizontal, Settings, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { GROUP_LIMITS, memberColor, memberInk, memberPhotoItems, passRoute, photoKey, pingPhotos, placeTime, type Group, type GroupMember, type GroupPing } from '../domain/groups';
 import { addDays } from '../domain/calendar';
@@ -46,6 +46,11 @@ interface GroupMapViewProps {
   chatUnread?: number;
   /** The big camera at the bottom middle, as on We Now's list (sent to TODAY and this group to start with). */
   onCamera(): void;
+  /**
+   * The panel's … on a place of mine: 사진 삭제 (the shown photo) or 핀 삭제
+   * (the whole place), from this group only — App asks first.
+   */
+  onDelete?(kind: 'photo' | 'place'): void;
 }
 
 /**
@@ -81,7 +86,7 @@ const shownPhoto = (ping: GroupPing | undefined, photo?: number): string | undef
   return (photo !== undefined ? all[photo] : undefined) ?? ping?.photo;
 };
 
-export default function GroupMapView({ group, day, onDay, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onGallery, onChat, chatUnread = 0, onCamera }: GroupMapViewProps) {
+export default function GroupMapView({ group, day, onDay, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onGallery, onChat, chatUnread = 0, onCamera, onDelete }: GroupMapViewProps) {
   const pickedMember = group.members.find((m) => m.userId === picked) ?? null;
   // My colour here, as the doodle tools' one ink (`member-N`).
   const mine = group.members.find((m) => m.userId === me);
@@ -180,6 +185,8 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
                 onPhotoBig(true);
               }}
               onClose={() => onPlace(null)}
+              // Only my own places can be deleted: the others' keep their ✕.
+              onDelete={pickedMember.userId === me ? onDelete : undefined}
             />
             {photoBig && photoSeq >= 0 && (
               <PhotoViewer
@@ -294,6 +301,7 @@ function PhotoPanel({
   onOpen,
   onComment,
   onClose,
+  onDelete,
 }: {
   member: GroupMember;
   seq: number;
@@ -308,8 +316,22 @@ function PhotoPanel({
   /** 💬: open it big, writing a comment. */
   onComment(): void;
   onClose(): void;
+  /** With it, … in place of ✕: a little menu of 사진 삭제 (with a photo) and 핀 삭제. */
+  onDelete?(kind: 'photo' | 'place'): void;
 }) {
   const ping = member.pings[seq];
+  const [menu, setMenu] = useState(false);
+  const more = useRef<HTMLDivElement>(null);
+  // Another place or photo, or a press anywhere outside it: the menu folds.
+  useEffect(() => setMenu(false), [seq, photo]);
+  useEffect(() => {
+    if (!menu) return;
+    const away = (event: PointerEvent) => {
+      if (!more.current?.contains(event.target as Node)) setMenu(false);
+    };
+    document.addEventListener('pointerdown', away, true);
+    return () => document.removeEventListener('pointerdown', away, true);
+  }, [menu]);
   const panel = useRef<HTMLElement>(null);
   const thread = useRef<HTMLSpanElement>(null);
   useEffect(() => {
@@ -350,9 +372,41 @@ function PhotoPanel({
           <div className="group-photo-panel__top">
             {/* When the photo was taken (or they were there); who it is, the pass below says. */}
             <time className="group-photo-panel__time">{time}</time>
-            <button className="group-photo-panel__close" aria-label="사진 닫기" onClick={onClose}>
-              <X size={18} strokeWidth={2.4} />
-            </button>
+            {onDelete ? (
+              <div ref={more} className="group-photo-panel__more">
+                <button className="group-photo-panel__close" aria-label="더보기" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((open) => !open)}>
+                  <MoreHorizontal size={20} strokeWidth={2.4} />
+                </button>
+                {menu && (
+                  <div className="group-photo-panel__menu" role="menu">
+                    {photo && (
+                      <button
+                        role="menuitem"
+                        onClick={() => {
+                          setMenu(false);
+                          onDelete('photo');
+                        }}
+                      >
+                        사진 삭제
+                      </button>
+                    )}
+                    <button
+                      role="menuitem"
+                      onClick={() => {
+                        setMenu(false);
+                        onDelete('place');
+                      }}
+                    >
+                      핀 삭제
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button className="group-photo-panel__close" aria-label="사진 닫기" onClick={onClose}>
+                <X size={18} strokeWidth={2.4} />
+              </button>
+            )}
           </div>
           <strong className="group-photo-panel__name">{placeName(ping.name)}</strong>
           {/* As under the photo big: 💬 opens it big to write, ♥ ★ right here. */}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlaces, withSentPhotos, mergeSamePlace, pingPhotos, memberPhotoItems, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, orderGroups, moveId, type Group } from './groups';
+import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlaces, withSentPhotos, mergeSamePlace, pingPhotos, memberPhotoItems, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, orderGroups, moveId, withoutPhotos, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -221,9 +221,40 @@ describe('myGroupPings', () => {
       { id: 'y', day: '2026-10-18', at: at(4), name: 'Y', center: [127, 37.8] as [number, number] },
     ];
     expect(myGroupPings(stored, '2026-10-19')).toEqual([
-      { at: at(1), center: [127, 37.6], name: 'A' },
-      { at: at(3), center: [127, 37.5], name: 'B' },
+      { at: at(1), center: [127, 37.6], name: 'A', ids: ['a'] },
+      { at: at(3), center: [127, 37.5], name: 'B', ids: ['b'] },
     ]);
+  });
+
+  it('leaves out the pings hidden from the group (핀 삭제 there)', () => {
+    const at = (h: number) => `2026-10-19T0${h}:00:00.000Z`;
+    const stored = [
+      { id: 'a', day: '2026-10-19', at: at(1), name: 'A', center: [127, 37.6] as [number, number] },
+      { id: 'b', day: '2026-10-19', at: at(3), name: 'B', center: [127, 37.5] as [number, number] },
+    ];
+    expect(myGroupPings(stored, '2026-10-19', new Set(['a'])).map((p) => p.name)).toEqual(['B']);
+  });
+});
+
+describe('a place deleted in a group', () => {
+  const url = (id: string) => `https://x.supabase.co/storage/v1/object/public/group-photos/00000000-0000-0000-0000-000000000000/${id}.jpg`;
+  it('keeps the TODAY pings a merged place is made of (what 핀 삭제 hides)', () => {
+    const [place] = mergeSamePlace([
+      { at: '2026-10-19T01:00:00.000Z', center: [127, 37.5], name: 'A', ids: ['a'] },
+      { at: '2026-10-19T01:10:00.000Z', center: [127, 37.5], name: 'A', photo: url('photo01') },
+      { at: '2026-10-19T01:20:00.000Z', center: [127, 37.5], name: 'A', ids: ['b'] },
+    ]);
+    expect(place.ids).toEqual(['a', 'b']);
+  });
+
+  it('drops the photos just deleted, before the next read does', () => {
+    const pings = [
+      { at: '2026-10-19T01:00:00.000Z', center: [127, 37.5] as [number, number], name: 'A' },
+      { at: '2026-10-19T01:10:00.000Z', center: [127, 37.5] as [number, number], name: 'A', photo: url('photo01') },
+      { at: '2026-10-19T01:20:00.000Z', center: [127, 37.5] as [number, number], name: 'A', photo: url('photo02') },
+    ];
+    expect(withoutPhotos(pings, new Set(['00000000-0000-0000-0000-000000000000/photo01.jpg'])).map((p) => p.photo)).toEqual([undefined, url('photo02')]);
+    expect(withoutPhotos(pings, new Set())).toBe(pings);
   });
 });
 

@@ -67,6 +67,16 @@ export interface GroupService {
    * groups got it (0: none, e.g. the upload failed).
    */
   sendPhoto(groupIds: string[], ping: PhotoPing, photo: string): Promise<number>;
+  /**
+   * My photos at `paths` (group-photos paths) off group `groupId`, or off
+   * every group with null; a photo no group has any more leaves the bucket
+   * too. False when the server said no or couldn't be asked.
+   */
+  deletePhotos(groupId: string | null, paths: string[]): Promise<boolean>;
+  /** My TODAY pings `ids` hidden from group `groupId` only (핀 삭제 there); false when it failed. */
+  hidePings(groupId: string, ids: string[]): Promise<boolean>;
+  /** TODAY's ✕: my photos sent from that place that day off every group (and the bucket); false when it failed. */
+  deletePlacePhotos(ping: PhotoPing): Promise<boolean>;
   /** Every photo sent to `groupIds` (I'm a member of), newest first; 'error' when the server couldn't be asked. */
   photos(groupIds: string[]): Promise<GalleryPhoto[] | 'error'>;
   /**
@@ -166,6 +176,15 @@ export interface PhotoPing {
 }
 
 const PHOTO_BUCKET = 'group-photos';
+/** A path in group-photos: <uid>/<id>.jpg (as send_group_photo makes them). */
+const GROUP_PHOTO = /^[0-9a-f-]{36}\/[A-Za-z0-9_-]{6,40}\.jpg$/;
+
+/** The photos a delete left in no group (`gone`), out of the bucket; a failure only leaves files behind. */
+async function removeGone(client: SupabaseClient, data: unknown): Promise<void> {
+  const gone = (data as { gone?: unknown } | null)?.gone;
+  const paths = Array.isArray(gone) ? gone.filter((p): p is string => typeof p === 'string' && GROUP_PHOTO.test(p)).slice(0, 100) : [];
+  if (paths.length) await client.storage.from(PHOTO_BUCKET).remove(paths).catch(() => {});
+}
 const AVATAR_BUCKET = 'avatars';
 /** A group's own profile photo: <uuid>/g<random>.jpg in the avatars bucket. */
 const GROUP_AVATAR = /^[0-9a-f-]{36}\/g[A-Za-z0-9_-]{6,40}\.jpg$/;
@@ -651,6 +670,51 @@ export function createSupabaseGroupService(
         return data;
       } catch {
         return 0;
+      }
+    },
+
+    async deletePhotos(groupId, paths) {
+      try {
+        const asked = [...new Set(paths.filter((p) => GROUP_PHOTO.test(p)))].slice(0, 100);
+        if (!asked.length) return true;
+        if (groupId !== null && !UUID.test(groupId)) return false;
+        const client = await getClient();
+        if (!client) return false;
+        const { data, error } = await client.rpc('delete_group_photos', { gid: groupId, paths: asked });
+        if (error) return false;
+        await removeGone(client, data);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+
+    async hidePings(groupId, ids) {
+      try {
+        const asked = [...new Set(ids.filter((id) => typeof id === 'string' && id.length > 0 && id.length <= 64))].slice(0, 100);
+        if (!asked.length) return true;
+        if (!UUID.test(groupId)) return false;
+        const client = await getClient();
+        if (!client) return false;
+        const { error } = await client.rpc('hide_group_pings', { gid: groupId, ids: asked });
+        return !error;
+      } catch {
+        return false;
+      }
+    },
+
+    async deletePlacePhotos(ping) {
+      try {
+        const name = ping.name.trim().slice(0, 80);
+        if (!name || !inKorea(ping.center) || !DAY.test(ping.day)) return false;
+        const client = await getClient();
+        if (!client) return false;
+        const { data, error } = await client.rpc('delete_place_photos', { on_day: ping.day, ping_center: ping.center, place_name: name });
+        if (error) return false;
+        await removeGone(client, data);
+        return true;
+      } catch {
+        return false;
       }
     },
 

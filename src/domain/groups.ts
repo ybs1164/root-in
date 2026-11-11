@@ -13,6 +13,8 @@ export interface GroupPing {
   photos?: string[];
   /** When each of its photos (`pingPhotos`) was taken, same order; set on merged places, whose `at` is their last ping's. */
   photoAts?: string[];
+  /** My own row only: the TODAY pings (this phone's ids) the place is made of — what 핀 삭제 hides from a group. */
+  ids?: string[];
 }
 
 export interface GroupMember {
@@ -167,6 +169,8 @@ export function mergeSamePlace(pings: readonly GroupPing[]): GroupPing[] {
     if (name) merged.name = name;
     if (photos.length) merged.photo = photos[photos.length - 1], merged.photoAts = photoAts;
     if (photos.length > 1) merged.photos = photos;
+    const ids = [...(last.ids ?? []), ...(p.ids ?? [])];
+    if (ids.length) merged.ids = ids;
     out[out.length - 1] = merged;
   }
   return out;
@@ -358,11 +362,17 @@ export function withSentPhotos(mine: readonly GroupPing[], fromServer: readonly 
   return [...mine, ...sent].sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
 }
 
-export function myGroupPings(stored: readonly StoredPing[], day: string): GroupPing[] {
+export function myGroupPings(stored: readonly StoredPing[], day: string, hidden?: ReadonlySet<string>): GroupPing[] {
   return stored
-    .filter((p) => p.day === day && !p.local)
+    .filter((p) => p.day === day && !p.local && !hidden?.has(p.id))
     .sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0))
-    .map((p) => ({ at: p.at, center: p.center, name: p.name }));
+    .map((p) => ({ at: p.at, center: p.center, name: p.name, ids: [p.id] }));
+}
+
+/** A member's pings from the server without the photos I just deleted (before the next read drops them). */
+export function withoutPhotos(pings: readonly GroupPing[], gone: ReadonlySet<string>): GroupPing[] {
+  if (!gone.size) return pings as GroupPing[];
+  return pings.filter((p) => !p.photo || !gone.has(photoKey(p.photo) ?? ''));
 }
 
 /** A group's calendar: day (YYYY-MM-DD) → the ids of the members who pinged that day, each once. */

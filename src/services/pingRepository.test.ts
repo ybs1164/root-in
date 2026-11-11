@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { ExcludedPlace } from '../domain/privacy';
-import { loadPings, onPingsChanged, parsePing, recordPing, recordPlacePing, removePing, removePingsOfPin, todayPingOfPin } from './pingRepository';
+import { loadPings, onPingRemoved, onPingsChanged, parsePing, recordPing, recordPlacePing, removePing, removePingsOfPin, todayPingOfPin } from './pingRepository';
 import { onLocalWrote } from './syncBus';
 
 const place = { id: 'p1', name: '카페', center: [127.05, 37.54] as [number, number], address: '서울 성동구 성수동 1' };
@@ -48,6 +48,18 @@ describe('pingRepository', () => {
     recordPing(cafe, [], now);
     removePing(loadPings()[0].id);
     expect(loadPings()).toEqual([]);
+  });
+
+  it('tells who listens which ping left TODAY by hand (its group photos go too), not a deleted pin\'s', () => {
+    const removed: string[] = [];
+    const stop = onPingRemoved((ping) => removed.push(ping.name));
+    recordPing(cafe, [], now);
+    recordPing({ id: 'pin-park', place: { ...place, id: 'p2', name: '공원' } }, [], now);
+    removePing(loadPings()[0].id);
+    removePing('nope');
+    removePingsOfPin('pin-park');
+    stop();
+    expect(removed).toEqual([cafe.place.name]);
   });
 
   it("takes a deleted pin's pings out of every day, and nothing else", () => {
