@@ -237,7 +237,7 @@ export default function GroupSettingsDialog({ group, me, onRename, onCover, onPr
             <InviteLinkField url={inviteUrl(group.inviteSlug)} />
           </>
         )}
-        <button className="group-form__section profile__account group-form__manage" aria-haspopup="dialog" onClick={() => setManaging(true)}>
+        <button className="group-form__manage" aria-haspopup="dialog" onClick={() => setManaging(true)}>
           그룹 관리
           <ChevronRight size={18} aria-hidden />
         </button>

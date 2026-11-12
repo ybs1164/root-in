@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, type Ref, type RefObject } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, type ReactNode, type Ref, type RefObject } from 'react';
 import { clampView, fitView, zoomAbout, type AtlasView, type Room } from '../domain/atlas';
 import { createGroupPingElement, type GroupPingMark } from '../map/courseMap';
 import { markKey, useAtlas } from '../hooks/useAtlas';
@@ -19,6 +19,16 @@ const ROOM_BOTTOM = 120;
 const GLIDE_MS = 500;
 const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
 
+/**
+ * The day's whiteboard (its 꾸미기): a square on the canvas, from BOARD_AT to
+ * BOARD_AT + BOARD px at zoom 1 each way — past the canvas on every side, so
+ * there's room to doodle around the islands. The doodles are kept as
+ * fractions of it, so it stays put and the same size whatever the zoom.
+ */
+export const ATLAS_BOARD = { at: -200, size: 1200 } as const;
+/** The trash a dragged sticker or text box goes to: this far over the screen's bottom (px). */
+const BOARD_TRASH_UP = 200;
+
 /** The islands are plain land (2026-11-09): TODAY's roads and parks read as clutter at this size. */
 const plainIsland = (parts: MapPart[]) => parts.filter((part) => part.fill.role !== 'road' && part.fill.role !== 'park');
 
@@ -32,8 +42,26 @@ const plainIsland = (parts: MapPart[]) => parts.filter((part) => part.fill.role 
  * lines (`GroupLines`), the photo panel's thread and the taps that find them
  * on screen work as they did. Taps are App's (it hears them on `rootRef`).
  */
-export default function GroupAtlas({ marks, lines, handle, rootRef }: { marks: GroupPingMark[]; lines: GroupLine[]; handle: Ref<AtlasHandle>; rootRef: RefObject<HTMLDivElement | null> }) {
+interface GroupAtlasProps {
+  marks: GroupPingMark[];
+  lines: GroupLine[];
+  handle: Ref<AtlasHandle>;
+  rootRef: RefObject<HTMLDivElement | null>;
+  /** The day's doodles, on the ground (moved and scaled with it, under the lines and pins). */
+  board?: ReactNode;
+  /**
+   * A doodle tool is out: one finger is the tool's, not a drag. Under the pen
+   * two fingers still move and zoom the map ('pen'); a sticker or a text box
+   * takes two fingers itself, so the map stays still ('all').
+   */
+  lock?: 'pen' | 'all' | null;
+}
+
+export default function GroupAtlas({ marks, lines, handle, rootRef, board, lock = null }: GroupAtlasProps) {
   const atlas = useAtlas(marks);
+  const boardEl = useRef<HTMLDivElement>(null);
+  const lockRef = useRef(lock);
+  lockRef.current = lock;
   const root = useRef<HTMLDivElement | null>(null);
   const ground = useRef<HTMLDivElement>(null);
   const pins = useRef<HTMLDivElement>(null);
@@ -61,6 +89,14 @@ export default function GroupAtlas({ marks, lines, handle, rootRef }: { marks: G
     const v = view.current;
     if (!v) return;
     if (ground.current) ground.current.style.transform = `translate3d(${v.x}px, ${v.y}px, 0) scale(${v.zoom})`;
+    // The board's trash stays on screen, its own size (it's inside the scaled ground).
+    const b = boardEl.current;
+    const box = root.current;
+    if (b && box) {
+      b.style.setProperty('--trash-x', `${((box.clientWidth / 2 - v.x) / v.zoom - ATLAS_BOARD.at).toFixed(1)}px`);
+      b.style.setProperty('--trash-y', `${((box.clientHeight - BOARD_TRASH_UP - v.y) / v.zoom - ATLAS_BOARD.at).toFixed(1)}px`);
+      b.style.setProperty('--unzoom', String(1 / v.zoom));
+    }
     for (const layer of [pins.current, names.current]) {
       for (const el of layer?.children ?? []) {
         const node = el as HTMLElement;
@@ -177,10 +213,13 @@ export default function GroupAtlas({ marks, lines, handle, rootRef }: { marks: G
     };
     const down = (e: PointerEvent) => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (lockRef.current === 'all') return;
       stop();
       fingers.set(e.pointerId, local(e));
       fling = { vx: 0, vy: 0, at: performance.now() };
       if (fingers.size === 2 && view.current) pinch = { ...twoOf(), view: view.current };
+      // Under the pen the doodle layer has the finger (its capture must stay its own).
+      if (lockRef.current) return;
       // Moves past the edge still reach here; a pointer that's already gone can't be captured (and needn't be).
       try {
         el.setPointerCapture(e.pointerId);
@@ -200,6 +239,8 @@ export default function GroupAtlas({ marks, lines, handle, rootRef }: { marks: G
         show({ zoom: zoomed.zoom, x: zoomed.x + now.mid.x - pinch.mid.x, y: zoomed.y + now.mid.y - pinch.mid.y });
         return;
       }
+      // One finger under a doodle tool is the tool's.
+      if (lockRef.current) return;
       const [dx, dy] = [p.x - last.x, p.y - last.y];
       const t = performance.now();
       const dt = Math.max(1, t - fling.at);
@@ -210,7 +251,7 @@ export default function GroupAtlas({ marks, lines, handle, rootRef }: { marks: G
     const up = (e: PointerEvent) => {
       if (!fingers.delete(e.pointerId)) return;
       if (fingers.size < 2) pinch = null;
-      if (fingers.size || pinch) return;
+      if (fingers.size || pinch || lockRef.current) return;
       // A flick: glide on, slowing, unless the finger stopped before it lifted.
       if (performance.now() - fling.at > 80) return;
       let { vx, vy } = fling;
@@ -274,6 +315,11 @@ export default function GroupAtlas({ marks, lines, handle, rootRef }: { marks: G
             {island.parts.length ? <MiniMap parts={plainIsland(island.parts)} /> : <span className="group-atlas__blob" />}
           </div>
         ))}
+        {board && (
+          <div ref={boardEl} className="group-atlas__board" style={{ left: ATLAS_BOARD.at, top: ATLAS_BOARD.at, width: ATLAS_BOARD.size, height: ATLAS_BOARD.size }}>
+            {board}
+          </div>
+        )}
       </div>
       <GroupLines lines={legs} />
       <div ref={names} className="group-atlas__names" aria-hidden>

@@ -61,12 +61,17 @@ export function DoodleLayers({ layers, inkOf }: { layers: readonly PhotoDecorLay
   );
 }
 
+/** A group's board's pens, stickers and text, as a fraction of a photo's (in board widths). */
+const BOARD_SCALE = 0.35;
+
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
 
 export interface PhotoDoodle {
   /** A tool is out: the photo doesn't page under the finger, and Esc puts the tool away first. */
   active: boolean;
+  /** Which tool is out (a group's board lets two fingers move the map only under the pen). */
+  tool: DoodleTool | null;
   putAway(): void;
   /** 펜 · 스티커 · 텍스트, over the photo's top right (null when it can't be doodled on). */
   tools: ReactNode;
@@ -84,7 +89,16 @@ export interface PhotoDoodle {
  * colour in the group. No `color`: shown only (the gallery). A touch off
  * the photo and the tools puts the tool away.
  */
-export function usePhotoDoodle(path: string | null, color: string | null, inkOf?: (userId: string) => string | null): PhotoDoodle {
+export function usePhotoDoodle(
+  path: string | null,
+  color: string | null,
+  inkOf?: (userId: string) => string | null,
+  /** A group's day (`dayDecorKey`) on its map rather than a photo: the board's own classes. */
+  options?: { board?: boolean },
+): PhotoDoodle {
+  const board = !!options?.board;
+  // The board is many screens wide: its pens, stickers and text are drawn smaller than a photo's.
+  const scale = board ? BOARD_SCALE : 1;
   const decor = usePhotoDecor(path, color);
   const editable = !!path && !!color;
   const ink = color ?? 'ink-black';
@@ -190,7 +204,7 @@ export function usePhotoDoodle(path: string | null, color: string | null, inkOf?
   }, [tool]);
 
   const tools = editable ? (
-    <div className="photo-doodle__tools" role="toolbar" aria-label="사진 꾸미기">
+    <div className={`photo-doodle__tools ${board ? 'group-board__tools' : ''}`} role="toolbar" aria-label={board ? '지도 꾸미기' : '사진 꾸미기'}>
       {DOODLE_TOOLS.map(({ tool: t, label, Icon }) => (
         <button
           key={t}
@@ -211,10 +225,10 @@ export function usePhotoDoodle(path: string | null, color: string | null, inkOf?
 
   const layers = path ? (
     // Everyone else's doodles under mine; only mine take the tools.
-    <div className={`photo-doodle ${tool ? 'is-drawing' : ''}`}>
+    <div className={`photo-doodle ${board ? 'group-board' : ''} ${tool ? 'is-drawing' : ''}`}>
       {others?.map((layer) => (
         <div key={layer.userId} className="photo-doodle__layer" style={edgeOf(layer.ink)}>
-          <DecorLayer decor={layer.decor} tool={null} pen={pen} onChange={() => {}} />
+          <DecorLayer decor={layer.decor} tool={null} pen={pen} onChange={() => {}} scale={scale} />
         </div>
       ))}
       <div className="photo-doodle__layer" style={edgeOf(mineInk)}>
@@ -228,6 +242,7 @@ export function usePhotoDoodle(path: string | null, color: string | null, inkOf?
           onTextFocus={setTextFocus}
           textStyle={textStyle}
           onDragging={setDragging}
+          scale={scale}
         />
       </div>
     </div>
@@ -269,5 +284,5 @@ export function usePhotoDoodle(path: string | null, color: string | null, inkOf?
         )
       : null;
 
-  return { active: tool !== null, putAway: () => setTool(null), tools, layers, tray };
+  return { active: tool !== null, tool, putAway: () => setTool(null), tools, layers, tray };
 }

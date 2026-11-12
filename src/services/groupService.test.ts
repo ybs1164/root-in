@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
+import { dayDecorKey, readDayDecorKey } from '../domain/groups';
 import { createSupabaseGroupService, inviteUrl, readGroups, readInviteSlug, readMetPairs, readHeartNews, readGroupNews, readComments, readFeed, readDecorLayers, readReads, readUnreadTalk } from './groupService';
 
 const G1 = '11111111-1111-1111-1111-111111111111';
@@ -342,6 +343,21 @@ describe('groupService', () => {
     expect(await service.setDecor(path, { strokes: [], stickers: [] })).toBe(true);
     expect(fake.rpc).toHaveBeenLastCalledWith('set_photo_decor', { photo_path: path, decor: null });
     expect(await service.setDecor('demo/x', { strokes: [], stickers: [] })).toBe(false);
+  });
+
+  it("reads and saves a group's day as a whiteboard, by its key", async () => {
+    const stroke = { tool: 'pen', color: 'member-3', width: 'medium', points: [[0.1, 0.2], [0.3, 0.4]] };
+    const key = dayDecorKey(G1, '2026-11-13');
+    expect(readDayDecorKey(key)).toEqual({ groupId: G1, day: '2026-11-13' });
+    expect(readDayDecorKey(`${U1}/AbCdEf123456.jpg`)).toBeNull();
+    expect(readDayDecorKey('day:nope:2026-11-13')).toBeNull();
+    const fake = fakeClient((fn) => ({ data: fn === 'set_group_day_decor' ? true : fn === 'group_day_decors' ? [{ user_id: U1, decor: { strokes: [stroke], stickers: [] }, mine: true }] : null }));
+    const service = createSupabaseGroupService(async () => fake.client, true);
+    expect(await service.decors(key)).toEqual([{ userId: U1, decor: { strokes: [stroke], stickers: [] }, mine: true }]);
+    expect(fake.rpc).toHaveBeenLastCalledWith('group_day_decors', { gid: G1, on_day: '2026-11-13' });
+    expect(await service.setDecor(key, { strokes: [stroke as never], stickers: [] }, 'member-3')).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('set_group_day_decor', { gid: G1, on_day: '2026-11-13', decor: { strokes: [stroke], stickers: [], ink: 'member-3' } });
+    expect(await service.setDecor('day:x:2026-11-13', { strokes: [], stickers: [] })).toBe(false);
   });
 
   it("keeps the day a group was made, when the server says it", () => {

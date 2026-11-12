@@ -10788,9 +10788,27 @@ button.group-photo-panel__photo {
   margin-top: 14px;
 }
 
-/* 그룹 관리: a button to its own popup, not a fold (its chevron points on, and doesn't turn). */
+/* 그룹 관리: a two-tone button (like the popup's 닫기) to its own popup, its chevron pointing on. */
 .group-form__manage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   width: 100%;
+  min-height: 48px;
+  margin-top: 22px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--round-btn-shadow);
+  color: var(--text);
+  --icon-ink: var(--icon);
+  font-size: 16px;
+}
+
+.group-form__manage:active {
+  transform: translateY(2px);
+  box-shadow: none;
 }
 
 .group-members {
@@ -12758,4 +12776,69 @@ button.group-photo-panel__photo {
 
 .decor-tray__color.is-on span {
   box-shadow: 0 0 0 3px var(--tray-bg), var(--lift-pick);
+}
+
+/* ---------- A group's day as a whiteboard (꾸미기 on its map) ---------- */
+
+/* 꾸미기 under the 대화 (⚙ · calendar · gallery · 대화 · 꾸미기): white, the accent while it's on. */
+.group-view__btn--decor {
+  top: calc(12px + var(--safe-top) + 4 * (48px + 10px));
+  right: 14px;
+}
+
+.group-view__btn--decor.is-on {
+  background: var(--accent);
+  box-shadow: var(--round-btn-shadow-accent);
+  color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
+}
+
+/* 펜 · 스티커 · 텍스트 in a row to 꾸미기's left; the one out in my colour. */
+.group-board__tools {
+  position: fixed;
+  top: calc(12px + var(--safe-top) + 4 * (48px + 10px) + 2px);
+  right: calc(14px + 48px + 10px);
+  z-index: 20;
+  margin: 0;
+  animation: rise-in 0.18s ease-out both;
+}
+
+.group-board__tools .photo-doodle__tool {
+  background: var(--surface);
+  box-shadow: var(--round-btn-shadow);
+  color: var(--text);
+  --icon-ink: var(--icon);
+}
+
+.group-board__tools .photo-doodle__tool.is-on {
+  background: var(--doodle);
+  color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
+}
+
+/* The board on the atlas's ground: moved and scaled with it, under the lines and pins. */
+.group-atlas__board {
+  position: absolute;
+}
+
+.group-board {
+  position: absolute;
+  inset: 0;
+}
+
+/* The board's edge isn't a photo's: no rounded clip on the ink. */
+.group-board .decor__ink {
+  clip-path: none;
+}
+
+/* The trash a dragged piece goes to: on screen, its own size, whatever the zoom (GroupAtlas sets these). */
+.group-board .decor__trash {
+  left: var(--trash-x);
+  top: var(--trash-y);
+  translate: -50% -50%;
+  scale: var(--unzoom, 1);
+}
+
+.group-board .decor__trash.is-over {
+  scale: calc(var(--unzoom, 1) * 1.25);
 }
