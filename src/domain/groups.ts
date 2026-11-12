@@ -36,6 +36,18 @@ const LOOK_KEY = /^[0-9T:.\-Z>]{10,120}$/;
 
 /** A ping's key in `GroupLooks.pings`: when it began (its first ping's time). */
 export const pingLookKey = (ping: GroupPing): string => ping.from ?? ping.at;
+
+/**
+ * A group's day as a whiteboard (its 꾸미기): the doodle key that stands for
+ * it where a photo's path would (the same layers, tools and saving).
+ */
+export const dayDecorKey = (groupId: string, day: string): string => `day:${groupId}:${day}`;
+const DAY_DECOR_KEY = /^day:([0-9a-f-]{36}):(\d{4}-\d{2}-\d{2})$/;
+/** The group and day of a `dayDecorKey`; null for anything else (a photo's path). */
+export function readDayDecorKey(key: string): { groupId: string; day: string } | null {
+  const m = DAY_DECOR_KEY.exec(key);
+  return m ? { groupId: m[1], day: m[2] } : null;
+}
 /** A leg's key in `GroupLooks.edges`: its two ends' keys. */
 export const edgeLookKey = (from: GroupPing, to: GroupPing): string => `${pingLookKey(from)}>${pingLookKey(to)}`;
 

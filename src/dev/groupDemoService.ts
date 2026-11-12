@@ -255,6 +255,13 @@ export function createGroupDemoService(service: GroupService): GroupService {
       return [...(result === 'error' ? [] : result), ...demo].sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
     },
     async decors(path) {
+      // A day's whiteboard on a server without group_day_decor yet: this tab's memory.
+      if (path.startsWith('day:')) {
+        const live = await service.decors(path);
+        const mine = demoDecor.get(path);
+        if (live !== 'error' && !mine) return live;
+        return mine ? [{ userId: 'me', decor: mine.decor, mine: true, ...(mine.ink ? { ink: mine.ink } : {}) }] : live === 'error' ? [] : live;
+      }
       if (!path.startsWith('demo/')) return service.decors(path);
       const mine = demoDecor.get(path);
       return mine ? [{ userId: 'me', decor: mine.decor, mine: true, ...(mine.ink ? { ink: mine.ink } : {}) }] : [];
@@ -269,6 +276,14 @@ export function createGroupDemoService(service: GroupService): GroupService {
       return out;
     },
     async setDecor(path, decor, ink) {
+      if (path.startsWith('day:')) {
+        if (await service.setDecor(path, decor, ink)) {
+          demoDecor.delete(path);
+          return true;
+        }
+        demoDecor.set(path, { decor, ink });
+        return true;
+      }
       if (!path.startsWith('demo/')) return service.setDecor(path, decor, ink);
       demoDecor.set(path, { decor, ink });
       return true;

@@ -62,7 +62,7 @@ import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
 import { useGroups, useGroupsOnDay } from './hooks/useGroups';
 import { groupService, groupsNeedLogin, inviteUrl } from './services/groupService';
-import { focusPoints, mergeSamePlace, orderGroups, pingPhotos as groupPingPhotos, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, photoKey, withoutPhotos, pingLookKey, edgeLookKey, withGroupLook, type GroupLooks, newPingCount, photoPings, sharedPlaces, withSentPhotos, type GroupMember, type SharedPlace } from './domain/groups';
+import { dayDecorKey, focusPoints, GROUP_LIMITS as GROUP_SIZE, memberInk, mergeSamePlace, orderGroups, pingPhotos as groupPingPhotos, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, photoKey, withoutPhotos, pingLookKey, edgeLookKey, withGroupLook, type GroupLooks, newPingCount, photoPings, sharedPlaces, withSentPhotos, type GroupMember, type SharedPlace } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
 import ChatList from './components/ChatList';
 import { useUnreadTalk } from './hooks/useUnreadTalk';
@@ -85,7 +85,9 @@ import GroupFormDialog from './components/GroupFormDialog';
 import GroupSettingsDialog from './components/GroupSettingsDialog';
 import type { GroupLine } from './components/GroupLines';
 import GroupAtlas, { type AtlasHandle } from './components/GroupAtlas';
-import GroupLookLayer from './components/GroupLookLayer';
+import GroupLookLayer, { lookTargetAt } from './components/GroupLookLayer';
+import { usePhotoDoodle } from './components/PhotoDoodle';
+import { loadMyGroupLooks, saveMyGroupLooks } from './services/groupLookRepository';
 import { markKey } from './hooks/useAtlas';
 import { shareLinkService } from './services/shareLinkService';
 import { planShare } from './services/shareTargets';
@@ -1000,24 +1002,35 @@ export default function App() {
   // every photo sent from there by anyone, in the order they were taken.
   // Each member's own ping there stays as an invisible point under it, where
   // their lines meet.
-  // My looks in each group (long-pressed pings and lines), kept here the
-  // moment they change rather than after the server and the next read.
-  const [myLooks, setMyLooks] = useState<Record<string, GroupLooks>>({});
+  // My looks in each group (pressed pings and lines): each group's own, apart
+  // from TODAY's, kept on this phone so they stay on my map whether or not the
+  // server (what the other members see) took them.
+  const [myLooks, setMyLooks] = useState(loadMyGroupLooks);
   const looksOf = useCallback(
     (m: GroupMember): GroupLooks | undefined => (m.userId === myId && openGroup ? (myLooks[openGroup.id] ?? m.looks) : m.looks),
     [myId, openGroup, myLooks],
   );
   const myGroupRow = openGroup && myId ? (openGroup.members.find((m) => m.userId === myId) ?? null) : null;
+  // The day's whiteboard on the group's map: everyone's doodles always
+  // shown; mine edited while 꾸미기 is on, in my colour in the group.
+  const [boardOn, setBoardOn] = useState(false);
+  const boardInkOf = useCallback((userId: string) => (openGroup ? memberInk([openGroup], userId) : null), [openGroup]);
+  const groupBoard = usePhotoDoodle(
+    openGroup ? dayDecorKey(openGroup.id, groupDay ?? dateKey()) : null,
+    boardOn && myGroupRow ? `member-${myGroupRow.color % GROUP_SIZE.members}` : null,
+    boardInkOf,
+    { board: true },
+  );
+  useEffect(() => setBoardOn(false), [openGroupId]);
+  const myLookRow = useRef<{ me: string; count: number } | null>(null);
+  myLookRow.current = myGroupRow ? { me: myGroupRow.userId, count: myGroupRow.pings.length } : null;
   const setGroupLook = (kind: 'ping' | 'edge', key: string, look: PingLook | LineLook | null) => {
     const group = openGroup;
     if (!group || !myGroupRow) return;
-    const before = looksOf(myGroupRow);
-    setMyLooks((all) => ({ ...all, [group.id]: withGroupLook(before, kind, key, look) }));
-    void groupService.setLook(group.id, kind, key, look).then((ok) => {
-      if (ok) return;
-      setMyLooks((all) => ({ ...all, [group.id]: before ?? { pings: {}, edges: {} } }));
-      notify(kind === 'ping' ? '핑 모양을 바꾸지 못했어요.' : '선 모양을 바꾸지 못했어요.');
-    });
+    const next = withGroupLook(looksOf(myGroupRow), kind, key, look);
+    setMyLooks((all) => saveMyGroupLooks(all, group.id, next));
+    // Best effort: a server without group_ping_looks yet just leaves it on this phone.
+    void groupService.setLook(group.id, kind, key, look);
   };
   const groupMarks = useMemo<GroupPingMark[]>(() => {
     if (!openGroup) return [];
@@ -1175,13 +1188,17 @@ export default function App() {
     };
     const down = (e: PointerEvent) => {
       // A touch that only closes the ping / line picker isn't a tap on the map.
-      tap = e.isPrimary && el.contains(e.target as Node) && !document.querySelector('.group-look-picker') ? { x: e.clientX, y: e.clientY, at: performance.now() } : null;
+      // Nor is a doodle on the day's board.
+      tap = e.isPrimary && el.contains(e.target as Node) && !document.querySelector('.group-look-picker, .group-board.is-drawing') ? { x: e.clientX, y: e.clientY, at: performance.now() } : null;
     };
     const up = (e: PointerEvent) => {
       const t = tap;
       tap = null;
       if (!t || !e.isPrimary || !el.contains(e.target as Node)) return;
       if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > PRESS.slopPx || performance.now() - t.at >= PRESS.longMs) return;
+      // One of my own pings or lines: that tap opens its shape picker (GroupLookLayer) instead.
+      const mine = myLookRow.current;
+      if (mine && lookTargetAt(e.clientX, e.clientY, mine.me, mine.count)) return;
       const on = hit(e.clientX, e.clientY);
       if (on) {
         setGroupPicked(on.member);
@@ -1624,6 +1641,8 @@ export default function App() {
     if (chatsOpen) return setChatsOpen(false), true;
     if (groupChat) return setGroupChat(false), true;
     if (groupPhotoBig) return setGroupPhotoBig(false), true;
+    if (groupBoard.active) return groupBoard.putAway(), true;
+    if (boardOn) return setBoardOn(false), true;
     if (openGroupId) return setOpenGroupId(null), true;
     if (todayPhoto !== null) return setTodayPhoto(null), true;
     if (placePhoto !== null) return setPlacePhoto(null), true;
@@ -2226,7 +2245,14 @@ export default function App() {
 
       {openGroup && (
         <>
-          <GroupAtlas marks={groupMarks} lines={groupLines} handle={atlasRef} rootRef={atlasEl} />
+          <GroupAtlas
+            marks={groupMarks}
+            lines={groupLines}
+            handle={atlasRef}
+            rootRef={atlasEl}
+            board={groupBoard.layers}
+            lock={groupBoard.tool ? (groupBoard.tool === 'pen' ? 'pen' : 'all') : null}
+          />
           {myGroupRow && (
             <GroupLookLayer rootRef={atlasEl} me={myGroupRow.userId} pings={myGroupRow.pings} looks={looksOf(myGroupRow)} onLook={setGroupLook} />
           )}
@@ -2254,7 +2280,11 @@ export default function App() {
               setCameraOpen(true);
             }}
             onDelete={setPlaceDeleting}
+            decorOn={boardOn}
+            onDecor={() => setBoardOn((on) => !on)}
+            decorTools={boardOn ? groupBoard.tools : null}
           />
+          {groupBoard.tray}
         </>
       )}
 

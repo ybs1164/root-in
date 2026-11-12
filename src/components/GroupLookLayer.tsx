@@ -24,15 +24,26 @@ interface GroupLookLayerProps {
 /**
  * What a press at a screen point is on: one of my pin pings (not my latest,
  * drawn as my face, nor a place shared with someone, drawn for everyone),
- * else the nearest leg of my day close enough.
+ * else the nearest leg of my day close enough — but not where anyone's pin,
+ * face or photo is (a tap there opens that place). A photo over a ping is
+ * the photo's, not the ping's.
  */
-function targetAt(x: number, y: number, me: string, count: number): Target | null {
+export function lookTargetAt(x: number, y: number, me: string, count: number): Target | null {
+  for (const photo of document.querySelectorAll<HTMLElement>('.group-ping__photo')) {
+    const r = photo.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return null;
+  }
   const sel = `.group-ping[data-member="${CSS.escape(me)}"]:not(.group-ping--face):not(.is-together):not(.group-ping--ghost) .group-ping__pin`;
   for (const pin of document.querySelectorAll<HTMLElement>(sel)) {
     const r = pin.getBoundingClientRect();
     if (x < r.left - 6 || x > r.right + 6 || y < r.top - 6 || y > r.bottom + 6) continue;
     const seq = Number(pin.closest<HTMLElement>('.group-ping')?.dataset.seq);
     if (Number.isInteger(seq)) return { kind: 'ping', seq };
+  }
+  // Anyone's pin, face or photo is over the lines: a tap there is for that ping.
+  for (const part of document.querySelectorAll<HTMLElement>('.group-ping:not(.group-ping--ghost) > :not(.group-ping__label)')) {
+    const r = part.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return null;
   }
   let best: Target | null = null;
   let bestD = EDGE_HIT_PX;
@@ -50,12 +61,13 @@ function targetAt(x: number, y: number, me: string, count: number): Target | nul
 }
 
 /**
- * A group's map, my own day: long-press one of my pings for its shape (핀 ·
+ * A group's map, my own day: tap or long-press one of my pings for its shape (핀 ·
  * 점 · 별 · 하트, or 투명) or a line between two for its style (실선 · 파선 ·
  * 점선 · 굵은 선, or 투명) — the same picker as TODAY's and a route's. The
  * look is this group's (everyone in it sees it). Presses are watched on the
- * document (the pings let them through to the atlas); the click after a long
- * press is swallowed.
+ * document (the pings let them through to the atlas); the click after is
+ * swallowed, and App leaves such a tap be rather than reading it as a tap on
+ * the map (it asks `lookTargetAt` too).
  */
 export default function GroupLookLayer({ rootRef, me, pings, looks, onLook }: GroupLookLayerProps) {
   const [picking, setPicking] = useState<(Target & { x: number; y: number }) | null>(null);
@@ -63,7 +75,7 @@ export default function GroupLookLayer({ rootRef, me, pings, looks, onLook }: Gr
   count.current = pings.length;
 
   useEffect(() => {
-    let press: { x: number; y: number; timer: number } | null = null;
+    let press: { x: number; y: number; timer: number; open(): void } | null = null;
     const cancel = () => {
       if (press) window.clearTimeout(press.timer);
       press = null;
@@ -72,34 +84,47 @@ export default function GroupLookLayer({ rootRef, me, pings, looks, onLook }: Gr
       cancel();
       const root = rootRef.current;
       if (!e.isPrimary || !root || !root.contains(e.target as Node)) return;
-      const target = targetAt(e.clientX, e.clientY, me, count.current);
+      // A touch that only closes an open picker doesn't open another; nor does a doodle on the day's board.
+      if (document.querySelector('.group-look-picker, .group-board.is-drawing')) return;
+      const target = lookTargetAt(e.clientX, e.clientY, me, count.current);
       if (!target) return;
-      const p = { x: e.clientX, y: e.clientY, timer: 0 };
-      p.timer = window.setTimeout(() => {
-        press = null;
-        setPicking({ ...target, x: p.x, y: p.y });
-        navigator.vibrate?.(10);
-        const swallow = (c: MouseEvent) => {
-          c.stopPropagation();
-          c.preventDefault();
-        };
-        document.addEventListener('click', swallow, { capture: true, once: true });
-        window.setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 600);
-      }, PRESS.longMs);
+      const p = {
+        x: e.clientX,
+        y: e.clientY,
+        timer: 0,
+        open() {
+          window.clearTimeout(p.timer);
+          press = null;
+          setPicking({ ...target, x: p.x, y: p.y });
+          navigator.vibrate?.(10);
+          const swallow = (c: MouseEvent) => {
+            c.stopPropagation();
+            c.preventDefault();
+          };
+          document.addEventListener('click', swallow, { capture: true, once: true });
+          window.setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 600);
+        },
+      };
+      // Held: opens while still down. Let go sooner (without moving off): opens then.
+      p.timer = window.setTimeout(() => p.open(), PRESS.longMs);
       press = p;
     };
     const move = (e: PointerEvent) => {
       if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > PRESS.slopPx) cancel();
     };
+    const up = (e: PointerEvent) => {
+      if (press && e.isPrimary) press.open();
+      else cancel();
+    };
     document.addEventListener('pointerdown', down, true);
     document.addEventListener('pointermove', move, true);
-    document.addEventListener('pointerup', cancel, true);
+    document.addEventListener('pointerup', up, true);
     document.addEventListener('pointercancel', cancel, true);
     return () => {
       cancel();
       document.removeEventListener('pointerdown', down, true);
       document.removeEventListener('pointermove', move, true);
-      document.removeEventListener('pointerup', cancel, true);
+      document.removeEventListener('pointerup', up, true);
       document.removeEventListener('pointercancel', cancel, true);
     };
   }, [rootRef, me]);

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { cleanGroupName, GROUP_LIMITS, readGroupLooks, readPingDays, type Group, type GroupMember, type GroupPing, type PingDays } from '../domain/groups';
+import { cleanGroupName, GROUP_LIMITS, readDayDecorKey, readGroupLooks, readPingDays, type Group, type GroupMember, type GroupPing, type PingDays } from '../domain/groups';
 import { getSupabase, supabaseConfigured } from '../lib/supabase';
 import { inKorea } from './pinShareService';
 import { dataUrlToBlob } from './remoteProfileService';
@@ -117,7 +117,7 @@ export interface GroupService {
   feed(groupId: string): Promise<FeedItem[] | 'error'>;
   /** A message in a group's 대화; false when the server said no. */
   sendMessage(groupId: string, body: string): Promise<boolean>;
-  /** Every member's doodles on a photo (by its upload `path`); 'error' when the server couldn't be asked. */
+  /** Every member's doodles on a photo (by its upload `path`) or a group's day (`dayDecorKey`); 'error' when the server couldn't be asked. */
   decors(path: string): Promise<PhotoDecorLayer[] | 'error'>;
   /**
    * Every member's doodles on many photos at once (the gallery's squares),
@@ -125,7 +125,7 @@ export interface GroupService {
    * couldn't be asked (or hasn't photo_decors_many yet).
    */
   decorsMany(paths: readonly string[]): Promise<Map<string, PhotoDecorLayer[]> | 'error'>;
-  /** My doodles on a photo, replaced (nothing on it: taken off), with my colour for their stickers' edge; false when the server said no. */
+  /** My doodles on a photo or a group's day, replaced (nothing on it: taken off), with my colour for their stickers' edge; false when the server said no. */
   setDecor(path: string, decor: DayDecor, ink?: string): Promise<boolean>;
   /** Hears a group's 대화 or a photo's comments as lines are written (`groupLive`); returns the stop. */
   watch(topic: LiveTopic, listener: (event: LiveEvent) => void): () => void;
@@ -928,10 +928,13 @@ export function createSupabaseGroupService(
 
     async decors(path) {
       try {
-        if (!PHOTO_PATH.test(path)) return 'error';
+        const day = readDayDecorKey(path);
+        if (!day && !PHOTO_PATH.test(path)) return 'error';
         const client = await getClient();
         if (!client) return 'error';
-        const { data, error } = await client.rpc('photo_decors', { photo_path: path });
+        const { data, error } = day
+          ? await client.rpc('group_day_decors', { gid: day.groupId, on_day: day.day })
+          : await client.rpc('photo_decors', { photo_path: path });
         return error ? 'error' : readDecorLayers(data);
       } catch {
         return 'error';
@@ -965,12 +968,15 @@ export function createSupabaseGroupService(
 
     async setDecor(path, decor, ink) {
       try {
-        if (!PHOTO_PATH.test(path)) return false;
+        const day = readDayDecorKey(path);
+        if (!day && !PHOTO_PATH.test(path)) return false;
         const client = await getClient();
         if (!client) return false;
         const pieces: DayDecor = { stickers: decor.stickers, strokes: decor.strokes, ...(decor.texts?.length ? { texts: decor.texts } : {}) };
         const saved = isBlankDecor(pieces) ? null : { ...pieces, ...(isMemberInk(ink) ? { ink } : {}) };
-        const { data, error } = await client.rpc('set_photo_decor', { photo_path: path, decor: saved });
+        const { data, error } = day
+          ? await client.rpc('set_group_day_decor', { gid: day.groupId, on_day: day.day, decor: saved })
+          : await client.rpc('set_photo_decor', { photo_path: path, decor: saved });
         return !error && data === true;
       } catch {
         return false;
@@ -978,6 +984,11 @@ export function createSupabaseGroupService(
     },
 
     watchDecor(path, onChange) {
+      const day = readDayDecorKey(path);
+      // A day's whiteboard: one filter per channel, so the group's days all nudge it (it reads its own again).
+      if (available && day) {
+        return listen(getClient, `day-decor:${path}`, [{ table: 'group_day_decor', event: '*', filter: `group_id=eq.${day.groupId}` }], onChange);
+      }
       if (!available || !PHOTO_PATH.test(path)) return () => {};
       return listen(getClient, `photo-decor:${path}`, [
         // Doodles are upserted (a layer taken off entirely is a delete, which a filter can't catch).

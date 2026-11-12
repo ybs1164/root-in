@@ -123,6 +123,10 @@
    이 둘이 없으면 알림함·앱 알약은 그대로 되고 푸시만 안 감.
 5. 확인: 두 계정(다른 폰, 또는 폰 하나 + 다른 브라우저 프로필)을 같은 그룹에 넣고 한쪽에서 카메라로 그 그룹에 사진 보내기 → 다른 폰에 '<그룹 이름> · <이름>님이 '<장소>'에 핑을 찍었어요.' 안 오면 `select status_code, content, created from net._http_response order by created desc limit 5;` — 함수 답의 `errors`에 보내지 못한 이유(키를 못 읽음 · `google token 4xx` · `fcm 403 SENDER_ID_MISMATCH` 등)가 나옴(대시보드 → Edge Functions → push-news → Logs에도). `errors`가 비었는데 안 오면 폰 쪽(앱 강제 종료·배터리 최적화·알림 꺼짐).
 
+## 그룹 지도 꾸미기 (날짜별 화이트보드, 2026-11-13)
+
+- `20261114000000_group_day_decor.sql`: `group_day_decor(group_id, day, user_id, decor)` — 그룹·날짜·사람마다 낙서 겹 하나(앱의 DayDecor JSON, 300kB까지, 위치는 판 크기 비율). 쓰기는 `set_group_day_decor(gid, on_day, decor)`(null이면 지움, 그룹원만), 읽기는 `group_day_decors(gid, on_day)`(나간 사람 겹은 뺌, 오래된 순 20개). 그룹원 읽기 정책 + `supabase_realtime`에 키 칸만 — 앱은 그룹 단위로 듣고 그날 것을 다시 읽음.
+
 ## 구조
 - `lib/supabase.ts` — 키가 있을 때만 `@supabase/supabase-js`를 동적 import (키 없는 빌드엔 라이브러리가 아예 안 들어감). PKCE 흐름이라 로그인 결과가 `?code=`로 돌아와 공유 링크 해시(`#share=`)와 안 겹침, 쓰고 나면 `clearLoginReturn`이 주소창에서 지움.
 - `services/authService.ts` — 로그인·로그아웃·탈퇴 (`AuthService` 인터페이스, reject 안 함).

@@ -62,6 +62,12 @@ interface DecorLayerProps {
    * the box's width and height; sizes, pen widths included, of its width.
    */
   aspect?: number;
+  /**
+   * Pen widths, stickers and text drawn this many times their size (a big
+   * board — a group's map, many screens wide — wants them smaller than its
+   * width would make them). What's saved stays in the usual ranges.
+   */
+  scale?: number;
 }
 
 /** How far a finger may wander and still count as a tap on a box (px). */
@@ -92,9 +98,9 @@ const strokePath = (points: [number, number][], aspect: number) =>
  * then a bright core); or a waxy crayon line (grain cut out of it and its
  * edges roughened by the crayon filter).
  */
-function Ink({ stroke, glowId, aspect }: { stroke: Stroke; glowId: string; aspect: number }) {
+function Ink({ stroke, glowId, aspect, scale = 1 }: { stroke: Stroke; glowId: string; aspect: number; scale?: number }) {
   const d = strokePath(stroke.points, aspect);
-  const w = PEN_WIDTHS[stroke.width] * 100;
+  const w = PEN_WIDTHS[stroke.width] * 100 * scale;
   const color = inkCss(stroke.color);
   if (stroke.tool === 'highlighter') {
     return <path d={d} className="decor__hl" style={{ stroke: color, strokeWidth: w * 2.4 }} />;
@@ -119,12 +125,12 @@ function Ink({ stroke, glowId, aspect }: { stroke: Stroke; glowId: string; aspec
  * in a mask that hides where it rubbed, so it clears an area of earlier
  * ink but not what's drawn afterwards.
  */
-function inkLayers(strokes: Stroke[], glowId: string, maskId: string, aspect: number): ReactNode[] {
+function inkLayers(strokes: Stroke[], glowId: string, maskId: string, aspect: number, scale = 1): ReactNode[] {
   const h = 100 * aspect + 20;
   let layers: ReactNode[] = [];
   strokes.forEach((stroke, i) => {
     if (stroke.tool !== 'eraser') {
-      layers.push(<Ink key={i} stroke={stroke} glowId={glowId} aspect={aspect} />);
+      layers.push(<Ink key={i} stroke={stroke} glowId={glowId} aspect={aspect} scale={scale} />);
       return;
     }
     const id = `${maskId}-${i}`;
@@ -134,7 +140,7 @@ function inkLayers(strokes: Stroke[], glowId: string, maskId: string, aspect: nu
         <path
           d={strokePath(stroke.points, aspect)}
           className="decor__mask-rub"
-          style={{ strokeWidth: PEN_WIDTHS[stroke.width] * ERASER_SCALE * 100 }}
+          style={{ strokeWidth: PEN_WIDTHS[stroke.width] * ERASER_SCALE * 100 * scale }}
         />
       </mask>,
       <g key={`g${i}`} mask={`url(#${id})`}>
@@ -175,6 +181,7 @@ export default function DecorLayer({
   textStyle = { font: 'app', color: 'ink-black', align: 'center' },
   onDragging,
   aspect = 1,
+  scale = 1,
 }: DecorLayerProps) {
   const decor = useMemo(() => withDecorOrder(savedDecor), [savedDecor]);
   const decorRef = useRef(decor);
@@ -296,9 +303,12 @@ export default function DecorLayer({
       const box = layer.current?.getBoundingClientRect();
       if (!box?.width) return;
       const now = decorRef.current;
-      const [x, y] = drop.at ? [(drop.at.x - box.left) / box.width, (drop.at.y - box.top) / box.height] : [0.5, 0.5];
+      // A tap on the sheet: the middle of the drawing — or, on a board bigger than the screen, of the screen.
+      const middle = box.width > window.innerWidth ? { x: window.innerWidth / 2, y: window.innerHeight / 2 } : null;
+      const spot = drop.at ?? middle;
+      const [x, y] = spot ? [(spot.x - box.left) / box.width, (spot.y - box.top) / box.height] : [0.5, 0.5];
       // A sticker's width on the drawing is 0.78 of its size in box widths (`.decor__sticker`).
-      const size = drop.width ? Math.min(STICKER_MAX, Math.max(STICKER_MIN, drop.width / (box.width * 0.78))) : STICKER_SIZE;
+      const size = drop.width ? Math.min(STICKER_MAX, Math.max(STICKER_MIN, drop.width / (box.width * 0.78 * scale))) : STICKER_SIZE;
       const sticker = {
         order: nextDecorOrder(now),
         id: newId(),
@@ -578,7 +588,7 @@ export default function DecorLayer({
               <feComposite in="rough" in2="grain" operator="in" />
             </filter>
           </defs>
-          {inkLayers([stroke, ...strokes.slice(i + 1).filter((s) => s.tool === 'eraser')], `${glowId}-${i}`, `rub-${uid}-${i}`, aspect)}
+          {inkLayers([stroke, ...strokes.slice(i + 1).filter((s) => s.tool === 'eraser')], `${glowId}-${i}`, `rub-${uid}-${i}`, aspect, scale)}
         </svg>
       ))}
       {drawing?.tool === 'eraser' && (
@@ -591,7 +601,7 @@ export default function DecorLayer({
                 className="decor__eraser-ring"
                 cx={x * 100}
                 cy={y * 100 * aspect}
-                r={(PEN_WIDTHS[drawing.width] * ERASER_SCALE * 100) / 2}
+                r={(PEN_WIDTHS[drawing.width] * ERASER_SCALE * 100 * scale) / 2}
               />
             );
           })()}
@@ -609,9 +619,9 @@ export default function DecorLayer({
             style={{
               left: `${pos.x * 100}%`,
               top: `${pos.y * 100}%`,
-              width: `${pos.size * 78}cqw`,
+              width: `${pos.size * 78 * scale}cqw`,
               // The die-cut edge is the same on every sticker, whatever its size (never under a hair).
-              '--edge': `max(1.2px, ${PLACED_STICKER_EDGE * 100}cqw)`,
+              '--edge': `max(1.2px, ${PLACED_STICKER_EDGE * 100 * scale}cqw)`,
               zIndex: zIndex.get(`sticker:${i}`),
               rotate: `${pos.rotate ?? 0}deg`,
             } as CSSProperties}
@@ -638,7 +648,7 @@ export default function DecorLayer({
             style={{
               left: `${pos.x * 100}%`,
               top: `${pos.y * 100}%`,
-              fontSize: `${pos.size * 100}cqw`,
+              fontSize: `${pos.size * 100 * scale}cqw`,
               zIndex: zIndex.get(`text:${i}`),
               rotate: `${pos.rotate ?? 0}deg`,
               ...textCss(t),

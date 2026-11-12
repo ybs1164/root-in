@@ -1,4 +1,4 @@
-import { CalendarDays, Camera, ChevronLeft, ChevronRight, MessageCircle, MoreHorizontal, Settings, X } from 'lucide-react';
+import { Brush, CalendarDays, Camera, ChevronLeft, ChevronRight, MessageCircle, MoreHorizontal, Settings, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { GROUP_LIMITS, memberColor, memberInk, memberPhotoItems, passRoute, photoKey, pingPhotos, placeTime, type Group, type GroupMember, type GroupPing } from '../domain/groups';
 import { addDays } from '../domain/calendar';
@@ -51,6 +51,11 @@ interface GroupMapViewProps {
    * (the whole place), from this group only — App asks first.
    */
   onDelete?(kind: 'photo' | 'place'): void;
+  /** 꾸미기 under the 대화: the day's board is mine to doodle on while it's on. */
+  decorOn?: boolean;
+  onDecor?(): void;
+  /** 펜 · 스티커 · 텍스트, beside 꾸미기 while it's on. */
+  decorTools?: ReactNode;
 }
 
 /**
@@ -86,7 +91,7 @@ const shownPhoto = (ping: GroupPing | undefined, photo?: number): string | undef
   return (photo !== undefined ? all[photo] : undefined) ?? ping?.photo;
 };
 
-export default function GroupMapView({ group, day, onDay, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onGallery, onChat, chatUnread = 0, onCamera, onDelete }: GroupMapViewProps) {
+export default function GroupMapView({ group, day, onDay, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onGallery, onChat, chatUnread = 0, onCamera, onDelete, decorOn = false, onDecor, decorTools }: GroupMapViewProps) {
   const pickedMember = group.members.find((m) => m.userId === picked) ?? null;
   // My colour here, as the doodle tools' one ink (`member-N`).
   const mine = group.members.find((m) => m.userId === me);
@@ -125,6 +130,12 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
         <CalendarDays size={22} strokeWidth={2} />
       </button>
       <GalleryButton className="group-view__btn group-view__btn--gallery" onOpen={onGallery} />
+      {onDecor && (
+        <button className={`group-view__btn group-view__btn--decor ${decorOn ? 'is-on' : ''}`} aria-label="지도 꾸미기" aria-pressed={decorOn} onClick={onDecor}>
+          <Brush size={22} strokeWidth={2} />
+        </button>
+      )}
+      {decorTools}
       {/* Bottom-right, level with the member row (where the camera once stood). */}
       <button className="group-view__chat" aria-label={chatUnread ? `대화, 안 읽은 메시지 ${chatUnread}` : '대화'} onClick={onChat}>
         <TalkBubbles size={30} />
