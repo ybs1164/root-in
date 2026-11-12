@@ -4,576 +4,680 @@
     "restaurant": {
       "source": "output/poi-sticker-review-20261102-v21/images/restaurant.png",
       "reviewId": "restaurant",
-      "sha256": "2ab0159b991da046bd8165f36bea521c5fb9757cbb42c8ce96517df985bcf1e6"
+      "sha256": "23e80cd5eb58354310145f518a38b4b549c6778387eb451272a8de6853af08e1",
+      "sourceSha256": "2ab0159b991da046bd8165f36bea521c5fb9757cbb42c8ce96517df985bcf1e6"
     },
     "korean": {
       "source": "output/poi-sticker-review-20261102-v21/images/korean.png",
       "reviewId": "korean",
-      "sha256": "8ab9327158b20e94a7cb0235e7dd045015d50d6579b7d5ea83552ebe09e11e1d"
+      "sha256": "ef7ead4fd1161526f862f7eba777dc8f9d3699e7d4aa8b790b43905216d7530e",
+      "sourceSha256": "8ab9327158b20e94a7cb0235e7dd045015d50d6579b7d5ea83552ebe09e11e1d"
     },
     "meat": {
       "source": "output/poi-sticker-review-20261102-v21/images/meat.png",
       "reviewId": "meat",
-      "sha256": "0ae19b209d46be15d42ecd8a27c85550fb3ef4a616c603305cae15d093cda6cf"
+      "sha256": "e2b29d5ad8d560c1bc149872ab7adc9e7ac951fc2eb8ea9a7e863b79e81b40ac",
+      "sourceSha256": "0ae19b209d46be15d42ecd8a27c85550fb3ef4a616c603305cae15d093cda6cf"
     },
     "seafood": {
       "source": "output/poi-sticker-review-20261102-v21/images/seafood.png",
       "reviewId": "seafood",
-      "sha256": "d6cea1db0b62d547b2916f1586c6398b60751de1faa4a06a2e21babdd7076b1e"
+      "sha256": "f70aa86457e4da71d0ba2d9f4411935b756e9236acbf7596fe2f919455a02c2c",
+      "sourceSha256": "d6cea1db0b62d547b2916f1586c6398b60751de1faa4a06a2e21babdd7076b1e"
     },
     "chinese": {
       "source": "output/poi-sticker-review-20261102-v21/images/chinese.png",
       "reviewId": "chinese",
-      "sha256": "3af8c2bc76cdea8cdc0d087daafca71797a8c0a312ed7ac9aeec8a825110ac5d"
+      "sha256": "d4f19e238412f2746ce1c0b3da8e2c4c185a35613580a7e4f2d9c27799b7f7b4",
+      "sourceSha256": "3af8c2bc76cdea8cdc0d087daafca71797a8c0a312ed7ac9aeec8a825110ac5d"
     },
     "japanese": {
       "source": "output/poi-sticker-review-20261102-v21/images/japanese.png",
       "reviewId": "japanese",
-      "sha256": "a8bc78394ac972d9f665d86cb4299b7f8f8a971fcb4cb228a2cb299f9fa72fdb"
+      "sha256": "814e9d84f597dffcb04a3966fbb70829781ff91664b897bc3453886281a4cb06",
+      "sourceSha256": "a8bc78394ac972d9f665d86cb4299b7f8f8a971fcb4cb228a2cb299f9fa72fdb"
     },
     "western": {
       "source": "output/poi-sticker-review-20261102-v21/images/western.png",
       "reviewId": "western",
-      "sha256": "d927709ce7d7f675847c2ab2897b73a0b21cb9dfcbe4d91d8f7d3b485fae3e89"
+      "sha256": "1ac32c9df4dc3ad632300d296910961fe59dd6add4593b41536250dff9f1e175",
+      "sourceSha256": "d927709ce7d7f675847c2ab2897b73a0b21cb9dfcbe4d91d8f7d3b485fae3e89"
     },
     "world": {
       "source": "output/poi-sticker-review-20261102-v21/images/world.png",
       "reviewId": "world",
-      "sha256": "40d134ad318b10ea47ce376bc7c1f81950d2cc7e80fa4b9318f8c2983cf08280"
+      "sha256": "0a5a2305610f128843c391a62e1f5afc5888afee7750b5694c29fa073532f40d",
+      "sourceSha256": "40d134ad318b10ea47ce376bc7c1f81950d2cc7e80fa4b9318f8c2983cf08280"
     },
     "noodle": {
       "source": "output/poi-sticker-review-20261102-v21/images/noodle.png",
       "reviewId": "noodle",
-      "sha256": "79d38090ad54db6505f5a68d3a2f3ad2bfc5fd4cc890dc55b82342606a137225"
+      "sha256": "ad5f061250c31dc5f0cb8d5b9ffc5eada7520add68042b4a2f5b2b566afe863f",
+      "sourceSha256": "79d38090ad54db6505f5a68d3a2f3ad2bfc5fd4cc890dc55b82342606a137225"
     },
     "snack": {
       "source": "output/poi-sticker-review-20261102-v21/images/snack.png",
       "reviewId": "snack",
-      "sha256": "d50df4b77d9904a42e8cefdc146c5418da961314604122c5577499e77caa33a6"
+      "sha256": "2f7faee650ea9dad996be9007aecb43f64791734e9ae597ff908db5c8ef82627",
+      "sourceSha256": "d50df4b77d9904a42e8cefdc146c5418da961314604122c5577499e77caa33a6"
     },
     "buffet": {
       "source": "output/poi-sticker-review-20261102-v21/images/buffet.png",
       "reviewId": "buffet",
-      "sha256": "b9eb16b53133d4dc16992b74e09728efb41f895572207bd0e11c7662dc7d8208"
+      "sha256": "eb66892b21ea10f922d8753b8156a834463228821f4b2ed4622190e1c4d3ba9a",
+      "sourceSha256": "b9eb16b53133d4dc16992b74e09728efb41f895572207bd0e11c7662dc7d8208"
     },
     "pizza": {
       "source": "output/poi-sticker-review-20261102-v21/images/pizza.png",
       "reviewId": "pizza",
-      "sha256": "6cdaff423b98fa2af94c0b9c08657df2999e74b37894dd7c7c377019f4e5245d"
+      "sha256": "634261d99dd1518019bb959bdacfe0e6e505a397634fc14f78917ed9a8c85c00",
+      "sourceSha256": "6cdaff423b98fa2af94c0b9c08657df2999e74b37894dd7c7c377019f4e5245d"
     },
     "burger": {
       "source": "output/poi-sticker-review-20261102-v21/images/burger.png",
       "reviewId": "burger",
-      "sha256": "ab1f8a4aaabc0817d67586518b1039a61267b64a7c5f55169f1bca4784773fcb"
+      "sha256": "e8690803791f175b619e97a6816c236b87f10b7025617791190a8064b9c6b51d",
+      "sourceSha256": "ab1f8a4aaabc0817d67586518b1039a61267b64a7c5f55169f1bca4784773fcb"
     },
     "chicken": {
       "source": "output/poi-sticker-review-20261102-v21/images/chicken.png",
       "reviewId": "chicken",
-      "sha256": "b117e16cf0dd454e996ac1bad45fcd7967215c159888db8971ed1cd6fbcf1755"
+      "sha256": "5265dabbd8044af0dcd31ba2af5a4fc2954a8a7f035c3972b034632cd772a0c7",
+      "sourceSha256": "b117e16cf0dd454e996ac1bad45fcd7967215c159888db8971ed1cd6fbcf1755"
     },
     "sandwich": {
       "source": "output/poi-sticker-review-20261102-v21/images/sandwich.png",
       "reviewId": "sandwich",
-      "sha256": "cad44d70230b45a9582332b062eed855ab22f7b87e382f9f943ee0386ff3d687"
+      "sha256": "c1a8a5baf58aa24c8b78c07a4cec4762bf932ce7e6b8da13c616c6898d2f762c",
+      "sourceSha256": "cad44d70230b45a9582332b062eed855ab22f7b87e382f9f943ee0386ff3d687"
     },
     "cafe": {
       "source": "output/poi-sticker-review-20261102-v21/images/cafe.png",
       "reviewId": "cafe",
-      "sha256": "69e60f78cdb61d6579e882c160275860b38a6f11496871155e667111c355492f"
+      "sha256": "4e7779ef8fd5278872151de90813943321e618f7a769306d556d8e713411833c",
+      "sourceSha256": "69e60f78cdb61d6579e882c160275860b38a6f11496871155e667111c355492f"
     },
     "tea": {
       "source": "output/poi-sticker-review-20261102-v21/images/tea.png",
       "reviewId": "tea",
-      "sha256": "506930adcf203ed79290ecc7e87c6043a95931f604685250085a41b3d421ee10"
+      "sha256": "9877514527aef9666f257eb2f8c32d25636b56b07d7499566fbefb8082488f61",
+      "sourceSha256": "506930adcf203ed79290ecc7e87c6043a95931f604685250085a41b3d421ee10"
     },
     "bakery": {
       "source": "output/poi-sticker-review-20261102-v21/images/bakery.png",
       "reviewId": "bakery",
-      "sha256": "3e2f055a9b314bc9ce9c1f4d233b8e8a1ef38894d9f0fe5a954e934285caa60d"
+      "sha256": "83f26c64e222ee0e2f2613de170091d64310d6eade09607baa4d43b7e254f4b9",
+      "sourceSha256": "3e2f055a9b314bc9ce9c1f4d233b8e8a1ef38894d9f0fe5a954e934285caa60d"
     },
     "donut": {
       "source": "output/poi-color-adjust-20261103-v1/images/donut.png",
       "reviewId": "donut",
-      "sha256": "acb843ba34ff9668efae6c5f16df55adc69945df9ec2f7fc47572d3ba73073ca",
+      "sha256": "14a84da770c278fd7c585226e08fc3daea67840869fff34dd3b82630d47e5471",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/donut.png",
       "originalSha256": "6e8a98031461948f56f262725fbce520b796b32945a3aff1ba43eb433f2003cf",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "acb843ba34ff9668efae6c5f16df55adc69945df9ec2f7fc47572d3ba73073ca"
     },
     "dessert": {
       "source": "output/poi-sticker-review-20261102-v21/images/dessert-fresh.png",
       "reviewId": "dessert",
-      "sha256": "50f377213ef2286a06b61a52eb37ad919197f618839744cbe176bd305c9a2191"
+      "sha256": "def9b823d8e9463637c7a1a79ea7f91c2e93000124c2b0bfbd7e246ec2f08b76",
+      "sourceSha256": "50f377213ef2286a06b61a52eb37ad919197f618839744cbe176bd305c9a2191"
     },
     "icecream": {
       "source": "output/poi-sticker-review-20261102-v21/images/icecream.png",
       "reviewId": "icecream",
-      "sha256": "df2b9e09c0eeefab15aa6a1782ec45f45d94b7df23c18fabd5a56c1a07b3548b"
+      "sha256": "d8e51fa4f622aecc5ca2a1f6868c35d5c554d64c64d6166935d0df20009d805f",
+      "sourceSha256": "df2b9e09c0eeefab15aa6a1782ec45f45d94b7df23c18fabd5a56c1a07b3548b"
     },
     "bar": {
       "source": "output/poi-sticker-review-20261102-v21/images/bar.png",
       "reviewId": "bar",
-      "sha256": "5a1d9e6186a4516634b4f810af4f18df3c34e36f61a092b677d72fc09c735eff"
+      "sha256": "6e8ef1802c93e5719ad6c5925c0f34ee570d734c7b4ac8154fb29577cfb2bbf2",
+      "sourceSha256": "5a1d9e6186a4516634b4f810af4f18df3c34e36f61a092b677d72fc09c735eff"
     },
     "pub": {
       "source": "output/poi-sticker-review-20261102-v21/images/pub.png",
       "reviewId": "pub",
-      "sha256": "fac4f6d97ccbea8495aa74b6705013e986fe93f35026fb3bb6d6112ef499ec60"
+      "sha256": "17f32668ea191671b45c7997295347537625e8d9c6a748d9472f9d6686736235",
+      "sourceSha256": "fac4f6d97ccbea8495aa74b6705013e986fe93f35026fb3bb6d6112ef499ec60"
     },
     "cocktail_bar": {
       "source": "output/poi-color-adjust-20261103-v1/images/cocktail_bar.png",
       "reviewId": "cocktail_bar",
-      "sha256": "a48c5eb8050ed0e8b5b462ec42ed30b457d25c8ffb0c76dd4c7213557c7ed769",
+      "sha256": "a3cb89564300e718c064f161cc57487eb2b6390ca697406339d9aa022af0c839",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/cocktail_bar.png",
       "originalSha256": "4ea9db151ce59e1a63a16a839a9dbda4ce0fa0ce2d73aac31e130bb36aac8462",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "a48c5eb8050ed0e8b5b462ec42ed30b457d25c8ffb0c76dd4c7213557c7ed769"
     },
     "club": {
       "source": "output/poi-sticker-review-20261102-v21/images/club.png",
       "reviewId": "club",
-      "sha256": "99960bd1974d8ce2133c776d43c7258da1a72b08766e9340b12517956c19723c"
+      "sha256": "81e661ff2fa8279f0766b4186ba178676d82c242c73f027d537c39b58ac89b7a",
+      "sourceSha256": "99960bd1974d8ce2133c776d43c7258da1a72b08766e9340b12517956c19723c"
     },
     "shop": {
       "source": "output/poi-color-adjust-20261103-v1/images/shop.png",
       "reviewId": "shop",
-      "sha256": "5c3e23a3451860d16bce0d838458e8a52abc0e6b58fdbbc5c1af7ca5f9862e24",
+      "sha256": "3d5e65baa984ad2d4e046edba04332638b3410705733c5e551889ae17bdcb435",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/shop.png",
       "originalSha256": "2ea202b461bf6aa9b837a897c2407d56e1602a36ff18f9105e6b586a6ab44d01",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "5c3e23a3451860d16bce0d838458e8a52abc0e6b58fdbbc5c1af7ca5f9862e24"
     },
     "convenience": {
       "source": "output/poi-sticker-review-20261102-v21/images/convenience.png",
       "reviewId": "convenience",
-      "sha256": "e82fcbf7e8a19c5f107fbddee35ed9b2ebf3dc80a4494645a2de5fd2a4e98a6d"
+      "sha256": "9847d3232368ad5c062528f5032e80f75a4f8d7f50344d087ee09901f46e110b",
+      "sourceSha256": "e82fcbf7e8a19c5f107fbddee35ed9b2ebf3dc80a4494645a2de5fd2a4e98a6d"
     },
     "mart": {
       "source": "output/poi-sticker-review-20261102-v21/images/mart.png",
       "reviewId": "mart",
-      "sha256": "7dc97b58a63ee14f890f1d69b26bb9967e7e130dc9b1812b6cdf18466fdd0e20"
+      "sha256": "b86fc821378c3629980e3fb736dcdf35b2fa6cd18a42a3a7ad88f2b56e397af7",
+      "sourceSha256": "7dc97b58a63ee14f890f1d69b26bb9967e7e130dc9b1812b6cdf18466fdd0e20"
     },
     "department_store": {
       "source": "output/poi-sticker-review-20261102-v21/images/department_store.png",
       "reviewId": "department_store",
-      "sha256": "631ba20f302e4f52a8875a03c07bd55045bf0ac6381d276696181d61e7f65bf3"
+      "sha256": "6215875790897866c018fc9ab2eddd4034df99741e17e22f5dd18033a88e914d",
+      "sourceSha256": "631ba20f302e4f52a8875a03c07bd55045bf0ac6381d276696181d61e7f65bf3"
     },
     "market": {
       "source": "output/poi-color-adjust-20261103-v1/images/market.png",
       "reviewId": "market",
-      "sha256": "7082eea417230d21d04df984bbcb9b4ecd3c0cf02c953d26d1f9148317539a7e",
+      "sha256": "cb90088aeb2283c019d0ab28e03615a573c12fa06cd55a10d6f812f3fa8c746c",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/market.png",
       "originalSha256": "79a265c828f4867837573dc48ced4d84c55affcb145e8a6d7f81ccd4a144529e",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "7082eea417230d21d04df984bbcb9b4ecd3c0cf02c953d26d1f9148317539a7e"
     },
     "butcher": {
       "source": "output/poi-sticker-review-20261102-v21/images/butcher.png",
       "reviewId": "butcher",
-      "sha256": "55df47db0dfede642ca32790fa3df670c5818a0bdcf404bbec9f70987f03f815"
+      "sha256": "f944bd8ae4deecb897dd68bc50397e40a49c6b9446e7a3cb8fb42aa371fb127b",
+      "sourceSha256": "55df47db0dfede642ca32790fa3df670c5818a0bdcf404bbec9f70987f03f815"
     },
     "fishmonger": {
       "source": "output/poi-sticker-review-20261102-v21/images/fishmonger.png",
       "reviewId": "fishmonger",
-      "sha256": "ff69362fdd2e037f960600aa3513fb2a13b9ce7ada9ca8f618f045b0a34ee908"
+      "sha256": "2869f91d114d091b907620812ba887863f9f428e353990c319b1e3a033021f41",
+      "sourceSha256": "ff69362fdd2e037f960600aa3513fb2a13b9ce7ada9ca8f618f045b0a34ee908"
     },
     "greengrocer": {
       "source": "output/poi-sticker-review-20261102-v21/images/greengrocer.png",
       "reviewId": "greengrocer",
-      "sha256": "c36b7fdeade26302d34e393106d6b484de7bdc7f02168a249212734a6a6e8975"
+      "sha256": "7f81a965a4d356633ea25796fb6cf8e1a2a7da92f022cf6bb82f72182e0ef123",
+      "sourceSha256": "c36b7fdeade26302d34e393106d6b484de7bdc7f02168a249212734a6a6e8975"
     },
     "grocery": {
       "source": "output/poi-sticker-review-20261102-v21/images/grocery.png",
       "reviewId": "grocery",
-      "sha256": "7d0a099a3342c036c227743916966ebb13a590a170b6e5fcacc8cba751ecef4a"
+      "sha256": "f16560964e8013012b09554cbdf67c49e857a7cd62227edd2a591b12cf5dad92",
+      "sourceSha256": "7d0a099a3342c036c227743916966ebb13a590a170b6e5fcacc8cba751ecef4a"
     },
     "liquor": {
       "source": "output/poi-sticker-review-20261102-v21/images/liquor.png",
       "reviewId": "liquor",
-      "sha256": "f2f9ce42d53cffa702d4c712456e01d4c42d7701f0b774e24d34c7e405b241bf"
+      "sha256": "8df81596129ee1ae0d64f003f700953ef9d2cbd2a9f90f5ca62b7014d4622b81",
+      "sourceSha256": "f2f9ce42d53cffa702d4c712456e01d4c42d7701f0b774e24d34c7e405b241bf"
     },
     "drink": {
       "source": "output/poi-sticker-review-20261102-v21/images/drink.png",
       "reviewId": "drink",
-      "sha256": "9cb0a6cb5d66c45605bfeb9ec6fc1982cf402095cd23c54635875b9ca8c0d3a3"
+      "sha256": "ccb67b5cfccfc99d290c66b910e9e929fead0ff43ac01954aa466788c2a7f40b",
+      "sourceSha256": "9cb0a6cb5d66c45605bfeb9ec6fc1982cf402095cd23c54635875b9ca8c0d3a3"
     },
     "florist": {
       "source": "output/poi-sticker-review-20261102-v21/images/florist.png",
       "reviewId": "florist",
-      "sha256": "9ed408f0cef56dd617baf870ff69bfa780bc3fada9f0e4bb0f734f8455b90c28"
+      "sha256": "947a43ef0c20914c89de81640434217570dba4d4e8caf7261cc20c3a22357598",
+      "sourceSha256": "9ed408f0cef56dd617baf870ff69bfa780bc3fada9f0e4bb0f734f8455b90c28"
     },
     "bookstore": {
       "source": "output/poi-sticker-review-20261102-v21/images/bookstore.png",
       "reviewId": "bookstore",
-      "sha256": "36e21dfe1ffd1b48e625f63b3aadc9f403cf0d1df908de4882d05ae3c0cc93dc"
+      "sha256": "f647a5310147ff72a2ddda2114cbdc4be167f638a42fab78bae66d494d876381",
+      "sourceSha256": "36e21dfe1ffd1b48e625f63b3aadc9f403cf0d1df908de4882d05ae3c0cc93dc"
     },
     "gift_shop": {
       "source": "output/poi-sticker-review-20261102-v21/images/gift_shop.png",
       "reviewId": "gift_shop",
-      "sha256": "1597fc5ab04a1116a9f33f60a746ff128c8b0459de92ce378d935a459cc21941"
+      "sha256": "925b84f5b045fe407795d87c1d3924d7217a44e3709b9ec030e033c0bb59ed1f",
+      "sourceSha256": "1597fc5ab04a1116a9f33f60a746ff128c8b0459de92ce378d935a459cc21941"
     },
     "jewelry": {
       "source": "output/poi-sticker-review-20261102-v21/images/jewelry.png",
       "reviewId": "jewelry",
-      "sha256": "29b7fbb3bc6b90cb06d86dc5d49c2bdaabd6474bfbd9b4b7e67831a539fbfd58"
+      "sha256": "3442436a9b4c9cdd2c2bd47423a943eb6943c51e0ee360737537abd5e526c988",
+      "sourceSha256": "29b7fbb3bc6b90cb06d86dc5d49c2bdaabd6474bfbd9b4b7e67831a539fbfd58"
     },
     "music_store": {
       "source": "output/poi-sticker-review-20261102-v21/images/music_store.png",
       "reviewId": "music_store",
-      "sha256": "f161bf6f113286315ebff855286bf9e56cb5b40446b9e42919d175d949768ce1"
+      "sha256": "b3cfe6abbd1ebf20a1f1b9ada3860ac6366f7c91f9b438e6753f046bb903877a",
+      "sourceSha256": "f161bf6f113286315ebff855286bf9e56cb5b40446b9e42919d175d949768ce1"
     },
     "bike_shop": {
       "source": "output/poi-color-adjust-20261103-v1/images/bike_shop.png",
       "reviewId": "bike_shop",
-      "sha256": "1029878e4f54b82076ca86508699fb45636d0b465f8a626d9f02699af9387e11",
+      "sha256": "cb048c0513448d500e81af5804bbdb3e78e9c6057ac2a1aad13581a099718de2",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/bike_shop.png",
       "originalSha256": "c13f883722a51782b553347e14da820b5010c28d73bea9ff4768a2f29cd81a35",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "1029878e4f54b82076ca86508699fb45636d0b465f8a626d9f02699af9387e11"
     },
     "pet_shop": {
       "source": "output/poi-sticker-review-20261102-v21/images/pet_shop.png",
       "reviewId": "pet_shop",
-      "sha256": "985e5fa1ed82d2317b26a40e975d148f28a27569916621421d505c0d5584f385"
+      "sha256": "b864a9f88ae92926579049d06e204d9a44e046fc41d8f86d780a542b0b182b3c",
+      "sourceSha256": "985e5fa1ed82d2317b26a40e975d148f28a27569916621421d505c0d5584f385"
     },
     "hotel": {
       "source": "output/poi-color-adjust-20261103-v1/images/hotel.png",
       "reviewId": "hotel",
-      "sha256": "f8192e8784973d9f7714ed1c2a2b8a36688457042c55ebb1b6e08dd8804a62ed",
+      "sha256": "b78e750e93e82f57f9ad1273cbf1ca5bbcdac114a433f3faaee15975f3e3a8fa",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/hotel.png",
       "originalSha256": "a4d4576fe99bc45cabd8df575c437cdef63f4503546f9c40055a994e2935701b",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "f8192e8784973d9f7714ed1c2a2b8a36688457042c55ebb1b6e08dd8804a62ed"
     },
     "motel": {
       "source": "output/poi-sticker-review-20261102-v21/images/motel.png",
       "reviewId": "motel",
-      "sha256": "b3cf8b930c8b7c72c0dac89bea60d65a1a097e996c3410c66b50db515fbcf3b7"
+      "sha256": "85280eadceedfbdccb7314b199566140a0d8ef8d517430a434b66f2af9399526",
+      "sourceSha256": "b3cf8b930c8b7c72c0dac89bea60d65a1a097e996c3410c66b50db515fbcf3b7"
     },
     "pension": {
       "source": "output/poi-sticker-review-20261102-v21/images/pension.png",
       "reviewId": "pension",
-      "sha256": "9c58e1dcfa5f1c94f20a61e27b94fbb0f2be70517037f6aa815623472f75030d"
+      "sha256": "15d45e6b77a0acff37f3ee003afa45e89ac9a102ff206e4a699af38783141407",
+      "sourceSha256": "9c58e1dcfa5f1c94f20a61e27b94fbb0f2be70517037f6aa815623472f75030d"
     },
     "camping": {
       "source": "output/poi-color-adjust-20261103-v1/images/camping.png",
       "reviewId": "camping",
-      "sha256": "f8f5c1e92470010dbec6bce38912d8aa14c8f785ed61b1d5acffcc4b44eb22b0",
+      "sha256": "bf09ce99675d94eeac1ac84c669a938e952ffc340d2f07cf8aa7f87826c6e9b8",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/camping.png",
       "originalSha256": "f4d881fa590bc7f601772a6f978f015e543f306fbd9f44d79b1e70d755b5f47c",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "f8f5c1e92470010dbec6bce38912d8aa14c8f785ed61b1d5acffcc4b44eb22b0"
     },
     "gym": {
       "source": "output/poi-sticker-review-20261102-v21/images/gym.png",
       "reviewId": "gym",
-      "sha256": "d9b7fa279dcc578495fdbfcc07c7cbff8dd66f27f9ce0540c934ead62dcb5f0b"
+      "sha256": "f656b8c9b9a7937c74d5d19cca0c77a62d87362cf74063112c3a1bb2fccbd046",
+      "sourceSha256": "d9b7fa279dcc578495fdbfcc07c7cbff8dd66f27f9ce0540c934ead62dcb5f0b"
     },
     "pool": {
       "source": "output/poi-sticker-review-20261102-v21/images/pool.png",
       "reviewId": "pool",
-      "sha256": "16aa4186792d486a4f0213e3919c6beb9bcd5068027b44616da5ce4555dda1c2"
+      "sha256": "9a49264e5b4f767726f56537db9e717ec6b623952aeb3f776ebac47daebdb823",
+      "sourceSha256": "16aa4186792d486a4f0213e3919c6beb9bcd5068027b44616da5ce4555dda1c2"
     },
     "bowling": {
       "source": "output/poi-sticker-review-20261102-v21/images/bowling.png",
       "reviewId": "bowling",
-      "sha256": "d2b09a472fa0d357fe1d31f385b800e7de9e155aacfff7ddfd9fc11d5bf514e7"
+      "sha256": "e95b17408e6098ad85cac3bc586c42929517b7ac59dc78849588ec90499c82bb",
+      "sourceSha256": "d2b09a472fa0d357fe1d31f385b800e7de9e155aacfff7ddfd9fc11d5bf514e7"
     },
     "billiards": {
       "source": "output/poi-sticker-review-20261102-v21/images/billiards.png",
       "reviewId": "billiards",
-      "sha256": "81ecfa6704c1a8ca5c12224aa55d94aa7be3f9af89c2ccd98ea0c1e3b49be1df"
+      "sha256": "2d5790d0dc51313d1ed3aed5fe7d6087a395dfd207eefa5f6150c5d0dd769b35",
+      "sourceSha256": "81ecfa6704c1a8ca5c12224aa55d94aa7be3f9af89c2ccd98ea0c1e3b49be1df"
     },
     "golf": {
       "source": "output/poi-sticker-review-20261102-v21/images/golf.png",
       "reviewId": "golf",
-      "sha256": "418eaf692d9e81d65a15b110d0afd284becc5585a690553027ac42b98ce89c34"
+      "sha256": "1d5c6be8228f3c078b9fa1a5d358f238262ac971201ff9868d76854a6a418dbf",
+      "sourceSha256": "418eaf692d9e81d65a15b110d0afd284becc5585a690553027ac42b98ce89c34"
     },
     "racket": {
       "source": "output/poi-color-adjust-20261103-v1/images/racket.png",
       "reviewId": "racket",
-      "sha256": "323394d7b1e80db84e7f0df62e0e536a1fc90f0c7f33e075e4223853ebe10669",
+      "sha256": "1bab86deb084e1ccddb59857c5ff4ac729646647f28a8b591c73a4c0ed828e86",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/racket.png",
       "originalSha256": "c85bd981df2bcbdbdf5aa484b2d2ad672f87667de0371fdf342340f6906798f5",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "323394d7b1e80db84e7f0df62e0e536a1fc90f0c7f33e075e4223853ebe10669"
     },
     "fishing": {
       "source": "output/poi-sticker-review-20261102-v21/images/fishing.png",
       "reviewId": "fishing",
-      "sha256": "99245d93bd56b77c999ffa4a3786d09f4ffe1c8f011037e14277a614c97ee474"
+      "sha256": "23d70b0cb2d1048bf11ea3b5e482e02f935d7ef558f27b8d743ccb9bca6ed5ae",
+      "sourceSha256": "99245d93bd56b77c999ffa4a3786d09f4ffe1c8f011037e14277a614c97ee474"
     },
     "water_sports": {
       "source": "output/poi-sticker-review-20261102-v21/images/water_sports.png",
       "reviewId": "water_sports",
-      "sha256": "a8a7d64b3115dbbc0454fd485ac49fa41d1adae726ff8d12e6e9c0a904fbeafb"
+      "sha256": "1fc3ed823bc0220d687f7bcc0ca1c9a1f58e8d01ddecfa5a5680b916e7770df4",
+      "sourceSha256": "a8a7d64b3115dbbc0454fd485ac49fa41d1adae726ff8d12e6e9c0a904fbeafb"
     },
     "theater": {
       "source": "output/poi-sticker-review-20261102-v21/images/theater.png",
       "reviewId": "theater",
-      "sha256": "8e90de2a6f70fb657aa71eed2d15b714e122eed700bf99d010ce2a780c92871c"
+      "sha256": "78520a17d70ff91993a45a5a356827e3c545cd2c67ab8d0ef675e1223fd84c89",
+      "sourceSha256": "8e90de2a6f70fb657aa71eed2d15b714e122eed700bf99d010ce2a780c92871c"
     },
     "cinema": {
       "source": "output/poi-color-adjust-20261103-v1/images/cinema.png",
       "reviewId": "cinema",
-      "sha256": "9966d7e1728781896622c2f58e0a0a524f904bd5160893c7be8b4346619b4888",
+      "sha256": "c0d321827fc1446cdfb168a3813b7e952165fdc03b507f1b2ee74c110c04ecbc",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/cinema.png",
       "originalSha256": "7e8d2b2629a7ae16acd0f6262106681084fe06d78bd371579b44aca783e9faa7",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "9966d7e1728781896622c2f58e0a0a524f904bd5160893c7be8b4346619b4888"
     },
     "amusement": {
       "source": "output/poi-sticker-review-20261102-v21/images/amusement.png",
       "reviewId": "amusement",
-      "sha256": "f09f95de3d881854568ba2b18160e316d3e1773d6cb70c31a488d5674c5bea5a"
+      "sha256": "56c16b40d8c84847473109f567fc5ad23456334ac17dec67b9b7bb9a735e459f",
+      "sourceSha256": "f09f95de3d881854568ba2b18160e316d3e1773d6cb70c31a488d5674c5bea5a"
     },
     "karaoke": {
       "source": "output/poi-color-adjust-20261103-v1/images/karaoke.png",
       "reviewId": "karaoke",
-      "sha256": "dfd631f991ba45955c01e39783debaf44011eaf6a974c74f5b2009c8ada62249",
+      "sha256": "20a9b220f1043cccfc744f0a3b3ef0b0d02e934be174020ad0600998119a56ea",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/karaoke.png",
       "originalSha256": "6c2aecab0b07fd97dbbdfceafa9c4baab7023cc301bcdd6e0a886762092283c7",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "dfd631f991ba45955c01e39783debaf44011eaf6a974c74f5b2009c8ada62249"
     },
     "comic_cafe": {
       "source": "output/poi-sticker-review-20261102-v21/images/comic_cafe.png",
       "reviewId": "comic_cafe",
-      "sha256": "70946c9e7d82676ab96418d7c33520307ea03ad4ab6f3fc2ec2e02294c38cca1"
+      "sha256": "5866525aa1e70ed308e2b38856624dd251d09424adbfa7810920956d1ebff8e9",
+      "sourceSha256": "70946c9e7d82676ab96418d7c33520307ea03ad4ab6f3fc2ec2e02294c38cca1"
     },
     "festival": {
       "source": "output/poi-sticker-review-20261102-v21/images/festival.png",
       "reviewId": "festival",
-      "sha256": "845d3e0f250af1c1743518d31a1a89352fdec585548b7ecedb7e33b6a335a571"
+      "sha256": "79a14fae8142e896e7a6d3a2c763273769016820e21d2a3cb55d6fa9cb2c95c0",
+      "sourceSha256": "845d3e0f250af1c1743518d31a1a89352fdec585548b7ecedb7e33b6a335a571"
     },
     "attraction": {
       "source": "output/poi-sticker-review-20261102-v21/images/attraction.png",
       "reviewId": "attraction",
-      "sha256": "e43aaceeea156c00f531133fb684dd27eca57f764a5905292c9bd10ac9592a49"
+      "sha256": "888665bfe7d7251506ddf129fa44699b6505a1752241daf4f1eea75dfff22cb8",
+      "sourceSha256": "e43aaceeea156c00f531133fb684dd27eca57f764a5905292c9bd10ac9592a49"
     },
     "viewpoint": {
       "source": "output/poi-sticker-review-20261102-v21/images/viewpoint.png",
       "reviewId": "viewpoint",
-      "sha256": "80083f5f8265851b4d883b69610b03f59026d3ce7b87bbb722286bfc06dd4950"
+      "sha256": "e5f50c28ab8c99461940b116a7b656bdec233f97d4173efd4ea43a912a3d25e6",
+      "sourceSha256": "80083f5f8265851b4d883b69610b03f59026d3ce7b87bbb722286bfc06dd4950"
     },
     "landmark": {
       "source": "output/poi-sticker-review-20261102-v21/images/landmark.png",
       "reviewId": "landmark",
-      "sha256": "c9560b5f46021e90e9576e2189b9944da1c70597e6b5796194b6031cbd8e19d5"
+      "sha256": "683ad796ab5748fd8023ebc32f50956dc74edc1cbfbdac2241954279c12d09e2",
+      "sourceSha256": "c9560b5f46021e90e9576e2189b9944da1c70597e6b5796194b6031cbd8e19d5"
     },
     "heritage": {
       "source": "output/poi-sticker-review-20261102-v21/images/heritage.png",
       "reviewId": "heritage",
-      "sha256": "ebbbe151d760fc7b397fa7746e541ed75a19d06d41abc1da3225860899e5b5d5"
+      "sha256": "1bad8959d68382d2b8024993c25a6e1a4532cc820a69b36f87f6d3cfd4ba6f2d",
+      "sourceSha256": "ebbbe151d760fc7b397fa7746e541ed75a19d06d41abc1da3225860899e5b5d5"
     },
     "museum": {
       "source": "output/poi-color-adjust-20261103-v1/images/museum.png",
       "reviewId": "museum",
-      "sha256": "21bdcfccd573ee286fef50bfb4a698c02ff391c7f89933db32955a96f8d06a8c",
+      "sha256": "14fa0025b07ffe174124e73cb0406312f5eed916aea3e287da0c9a750f44eafc",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/museum.png",
       "originalSha256": "a9d533f651a975e21a111f2eae4e201b94ddde9a821e14664021a46100fda950",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "21bdcfccd573ee286fef50bfb4a698c02ff391c7f89933db32955a96f8d06a8c"
     },
     "gallery": {
       "source": "output/poi-sticker-review-20261102-v21/images/gallery.png",
       "reviewId": "gallery",
-      "sha256": "bd7bc15a8667ba3215d9383df24c6bda158c76e0212004e4edece0c65360bfaa"
+      "sha256": "d1ff1f80172b0cebc83d2a621f5905b32576c2a5eabf02957cbffbdb42bbbbe0",
+      "sourceSha256": "bd7bc15a8667ba3215d9383df24c6bda158c76e0212004e4edece0c65360bfaa"
     },
     "zoo": {
       "source": "output/poi-sticker-review-20261102-v21/images/zoo.png",
       "reviewId": "zoo",
-      "sha256": "374f6ef98e00e39a807ca7ca11b706132932f17d5b49bb03978e2a9fb3cf6d67"
+      "sha256": "152d4690fb66b1645c98b4278f7c3e738afba20133f068bf059d76c2f88b1f25",
+      "sourceSha256": "374f6ef98e00e39a807ca7ca11b706132932f17d5b49bb03978e2a9fb3cf6d67"
     },
     "aquarium": {
       "source": "output/poi-color-adjust-20261103-v1/images/aquarium.png",
       "reviewId": "aquarium",
-      "sha256": "fa5e7013e3e2a876e31f2e971af7ee0250b6e2bc87f738635638d4e71b16d26a",
+      "sha256": "69e78f21e3c5c3cedd9689b3077fd4f91613431488e6f6332380e316639dacbb",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/aquarium.png",
       "originalSha256": "f0ae408975d0c6f444956c56c875ae152794d580b76ba349008c4546f9afaace",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "fa5e7013e3e2a876e31f2e971af7ee0250b6e2bc87f738635638d4e71b16d26a"
     },
     "park": {
       "source": "output/poi-sticker-review-20261102-v21/images/park.png",
       "reviewId": "park",
-      "sha256": "347b4f30c6bf43641143b8cf10bfc009bb8d3dd7b3b2233df0962fb064f470c4"
+      "sha256": "9d12ecf06dd51542d94fafaa84eef959fb3ed6b106eb70c82de3680efd797cf3",
+      "sourceSha256": "347b4f30c6bf43641143b8cf10bfc009bb8d3dd7b3b2233df0962fb064f470c4"
     },
     "garden": {
       "source": "output/poi-sticker-review-20261102-v21/images/garden.png",
       "reviewId": "garden",
-      "sha256": "4100ab0a901da64621d43ef440d0970840c32fb3e03edadd6a9e2c32e28a030a"
+      "sha256": "32e9ec72adcedd129f908b6c1b24f80c6f655e9717b149d603d07481c266f101",
+      "sourceSha256": "4100ab0a901da64621d43ef440d0970840c32fb3e03edadd6a9e2c32e28a030a"
     },
     "mountain": {
       "source": "output/poi-sticker-review-20261102-v21/images/mountain.png",
       "reviewId": "mountain",
-      "sha256": "557b7c16213d82d99bceda97fefd163f4aa88961283a9596e1d4a50e6a8ef6ca"
+      "sha256": "26f8501324b7f89e23a3ea8d3492665bec584257dc2c99b77c160b431807390f",
+      "sourceSha256": "557b7c16213d82d99bceda97fefd163f4aa88961283a9596e1d4a50e6a8ef6ca"
     },
     "beach": {
       "source": "output/poi-sticker-review-20261102-v21/images/beach.png",
       "reviewId": "beach",
-      "sha256": "878bc41786ef9895cf949d290fe0d3201d09e2ba02e4a662ab06221898b7e2e1"
+      "sha256": "86b7d03852c5b6c89b8fc5599d9762c63e9dc00241e4464cf48e0848c6116005",
+      "sourceSha256": "878bc41786ef9895cf949d290fe0d3201d09e2ba02e4a662ab06221898b7e2e1"
     },
     "hiking": {
       "source": "output/poi-sticker-review-20261102-v21/images/hiking.png",
       "reviewId": "hiking",
-      "sha256": "6e1a3c0b889d45aaca63b4d54bc7e4dd6b895d38fe13e4bbc58ca178dccb3c13"
+      "sha256": "9d8a0c2cc3808ab05d9556c4b26ea305984d154b7aaca331e800ada966e499d5",
+      "sourceSha256": "6e1a3c0b889d45aaca63b4d54bc7e4dd6b895d38fe13e4bbc58ca178dccb3c13"
     },
     "hospital": {
       "source": "output/poi-sticker-review-20261102-v21/images/hospital.png",
       "reviewId": "hospital",
-      "sha256": "a6718e3456548926ae77720d2ab8395556068a33194157a402743720d7e640cc"
+      "sha256": "0c9f4f4613aaa401969ca5628e7c419e0a9226b4591eec7f3a6f59fdd0825d68",
+      "sourceSha256": "a6718e3456548926ae77720d2ab8395556068a33194157a402743720d7e640cc"
     },
     "clinic": {
       "source": "output/poi-sticker-review-20261102-v21/images/clinic.png",
       "reviewId": "clinic",
-      "sha256": "d537c090aa936f409850101f08a7fa6895c0b7f254916c5b68710d368e7a4e35"
+      "sha256": "401613bee97cf25ef453a4501a9803899f576630fd751349bf61ea4d51fdc198",
+      "sourceSha256": "d537c090aa936f409850101f08a7fa6895c0b7f254916c5b68710d368e7a4e35"
     },
     "pharmacy": {
       "source": "output/poi-sticker-review-20261102-v21/images/pharmacy.png",
       "reviewId": "pharmacy",
-      "sha256": "8c0193778b5196a66fba9961d98436c0e94591ae2947297556560790d8fd8d31"
+      "sha256": "ae236e2a1a33f090cd30abb5ca1cb28fda520de91166153bab7e26ec1e014348",
+      "sourceSha256": "8c0193778b5196a66fba9961d98436c0e94591ae2947297556560790d8fd8d31"
     },
     "vet": {
       "source": "output/poi-sticker-review-20261102-v21/images/vet.png",
       "reviewId": "vet",
-      "sha256": "dcef28a8b1471162a88f09b7fc36f41013165fc169c022d25c63eea145aabb83"
+      "sha256": "88a130c996151380f7645124e233082f3f72206eeeaa45efa099f8eee4bc3c5c",
+      "sourceSha256": "dcef28a8b1471162a88f09b7fc36f41013165fc169c022d25c63eea145aabb83"
     },
     "salon": {
       "source": "output/poi-sticker-review-20261102-v21/images/salon.png",
       "reviewId": "salon",
-      "sha256": "12763aa8e0b625c697b3034e6134a455ffcbe150ea48ff24aa895af2ebfa1ab1"
+      "sha256": "80b50b39581ffb71f6e5f3cc053939a436d6980703d61e3ff81b5f90de39587e",
+      "sourceSha256": "12763aa8e0b625c697b3034e6134a455ffcbe150ea48ff24aa895af2ebfa1ab1"
     },
     "laundry": {
       "source": "output/poi-sticker-review-20261102-v21/images/laundry.png",
       "reviewId": "laundry",
-      "sha256": "3b3dfbfa062fed22a50810934b21a0ee714eaaacffc3bd78080174d66e81f2df"
+      "sha256": "e6039f93ee1f7881a74b715e1a23c408ffa369082a81771dc030395d35eb39b2",
+      "sourceSha256": "3b3dfbfa062fed22a50810934b21a0ee714eaaacffc3bd78080174d66e81f2df"
     },
     "photo_studio": {
       "source": "output/poi-sticker-review-20261102-v21/images/photo_studio.png",
       "reviewId": "photo_studio",
-      "sha256": "7b0f132c5d29690ad5c70ad5f714f4f7374a647b7321e8804edc7672b2aa8753"
+      "sha256": "e1a0a6edfcd2736e18ae17104402aaf87618eb98f937f373b2595755e3b0f0a3",
+      "sourceSha256": "7b0f132c5d29690ad5c70ad5f714f4f7374a647b7321e8804edc7672b2aa8753"
     },
     "wedding": {
       "source": "output/poi-sticker-review-20261102-v21/images/wedding.png",
       "reviewId": "wedding",
-      "sha256": "e9e9f601f623c792a49086a34b58e9becbff656f3bdcea9e1e7a708d092773d3"
+      "sha256": "07e58ed4686a33d5c616bfc1f093642c0c5c14fb9cb9c7d2bffa5de055d3ff63",
+      "sourceSha256": "e9e9f601f623c792a49086a34b58e9becbff656f3bdcea9e1e7a708d092773d3"
     },
     "travel_agency": {
       "source": "output/poi-sticker-review-20261102-v21/images/travel_agency.png",
       "reviewId": "travel_agency",
-      "sha256": "389e43c80040d21c5c35680abbe1ae269fe2ca43c5bbc52d69cdaca42c05791c"
+      "sha256": "6eba1f632aa3e96521376e288bcebd8ca23f1ad84e81bd4eb48df7062ca4a13e",
+      "sourceSha256": "389e43c80040d21c5c35680abbe1ae269fe2ca43c5bbc52d69cdaca42c05791c"
     },
     "bank": {
       "source": "output/poi-color-adjust-20261103-v1/images/bank.png",
       "reviewId": "bank_cash",
-      "sha256": "1bb205fbed7eedcd0e968b4c3e813fa27ff969994642b2b12e0be164a6532249",
+      "sha256": "717be8e2316a02479bc0e138e0a5eefce59f5820a4b9ef638b8c6f6266acff80",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/bank.png",
       "originalSha256": "9527f7ea7c9dbe02be2b8be1d388d9e9d80903a20e0560814fe9ee940007a3ea",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "1bb205fbed7eedcd0e968b4c3e813fa27ff969994642b2b12e0be164a6532249"
     },
     "post": {
       "source": "output/poi-color-adjust-20261103-v1/images/post.png",
       "reviewId": "post",
-      "sha256": "f4a7259d78c4dfc00f0ee6cce85a4afa918b7d8c8af73cb1b702313e6338a874",
+      "sha256": "460a561094d80129687cf7c10c7111219d30cad3d44c980639bc06d5a87fc6a7",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/post.png",
       "originalSha256": "ffcbdb4da34519ea0709f839c6fe33795d635e3380354c7cfe9e410b9fa8130c",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "f4a7259d78c4dfc00f0ee6cce85a4afa918b7d8c8af73cb1b702313e6338a874"
     },
     "church": {
       "source": "output/poi-sticker-review-20261102-v21/images/church.png",
       "reviewId": "church",
-      "sha256": "74fb8c0b12250071f842b7f9040f9803927dd9c63a22cc1771981cc2dd82907e"
+      "sha256": "4052c8862da10a7d298744a9c21b940afe2a2522469fba74d2ce52b899a86250",
+      "sourceSha256": "74fb8c0b12250071f842b7f9040f9803927dd9c63a22cc1771981cc2dd82907e"
     },
     "temple": {
       "source": "output/poi-sticker-review-20261102-v21/images/temple.png",
       "reviewId": "temple",
-      "sha256": "0a8c948c7eb5687235e901e03492f863b886709246e6579315eaddc11b451a99"
+      "sha256": "edb44db28f6cd926846d374833f75d92b97c8c65d757794a8b576b8c88c399ab",
+      "sourceSha256": "0a8c948c7eb5687235e901e03492f863b886709246e6579315eaddc11b451a99"
     },
     "school": {
       "source": "output/poi-color-adjust-20261103-v1/images/school.png",
       "reviewId": "school",
-      "sha256": "edd878d9f48a6456abbee2a002baab072c7a584a4e0cdfe0b216300e6f07ad0b",
+      "sha256": "b955a427d5fad81d04c4e2a0dcb72b3cb2194b2aac740098678e5d4b6dab7f44",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/school.png",
       "originalSha256": "5fffdbadc7030039f8627fc0773ffd6184d175898bf252d64461f0f7d17ebec4",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "edd878d9f48a6456abbee2a002baab072c7a584a4e0cdfe0b216300e6f07ad0b"
     },
     "library": {
       "source": "output/poi-sticker-review-20261102-v21/images/library.png",
       "reviewId": "library",
-      "sha256": "71c52d08422c1fea4fe08f28b0b17d7e590ed3cb7fb2e3dac04348424aaa4e59"
+      "sha256": "502db01707a598f3f61eba2582029c3d9d6dcfcee6524c0101bb4a8c1f04545b",
+      "sourceSha256": "71c52d08422c1fea4fe08f28b0b17d7e590ed3cb7fb2e3dac04348424aaa4e59"
     },
     "study_cafe": {
       "source": "output/poi-sticker-review-20261102-v21/images/study_cafe.png",
       "reviewId": "study_cafe",
-      "sha256": "27cbf97e2b32d8f2cfbb515ecb84acdcc037ebcc33e97a10a5f380a1ab5666f1"
+      "sha256": "41ea45d2bf15b6f4f13bfffe580420b293d29ac348cf8f62cdcd99336e0d8ab7",
+      "sourceSha256": "27cbf97e2b32d8f2cfbb515ecb84acdcc037ebcc33e97a10a5f380a1ab5666f1"
     },
     "gas": {
       "source": "output/poi-sticker-review-20261102-v21/images/gas.png",
       "reviewId": "gas",
-      "sha256": "5b47a01bbae31d39175962a57584673b67a39572cf0b5476e73af64ce550eded"
+      "sha256": "c400ec2f3156a1cdc434fdaf6777325f2795087b401ea7227cb16873c9438795",
+      "sourceSha256": "5b47a01bbae31d39175962a57584673b67a39572cf0b5476e73af64ce550eded"
     },
     "car_rental": {
       "source": "output/poi-sticker-review-20261102-v21/images/car_rental.png",
       "reviewId": "car_rental",
-      "sha256": "043979298f386ecfe786210f8f2eaeb8983ddcfb4e2d5ae911b514538c251d6a"
+      "sha256": "c95d384d505e210849cbf70dce444e8af000fcf9201a3231f50691ce76abc6d7",
+      "sourceSha256": "043979298f386ecfe786210f8f2eaeb8983ddcfb4e2d5ae911b514538c251d6a"
     },
     "car_service": {
       "source": "output/poi-sticker-review-20261102-v21/images/car_service.png",
       "reviewId": "car_service",
-      "sha256": "b2566804ce0fde019698e3aefb92a5b27847fa36d7a578c9b78090f913d803ae"
+      "sha256": "986c4b171b265bbe8b880f239c9dbb7e7f231ddfe4c66f2eec92ee97f668bad3",
+      "sourceSha256": "b2566804ce0fde019698e3aefb92a5b27847fa36d7a578c9b78090f913d803ae"
     },
     "parking": {
       "source": "output/poi-sticker-review-20261102-v21/images/parking.png",
       "reviewId": "parking",
-      "sha256": "860d52d78e2b47ff03a9f691334c10e58f5c20c2680517e8681d0df9ae568a13"
+      "sha256": "df776974b85ec174b805412c9ce304c366bb5203ce1659323010aaae9c28c2d4",
+      "sourceSha256": "860d52d78e2b47ff03a9f691334c10e58f5c20c2680517e8681d0df9ae568a13"
     },
     "station": {
       "source": "output/poi-station-color-20261103/station-v2.png",
       "reviewId": "station",
-      "sha256": "c30d9d52431a2229439b41ddd27d3d8ba6d5a90499561f38aedb628cb9994e35",
+      "sha256": "1693959cd39587d3cd07aed5a6ba24367400aa9049f9deb7d94e2943b9d63504",
       "originalSource": "output/poi-station-color-20261103/station-before.png",
       "originalSha256": "8bc2d65e20a4d6e7538e904ba106e3e8efdca6d1f0b5a8f50bdd769b65e5dc51",
       "colorAdjusted": true,
-      "saturationFactor": 1.2
+      "saturationFactor": 1.2,
+      "sourceSha256": "c30d9d52431a2229439b41ddd27d3d8ba6d5a90499561f38aedb628cb9994e35"
     },
     "bus_stop": {
       "source": "output/poi-sticker-review-20261102-v21/images/bus_stop.png",
       "reviewId": "bus_stop",
-      "sha256": "0f493de6f21b56244129aedf13432a73bc0381bcc7df0386415730500712acfc"
+      "sha256": "82dac2d5923c25e3991f407551ab2a0104b357d4d3882f12c4ef0cc31af55f70",
+      "sourceSha256": "0f493de6f21b56244129aedf13432a73bc0381bcc7df0386415730500712acfc"
     },
     "airport": {
       "source": "output/poi-color-adjust-20261103-v1/images/airport.png",
       "reviewId": "airport",
-      "sha256": "cb77ec2b592b39fc9ce9447643bdd1d9ffefcb89f53d3f49bdea0f74fde07872",
+      "sha256": "f0ac2e9fbfbf6d3235c05dd00609c15dc751081eca76b6aa610b97d9fcee443f",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/airport.png",
       "originalSha256": "bb395e2a19394c3c15d27a159532b0b9e19776212e37b088b9446b8619aa2616",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "cb77ec2b592b39fc9ce9447643bdd1d9ffefcb89f53d3f49bdea0f74fde07872"
     },
     "port": {
       "source": "output/poi-sticker-review-20261102-v21/images/port.png",
       "reviewId": "port",
-      "sha256": "6c9bbb27f9fc22e0a04a6e17d85e7129cca939b2a313a657a26bfe1b4527963a"
+      "sha256": "d29431d9ff6cd2c89407542ee1e65c692bc23a16ee9dc17a738accc4fa58bd68",
+      "sourceSha256": "6c9bbb27f9fc22e0a04a6e17d85e7129cca939b2a313a657a26bfe1b4527963a"
     },
     "restroom": {
       "source": "output/poi-sticker-review-20261102-v21/images/restroom.png",
       "reviewId": "restroom",
-      "sha256": "aa46b8372534ea56b47e0114096243ea927d25119aa61af5e1691aba29af66da"
+      "sha256": "1e16a9f6967c1815d0932047b0142307cb30f65d6c0ca6bd562f22def7f80042",
+      "sourceSha256": "aa46b8372534ea56b47e0114096243ea927d25119aa61af5e1691aba29af66da"
     },
     "police": {
       "source": "output/poi-color-adjust-20261103-v1/images/police.png",
       "reviewId": "police",
-      "sha256": "cfda861cd99694c85d06ece822140ef6b8e2c9df6ee9c7327da0279b2e018b8d",
+      "sha256": "0b8225bb8739799dade02a49a7ddf2b373cdc565da0c3d916bbe97d527b9c72a",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/police.png",
       "originalSha256": "29ef10ac91d4183c63e49e47c31ecdb94959ebb3b66142aff944ea5d4f3abeb7",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "cfda861cd99694c85d06ece822140ef6b8e2c9df6ee9c7327da0279b2e018b8d"
     },
     "fire_station": {
       "source": "output/poi-color-adjust-20261103-v1/images/fire_station.png",
       "reviewId": "fire_station",
-      "sha256": "5ef07374004889364c246409ad7fb4cff74c6251762c0339138f1b7233d6b549",
+      "sha256": "23d5cad8e32d309dacb532a33809167cf75622aeb39141eebfcf8340e6c54f25",
       "originalSource": "output/poi-color-adjust-20261103-v1/originals/fire_station.png",
       "originalSha256": "033338931679b7f4b186028b06b375864fd3839a0b10e3c4013d350cb876b889",
-      "colorAdjusted": true
+      "colorAdjusted": true,
+      "sourceSha256": "5ef07374004889364c246409ad7fb4cff74c6251762c0339138f1b7233d6b549"
     },
     "government": {
       "source": "output/poi-sticker-review-20261102-v21/images/government.png",
       "reviewId": "government",
-      "sha256": "f9b892ab1263b601fd87aad0934e6acdf35281616ad9065354aedb71b940b9c3"
+      "sha256": "20a90daa5f858c7a1b84b6a543d3cec18ef882bf37f8728acae96ec71f7df768",
+      "sourceSha256": "f9b892ab1263b601fd87aad0934e6acdf35281616ad9065354aedb71b940b9c3"
     },
     "building": {
       "source": "output/poi-sticker-review-20261102-v21/images/building.png",
       "reviewId": "building",
-      "sha256": "badfcc393c59e140c68ea40381025c32d934c5b304d5a9fb4ae3138a1ec9ce70"
+      "sha256": "2e98354e5c6323f615df11960141c8e4db82cf629d66d845ee1b1003f7ac4355",
+      "sourceSha256": "badfcc393c59e140c68ea40381025c32d934c5b304d5a9fb4ae3138a1ec9ce70"
     }
   },
-  "colorCollection": "poi-color-adjust-20261103-v1"
+  "colorCollection": "poi-color-adjust-20261103-v1",
+  "shrunk": "2026-11-13: python scripts/shrink-stickers.py public/poi-stickers --max-side 512 (sha256 = shipped file, sourceSha256 = approved full-size art)"
 }

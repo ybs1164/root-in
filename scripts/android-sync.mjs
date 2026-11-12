@@ -41,5 +41,9 @@ console.log(hosted
 // and the shrink runs again for any art added since (needs Python + Pillow).
 // macOS ships python3 only; Windows installs python.
 run('node scripts/prune-stickers.mjs dist/stickers');
-run(`${process.platform === 'win32' ? 'python' : 'python3'} scripts/shrink-stickers.py dist/stickers`);
+const python = process.platform === 'win32' ? 'python' : 'python3';
+run(`${python} scripts/shrink-stickers.py dist/stickers`);
+// Map place stickers are drawn at most ~133 CSS px; the 1536px art once made them 77MB of the APK
+// (2026-11-13). public/poi-stickers is shrunk already — this catches art added since.
+run(`${python} scripts/shrink-stickers.py dist/poi-stickers --max-side 512`);
 run(`npx cap sync ${platform}`, platform === 'ios' ? xcodeEnv() : process.env);
