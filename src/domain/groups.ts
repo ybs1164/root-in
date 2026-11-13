@@ -1,5 +1,5 @@
 import { haversineMeters } from './geo';
-import type { LineLook, PingLook, StoredPing } from './dayPings';
+import type { LineLook, PingLook } from './dayPings';
 import { dateKey } from './diary';
 /** We Now: a group whose members see each other's TODAY pings on one map. */
 export interface GroupPing {
@@ -13,8 +13,6 @@ export interface GroupPing {
   photos?: string[];
   /** When each of its photos (`pingPhotos`) was taken, same order; set on merged places, whose `at` is their last ping's. */
   photoAts?: string[];
-  /** My own row only: the TODAY pings (this phone's ids) the place is made of — what 핀 삭제 hides from a group. */
-  ids?: string[];
   /** A merged place: its first ping's time (`at` is its last's) — what its look is kept by, as a new photo there moves `at`. */
   from?: string;
 }
@@ -230,8 +228,6 @@ export function mergeSamePlace(pings: readonly GroupPing[]): GroupPing[] {
     if (name) merged.name = name;
     if (photos.length) merged.photo = photos[photos.length - 1], merged.photoAts = photoAts;
     if (photos.length > 1) merged.photos = photos;
-    const ids = [...(last.ids ?? []), ...(p.ids ?? [])];
-    if (ids.length) merged.ids = ids;
     out[out.length - 1] = merged;
   }
   return out;
@@ -408,26 +404,13 @@ export function newPingCount(group: Group, me: string | null, seen: readonly str
 }
 
 /**
- * My own pings on a group's map, from this phone's storage rather than the
- * server's copy, so adding or taking one out of TODAY shows at once (the
- * server only catches up after the next push and the next read). 제외 주소
- * pings (`local`) stay off it, as they never reach the server either.
+ * A member's places on a group's map: only the photos sent to that group.
+ * A TODAY ping alone (no photo) never makes a place there, so a group I
+ * didn't send a photo to shows nothing of where I was, and a place whose
+ * last photo is deleted is gone with it.
  */
-/**
- * My row in a group: this phone's TODAY pings (fresher than the server's
- * copy) plus the photos I sent to that group, which only the server has.
- */
-export function withSentPhotos(mine: readonly GroupPing[], fromServer: readonly GroupPing[]): GroupPing[] {
-  const sent = fromServer.filter((p) => p.photo);
-  if (!sent.length) return mine as GroupPing[];
-  return [...mine, ...sent].sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
-}
-
-export function myGroupPings(stored: readonly StoredPing[], day: string, hidden?: ReadonlySet<string>): GroupPing[] {
-  return stored
-    .filter((p) => p.day === day && !p.local && !hidden?.has(p.id))
-    .sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0))
-    .map((p) => ({ at: p.at, center: p.center, name: p.name, ids: [p.id] }));
+export function photoPlaces(pings: readonly GroupPing[]): GroupPing[] {
+  return mergeSamePlace(pings.filter((p) => p.photo));
 }
 
 /** A member's pings from the server without the photos I just deleted (before the next read drops them). */

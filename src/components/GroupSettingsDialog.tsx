@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, PenLine } from 'lucide-react';
+import { ChevronDown, PenLine } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { GROUP_LIMITS, MEMBER_COLORS, MEMBER_COLOR_NAMES, memberColor, takenColors, type Group, type GroupMember } from '../domain/groups';
 import { useBackdropTap } from '../hooks/useBackdropTap';
@@ -239,7 +239,6 @@ export default function GroupSettingsDialog({ group, me, onRename, onCover, onPr
         )}
         <button className="group-form__manage" aria-haspopup="dialog" onClick={() => setManaging(true)}>
           그룹 관리
-          <ChevronRight size={18} aria-hidden />
         </button>
       </div>
       <div className="ticket-dialog__stub ticket-dialog__split">

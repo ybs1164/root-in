@@ -6,6 +6,7 @@ import { useGroupPingDays } from '../hooks/useGroups';
 import type { AuthUser } from '../services/authService';
 import MonthCalendar from './MonthCalendar';
 import { MemberFace } from './WeNowPage';
+import { useSwipeBack } from '../hooks/useSwipeBack';
 
 /** Faces under a day at most; more read +n. */
 const FACES = 3;
@@ -55,9 +56,11 @@ export default function GroupCalendar({ group, user, me, myDays, day, onPick, on
   const asked = useGroupPingDays(user, group.id, span.from, span.to);
   const days = useMemo(() => (me ? withMyPingDays(asked.days, me, [...myDays].filter((d) => d >= span.from && d <= span.to)) : asked.days), [asked.days, me, myDays, span]);
   const today = dateKey();
+  // A left-to-right swipe takes it back to the group's map, as the chat and gallery do.
+  const swipeBack = useSwipeBack(onClose);
 
   return (
-    <div className="group-calendar" role="dialog" aria-label={`${group.name} 달력`}>
+    <div className="group-calendar" role="dialog" aria-label={`${group.name} 달력`} {...swipeBack}>
       <button className="today-back" aria-label="닫기" onClick={onClose}>
         <ChevronLeft size={24} strokeWidth={2.2} aria-hidden />
       </button>

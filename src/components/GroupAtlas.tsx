@@ -27,7 +27,9 @@ const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
  */
 export const ATLAS_BOARD = { at: -200, size: 1200 } as const;
 /** The trash a dragged sticker or text box goes to: this far over the screen's bottom (px). */
-const BOARD_TRASH_UP = 200;
+const BOARD_TRASH_UP = 260;
+/** A doodle piece on the board: a finger on one is the board's, not the map's. */
+const PIECE = '.decor__sticker, .decor__text';
 
 /** The islands are plain land (2026-11-09): TODAY's roads and parks read as clutter at this size. */
 const plainIsland = (parts: MapPart[]) => parts.filter((part) => part.fill.role !== 'road' && part.fill.role !== 'park');
@@ -50,11 +52,11 @@ interface GroupAtlasProps {
   /** The day's doodles, on the ground (moved and scaled with it, under the lines and pins). */
   board?: ReactNode;
   /**
-   * A doodle tool is out: one finger is the tool's, not a drag. Under the pen
-   * two fingers still move and zoom the map ('pen'); a sticker or a text box
-   * takes two fingers itself, so the map stays still ('all').
+   * A doodle tool is out. Under the pen one finger is the pen's and two
+   * still move and zoom the map ('pen'); with stickers or text, fingers on a
+   * piece are the board's and bare board moves the map as ever ('pieces').
    */
-  lock?: 'pen' | 'all' | null;
+  lock?: 'pen' | 'pieces' | null;
 }
 
 export default function GroupAtlas({ marks, lines, handle, rootRef, board, lock = null }: GroupAtlasProps) {
@@ -201,6 +203,7 @@ export default function GroupAtlas({ marks, lines, handle, rootRef, board, lock 
     const el = root.current;
     if (!el) return;
     const fingers = new Map<number, { x: number; y: number }>();
+    const held = new Set<number>();
     let pinch: { d: number; mid: { x: number; y: number }; view: AtlasView } | null = null;
     let fling = { vx: 0, vy: 0, at: 0 };
     const local = (e: PointerEvent) => {
@@ -213,13 +216,18 @@ export default function GroupAtlas({ marks, lines, handle, rootRef, board, lock 
     };
     const down = (e: PointerEvent) => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
-      if (lockRef.current === 'all') return;
+      // Stickers or text out: a finger on a piece (and any finger while one
+      // holds a piece — its pinch) is the board's; bare board moves the map.
+      if (lockRef.current === 'pieces' && (held.size || (e.target as Element | null)?.closest(PIECE))) {
+        held.add(e.pointerId);
+        return;
+      }
       stop();
       fingers.set(e.pointerId, local(e));
       fling = { vx: 0, vy: 0, at: performance.now() };
       if (fingers.size === 2 && view.current) pinch = { ...twoOf(), view: view.current };
       // Under the pen the doodle layer has the finger (its capture must stay its own).
-      if (lockRef.current) return;
+      if (lockRef.current === 'pen') return;
       // Moves past the edge still reach here; a pointer that's already gone can't be captured (and needn't be).
       try {
         el.setPointerCapture(e.pointerId);
@@ -239,8 +247,8 @@ export default function GroupAtlas({ marks, lines, handle, rootRef, board, lock 
         show({ zoom: zoomed.zoom, x: zoomed.x + now.mid.x - pinch.mid.x, y: zoomed.y + now.mid.y - pinch.mid.y });
         return;
       }
-      // One finger under a doodle tool is the tool's.
-      if (lockRef.current) return;
+      // One finger under the pen is the pen's.
+      if (lockRef.current === 'pen') return;
       const [dx, dy] = [p.x - last.x, p.y - last.y];
       const t = performance.now();
       const dt = Math.max(1, t - fling.at);
@@ -249,9 +257,10 @@ export default function GroupAtlas({ marks, lines, handle, rootRef, board, lock 
       show({ ...v, x: v.x + dx, y: v.y + dy });
     };
     const up = (e: PointerEvent) => {
+      held.delete(e.pointerId);
       if (!fingers.delete(e.pointerId)) return;
       if (fingers.size < 2) pinch = null;
-      if (fingers.size || pinch || lockRef.current) return;
+      if (fingers.size || pinch || lockRef.current === 'pen') return;
       // A flick: glide on, slowing, unless the finger stopped before it lifted.
       if (performance.now() - fling.at > 80) return;
       let { vx, vy } = fling;

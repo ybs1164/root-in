@@ -243,6 +243,7 @@ export function usePhotoDoodle(
           textStyle={textStyle}
           onDragging={setDragging}
           scale={scale}
+          onAway={board ? () => setTool(null) : undefined}
         />
       </div>
     </div>

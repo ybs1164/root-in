@@ -6490,6 +6490,8 @@ button:disabled {
   color: var(--text);
   --icon-ink: var(--icon);
   animation: veil-in 0.2s ease both;
+  /* Up and down scrolls; sideways is the swipe back to the map (useSwipeBack). */
+  touch-action: pan-y;
 }
 
 .group-calendar__head {
@@ -9785,11 +9787,14 @@ button.group-photo-panel__photo {
 }
 
 /* The veil, its own layer: pulled down it clears (--veil) to show what's under
-   the photo. `--veil-ms` is set only when it's let go; a finger moves it directly. */
+   the photo. `--veil-ms` is set only when it's let go; a finger moves it directly.
+   Fixed and far past every edge: the viewer follows the visual viewport (and
+   clips while a keyboard is up), and on iOS that box slides about as the
+   keyboard comes — an absolute veil went up with it and left the bottom bare. */
 .group-photo-viewer::before {
   content: "";
-  position: absolute;
-  inset: 0;
+  position: fixed;
+  inset: -100lvh 0;
   z-index: -1;
   background: var(--tray-bg);
   opacity: var(--veil, 1);
@@ -10799,7 +10804,8 @@ button.group-photo-panel__photo {
   margin-top: 22px;
   border: 0;
   border-radius: 14px;
-  background: var(--surface);
+  /* The INVITE field's soft fill, so it reads as a button. */
+  background: var(--surface-2);
   box-shadow: var(--round-btn-shadow);
   color: var(--text);
   --icon-ink: var(--icon);
@@ -12793,14 +12799,37 @@ button.group-photo-panel__photo {
   --icon-ink: var(--on-accent-icon);
 }
 
-/* 펜 · 스티커 · 텍스트 in a row to 꾸미기's left; the one out in my colour. */
+/* 펜 · 스티커 · 텍스트 in a column under 꾸미기, dropping out of it one after
+   another and tucking back up into it as the map's category buttons do out
+   of 핀 (pin-rail-in / -out); the one out in my colour. */
 .group-board__tools {
   position: fixed;
-  top: calc(12px + var(--safe-top) + 4 * (48px + 10px) + 2px);
-  right: calc(14px + 48px + 10px);
+  top: calc(12px + var(--safe-top) + 5 * (48px + 10px));
+  right: 14px;
   z-index: 20;
+  flex-direction: column;
+  gap: 10px;
   margin: 0;
-  animation: rise-in 0.18s ease-out both;
+}
+
+.group-board__tools .photo-doodle__tool {
+  width: 48px;
+  height: 48px;
+  animation: pin-rail-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+
+.group-board__tools .photo-doodle__tool:nth-child(2) {
+  animation-delay: 30ms;
+}
+
+.group-board__tools .photo-doodle__tool:nth-child(3) {
+  animation-delay: 60ms;
+}
+
+/* Folding: together, back up into 꾸미기 (GroupMapView's TOOLS_OUT_MS waits for this). */
+.group-board__rail.is-leaving .photo-doodle__tool {
+  animation: pin-rail-out 0.16s ease-in both;
+  pointer-events: none;
 }
 
 .group-board__tools .photo-doodle__tool {

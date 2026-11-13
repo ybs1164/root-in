@@ -79,8 +79,6 @@ export interface GroupService {
    * False when it failed.
    */
   setLook(groupId: string, kind: 'ping' | 'edge', key: string, look: string | null): Promise<boolean>;
-  /** My TODAY pings `ids` hidden from group `groupId` only (핀 삭제 there); false when it failed. */
-  hidePings(groupId: string, ids: string[]): Promise<boolean>;
   /** TODAY's ✕: my photos sent from that place that day off every group (and the bucket); false when it failed. */
   deletePlacePhotos(ping: PhotoPing): Promise<boolean>;
   /** Every photo sent to `groupIds` (I'm a member of), newest first; 'error' when the server couldn't be asked. */
@@ -713,19 +711,6 @@ export function createSupabaseGroupService(
       }
     },
 
-    async hidePings(groupId, ids) {
-      try {
-        const asked = [...new Set(ids.filter((id) => typeof id === 'string' && id.length > 0 && id.length <= 64))].slice(0, 100);
-        if (!asked.length) return true;
-        if (!UUID.test(groupId)) return false;
-        const client = await getClient();
-        if (!client) return false;
-        const { error } = await client.rpc('hide_group_pings', { gid: groupId, ids: asked });
-        return !error;
-      } catch {
-        return false;
-      }
-    },
 
     async deletePlacePhotos(ping) {
       try {
