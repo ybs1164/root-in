@@ -66,11 +66,14 @@ jobs:
 
       # As for the APK: only the stickers a pack uses, shrunk (a no-op for
       # public/stickers, already shrunk; it catches any full-size art added since).
+      # Map place stickers too: drawn at most ~133 CSS px, the 1536px art made
+      # every map screen download ~37MB, so shops showed bare names for seconds.
       - name: Prune and shrink stickers
         run: |
           node scripts/prune-stickers.mjs dist/stickers
           pip install pillow
           python scripts/shrink-stickers.py dist/stickers
+          python scripts/shrink-stickers.py dist/poi-stickers --max-side 512
 
       - uses: actions/upload-pages-artifact@v3
         with:
