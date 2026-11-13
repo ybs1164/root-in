@@ -10,6 +10,14 @@ original (PSNR on visible pixels). A file it can't make smaller is left as
 it is, so a second run settles it and later runs change nothing.
 
   python scripts/shrink-stickers.py [dir]   (default dist/stickers; new art: public/stickers)
+
+Map place stickers (public/poi-stickers, 2026-11-13: 1536px art, ~74MB) are
+drawn in a 48px square scaled by POI_STICKER_SCALE (at most ~2.8, ~133 CSS px,
+~400 device px on a 3x phone), so they take --max-side 512:
+
+  python scripts/shrink-stickers.py public/poi-stickers --max-side 512
+
+Shrinking keeps the aspect ratio, so poiStickerScale/poiStickerBounds hold.
 """
 import io
 import math
@@ -41,10 +49,10 @@ def png_bytes(im: Image.Image) -> bytes:
     return out.getvalue()
 
 
-def shrink(path: Path) -> tuple[int, int, str]:
+def shrink(path: Path, max_side: int = MAX_SIDE) -> tuple[int, int, str]:
     before = path.stat().st_size
     im = Image.open(path).convert('RGBA')
-    im.thumbnail((MAX_SIDE, MAX_SIDE), Image.LANCZOS)
+    im.thumbnail((max_side, max_side), Image.LANCZOS)
     pal = im.quantize(256, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.FLOYDSTEINBERG)
     if psnr(im, pal.convert('RGBA')) >= PALETTE_MIN_PSNR:
         data, kind = png_bytes(pal), 'palette'
@@ -57,16 +65,22 @@ def shrink(path: Path) -> tuple[int, int, str]:
 
 
 def main() -> None:
-    folder = Path(sys.argv[1] if len(sys.argv) > 1 else 'dist/stickers')
+    args = sys.argv[1:]
+    max_side = MAX_SIDE
+    if '--max-side' in args:
+        i = args.index('--max-side')
+        max_side = int(args[i + 1])
+        del args[i:i + 2]
+    folder = Path(args[0] if args else 'dist/stickers')
     files = sorted(folder.glob('*.png'))
     total_before = total_after = 0
     kinds: dict[str, int] = {}
     for f in files:
-        b, a, kind = shrink(f)
+        b, a, kind = shrink(f, max_side)
         total_before += b
         total_after += a
         kinds[kind] = kinds.get(kind, 0) + 1
-    print(f'Stickers: {len(files)} files, {total_before / 1e6:.1f}MB -> {total_after / 1e6:.1f}MB {kinds}')
+    print(f'{folder.name}: {len(files)} files, {total_before / 1e6:.1f}MB -> {total_after / 1e6:.1f}MB {kinds}')
 
 
 if __name__ == '__main__':
