@@ -1,15 +1,19 @@
-import { ChevronDown, PenLine, RotateCcw } from 'lucide-react';
+import { ChevronDown, Images, PenLine } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { GROUP_LIMITS, MEMBER_COLORS, MEMBER_COLOR_NAMES, coverTintClass, memberColor, takenColors, type Group, type GroupCoverOverride, type GroupMember } from '../domain/groups';
-import { THEMES, type ThemeId } from '../domain/decor';
+import { THEMES } from '../domain/decor';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import { inviteUrl } from '../services/groupService';
+import { avatarFromFile } from '../lib/avatarImage';
 import InviteLinkField from './InviteLinkField';
 import { GroupCover, MemberFace } from './WeNowPage';
 import { showModalQuietly } from '../lib/dialog';
 import AvatarEditor from './AvatarEditor';
 import CoverPicker from './CoverPicker';
 import { ProfileAvatar } from './ProfileSheet';
+
+/** MY COVER's own photo: a square, like the maker's own cover photo. */
+const MY_COVER_PX = 512;
 
 interface GroupSettingsDialogProps {
   group: Group;
@@ -21,9 +25,9 @@ interface GroupSettingsDialogProps {
   onCover(cover: number, photo?: string | null): Promise<boolean>;
   /** My own look for the cover, this phone only (`Group.coverOverride`); null = none, the maker's shows. */
   coverOverride: GroupCoverOverride | null;
-  /** Picks my own shape and colour for the cover — applies at once, no 저장. */
-  onMyCover(cover: number, swatch: ThemeId): void;
-  /** 초기화: drops my own look, back to the maker's. */
+  /** Sets my own look for the cover (shape, colour, or a personal photo) — applies at once, no 저장. */
+  onMyCover(override: GroupCoverOverride): void;
+  /** 그룹 커버 사용: drops my own look, back to the maker's. */
   onResetMyCover(): void;
   /**
    * My profile in this group: 통합 (`own` false) or 개별 with its name and
@@ -289,64 +293,100 @@ export default function GroupSettingsDialog({ group, me, onRename, onCover, cove
 const MY_COVER_THEMES = THEMES.slice(0, 4);
 
 /**
- * MY COVER (2026-11-15): everyone's own look for the group — its cover
- * shape (the same seven) and one of the four app themes, picked right by
- * the label — kept on this phone only, so a member can freely restyle it
- * without the maker's say. The theme also tints the group's map itself
+ * MY COVER (2026-11-15; a member only — the maker has no use for it, their
+ * own COVER above already colours and shapes it for everyone): a 그룹
+ * 커버 사용/개인 커버 사용 toggle, the profile row's own way. 개인 커버 사용
+ * reveals a shape (the same seven) and one of the four app themes — kept on
+ * this phone only — or, picked from the gallery, a photo of my own that
+ * never reaches the group (`GroupCoverOverride.photo`, wins over the shape
+ * wherever the cover renders). The theme also tints the group's map itself
  * (its land, and 텍스트 — a member's own ping and line stay their own
- * colour, so people stay tellable apart). 초기화 (the label's last button,
- * grey until there's a look to drop) takes it off, back to the maker's.
+ * colour, so people stay tellable apart). Picking 그룹 커버 사용 drops my own
+ * look, back to the maker's (`onReset`).
  */
 function MyCoverRow({
-  cover,
-  swatch,
-  hasOverride,
-  first,
+  group,
+  coverOverride,
   onPick,
   onReset,
 }: {
-  cover: number;
-  swatch?: ThemeId;
-  hasOverride: boolean;
-  /** No GROUP NAME/COVER above it (a member, not the maker): its label sits flush, like theirs. */
-  first: boolean;
-  onPick(cover: number, swatch: ThemeId): void;
+  group: Group;
+  coverOverride: GroupCoverOverride | null;
+  onPick(override: GroupCoverOverride): void;
   onReset(): void;
 }) {
+  const mine = !!coverOverride;
+  const cover = coverOverride?.cover ?? group.cover;
+  const swatch = coverOverride?.swatch;
+  const photo = coverOverride?.photo ?? null;
   const swatchOrDefault = swatch ?? 'banana';
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [failed, setFailed] = useState(false);
   return (
     <>
-      <p className={`group-form__label group-form__label--row ${first ? 'group-form__label--first' : ''}`}>
-        MY COVER
-        <span className="group-form__colors group-form__swatches" role="radiogroup" aria-label="그룹 테마 색">
-          {MY_COVER_THEMES.map((t) => (
+      <p className="group-form__label group-form__label--first">MY COVER</p>
+      <div className="group-form__modes" role="radiogroup" aria-label="이 그룹의 표지">
+        <button role="radio" aria-checked={!mine} className={!mine ? 'is-on' : ''} onClick={() => mine && onReset()}>
+          그룹 커버 사용
+        </button>
+        <button role="radio" aria-checked={mine} className={mine ? 'is-on' : ''} onClick={() => !mine && onPick({ cover: group.cover, swatch: 'banana' })}>
+          개인 커버 사용
+        </button>
+      </div>
+      {mine && (
+        <>
+          <div className="group-form__colors group-form__swatches" role="radiogroup" aria-label="그룹 테마 색">
+            {MY_COVER_THEMES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="radio"
+                className={!photo && swatch === t.id ? 'is-on' : ''}
+                style={{ color: `var(--swatch-${t.id}-accent)` } as CSSProperties}
+                aria-checked={!photo && swatch === t.id}
+                aria-label={t.label}
+                onClick={() => onPick({ cover, swatch: t.id })}
+              >
+                <span aria-hidden />
+              </button>
+            ))}
+          </div>
+          <div className={`group-form__covers ${coverTintClass(photo ? undefined : swatch)}`} role="radiogroup" aria-label="내 표지 모양">
+            {Array.from({ length: GROUP_LIMITS.covers }, (_, i) => (
+              <button key={i} role="radio" aria-checked={!photo && cover === i} aria-label={`표지 ${i + 1}`} className={!photo && cover === i ? 'is-on' : ''} onClick={() => onPick({ cover: i, swatch: swatchOrDefault })}>
+                <svg viewBox="0 0 100 100" aria-hidden>
+                  <GroupCover cover={i} />
+                </svg>
+              </button>
+            ))}
             <button
-              key={t.id}
               type="button"
               role="radio"
-              className={swatch === t.id ? 'is-on' : ''}
-              style={{ color: `var(--swatch-${t.id}-accent)` } as CSSProperties}
-              aria-checked={swatch === t.id}
-              aria-label={t.label}
-              onClick={() => onPick(cover, t.id)}
+              aria-checked={!!photo}
+              aria-label={photo ? '내 표지 사진 바꾸기' : '갤러리에서 내 표지 사진 고르기'}
+              className={`group-form__cover-photo ${photo ? 'is-on' : ''}`}
+              onClick={() => fileRef.current?.click()}
             >
-              <span aria-hidden />
+              {photo ? <img src={photo} alt="" draggable={false} /> : <Images size={24} strokeWidth={2} aria-hidden />}
             </button>
-          ))}
-          <button type="button" className="group-form__swatch-reset" aria-label="기본 표지로 되돌리기" disabled={!hasOverride} onClick={onReset}>
-            <RotateCcw size={14} strokeWidth={2.2} aria-hidden />
-          </button>
-        </span>
-      </p>
-      <div className={`group-form__covers ${coverTintClass(swatch)}`} role="radiogroup" aria-label="내 표지 모양">
-        {Array.from({ length: GROUP_LIMITS.covers }, (_, i) => (
-          <button key={i} role="radio" aria-checked={cover === i} aria-label={`표지 ${i + 1}`} className={cover === i ? 'is-on' : ''} onClick={() => onPick(i, swatchOrDefault)}>
-            <svg viewBox="0 0 100 100" aria-hidden>
-              <GroupCover cover={i} />
-            </svg>
-          </button>
-        ))}
-      </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (!file) return;
+                const square = await avatarFromFile(file, MY_COVER_PX);
+                setFailed(!square);
+                if (square) onPick({ cover, swatch, photo: square });
+              }}
+            />
+          </div>
+          {failed && <p className="group-form__hint">사진을 불러오지 못했어요.</p>}
+        </>
+      )}
     </>
   );
 }
@@ -355,8 +395,8 @@ function MyCoverRow({
  * 그룹 관리, over ⚙ (its own boarding pass): for the group's maker GROUP
  * NAME, COVER (a pattern or a gallery photo) and 그룹원 관리 (추방 asked by
  * App), then 그룹 삭제 — [닫기 | 저장] saves the name and the cover; for a
- * member only 그룹 나가기 and [닫기]. 삭제 and 나가기 are asked by App first.
- * Everyone also gets MY COVER (above), applied at once, no 저장 (`MyCoverRow`).
+ * member MY COVER (above, `MyCoverRow` — applied at once, no 저장) then
+ * 그룹 나가기 and [닫기]. 삭제 and 나가기 are asked by App first.
  */
 function GroupManageDialog({
   group,
@@ -376,7 +416,7 @@ function GroupManageDialog({
   onRename(name: string): Promise<boolean>;
   onCover(cover: number, photo?: string | null): Promise<boolean>;
   coverOverride: GroupCoverOverride | null;
-  onMyCover(cover: number, swatch: ThemeId): void;
+  onMyCover(override: GroupCoverOverride): void;
   onResetMyCover(): void;
   onKick(member: GroupMember): void;
   onDelete(): void;
@@ -490,14 +530,7 @@ function GroupManageDialog({
               </Section>
           </>
         )}
-        <MyCoverRow
-          cover={coverOverride?.cover ?? group.cover}
-          swatch={coverOverride?.swatch}
-          hasOverride={!!coverOverride}
-          first={!owner}
-          onPick={(c, s) => onMyCover(c, s)}
-          onReset={onResetMyCover}
-        />
+        {!owner && <MyCoverRow group={group} coverOverride={coverOverride} onPick={onMyCover} onReset={onResetMyCover} />}
         {problem && <p className="group-form__hint">{problem}</p>}
         <button className="group-form__danger group-form__danger--manage" onClick={owner ? onDelete : onLeave}>
           {owner ? '그룹 삭제' : '그룹 나가기'}

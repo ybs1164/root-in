@@ -389,6 +389,9 @@ describe('MY COVER override (2026-11-15)', () => {
     expect(readGroupCoverOverride({ cover: 99 })).toBeUndefined();
     expect(readGroupCoverOverride({ cover: -1 })).toBeUndefined();
     expect(readGroupCoverOverride('nope')).toBeUndefined();
+    expect(readGroupCoverOverride({ cover: 1, photo: 'me.jpg' })).toEqual({ cover: 1, photo: 'me.jpg' });
+    expect(readGroupCoverOverride({ cover: 1, photo: '' })).toEqual({ cover: 1 });
+    expect(readGroupCoverOverride({ cover: 1, photo: 3 })).toEqual({ cover: 1 });
   });
 
   it('sets coverOverride from a map of overrides, by group id, mine only', () => {
@@ -405,5 +408,8 @@ describe('MY COVER override (2026-11-15)', () => {
     const mine = { ...maker, coverOverride: { cover: 4, swatch: 'matcha' as const } };
     expect(effectiveCover(mine)).toEqual({ cover: 4, photo: null, tintClass: 'cover-tint cover-tint--matcha' });
     expect(coverTintClass(undefined)).toBe('');
+    // A personal photo (2026-11-15) wins over the override's own shape/swatch, untinted.
+    const myPhoto = { ...maker, coverOverride: { cover: 4, swatch: 'matcha' as const, photo: 'me.jpg' } };
+    expect(effectiveCover(myPhoto)).toEqual({ cover: 4, photo: 'me.jpg', tintClass: '' });
   });
 });

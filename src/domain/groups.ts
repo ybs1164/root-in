@@ -119,10 +119,16 @@ export interface Group {
   createdAt?: string;
 }
 
-/** A member's own cover look (`Group.coverOverride`): a shape, and optionally a colour swatch. */
+/**
+ * A member's own cover look (`Group.coverOverride`): a shape and colour
+ * swatch, or — a personal touch the maker never sees in their own editor —
+ * a photo of their own picked from their phone's gallery (2026-11-15); a
+ * photo wins over `cover`/`swatch` wherever the cover renders.
+ */
 export interface GroupCoverOverride {
   cover: number;
   swatch?: ThemeId;
+  photo?: string;
 }
 
 /** A stored `GroupCoverOverride`, checked; undefined if it doesn't look right. */
@@ -131,7 +137,8 @@ export function readGroupCoverOverride(raw: unknown): GroupCoverOverride | undef
   const cover = (raw as { cover?: unknown }).cover;
   if (typeof cover !== 'number' || !Number.isInteger(cover) || cover < 0 || cover >= GROUP_LIMITS.covers) return undefined;
   const swatch = (raw as { swatch?: unknown }).swatch;
-  return isThemeId(swatch) ? { cover, swatch } : { cover };
+  const photo = (raw as { photo?: unknown }).photo;
+  return { cover, ...(isThemeId(swatch) ? { swatch } : {}), ...(typeof photo === 'string' && photo ? { photo } : {}) };
 }
 
 /** `groups` with each one's `coverOverride` set from `overrides` (mine only, by group id) — undefined where I have none. */
@@ -143,9 +150,10 @@ export function withCoverOverrides(groups: readonly Group[], overrides: Readonly
 /** A class on the cover's `<svg>`/wrapper that tints it to `swatch` (`styles.css` `.cover-tint--<id>`); '' for the app theme's own tones. */
 export const coverTintClass = (swatch: ThemeId | undefined): string => (swatch ? `cover-tint cover-tint--${swatch}` : '');
 
-/** What a group's cover actually shows: my own override if I have one, else its maker's. */
+/** What a group's cover actually shows: my own override if I have one (a photo of my own wins over its shape), else its maker's. */
 export function effectiveCover(g: Pick<Group, 'cover' | 'coverPhoto' | 'coverOverride'>): { cover: number; photo: string | null; tintClass: string } {
   const ov = g.coverOverride;
+  if (ov?.photo) return { cover: ov.cover, photo: ov.photo, tintClass: '' };
   return ov ? { cover: ov.cover, photo: null, tintClass: coverTintClass(ov.swatch) } : { cover: g.cover, photo: g.coverPhoto ?? null, tintClass: '' };
 }
 

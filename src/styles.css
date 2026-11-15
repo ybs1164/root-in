@@ -4986,7 +4986,7 @@ button:disabled {
   height: 40px;
   border-radius: 10px;
   overflow: hidden;
-  background: var(--cover-bg, var(--map-land));
+  background: var(--cover-bg, var(--accent-soft));
 }
 
 .group-send__name {
@@ -7196,7 +7196,7 @@ button:disabled {
   height: 32px;
   border-radius: 8px;
   overflow: hidden;
-  background: var(--cover-bg, var(--map-land));
+  background: var(--cover-bg, var(--accent-soft));
 }
 
 .alerts__group-name {
@@ -9186,7 +9186,7 @@ button:disabled {
   /* The maker's own cover uses the app theme's land; a member's own
      `.cover-tint--<id>` (MY COVER) sets `--cover-bg` instead, so the gaps a
      shape doesn't fill (파도·허니콤·하트) read as that swatch, not green. */
-  background: var(--cover-bg, var(--map-land));
+  background: var(--cover-bg, var(--accent-soft));
 }
 
 /* The covers' two tones (2026-11-15, 카페·디저트 시안): a pale one and the
@@ -9204,64 +9204,47 @@ button:disabled {
 
 /* MY COVER's colour swatches (2026-11-15): any of the 테마 palette's 19,
    not just the four app themes — so a cover can be read apart from them. */
-.cover-tint--matcha { --cover-bg: var(--swatch-matcha-bg); --cover-a: color-mix(in srgb, var(--swatch-matcha-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-matcha-accent); }
-.cover-tint--banana { --cover-bg: var(--swatch-banana-bg); --cover-a: color-mix(in srgb, var(--swatch-banana-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-banana-accent); }
-.cover-tint--choco { --cover-bg: var(--swatch-choco-bg); --cover-a: color-mix(in srgb, var(--swatch-choco-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-choco-accent); }
-.cover-tint--strawberry { --cover-bg: var(--swatch-strawberry-bg); --cover-a: color-mix(in srgb, var(--swatch-strawberry-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-strawberry-accent); }
-.cover-tint--sky { --cover-bg: var(--swatch-sky-bg); --cover-a: color-mix(in srgb, var(--swatch-sky-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-sky-accent); }
-.cover-tint--mint { --cover-bg: var(--swatch-mint-bg); --cover-a: color-mix(in srgb, var(--swatch-mint-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-mint-accent); }
-.cover-tint--custard { --cover-bg: var(--swatch-custard-bg); --cover-a: color-mix(in srgb, var(--swatch-custard-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-custard-accent); }
-.cover-tint--yellow { --cover-bg: var(--swatch-yellow-bg); --cover-a: color-mix(in srgb, var(--swatch-yellow-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-yellow-accent); }
-.cover-tint--lovely { --cover-bg: var(--swatch-lovely-bg); --cover-a: color-mix(in srgb, var(--swatch-lovely-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-lovely-accent); }
-.cover-tint--love { --cover-bg: var(--swatch-love-bg); --cover-a: color-mix(in srgb, var(--swatch-love-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-love-accent); }
-.cover-tint--lavender { --cover-bg: var(--swatch-lavender-bg); --cover-a: color-mix(in srgb, var(--swatch-lavender-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-lavender-accent); }
-.cover-tint--tangerine { --cover-bg: var(--swatch-tangerine-bg); --cover-a: color-mix(in srgb, var(--swatch-tangerine-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-tangerine-accent); }
-.cover-tint--ocean { --cover-bg: var(--swatch-ocean-bg); --cover-a: color-mix(in srgb, var(--swatch-ocean-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-ocean-accent); }
-.cover-tint--midnight { --cover-bg: var(--swatch-midnight-bg); --cover-a: color-mix(in srgb, var(--swatch-midnight-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-midnight-accent); }
-.cover-tint--plum { --cover-bg: var(--swatch-plum-bg); --cover-a: color-mix(in srgb, var(--swatch-plum-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-plum-accent); }
-.cover-tint--wine { --cover-bg: var(--swatch-wine-bg); --cover-a: color-mix(in srgb, var(--swatch-wine-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-wine-accent); }
-.cover-tint--cocoa { --cover-bg: var(--swatch-cocoa-bg); --cover-a: color-mix(in srgb, var(--swatch-cocoa-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-cocoa-accent); }
-.cover-tint--sage { --cover-bg: var(--swatch-sage-bg); --cover-a: color-mix(in srgb, var(--swatch-sage-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-sage-accent); }
-.cover-tint--y2k { --cover-bg: var(--swatch-y2k-bg); --cover-a: color-mix(in srgb, var(--swatch-y2k-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-y2k-accent); }
-.cover-tint--mono { --cover-bg: var(--swatch-mono-bg); --cover-a: color-mix(in srgb, var(--swatch-mono-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-mono-accent); }
+.cover-tint--matcha { --cover-bg: color-mix(in srgb, var(--swatch-matcha-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-matcha-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-matcha-accent); }
+.cover-tint--banana { --cover-bg: color-mix(in srgb, var(--swatch-banana-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-banana-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-banana-accent); }
+.cover-tint--choco { --cover-bg: color-mix(in srgb, var(--swatch-choco-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-choco-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-choco-accent); }
+.cover-tint--strawberry { --cover-bg: color-mix(in srgb, var(--swatch-strawberry-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-strawberry-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-strawberry-accent); }
+.cover-tint--sky { --cover-bg: color-mix(in srgb, var(--swatch-sky-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-sky-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-sky-accent); }
+.cover-tint--mint { --cover-bg: color-mix(in srgb, var(--swatch-mint-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-mint-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-mint-accent); }
+.cover-tint--custard { --cover-bg: color-mix(in srgb, var(--swatch-custard-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-custard-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-custard-accent); }
+.cover-tint--yellow { --cover-bg: color-mix(in srgb, var(--swatch-yellow-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-yellow-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-yellow-accent); }
+.cover-tint--lovely { --cover-bg: color-mix(in srgb, var(--swatch-lovely-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-lovely-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-lovely-accent); }
+.cover-tint--love { --cover-bg: color-mix(in srgb, var(--swatch-love-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-love-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-love-accent); }
+.cover-tint--lavender { --cover-bg: color-mix(in srgb, var(--swatch-lavender-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-lavender-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-lavender-accent); }
+.cover-tint--tangerine { --cover-bg: color-mix(in srgb, var(--swatch-tangerine-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-tangerine-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-tangerine-accent); }
+.cover-tint--ocean { --cover-bg: color-mix(in srgb, var(--swatch-ocean-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-ocean-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-ocean-accent); }
+.cover-tint--midnight { --cover-bg: color-mix(in srgb, var(--swatch-midnight-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-midnight-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-midnight-accent); }
+.cover-tint--plum { --cover-bg: color-mix(in srgb, var(--swatch-plum-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-plum-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-plum-accent); }
+.cover-tint--wine { --cover-bg: color-mix(in srgb, var(--swatch-wine-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-wine-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-wine-accent); }
+.cover-tint--cocoa { --cover-bg: color-mix(in srgb, var(--swatch-cocoa-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-cocoa-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-cocoa-accent); }
+.cover-tint--sage { --cover-bg: color-mix(in srgb, var(--swatch-sage-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-sage-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-sage-accent); }
+.cover-tint--y2k { --cover-bg: color-mix(in srgb, var(--swatch-y2k-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-y2k-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-y2k-accent); }
+.cover-tint--mono { --cover-bg: color-mix(in srgb, var(--swatch-mono-accent) 6%, var(--ink-white)); --cover-a: color-mix(in srgb, var(--swatch-mono-accent) 18%, var(--ink-white)); --cover-b: var(--swatch-mono-accent); }
 
-/* MY COVER's colour row: sits inline on the label (`group-form__label--row`),
-   so its four dots (COLOR's look, shrunk) and 초기화 stay small and tight.
-   Doubled with `.group-form__colors` for specificity: that rule (COLOR's
-   20-dot grid) comes later in the file and would else win on a tie. */
+/* MY COVER's colour row (2026-11-15), above its cover grid: four small dots,
+   one per app theme. Doubled with `.group-form__colors` for specificity:
+   that rule (COLOR's 20-dot grid) comes later in the file and would else
+   win on a tie. */
 .group-form__colors.group-form__swatches {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  margin: 10px 0 8px;
 }
 
 .group-form__colors.group-form__swatches button {
-  width: 22px;
-  max-width: 22px;
-  height: 28px;
+  width: 26px;
+  max-width: 26px;
+  height: 26px;
 }
 
 .group-form__colors.group-form__swatches span {
-  width: 16px;
-  height: 16px;
-}
-
-.group-form__swatch-reset {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  margin-left: 4px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--surface-2);
-  color: var(--icon);
-  --icon-ink: var(--icon);
-}
-
-.group-form__swatch-reset:disabled {
-  opacity: 0.35;
+  width: 20px;
+  height: 20px;
 }
 
 .group-tile__line {
@@ -10635,14 +10618,6 @@ button.group-photo-panel__photo {
   font-size: 12px;
 }
 
-/* MY COVER's label carries its own colour row at the right (`--row`). */
-.group-form__label--row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
 .group-form__label {
   margin: 18px 0 8px;
   color: var(--muted);
@@ -10668,7 +10643,7 @@ button.group-photo-panel__photo {
      than the shape's own `--cover-a`/`--cover-b`, so the corners a shape
      doesn't fill (허니콤·하트) read as a backing, not the same tone as the
      shape and lose it; COVER's own editor (no swatch) keeps the app's land. */
-  background: var(--cover-bg, var(--map-land));
+  background: var(--cover-bg, var(--accent-soft));
 }
 
 .group-form__covers button svg {
@@ -11384,7 +11359,7 @@ button.group-photo-panel__photo {
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  background: var(--cover-bg, var(--map-land));
+  background: var(--cover-bg, var(--accent-soft));
 }
 
 .chat-list__text {
@@ -11542,7 +11517,7 @@ button.group-photo-panel__photo {
   height: 68px;
   overflow: hidden;
   border-radius: 20px;
-  background: var(--cover-bg, var(--map-land));
+  background: var(--cover-bg, var(--accent-soft));
   /* A soft shadow lifts it off the page (the covers are pale). */
   box-shadow: var(--ticket-shadow);
   /* Pressed it shrinks and springs back (scale, so the row never moves); picked, a ring. */

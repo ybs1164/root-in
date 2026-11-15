@@ -2386,7 +2386,7 @@ export default function App() {
           onRename={(name) => groups.rename(openGroup.id, name)}
           onCover={(cover, photo) => groups.setCover(openGroup.id, cover, photo)}
           coverOverride={openGroup.coverOverride ?? null}
-          onMyCover={(cover, swatch) => setMyCover(openGroup.id, { cover, swatch })}
+          onMyCover={(override) => setMyCover(openGroup.id, override)}
           onResetMyCover={() => setMyCover(openGroup.id, null)}
           me={myId}
           onKick={setKicking}
