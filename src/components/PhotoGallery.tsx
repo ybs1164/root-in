@@ -1,7 +1,7 @@
 import { ChevronLeft, Images, MapPin, Search, Star, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { dayPosters, filterGallery, galleryDayLabel, galleryTabDays, metDays, placeSuggestions, viewerOrder, type GalleryItem, type GalleryPhoto, type GalleryTab } from '../domain/gallery';
-import { memberColor, memberInk, type Group, type GroupMember } from '../domain/groups';
+import { effectiveCover, memberColor, memberInk, type Group, type GroupMember } from '../domain/groups';
 import { centeredScrollLeft } from '../domain/routeFolders';
 import { useGalleryDecors, useMetDays, type GalleryState } from '../hooks/useGalleryPhotos';
 import { usePhotoMarks } from '../hooks/usePhotoMarks';
@@ -334,10 +334,10 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
               className={`gallery__cover-tab ${tab === t.id ? 'is-on' : ''} ${t.id === 'my' ? 'gallery__cover-tab--my' : ''}`}
               onClick={() => onTab(t.id)}
             >
-              <span className="gallery__cover" aria-hidden>
+              <span className={`gallery__cover ${group ? effectiveCover(group).tintClass : ''}`} aria-hidden>
                 {group ? (
                   <svg viewBox="0 0 100 100">
-                    <GroupCover cover={group.cover} photo={group.coverPhoto} />
+                    <GroupCover cover={effectiveCover(group).cover} photo={effectiveCover(group).photo} />
                   </svg>
                 ) : (
                   meMember.photo && <img src={meMember.photo} alt="" draggable={false} />

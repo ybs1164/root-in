@@ -2,7 +2,7 @@ import { ChevronLeft } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { galleryDayLabel, type FeedItem } from '../domain/gallery';
 import { dateKey } from '../domain/diary';
-import type { Group } from '../domain/groups';
+import { effectiveCover, type Group } from '../domain/groups';
 import { groupService } from '../services/groupService';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 import { GroupCover } from './WeNowPage';
@@ -83,11 +83,12 @@ export default function ChatList({
         {rows.length === 0 && <li className="gallery__note">아직 그룹이 없어요.</li>}
         {rows.map((g) => {
           const item = last[g.id];
+          const myCover = effectiveCover(g);
           return (
             <li key={g.id}>
               <button className="chat-list__row" onClick={() => onOpen(g.id)}>
-                <svg className="chat-list__cover" viewBox="0 0 100 100" aria-hidden>
-                  <GroupCover cover={g.cover} photo={g.coverPhoto} />
+                <svg className={`chat-list__cover ${myCover.tintClass}`} viewBox="0 0 100 100" aria-hidden>
+                  <GroupCover cover={myCover.cover} photo={myCover.photo} />
                 </svg>
                 <span className="chat-list__text">
                   <span className="chat-list__name">

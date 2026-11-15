@@ -1,7 +1,7 @@
 import { Plus, UserRound, Users } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import type { PinIcon, PinTint } from '../types/pin';
-import { groupPingCount, memberColor, moveId, tilePaths, type Group, type GroupMember } from '../domain/groups';
+import { effectiveCover, groupPingCount, memberColor, moveId, tilePaths, type Group, type GroupMember } from '../domain/groups';
 import { PRESS } from '../domain/dayPings';
 import { edgeKey, pingKey, pingsLandedMs, type DayPing } from '../domain/dayPings';
 import { dateKey } from '../domain/diary';
@@ -109,6 +109,7 @@ function GroupTile({ group, fresh, lifted, onOpen, onPress }: { group: Group; fr
   const pings = groupPingCount(group);
   const shown = group.members.slice(0, 3);
   const more = group.members.length - shown.length;
+  const myCover = effectiveCover(group);
   return (
     <button
       className={`group-tile ${lifted ? 'is-lifted' : ''}`}
@@ -117,8 +118,8 @@ function GroupTile({ group, fresh, lifted, onOpen, onPress }: { group: Group; fr
       onPointerDown={onPress}
       onContextMenu={(e) => e.preventDefault()}
       aria-label={`${group.name}, ${group.members.length}명, 오늘 핑 ${pings}${fresh ? `, 새 핑 ${fresh}` : ''}`}>
-      <svg className="group-tile__map" viewBox={`0 0 ${TILE} ${TILE}`} aria-hidden>
-        <GroupCover cover={group.cover} photo={group.coverPhoto} />
+      <svg className={`group-tile__map ${myCover.tintClass}`} viewBox={`0 0 ${TILE} ${TILE}`} aria-hidden>
+        <GroupCover cover={myCover.cover} photo={myCover.photo} />
         {paths.map((p, i) => (
           <g key={i} style={{ '--member': p.color } as CSSProperties}>
             {p.points.length > 1 && <polyline className="group-tile__line" points={p.points.map((q) => q.join(',')).join(' ')} />}
