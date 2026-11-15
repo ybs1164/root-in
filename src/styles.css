@@ -9113,18 +9113,15 @@ button:disabled {
   background: var(--map-land);
 }
 
-/* The covers' little maps in the main map's roles. */
+/* The covers' two tones (2026-11-15, 카페·디저트 시안): a pale one and the
+   theme's map-ground colour, so all seven read clearly on the white tile and
+   follow 말차·바나나·초코·딸기 with no cover-specific colour of their own. */
 .group-cover__area {
-  fill: var(--map-road-edge);
+  fill: var(--accent-soft);
 }
 
 .group-cover__other {
-  fill: var(--map-road);
-}
-
-.group-cover__water {
-  fill: var(--map-water);
-  opacity: 0.55;
+  fill: var(--map-ground);
 }
 
 .group-tile__line {
