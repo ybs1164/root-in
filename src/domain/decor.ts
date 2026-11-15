@@ -643,6 +643,15 @@ export function dayTintClass(theme: ThemeId | undefined): string {
   return theme && theme !== 'default' ? `day-tint day-tint--${theme}` : '';
 }
 
+/**
+ * A day's own colour for its background pattern (꾸미기), the same accent its
+ * land and pings tint to (`--swatch-<id>-accent`, `.day-tint`): undefined
+ * follows the app's theme, as `.day-pattern__mark`/`__line` already do.
+ */
+export function dayPatternAccent(theme: ThemeId | undefined): string | undefined {
+  return theme && theme !== 'default' ? `var(--swatch-${theme}-accent)` : undefined;
+}
+
 export const isThemeId = (value: unknown): value is ThemeId => THEMES.some((t) => t.id === value);
 
 // ----- Colour codes for the palette -----

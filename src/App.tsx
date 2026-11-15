@@ -1,5 +1,5 @@
 import { ChevronLeft, MapPin, Pencil, Share } from 'lucide-react';
-import type { PatternId, ThemeId } from './domain/decor';
+import { dayPatternAccent, type PatternId, type ThemeId } from './domain/decor';
 import { setAppIcon } from './lib/appIcon';
 import DayPattern from './components/DayPattern';
 import ShareStudio from './components/ShareStudio';
@@ -157,8 +157,10 @@ export default function App() {
   // to share cards (the 꾸미기 screen reports its card's, over the day's while
   // it's up); the one showing lives on <html data-theme>, where styles.css
   // swaps the tokens.
-  // …and so do background patterns, drawn across the calendar page.
+  // …and so do background patterns, drawn across the calendar page — in the
+  // live day's own colour (the one its land and pings tint to), not the app's.
   const [dayPattern, setDayPattern] = useState<PatternId>('none');
+  const [livePageTheme, setLivePageTheme] = useState<ThemeId>('default');
   // The card on the 꾸미기 screen (a calendar day's or a route's), while it's up.
   const [studio, setStudio] = useState<ShareSubject | null>(null);
   // 공유 funnel: which card the 꾸미기 screen is on, and whether anything left it.
@@ -2218,7 +2220,7 @@ export default function App() {
           style={todaySwipe.style}
           {...todaySwipe.handlers}
         >
-          <DayPattern pattern={dayPattern} />
+          <DayPattern pattern={dayPattern} accent={dayPatternAccent(livePageTheme)} />
           <CalendarZoom
             command={calendarCommand}
             nameAt={async (center) => (await searchService?.reverse(center)) ?? null}
@@ -2232,6 +2234,7 @@ export default function App() {
             pingDropZone={() => barEl.current?.querySelector('.bar-cal') ?? null}
             onPingDropHover={setPingDropHot}
             onDayPattern={setDayPattern}
+            onDayTheme={setLivePageTheme}
             onMode={setCalendarMode}
             photoSeq={todayPhoto}
             onPhotoSeq={setTodayPhoto}

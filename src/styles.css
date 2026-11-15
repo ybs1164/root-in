@@ -2650,6 +2650,18 @@ button:disabled {
   --day-ping: var(--tint-ping);
 }
 
+/* 2026-11-15: a ping's place name, its time, and the lines between pings
+   take the same colour (`--day-ping`) as the ping itself; no day theme chosen
+   (no `.day-tint`), and they keep the app's `--text`/`--muted`/`--route`. */
+.day-tint .ping__label,
+.day-tint .ping__label small {
+  color: var(--day-ping);
+}
+
+.day-tint .pings__seg {
+  stroke: var(--day-ping);
+}
+
 .day-tint--banana,
 .theme-card--banana { --tint-ping: var(--swatch-banana-accent); --tint-land: var(--tint-land-banana); }
 .day-tint--matcha,

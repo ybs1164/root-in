@@ -12,7 +12,7 @@ import AppLinksSection from './AppLinksSection';
 import DayPattern from './DayPattern';
 import DayPings from './DayPings';
 import DecorLayer from './DecorLayer';
-import { DEFAULT_PEN, EMPTY_DECOR, dayTintClass } from '../domain/decor';
+import { DEFAULT_PEN, EMPTY_DECOR, dayPatternAccent, dayTintClass } from '../domain/decor';
 import { removePing } from '../services/pingRepository';
 import { ProfileAvatar } from './ProfileSheet';
 import type { GroupsStatus } from '../hooks/useGroups';
@@ -344,7 +344,7 @@ function TodayTile({ pings, pinLookOf, onOpen }: { pings: DayPing[]; pinLookOf: 
         }}
       >
         <div className="today-tile__ground" aria-hidden>
-          <DayPattern pattern={decor.pattern ?? 'none'} />
+          <DayPattern pattern={decor.pattern ?? 'none'} accent={dayPatternAccent(theme)} />
         </div>
         <span className="today-tile__title" aria-hidden>
           TODAY
