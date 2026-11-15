@@ -2654,7 +2654,8 @@ button:disabled {
    take the same colour (`--day-ping`) as the ping itself; no day theme chosen
    (no `.day-tint`), and they keep the app's `--text`/`--muted`/`--route`. */
 .day-tint .ping__label,
-.day-tint .ping__label small {
+.day-tint .ping__label small,
+.day-tint .cal-zoom__title {
   color: var(--day-ping);
 }
 
