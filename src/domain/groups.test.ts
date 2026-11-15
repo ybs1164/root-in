@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, myGroupPings, sharedPlaces, withSentPhotos, mergeSamePlace, pingPhotos, memberPhotoItems, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, orderGroups, moveId, withoutPhotos, pingLookKey, edgeLookKey, withGroupLook, readGroupLooks, type Group } from './groups';
+import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, sharedPlaces, mergeSamePlace, photoPlaces, pingPhotos, memberPhotoItems, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, orderGroups, moveId, withoutPhotos, pingLookKey, edgeLookKey, withGroupLook, readGroupLooks, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -226,50 +226,20 @@ describe('memberPhotoItems', () => {
   });
 });
 
-describe('withSentPhotos', () => {
-  it("is this phone's pings plus only the photos I sent from the server, in time order", () => {
-    const at = (h: number) => `2026-10-27T0${h}:00:00.000Z`;
-    const mine = [{ at: at(1), center: [127, 37.5] as [number, number] }, { at: at(5), center: [127, 37.6] as [number, number] }];
-    const server = [{ at: at(1), center: [127, 37.5] as [number, number] }, { at: at(3), center: [127, 37.7] as [number, number], photo: 'p.jpg' }];
-    expect(withSentPhotos(mine, server).map((p) => p.at)).toEqual([at(1), at(3), at(5)]);
-    expect(withSentPhotos(mine, [server[0]])).toBe(mine);
-  });
-});
-
-describe('myGroupPings', () => {
-  it("is that day's pings from this phone, oldest first, without 제외 주소 ones", () => {
-    const at = (h: number) => `2026-10-19T0${h}:00:00.000Z`;
-    const stored = [
-      { id: 'b', day: '2026-10-19', at: at(3), name: 'B', center: [127, 37.5] as [number, number] },
-      { id: 'a', day: '2026-10-19', at: at(1), name: 'A', center: [127, 37.6] as [number, number] },
-      { id: 'h', day: '2026-10-19', at: at(2), name: '집 근처', center: [127, 37.7] as [number, number], local: true },
-      { id: 'y', day: '2026-10-18', at: at(4), name: 'Y', center: [127, 37.8] as [number, number] },
-    ];
-    expect(myGroupPings(stored, '2026-10-19')).toEqual([
-      { at: at(1), center: [127, 37.6], name: 'A', ids: ['a'] },
-      { at: at(3), center: [127, 37.5], name: 'B', ids: ['b'] },
-    ]);
-  });
-
-  it('leaves out the pings hidden from the group (핀 삭제 there)', () => {
-    const at = (h: number) => `2026-10-19T0${h}:00:00.000Z`;
-    const stored = [
-      { id: 'a', day: '2026-10-19', at: at(1), name: 'A', center: [127, 37.6] as [number, number] },
-      { id: 'b', day: '2026-10-19', at: at(3), name: 'B', center: [127, 37.5] as [number, number] },
-    ];
-    expect(myGroupPings(stored, '2026-10-19', new Set(['a'])).map((p) => p.name)).toEqual(['B']);
-  });
-});
-
 describe('a place deleted in a group', () => {
   const url = (id: string) => `https://x.supabase.co/storage/v1/object/public/group-photos/00000000-0000-0000-0000-000000000000/${id}.jpg`;
-  it('keeps the TODAY pings a merged place is made of (what 핀 삭제 hides)', () => {
-    const [place] = mergeSamePlace([
-      { at: '2026-10-19T01:00:00.000Z', center: [127, 37.5], name: 'A', ids: ['a'] },
-      { at: '2026-10-19T01:10:00.000Z', center: [127, 37.5], name: 'A', photo: url('photo01') },
-      { at: '2026-10-19T01:20:00.000Z', center: [127, 37.5], name: 'A', ids: ['b'] },
-    ]);
-    expect(place.ids).toEqual(['a', 'b']);
+  it('is only photos: a TODAY ping alone makes no place, and a place goes with its last photo', () => {
+    const today = { at: '2026-10-19T00:30:00.000Z', center: [127.1, 37.6] as [number, number], name: '카페' };
+    const shot1 = { at: '2026-10-19T01:00:00.000Z', center: [127, 37.5] as [number, number], name: '대학', photo: url('photo01') };
+    const shot2 = { at: '2026-10-19T01:10:00.000Z', center: [127, 37.5] as [number, number], name: '대학', photo: url('photo02') };
+    expect(photoPlaces([today])).toEqual([]);
+    const [place] = photoPlaces([today, shot1, shot2]);
+    expect(pingPhotos(place)).toEqual([url('photo01'), url('photo02')]);
+    // Photo 1 deleted: the place stays with photo 2.
+    const one = photoPlaces(withoutPhotos([today, shot1, shot2], new Set([photoKey(url('photo01'))!])));
+    expect(one.map(pingPhotos)).toEqual([[url('photo02')]]);
+    // Photo 2 deleted too: the place is gone.
+    expect(photoPlaces(withoutPhotos([today, shot1, shot2], new Set([photoKey(url('photo01'))!, photoKey(url('photo02'))!])))).toEqual([]);
   });
 
   it('drops the photos just deleted, before the next read does', () => {

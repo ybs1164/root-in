@@ -11,6 +11,9 @@ import { useGalleryDecors } from '../hooks/useGalleryPhotos';
 import { GalleryButton } from './PhotoGallery';
 import { TalkBadge, TalkBubbles } from './icons';
 
+/** How long 꾸미기's tools take to tuck back up into it (`pin-rail-out`, 0.16s). */
+const TOOLS_OUT_MS = 160;
+
 /** Per-button delay index, capped as on the pin rail. */
 const stagger = (i: number): CSSProperties => ({ '--i': Math.min(i, 8) }) as CSSProperties;
 
@@ -93,6 +96,21 @@ const shownPhoto = (ping: GroupPing | undefined, photo?: number): string | undef
 
 export default function GroupMapView({ group, day, onDay, picked, me, newPings, onPick, place, onPlace, photoBig, onPhotoBig, onBack, onSettings, onCalendar, onGallery, onChat, chatUnread = 0, onCamera, onDelete, decorOn = false, onDecor, decorTools }: GroupMapViewProps) {
   const pickedMember = group.members.find((m) => m.userId === picked) ?? null;
+  // 꾸미기 off: its tools stay a moment to tuck back up into it (the map's category buttons' leave).
+  const [leavingTools, setLeavingTools] = useState<ReactNode>(null);
+  const lastTools = useRef<ReactNode>(null);
+  useEffect(() => {
+    if (decorTools) {
+      lastTools.current = decorTools;
+      return setLeavingTools(null);
+    }
+    if (!lastTools.current) return;
+    setLeavingTools(lastTools.current);
+    lastTools.current = null;
+    const timer = window.setTimeout(() => setLeavingTools(null), TOOLS_OUT_MS);
+    return () => window.clearTimeout(timer);
+  }, [decorTools]);
+  const shownTools = decorTools ?? leavingTools;
   // My colour here, as the doodle tools' one ink (`member-N`).
   const mine = group.members.find((m) => m.userId === me);
   const myColor = mine ? `member-${mine.color % GROUP_LIMITS.members}` : null;
@@ -135,7 +153,7 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
           <Brush size={22} strokeWidth={2} />
         </button>
       )}
-      {decorTools}
+      {shownTools && <div className={`group-board__rail ${decorTools ? '' : 'is-leaving'}`}>{shownTools}</div>}
       {/* Bottom-right, level with the member row (where the camera once stood). */}
       <button className="group-view__chat" aria-label={chatUnread ? `대화, 안 읽은 메시지 ${chatUnread}` : '대화'} onClick={onChat}>
         <TalkBubbles size={30} />

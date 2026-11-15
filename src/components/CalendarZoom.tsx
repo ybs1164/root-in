@@ -108,6 +108,8 @@ interface CalendarZoomProps {
   onPingDropHover?: (over: boolean) => void;
   /** Likewise the day's background pattern, which the app lays across the page. */
   onDayPattern: (pattern: PatternId) => void;
+  /** And the theme it's drawn in (its land/ping colour): the app's pattern reads the same accent. */
+  onDayTheme?: (theme: ThemeId) => void;
   /** 제외 주소: pings there are left out of the shared card (and added ones stay on this phone). */
   excluded: ExcludedPlace[];
   /** Where you are (null: unknown): a TODAY photo pings there. */
@@ -136,7 +138,7 @@ interface CalendarZoomProps {
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
 
-export default function CalendarZoom({ command, onMode, onDecorating, onPingPicked, pingDropZone, onPingDropHover, onDayPattern, excluded, here, pins, categories, holdIntro = false, onCamera, nameAt, onToast, photoSeq = null, onPhotoSeq }: CalendarZoomProps) {
+export default function CalendarZoom({ command, onMode, onDecorating, onPingPicked, pingDropZone, onPingDropHover, onDayPattern, onDayTheme, excluded, here, pins, categories, holdIntro = false, onCamera, nameAt, onToast, photoSeq = null, onPhotoSeq }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
   const [date, setDate] = useState(today);
@@ -370,6 +372,8 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
   const dayPattern = mode === 'day' && !preview ? (dayDecor.pattern ?? 'none') : 'none';
   useEffect(() => onDayPattern(dayPattern), [dayPattern]);
   useEffect(() => () => onDayPattern('none'), []);
+  useEffect(() => onDayTheme?.(dayTheme), [dayTheme]);
+  useEffect(() => () => onDayTheme?.('default'), []);
 
   // The text tool's toolbar is for a written box that's been picked: it
   // stays down while nothing is picked, and while typing (the keyboard is up).

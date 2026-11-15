@@ -68,6 +68,13 @@ interface DecorLayerProps {
    * width would make them). What's saved stays in the usual ranges.
    */
   scale?: number;
+  /**
+   * A board over a map (a group's day): with stickers or text out, bare board
+   * is the map's — a drag or two fingers there move it — and a tap there with
+   * nothing picked puts the tool away (this). A new text box starts in the
+   * middle of the screen as the text tool comes out, not where a tap lands.
+   */
+  onAway?: () => void;
 }
 
 /** How far a finger may wander and still count as a tap on a box (px). */
@@ -182,6 +189,7 @@ export default function DecorLayer({
   onDragging,
   aspect = 1,
   scale = 1,
+  onAway,
 }: DecorLayerProps) {
   const decor = useMemo(() => withDecorOrder(savedDecor), [savedDecor]);
   const decorRef = useRef(decor);
@@ -290,8 +298,40 @@ export default function DecorLayer({
     // A second finger while one holds a sticker: pinch and twist it.
     if (gesture.current && fingers.current.size === 1) return grab(gesture.current.kind, gesture.current.id, e);
     if (!e.isPrimary) return;
+    if (onAway) return onBareBoard(e, !!selected, () => setSelected(null));
     setSelected(null);
   };
+
+  // A board's bare spot: a tap lets go of what's picked, or with nothing
+  // picked puts the tool away; a drag or a second finger is the map's.
+  // A touch that only tucks the sticker pack down (it's up) does just that.
+  const onBareBoard = (e: PointerEvent, picked: boolean, letGo: () => void) => {
+    if (picked) return letGo();
+    if (document.querySelector('.sticker-sheets:not(.is-peek)')) return;
+    const from = { x: e.clientX, y: e.clientY };
+    const id = e.pointerId;
+    let tap = true;
+    const other = (d: globalThis.PointerEvent) => {
+      if (d.pointerId !== id) tap = false;
+    };
+    const move = (m: globalThis.PointerEvent) => {
+      if (m.pointerId === id && Math.hypot(m.clientX - from.x, m.clientY - from.y) > TAP_SLOP) tap = false;
+    };
+    const end = (u: globalThis.PointerEvent) => {
+      if (u.pointerId !== id) return;
+      window.removeEventListener('pointerdown', other, true);
+      window.removeEventListener('pointermove', move, true);
+      window.removeEventListener('pointerup', end, true);
+      window.removeEventListener('pointercancel', end, true);
+      if (tap && u.type === 'pointerup') awayRef.current?.();
+    };
+    window.addEventListener('pointerdown', other, true);
+    window.addEventListener('pointermove', move, true);
+    window.addEventListener('pointerup', end, true);
+    window.addEventListener('pointercancel', end, true);
+  };
+  const awayRef = useRef(onAway);
+  awayRef.current = onAway;
 
   // A sticker off the sheet lands where it was let go (the nearest spot on
   // the box if that's off it), as big and as turned as it was carried, and
@@ -484,9 +524,17 @@ export default function DecorLayer({
     focusRef.current({ id: d.id, editing: false });
   };
 
-  // Putting the text tool away (or leaving the day) ends the typing.
+  // Putting the text tool away (or leaving the day) ends the typing. On a
+  // board, taking it out starts a box in the middle of the screen (a tap on
+  // bare board puts the tool away there, so it can't start one).
   useEffect(() => {
-    if (tool !== 'text') finishTyping();
+    if (tool !== 'text') return finishTyping();
+    const box = layer.current?.getBoundingClientRect();
+    if (!onAway || !box?.width) return;
+    const [x, y] = [(window.innerWidth / 2 - box.left) / box.width, (window.innerHeight / 2 - box.top) / box.height];
+    const draftBox: PlacedText = { order: nextDecorOrder(decorRef.current), id: newId(), text: '', x: clamp01(x), y: clamp01(y), size: TEXT_SIZE, ...cleanTextStyle(textStyle) };
+    setDraft(draftBox);
+    onTextFocus({ id: draftBox.id, editing: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tool]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -517,6 +565,7 @@ export default function DecorLayer({
     e.preventDefault();
     // A tap away from the box being typed in or picked lets go of it first.
     if (draftRef.current) return finishTyping();
+    if (onAway) return onBareBoard(e, !!textFocus, () => onTextFocus(null));
     if (textFocus && !textFocus.editing) {
       capture(e.currentTarget, e.pointerId);
       pendingPinch.current = { pointerId: e.pointerId, id: textFocus.id, x: e.clientX, y: e.clientY };

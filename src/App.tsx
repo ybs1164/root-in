@@ -1,5 +1,5 @@
 import { ChevronLeft, MapPin, Pencil, Share } from 'lucide-react';
-import type { PatternId, ThemeId } from './domain/decor';
+import { dayPatternAccent, type PatternId, type ThemeId } from './domain/decor';
 import { setAppIcon } from './lib/appIcon';
 import DayPattern from './components/DayPattern';
 import ShareStudio from './components/ShareStudio';
@@ -53,7 +53,6 @@ import { buildPlaceProfile } from './domain/poiScene';
 import { pinPlaceLook } from './domain/poiAppearance';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
 import { useMyLocation } from './hooks/useMyLocation';
-import { loadGroupPingHides, hideGroupPings, type GroupPingHides } from './services/groupPingHideRepository';
 import { loadPings, onPingRemoved, recordPing, recordPlacePing, removePingsOfPin, todayPingOfPin } from './services/pingRepository';
 import { PING_PHOTO_PX, savePingPhoto } from './services/pingPhotoRepository';
 import { avatarFromDataUrl } from './lib/avatarImage';
@@ -62,7 +61,7 @@ import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
 import { useGroups, useGroupsOnDay } from './hooks/useGroups';
 import { groupService, groupsNeedLogin, inviteUrl } from './services/groupService';
-import { dayDecorKey, focusPoints, GROUP_LIMITS as GROUP_SIZE, memberInk, mergeSamePlace, orderGroups, pingPhotos as groupPingPhotos, groupPingKey, groupPingKeys, memberColor, myGroupPings, newMemberPings, photoKey, withoutPhotos, pingLookKey, edgeLookKey, withGroupLook, type GroupLooks, newPingCount, photoPings, sharedPlaces, withSentPhotos, type GroupMember, type SharedPlace } from './domain/groups';
+import { dayDecorKey, focusPoints, GROUP_LIMITS as GROUP_SIZE, memberInk, orderGroups, pingPhotos as groupPingPhotos, groupPingKey, groupPingKeys, memberColor, newMemberPings, photoKey, withoutPhotos, pingLookKey, edgeLookKey, withGroupLook, type GroupLooks, newPingCount, photoPings, sharedPlaces, photoPlaces, type GroupMember, type SharedPlace } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
 import ChatList from './components/ChatList';
 import { useUnreadTalk } from './hooks/useUnreadTalk';
@@ -158,8 +157,10 @@ export default function App() {
   // to share cards (the 꾸미기 screen reports its card's, over the day's while
   // it's up); the one showing lives on <html data-theme>, where styles.css
   // swaps the tokens.
-  // …and so do background patterns, drawn across the calendar page.
+  // …and so do background patterns, drawn across the calendar page — in the
+  // live day's own colour (the one its land and pings tint to), not the app's.
   const [dayPattern, setDayPattern] = useState<PatternId>('none');
+  const [livePageTheme, setLivePageTheme] = useState<ThemeId>('default');
   // The card on the 꾸미기 screen (a calendar day's or a route's), while it's up.
   const [studio, setStudio] = useState<ShareSubject | null>(null);
   // 공유 funnel: which card the 꾸미기 screen is on, and whether anything left it.
@@ -386,10 +387,8 @@ export default function App() {
   // pings (the server's copy lags behind: a ping taken out of TODAY would
   // linger there until the next push and the next read).
   const myId = account.user?.id ?? null;
-  // TODAY pings I took off one group's map (핀 삭제 there) and photos I just deleted (until the next read drops them).
-  const [pingHides, setPingHides] = useState<GroupPingHides>(loadGroupPingHides);
+  // Photos I just deleted from a group (until the next read drops them).
   const [goneShots, setGoneShots] = useState<ReadonlySet<string>>(() => new Set());
-  const hiddenIn = useCallback((groupId: string) => new Set(pingHides[groupId] ?? []), [pingHides]);
   // The order I dragged the groups into on We Now (this phone only): everywhere they're listed.
   const [groupOrder, setGroupOrder] = useState<string[]>(loadGroupOrder);
   const reorderGroups = (ids: string[]) => {
@@ -400,19 +399,20 @@ export default function App() {
     () =>
       orderGroups(groups.groups, groupOrder).map((g) => ({
         ...g,
-        // A place pinged again and again in a row (photo after photo there) is one ping with its photos stacked.
+        // Only the photos sent to this group make places (a TODAY ping alone never does);
+        // photo after photo at one place in a row is one place with its photos stacked.
         members: g.members.map((m) =>
           m.userId === myId
             ? {
                 ...m,
                 // 통합 프로필: this phone's photo and nickname (fresher than the server's); 개별: the group's own.
                 ...(m.ownProfile ? {} : { photo: profile.photo ?? m.photo, nickname: m.alias ?? (getDisplayName().trim() || m.nickname) }),
-                pings: mergeSamePlace(withSentPhotos(myGroupPings(storedPings, dateKey(), hiddenIn(g.id)), withoutPhotos(m.pings, goneShots))),
+                pings: photoPlaces(withoutPhotos(m.pings, goneShots)),
               }
-            : { ...m, pings: mergeSamePlace(m.pings) },
+            : { ...m, pings: photoPlaces(m.pings) },
         ),
       })),
-    [groups.groups, groupOrder, myId, profile.photo, storedPings, hiddenIn, goneShots],
+    [groups.groups, groupOrder, myId, profile.photo, goneShots],
   );
   // 사진 삭제 / 핀 삭제 from the photo panel's … menu (asked first): only in the open group.
   const [placeDeleting, setPlaceDeleting] = useState<'photo' | 'place' | null>(null);
@@ -426,13 +426,11 @@ export default function App() {
     const paths = (kind === 'photo' ? stack.slice(index, index + 1) : stack)
       .map((url) => photoKey(url))
       .filter((key): key is string => !!key && !key.startsWith('demo/'));
-    const ids = kind === 'place' ? (ping.ids ?? []) : [];
-    const [photosOk, hidden] = await Promise.all([groupService.deletePhotos(group.id, paths), groupService.hidePings(group.id, ids)]);
-    if (!photosOk || !hidden) return notify('삭제하지 못했어요. 잠시 뒤에 다시 시도해 주세요.');
+    // A place is only its photos, so 핀 삭제 is all of mine there.
+    if (!(await groupService.deletePhotos(group.id, paths))) return notify('삭제하지 못했어요. 잠시 뒤에 다시 시도해 주세요.');
     if (paths.length) setGoneShots((before) => new Set([...before, ...paths]));
-    if (ids.length) setPingHides((before) => hideGroupPings(before, group.id, ids));
-    // The place stays when a photo goes and something else is left there (another photo, or the TODAY ping).
-    const stays = kind === 'photo' && (stack.length > 1 || !!ping.ids?.length);
+    // A place is its photos: it stays only while another photo is left there.
+    const stays = kind === 'photo' && stack.length > 1;
     setGroupPhotoBig(false);
     setGroupPing(stays ? { member: place.member, seq: place.seq } : null);
     notify(kind === 'photo' ? '사진을 삭제했어요.' : `'${ping.name || '이름 없는 곳'}' 핀을 이 그룹에서 삭제했어요.`);
@@ -471,8 +469,12 @@ export default function App() {
     setGroupDay(null);
     setGroupCalendar(false);
   }, [openGroupId]);
-  // The days this phone has pings of mine to show the others (not those near an excluded address).
-  const myPingDays = useMemo(() => new Set(storedPings.filter((p) => !p.local).map((p) => p.day)), [storedPings]);
+  // The group calendar's days of mine the server may not have yet: today, once I've sent this group a photo.
+  const myPingDays = useMemo(() => {
+    const live = groupList.find((g) => g.id === openGroupId);
+    const mine = live?.members.find((m) => m.userId === myId);
+    return new Set(mine?.pings.length ? [dateKey()] : []);
+  }, [groupList, openGroupId, myId]);
   const pastGroups = useGroupsOnDay(account.user, openGroupId ? groupDay : null);
   useEffect(() => {
     if (groupDay && pastGroups.status === 'error') notify('그날 핑을 불러오지 못했어요.');
@@ -483,15 +485,14 @@ export default function App() {
     const live = tab === 'people' && openGroupId ? (groupList.find((g) => g.id === openGroupId) ?? null) : null;
     if (!live || !groupDay) return live;
     const then = pastGroups.groups.find((g) => g.id === live.id);
-    const mine = myGroupPings(storedPings, groupDay, hiddenIn(live.id));
     return {
       ...live,
       members: live.members.map((m) => {
         const pings = then?.members.find((t) => t.userId === m.userId)?.pings ?? [];
-        return { ...m, pings: mergeSamePlace(m.userId === myId ? withSentPhotos(mine, withoutPhotos(pings, goneShots)) : pings) };
+        return { ...m, pings: photoPlaces(m.userId === myId ? withoutPhotos(pings, goneShots) : pings) };
       }),
     };
-  }, [tab, openGroupId, groupList, groupDay, pastGroups.groups, storedPings, myId, hiddenIn, goneShots]);
+  }, [tab, openGroupId, groupList, groupDay, pastGroups.groups, myId, goneShots]);
   const groupOpen = !!openGroup;
   const [gallerySeq, setGallerySeq] = useState<number | null>(null);
   const galleryIds = useMemo(() => (galleryTab ? groupList.map((g) => g.id) : null), [galleryTab, groupList]);
@@ -2219,7 +2220,7 @@ export default function App() {
           style={todaySwipe.style}
           {...todaySwipe.handlers}
         >
-          <DayPattern pattern={dayPattern} />
+          <DayPattern pattern={dayPattern} accent={dayPatternAccent(livePageTheme)} />
           <CalendarZoom
             command={calendarCommand}
             nameAt={async (center) => (await searchService?.reverse(center)) ?? null}
@@ -2233,6 +2234,7 @@ export default function App() {
             pingDropZone={() => barEl.current?.querySelector('.bar-cal') ?? null}
             onPingDropHover={setPingDropHot}
             onDayPattern={setDayPattern}
+            onDayTheme={setLivePageTheme}
             onMode={setCalendarMode}
             photoSeq={todayPhoto}
             onPhotoSeq={setTodayPhoto}
@@ -2251,7 +2253,7 @@ export default function App() {
             handle={atlasRef}
             rootRef={atlasEl}
             board={groupBoard.layers}
-            lock={groupBoard.tool ? (groupBoard.tool === 'pen' ? 'pen' : 'all') : null}
+            lock={groupBoard.tool ? (groupBoard.tool === 'pen' ? 'pen' : 'pieces') : null}
           />
           {myGroupRow && (
             <GroupLookLayer rootRef={atlasEl} me={myGroupRow.userId} pings={myGroupRow.pings} looks={looksOf(myGroupRow)} onLook={setGroupLook} />

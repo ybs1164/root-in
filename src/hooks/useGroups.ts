@@ -261,7 +261,7 @@ export function useGroupPingDays(
       const days: PingDays = {};
       lists.forEach((list, i) => {
         if (list === 'error') return;
-        const ids = list.find((g) => g.id === groupId)?.members.filter((m) => m.pings.length > 0).map((m) => m.userId) ?? [];
+        const ids = list.find((g) => g.id === groupId)?.members.filter((m) => m.pings.some((p) => p.photo)).map((m) => m.userId) ?? [];
         if (ids.length) days[dayList[i]] = ids;
       });
       const failed = lists.length > 0 && lists.every((l) => l === 'error');

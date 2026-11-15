@@ -12,7 +12,7 @@ import AppLinksSection from './AppLinksSection';
 import DayPattern from './DayPattern';
 import DayPings from './DayPings';
 import DecorLayer from './DecorLayer';
-import { DEFAULT_PEN, EMPTY_DECOR, dayTintClass } from '../domain/decor';
+import { DEFAULT_PEN, EMPTY_DECOR, dayPatternAccent, dayTintClass } from '../domain/decor';
 import { removePing } from '../services/pingRepository';
 import { ProfileAvatar } from './ProfileSheet';
 import type { GroupsStatus } from '../hooks/useGroups';
@@ -29,48 +29,71 @@ export function MemberFace({ member, size }: { member: GroupMember; size: number
 const TILE = 100;
 
 /**
- * The tile's background: one of seven soft area-map patterns (`Group.cover`),
- * or the group's own photo (`photo`, picked from the gallery) over them.
+ * The tile's background: one of seven cafe·dessert patterns (`Group.cover`,
+ * 2026-11-15 — 물결·사선·스트라이프·체크무늬·허니콤·하트 라떼아트), or the
+ * group's own photo (`photo`, picked from the gallery) over them. Each shape
+ * is fixed; only its two tones (`group-cover__area`/`__other`) follow the
+ * app theme (말차·바나나·초코·딸기).
  */
 export function GroupCover({ cover, photo }: { cover: number; photo?: string | null }) {
   if (photo) return <image href={photo} x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid slice" />;
   switch (cover) {
+    // 물결 두 줄.
     case 1:
-      return <path className="group-cover__water" d="M-5 58 Q30 74 55 60 T105 56 V105 H-5Z" />;
+      return (
+        <>
+          <path className="group-cover__area" d="M-5 48 Q25 62 50 50 T105 46 V105 H-5Z" />
+          <path className="group-cover__other" d="M-5 66 Q30 80 55 68 T105 64 V105 H-5Z" />
+        </>
+      );
+    // 사선 두 겹.
     case 2:
-      return (
-        <>
-          <rect className="group-cover__area" x="6" y="6" width="40" height="40" rx="10" />
-          <rect className="group-cover__other" x="54" y="6" width="40" height="88" rx="10" />
-          <rect className="group-cover__area" x="6" y="54" width="40" height="40" rx="10" />
-        </>
-      );
-    case 3:
-      return <path className="group-cover__other" d="M-5 30 L105 78 V105 H-5Z" />;
-    // Ripples out of the bottom-left corner.
-    case 4:
-      return (
-        <>
-          <circle className="group-cover__other" cx="0" cy="100" r="78" />
-          <circle className="group-cover__area" cx="0" cy="100" r="50" />
-        </>
-      );
-    // A sun over one soft hill.
-    case 5:
-      return (
-        <>
-          <circle className="group-cover__area" cx="70" cy="32" r="16" />
-          <path className="group-cover__other" d="M-5 105 V72 Q50 40 105 72 V105Z" />
-        </>
-      );
-    // Two broad diagonal bands.
-    case 6:
       return (
         <>
           <path className="group-cover__other" d="M-5 40 L40 -5 H70 L-5 70Z" />
           <path className="group-cover__area" d="M30 105 L105 30 V60 L60 105Z" />
         </>
       );
+    // 스트라이프 빨대: 45도로 지나는 다섯 줄.
+    case 3:
+      return (
+        <g transform="rotate(45 50 50)">
+          <rect className="group-cover__area" x="-25" y="-4" width="150" height="14" />
+          <rect className="group-cover__other" x="-25" y="20" width="150" height="14" />
+          <rect className="group-cover__area" x="-25" y="44" width="150" height="14" />
+          <rect className="group-cover__other" x="-25" y="68" width="150" height="14" />
+          <rect className="group-cover__area" x="-25" y="92" width="150" height="14" />
+        </g>
+      );
+    // 체크무늬 쿠키: 4×4 체스판.
+    case 4:
+      return (
+        <>
+          {[0, 25, 50, 75].map((y, row) =>
+            [0, 25, 50, 75].map((x, col) => (
+              <rect key={`${row}-${col}`} className={(row + col) % 2 ? 'group-cover__other' : 'group-cover__area'} x={x} y={y} width="25" height="25" />
+            )),
+          )}
+        </>
+      );
+    // 허니콤 패턴: 육각형 세 칸.
+    case 5:
+      return (
+        <>
+          <path className="group-cover__area" d="M32 12 L51 23 L51 45 L32 56 L13 45 L13 23Z" />
+          <path className="group-cover__other" d="M68 12 L87 23 L87 45 L68 56 L49 45 L49 23Z" />
+          <path className="group-cover__area" d="M50 46 L69 57 L69 79 L50 90 L31 79 L31 57Z" />
+        </>
+      );
+    // 하트 라떼아트.
+    case 6:
+      return (
+        <>
+          <circle className="group-cover__area" cx="50" cy="50" r="46" />
+          <path className="group-cover__other" d="M50 70 C22 56 14 34 34 30 C44 28 50 35 50 39 C50 35 56 28 66 30 C86 34 78 56 50 70Z" />
+        </>
+      );
+    // 기본 물결.
     default:
       return (
         <>
@@ -321,7 +344,7 @@ function TodayTile({ pings, pinLookOf, onOpen }: { pings: DayPing[]; pinLookOf: 
         }}
       >
         <div className="today-tile__ground" aria-hidden>
-          <DayPattern pattern={decor.pattern ?? 'none'} />
+          <DayPattern pattern={decor.pattern ?? 'none'} accent={dayPatternAccent(theme)} />
         </div>
         <span className="today-tile__title" aria-hidden>
           TODAY
