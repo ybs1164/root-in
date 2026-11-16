@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, sharedPlaces, mergeSamePlace, photoPlaces, pingPhotos, memberPhotoItems, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, orderGroups, moveId, withoutPhotos, pingLookKey, edgeLookKey, withGroupLook, readGroupLooks, readGroupCoverOverride, withCoverOverrides, effectiveCover, coverTintClass, type Group } from './groups';
+import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, cleanGroupName, focusPoints, groupPingCount, memberColor, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, sharedPlaces, mergeSamePlace, photoPlaces, pingPhotos, memberPhotoItems, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, orderGroups, moveId, withoutPhotos, pingLookKey, edgeLookKey, withGroupLook, readGroupLooks, readGroupCoverOverride, withCoverOverrides, effectiveCover, coverTintClass, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -41,12 +41,6 @@ describe('groups', () => {
     expect([...takenColors(g, null)].sort()).toEqual([4, 9]);
   });
 
-  it("takes a nickname's first letter (a whole character, not half of one)", () => {
-    expect(memberInitial(' 민수')).toBe('민');
-    expect(memberInitial('😀x')).toBe('😀');
-    expect(memberInitial('')).toBe('?');
-  });
-
   it('trims and caps group names', () => {
     expect(cleanGroupName('  대학 동기  ')).toBe('대학 동기');
     expect(cleanGroupName('가'.repeat(30))).toHaveLength(12);
@@ -57,13 +51,6 @@ describe('groups', () => {
     expect(groupPingCount(g)).toBe(3);
     expect(focusPoints(g, null)).toHaveLength(3);
     expect(focusPoints(g, 'b')).toEqual([[126.95, 37.55]]);
-  });
-
-  it('steps to the neighbouring group, going round at the ends', () => {
-    const list = [group('x'), group('y'), group('z')];
-    expect(neighborGroup(list, 'x', -1)?.id).toBe('z');
-    expect(neighborGroup(list, 'z', 1)?.id).toBe('x');
-    expect(neighborGroup([group('x')], 'x', 1)).toBeNull();
   });
 
   it('fits the tile map inside its margin with north up', () => {
@@ -80,19 +67,7 @@ describe('groups', () => {
     expect(paths[0].points[1][1]).toBeLessThan(paths[0].points[0][1]);
     expect(tilePaths(group('e', []), 100)).toEqual([]);
   });
-
-  it('steps through the members only, going round, never to ALL', () => {
-    const g = group('g');
-    expect(stepMember(g, null, 1)).toBe('a');
-    expect(stepMember(g, 'a', 1)).toBe('b');
-    expect(stepMember(g, 'b', 1)).toBe('a');
-    expect(stepMember(g, 'a', -1)).toBe('b');
-    expect(stepMember(g, null, -1)).toBe('b');
-    expect(stepMember(g, 'gone', 1)).toBe('a');
-    expect(stepMember(group('e', []), null, 1)).toBeNull();
-  });
 });
-
 
 describe('newPingCount', () => {
   const group = (pings: Record<string, string[]>): Group => ({

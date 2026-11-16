@@ -1,7 +1,22 @@
+import type { PlaceKind } from '../domain/placeKinds';
+import type { PlaceArea } from '../domain/poiAppearance';
 import type { RouteEdgeStyle, RouteStopShape } from '../domain/routeStyle';
-import type { PlaceRef } from './travelRoute';
 
-export type { PlaceRef };
+/**
+ * A snapshot of a place at the moment something was saved with it. Keeping
+ * the name, address and centre (not just an outside id) means a saved route
+ * or pin still shows correctly whatever the place data does later.
+ */
+export interface PlaceRef extends PlaceArea {
+  id: string;
+  name: string;
+  center: [number, number];
+  /** Human-readable category, e.g. '카페', '한식'. */
+  category?: string;
+  /** Provider-independent kind, picks the 미분류 pin's icon (domain/placeKinds.ts). */
+  kind?: PlaceKind;
+  address?: string;
+}
 
 export type CourseTheme = 'date' | 'trip' | 'food' | 'etc';
 export type TravelMode = 'walk' | 'transit' | 'drive';

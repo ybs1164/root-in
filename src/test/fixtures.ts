@@ -1,4 +1,5 @@
-import type { PlaceRef, SharedRoute } from '../types/travelRoute';
+import type { SharedRoute } from '../services/routeShareService';
+import type { PlaceRef } from '../types/course';
 
 // Real-world spots matching the app's target use cases (date course, food
 // tour, trip). Coordinates are approximate but plausible so routing/share

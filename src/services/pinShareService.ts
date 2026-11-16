@@ -5,6 +5,7 @@ import type { PlaceRef } from '../types/course';
 import type { PinColor, PinIcon, SharedPin, SharedPinCategory, SharedPinSet } from '../types/pin';
 import { SHARE_LIMITS } from './routeShareService';
 import { publicAppUrl } from '../lib/appUrl';
+import { clampText } from './sharePayload';
 
 // Its own fragment key, next to `#share=` (course) and `#diary=` (day).
 export const PINS_HASH_KEY = 'pins';
@@ -43,12 +44,6 @@ export interface PinShareService {
   createShareUrl(set: SharedPinSet): Promise<string>;
   resolveFromUrl(url: string): Promise<SharedPinSet | null>;
 }
-
-const clampText = (value: unknown, max: number): string | undefined => {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim().slice(0, max);
-  return trimmed || undefined;
-};
 
 const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
 

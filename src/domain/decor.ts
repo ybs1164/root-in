@@ -32,7 +32,6 @@ export interface PlacedSticker {
  * rubbed-out part back.
  */
 export type PenTool = 'pen' | 'crayon' | 'highlighter' | 'neon' | 'eraser';
-export type InkTool = Exclude<PenTool, 'eraser'>;
 export type PenWidth = 'thin' | 'medium' | 'thick';
 
 /**

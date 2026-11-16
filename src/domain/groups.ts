@@ -325,9 +325,6 @@ export function placeTime(ping: GroupPing, photo?: number): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-/** The first letter of a nickname, for a member without a photo. */
-export const memberInitial = (nickname: string): string => [...nickname.trim()][0] ?? '?';
-
 /**
  * My groups in the order I dragged them into (`order`, their ids); ones not
  * in it (new, or never moved) keep their own order after the rest.
@@ -352,13 +349,6 @@ export function cleanGroupName(name: string): string {
 }
 
 export const groupPingCount = (group: Group): number => group.members.reduce((n, m) => n + m.pings.length, 0);
-
-/** The group beside `id` in the list (`<` = -1, `>` = 1), going round at the ends. */
-export function neighborGroup(groups: Group[], id: string, dir: -1 | 1): Group | null {
-  const i = groups.findIndex((g) => g.id === id);
-  if (i < 0 || groups.length < 2) return null;
-  return groups[(i + dir + groups.length) % groups.length];
-}
 
 /** Every ping centre on show: one member's, or the whole group's. */
 export function focusPoints(group: Group, memberId: string | null): [number, number][] {
@@ -394,19 +384,6 @@ function tileProjection(all: readonly [number, number][], size: number, margin: 
     // North is up: latitude grows the other way from SVG's y.
     Math.round((size / 2 - (c[1] - cy) * scale) * 10) / 10,
   ];
-}
-
-/**
- * The `<` `>` beside the pass: one member after another in the row's order,
- * going round from the last to the first — never ALL (that's its own button).
- * From ALL (or someone gone), `>` is the first member and `<` the last.
- */
-export function stepMember(group: Group, picked: string | null, dir: -1 | 1): string | null {
-  const order = group.members.map((m) => m.userId);
-  if (order.length === 0) return null;
-  const i = picked ? order.indexOf(picked) : -1;
-  if (i < 0) return dir === 1 ? order[0] : order[order.length - 1];
-  return order[(i + dir + order.length) % order.length];
 }
 
 /** One member's ping, told apart from the rest of the day's (the server sends no id). */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayDots, isFutureDate, monthGrid, shiftMonth, stopCountsByDate } from './calendar';
+import { addDays, monthGrid, shiftMonth } from './calendar';
 
 describe('calendar', () => {
   it('month grid is six Sunday-first weeks with the month flagged', () => {
@@ -10,31 +10,14 @@ describe('calendar', () => {
     expect(grid.filter((d) => d.inMonth)).toHaveLength(30);
   });
 
-  it('month grid marks days that have a route', () => {
-    const counts = stopCountsByDate([
-      { date: '2026-09-28', stops: [1, 2] },
-      { date: '2026-09-29', stops: [1] },
-    ]);
-    expect(counts.get('2026-09-28')).toBe(2);
-    expect(counts.get('2026-09-30')).toBeUndefined();
-  });
-
   it('shifts months across years', () => {
     expect(shiftMonth(2026, 11, 1)).toEqual({ year: 2027, month: 0 });
     expect(shiftMonth(2026, 0, -1)).toEqual({ year: 2025, month: 11 });
   });
 
-  it('compares date keys against today', () => {
-    expect(isFutureDate('2026-09-30', '2026-09-29')).toBe(true);
-    expect(isFutureDate('2026-09-29', '2026-09-29')).toBe(false);
-  });
-});
-
-describe('month grid dots', () => {
-  it('shows one dot per place, up to ten', () => {
-    expect(dayDots(0)).toBe(0);
-    expect(dayDots(4)).toBe(4);
-    expect(dayDots(10)).toBe(10);
-    expect(dayDots(23)).toBe(10);
+  it('steps a date key by days across months and years', () => {
+    expect(addDays('2026-09-30', 1)).toBe('2026-10-01');
+    expect(addDays('2026-01-01', -1)).toBe('2025-12-31');
+    expect(addDays('2026-11-16', -7)).toBe('2026-11-09');
   });
 });

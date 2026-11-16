@@ -1,23 +1,19 @@
-import { ChevronLeft, MapPin, Pencil, Share } from 'lucide-react';
+import { ChevronLeft, Pencil, Share } from 'lucide-react';
 import { dayPatternAccent, type PatternId, type ThemeId } from './domain/decor';
-import { setAppIcon } from './lib/appIcon';
 import DayPattern from './components/DayPattern';
-import ShareStudio from './components/ShareStudio';
 import { analytics, type PinSource, type ShareKind } from './services/analytics';
 import ConfirmDialog from './components/ConfirmDialog';
 import { routeSubject, type ShareSubject } from './domain/shareSubject';
-import { useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBackButton } from './hooks/useBackButton';
 import { closeTopDialog } from './lib/native';
 import { LOCATION_MESSAGES } from './lib/geolocation';
 import BottomBar from './components/BottomBar';
-import SettingsScreen from './components/SettingsScreen';
-import GroupCalendar from './components/GroupCalendar';
 import CalendarZoom, { type CalendarCommand, type TodayPhotoPick } from './components/CalendarZoom';
 import NewPinCard, { type NewPinInput } from './components/NewPinCard';
 import PinCard from './components/PinCard';
 import PinRail from './components/PinRail';
-import RouteBuildLayer, { pinAt } from './components/RouteBuildLayer';
+import RouteBuildLayer from './components/RouteBuildLayer';
 import RouteEditTray from './components/RouteEditTray';
 import RouteFolderTray from './components/RouteFolderTray';
 import RouteStyleLayer from './components/RouteStyleLayer';
@@ -25,22 +21,14 @@ import RouteTitle from './components/RouteTitle';
 import StopLines from './components/StopLines';
 import SearchBar from './components/SearchBar';
 import ProfileSheet, { ProfileAvatar } from './components/ProfileSheet';
-import CategorySheet from './components/CategorySheet';
-import SharedRouteDialog from './components/SharedRouteDialog';
-import SharedCategoryDialog from './components/SharedCategoryDialog';
-import type { CategorySharing } from './components/CategoryManager';
-import { useCategorySubscriptions, useIncomingCategory, useSharedCategories } from './hooks/useCategoryShares';
-import { authService } from './services/authService';
-import { categoryLinkUrl, categoryShareService } from './services/categoryShareService';
 import { calendarAgain, pageSwipes, PAGE_TITLES, showsPage, tabForIncoming, type AppTab } from './domain/appTabs';
 import { COURSE_LIMITS } from './domain/course';
 import type { MapViewport } from './domain/districtMap';
-import { addPlacesAsPins, filterPinsByCategories, isUncategorized, kindCategoryId, pinStyle, UNCATEGORIZED } from './domain/pin';
-import { placePhotos, visitedPlaces } from './domain/visitedPlaces';
-import { loadVisitedPings, saveVisitedPings } from './services/visitedPinRepository';
+import { filterPinsByCategories, isUncategorized, kindCategoryId, pinStyle, UNCATEGORIZED } from './domain/pin';
+import { placePhotos } from './domain/visitedPlaces';
 import { placeKindService } from './services/placeKindService';
 import { isAllPicked, pinRailNext, tapAll, togglePicked, type PinRailEntry, type PinRailMode } from './domain/pinRail';
-import { pingsForDate, PRESS, TODAY_PING_RADIUS_M, type LineLook, type PingLook } from './domain/dayPings';
+import { pingsForDate } from './domain/dayPings';
 import { buildRouteLook, EMPTY_BUILD_LOOK, nextRouteName, ROUTE_NOTE_MAX, toggleBuildStop, withBuildEdge, withBuildShape, type BuildLook } from './domain/routeBuild';
 import { addEditStop, moveStop, toggleEditStop, withEditStops, type RouteEdit } from './domain/routeEdit';
 import { cleanRouteLook, withEdgeStyle, withStopShape } from './domain/routeStyle';
@@ -53,26 +41,19 @@ import { buildPlaceProfile } from './domain/poiScene';
 import { pinPlaceLook } from './domain/poiAppearance';
 import { useIncomingCourse } from './hooks/useIncomingCourse';
 import { useMyLocation } from './hooks/useMyLocation';
-import { loadPings, onPingRemoved, recordPing, recordPlacePing, removePingsOfPin, todayPingOfPin } from './services/pingRepository';
-import { PING_PHOTO_PX, savePingPhoto } from './services/pingPhotoRepository';
-import { avatarFromDataUrl } from './lib/avatarImage';
+import { onPingRemoved, removePingsOfPin } from './services/pingRepository';
 import { useAccount } from './hooks/useAccount';
 import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
 import { useGroups, useGroupsOnDay } from './hooks/useGroups';
-import { groupService, groupsNeedLogin, inviteUrl } from './services/groupService';
-import { dayDecorKey, focusPoints, GROUP_LIMITS as GROUP_SIZE, memberInk, orderGroups, pingPhotos as groupPingPhotos, groupPingKey, groupPingKeys, memberColor, newMemberPings, photoKey, withoutPhotos, pingLookKey, edgeLookKey, withGroupLook, type GroupLooks, newPingCount, photoPings, sharedPlaces, photoPlaces, withCoverOverrides, type GroupCoverOverride, type GroupMember, type SharedPlace } from './domain/groups';
-import { loadGroupCoverOverrides, saveGroupCoverOverride } from './services/groupCoverOverrideRepository';
+import { groupService, groupsNeedLogin } from './services/groupService';
+import { dayDecorKey, GROUP_LIMITS as GROUP_SIZE, memberInk, pingPhotos as groupPingPhotos, newMemberPings, photoKey, withoutPhotos, newPingCount, photoPlaces, type GroupMember } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
-import ChatList from './components/ChatList';
 import { useUnreadTalk } from './hooks/useUnreadTalk';
-import { loadGroupOrder, saveGroupOrder } from './services/groupOrderRepository';
-import { loadGroupSeen, loadMemberSeen, memberSeenKey, saveGroupSeen, saveMemberSeen, type GroupSeen, type MemberSeen } from './services/groupSeenRepository';
+import { memberSeenKey } from './services/groupSeenRepository';
 import { useStoredPings } from './hooks/useStoredPings';
 import { dateKey, timeKey } from './domain/diary';
 import GroupMapView, { type GroupPlace } from './components/GroupMapView';
-import GroupChat from './components/GroupChat';
-import PhotoGallery from './components/PhotoGallery';
 import { useHeartNews } from './hooks/useHeartNews';
 import { useGroupNews } from './hooks/useGroupNews';
 import { useGalleryPhotos } from './hooks/useGalleryPhotos';
@@ -80,16 +61,9 @@ import { usePingPhotos } from './hooks/usePingPhotos';
 import { galleryDayLabel, localGalleryPhotos, type GalleryTab } from './domain/gallery';
 import PhotoViewer, { OpenPhotoMarks } from './components/PhotoViewer';
 import type { CalendarPhotos } from './components/WeekCalendar';
-import CameraScreen from './components/CameraScreen';
-import GroupSendDialog from './components/GroupSendDialog';
-import GroupFormDialog from './components/GroupFormDialog';
-import GroupSettingsDialog from './components/GroupSettingsDialog';
-import type { GroupLine } from './components/GroupLines';
 import GroupAtlas, { type AtlasHandle } from './components/GroupAtlas';
-import GroupLookLayer, { lookTargetAt } from './components/GroupLookLayer';
+import GroupLookLayer from './components/GroupLookLayer';
 import { usePhotoDoodle } from './components/PhotoDoodle';
-import { loadMyGroupLooks, saveMyGroupLooks } from './services/groupLookRepository';
-import { markKey } from './hooks/useAtlas';
 import { shareLinkService } from './services/shareLinkService';
 import { planShare } from './services/shareTargets';
 import { usePageSwipe } from './hooks/usePageSwipe';
@@ -100,43 +74,56 @@ import { isSamePoi, kindsFromPlaces, withPinKinds } from './domain/pinKinds';
 import { useRouteFolders } from './hooks/useRouteFolders';
 import { usePlaceSearch } from './hooks/usePlaceSearch';
 import { useSettings } from './hooks/useSettings';
-import { SEOUL_CENTER, type CourseMap, type GroupPingMark, type MapPadding, type PinMarker } from './map/courseMap';
+import { SEOUL_CENTER, type CourseMap, type MapPadding, type PinMarker } from './map/courseMap';
 import { createMapStack } from './map/createCourseMap';
-import { haversineMeters as distanceMeters } from './domain/geo';
-import { pointPlace, UNNAMED_SPOT, type PlaceSearchService } from './services/placeSearch/placeSearchService';
+import { pointPlace, type PlaceSearchService } from './services/placeSearch/placeSearchService';
 import { withRecentCategory } from './services/settingsRepository';
 import { loadProfile, saveProfile, type Profile } from './services/profileRepository';
 import { usePrivacy } from './hooks/usePrivacy';
-import { hasHome, isExcluded } from './domain/privacy';
-import { CAMERA_PLACE_LIMIT, cameraPlaces } from './domain/cameraPlaces';
+import { hasHome } from './domain/privacy';
 import type { CourseStop, PlaceRef, Course, SharedCourse } from './types/course';
-import type { Pin, PinCategory } from './types/pin';
+import type { Pin } from './types/pin';
+import AimCross from './components/AimCross';
+import ToastBar from './components/ToastBar';
+import { useAppTheme } from './hooks/useAppTheme';
+import { useCameraShot } from './hooks/useCameraShot';
+import { useCategorySharing } from './hooks/useCategorySharing';
+import { useGroupMapTaps } from './hooks/useGroupMapTaps';
+import { useGroupSeen } from './hooks/useGroupSeen';
+import { useHomeHistory } from './hooks/useHomeHistory';
+import { usePanAim } from './hooks/usePanAim';
+import { useBareMapTap, useRouteStrokes } from './hooks/useRouteStrokes';
+import { useToast } from './hooks/useToast';
+import { measureMapPadding, STEP_GLIDE_MS } from './lib/mapPadding';
+import { useGroupFit } from './hooks/useGroupFit';
+import { useGroupList } from './hooks/useGroupList';
+import { useGroupLooks } from './hooks/useGroupLooks';
+import { PINS_FADE_MS, useLingering, useRouteArrival } from './hooks/useRouteArrival';
+import { useVisitedPins } from './hooks/useVisitedPins';
+import { buildGroupLines, buildGroupMarks } from './map/groupMarks';
 
-type Toast = { text: string; undo?: () => void };
+import { lazyScreen, preloadScreens } from './lib/lazyScreen';
 
-const DESKTOP_QUERY = '(min-width: 900px)';
-// Dragging the map: how often the crosshair's place name is looked up while
-// it moves, and how far it must have moved to be worth asking again.
-const AIM_LOOKUP_MS = 300;
-const AIM_MIN_MOVE_M = 8;
-// A pin and a nearby POI of the same name this close are the same place
-// (a searched place keeps the search's id, not the POI data's).
+// Screens that aren't part of the first one stay out of the first bundle (lib/lazyScreen).
+const ShareStudio = lazyScreen(() => import('./components/ShareStudio'));
+const SettingsScreen = lazyScreen(() => import('./components/SettingsScreen'));
+const GroupCalendar = lazyScreen(() => import('./components/GroupCalendar'));
+const CategorySheet = lazyScreen(() => import('./components/CategorySheet'));
+const SharedRouteDialog = lazyScreen(() => import('./components/SharedRouteDialog'));
+const SharedCategoryDialog = lazyScreen(() => import('./components/SharedCategoryDialog'));
+const ChatList = lazyScreen(() => import('./components/ChatList'));
+const GroupChat = lazyScreen(() => import('./components/GroupChat'));
+const PhotoGallery = lazyScreen(() => import('./components/PhotoGallery'));
+const CameraScreen = lazyScreen(() => import('./components/CameraScreen'));
+const GroupSendDialog = lazyScreen(() => import('./components/GroupSendDialog'));
+const GroupFormDialog = lazyScreen(() => import('./components/GroupFormDialog'));
+const GroupSettingsDialog = lazyScreen(() => import('./components/GroupSettingsDialog'));
+
 // A pin's card opens with the pin this far below the map's middle, leaving
 // room above the card for the photos taken there (.place-card--pin's bottom).
 const PIN_CARD_DROP_PX = 96;
-/** Shown on a shared route's popup until share counts are tracked somewhere. */
-
 /** Matches `tray-down` in styles.css: the 경로 폴더 sheet stays mounted while it slides away. */
 const ROUTE_TRAY_OUT_MS = 170;
-/** How much of the folder sheet stays up while a route is on show (matches .route-folders.is-lowered). */
-/** The top of a group's map held by ‹, the name and ⚙: a tapped ping is centred below it (or below its photo panel). */
-const GROUP_TITLE_PX = 120;
-const FOLDER_LOWERED_PX = 324;
-/** Once the map has glided over to a route, the pins fade off (matches .app--pins-away), and only then do its stops drop in. */
-const PINS_FADE_MS = 250;
-/** A route stepped to with < > glides over as fast as its name slides in (RouteTitle SLIDE_MS). */
-const STEP_GLIDE_MS = 260;
-
 
 export default function App() {
   const mapEl = useRef<HTMLDivElement | null>(null);
@@ -150,10 +137,9 @@ export default function App() {
   const [mapProvider, setMapProvider] = useState<'kakao' | 'maplibre' | null>(null);
   const [viewport, setViewport] = useState<MapViewport | null>(null);
 
-  const [toast, setToast] = useState<Toast | null>(null);
-  const notify = useCallback((text: string, undo?: () => void) => setToast({ text, undo }), []);
+  const { toast, notify, dismissToast } = useToast();
 
-  const { settings, update: updateSettings } = useSettings();
+  const { update: updateSettings } = useSettings();
 
   // Themes belong to calendar days (the day on screen reports its own) and
   // to share cards (the 꾸미기 screen reports its card's, over the day's while
@@ -189,16 +175,6 @@ export default function App() {
   const [tab, setTab] = useState<AppTab>('people');
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [cameraOpen, setCameraOpen] = useState(false);
-  // The group the camera was opened from: picked to send to, to start with (can be unpicked).
-  const [cameraGroupId, setCameraGroupId] = useState<string | null>(null);
-  // A shot from the camera waiting for its groups (the 그룹에 보내기 popup is up).
-  const [cameraShot, setCameraShot] = useState<string | null>(null);
-  // When it was taken: the photo ping's time (and day) is the shutter's, not 전송's.
-  const cameraShotAt = useRef(new Date());
-  // Where that shot can say it was taken (null while still looking), or why there's nowhere.
-  const [cameraSpots, setCameraSpots] = useState<{ places: PlaceRef[] | null; problem: string | null }>({ places: null, problem: null });
-  const cameraLookup = useRef(0);
   const [profile, setProfile] = useState(loadProfile);
   // 로그인: the account's profile replaces this one on sign-in, and changes go up after.
   const account = useAccount(profile, (next) => {
@@ -211,31 +187,8 @@ export default function App() {
     account.push(next);
     return true;
   };
-  // 디스플레이 및 언어 → 디스플레이: 말차, 바나나 or 초코 is the app's own theme, under
-  // whatever a day or a share card picks (their 'default' means "the app's").
-  // There's no dark choice any more, so the page is always drawn light.
-  const appTheme: ThemeId = profile.appTheme === 'banana' ? 'default' : profile.appTheme;
-  const shownTheme: ThemeId = dayTheme === 'default' ? appTheme : dayTheme;
-  // …and so does the app's icon (the phone's launcher icon, or the browser's tab icon).
-  useEffect(() => {
-    void setAppIcon(profile.appTheme);
-  }, [profile.appTheme]);
-  useEffect(() => {
-    const root = document.documentElement;
-    if (shownTheme === 'default') delete root.dataset.theme;
-    else root.dataset.theme = shownTheme;
-    root.dataset.scheme = 'light';
-    // Phone browsers tint their own bars (and the strip under the page at the
-    // bottom edge) from theme-color; left alone it keeps the default theme's
-    // (and the phone's light/dark) colour, a pale band under a themed or dark page.
-    const metas = document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]');
-    metas.forEach((m) => {
-      m.dataset.base ??= m.content;
-      m.content = getComputedStyle(root).getPropertyValue('--surface').trim() || m.dataset.base!;
-    });
-    // The map painted its areas from the old tokens.
-    mapRef.current?.refreshColors();
-  }, [shownTheme]);
+  // 디스플레이 및 언어 → 디스플레이: the app's own theme (and icon), under whatever a share card picks.
+  useAppTheme(profile.appTheme, dayTheme, mapRef);
   // 공유 before 집 is set opens the profile on 개인 정보 with this line.
   const [privacyNotice, setPrivacyNotice] = useState<string | null>(null);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
@@ -270,11 +223,6 @@ export default function App() {
   const [activePinId, setActivePinId] = useState<string | null>(null);
   // The round buttons under ⚙, and the categories picked in its 핀 list.
   const [railMode, setRailMode] = useState<PinRailMode>('menu');
-  // 조준: a crosshair in the middle of the map (with the name of the place
-  // under it) and only the pin button, to aim where a new pin goes.
-  // The crosshair and the place under it, up while the map is dragged.
-  const [panAim, setPanAim] = useState(false);
-  const [aimName, setAimName] = useState<string | null>(null);
   // The saved route drawn on the map from the 경로 폴더.
   const [shownRouteId, setShownRouteId] = useState<string | null>(null);
   // The 경로 폴더's open tab (kept here: the sheet unmounts while it is down).
@@ -398,41 +346,8 @@ export default function App() {
   // pings (the server's copy lags behind: a ping taken out of TODAY would
   // linger there until the next push and the next read).
   const myId = account.user?.id ?? null;
-  // Photos I just deleted from a group (until the next read drops them).
-  const [goneShots, setGoneShots] = useState<ReadonlySet<string>>(() => new Set());
-  // The order I dragged the groups into on We Now (this phone only): everywhere they're listed.
-  const [groupOrder, setGroupOrder] = useState<string[]>(loadGroupOrder);
-  const reorderGroups = (ids: string[]) => {
-    setGroupOrder(ids);
-    saveGroupOrder(ids);
-  };
-  // My own look for a group's cover (shape + colour swatch), this phone only — never the maker's.
-  const [coverOverrides, setCoverOverrides] = useState(loadGroupCoverOverrides);
-  const setMyCover = (groupId: string, override: GroupCoverOverride | null) => {
-    setCoverOverrides((all) => saveGroupCoverOverride(all, groupId, override));
-  };
-  const groupList = useMemo(
-    () =>
-      withCoverOverrides(
-        orderGroups(groups.groups, groupOrder).map((g) => ({
-          ...g,
-          // Only the photos sent to this group make places (a TODAY ping alone never does);
-          // photo after photo at one place in a row is one place with its photos stacked.
-          members: g.members.map((m) =>
-            m.userId === myId
-              ? {
-                  ...m,
-                  // 통합 프로필: this phone's photo and nickname (fresher than the server's); 개별: the group's own.
-                  ...(m.ownProfile ? {} : { photo: profile.photo ?? m.photo, nickname: m.alias ?? (getDisplayName().trim() || m.nickname) }),
-                  pings: photoPlaces(withoutPhotos(m.pings, goneShots)),
-                }
-              : { ...m, pings: photoPlaces(m.pings) },
-          ),
-        })),
-        coverOverrides,
-      ),
-    [groups.groups, groupOrder, myId, profile.photo, goneShots, coverOverrides],
-  );
+  // My groups as every screen lists them (my order, my covers, my own row from this phone).
+  const { groupList, goneShots, markGone, reorderGroups, setMyCover } = useGroupList(groups.groups, myId, profile.photo);
   // 사진 삭제 / 핀 삭제 from the photo panel's … menu (asked first): only in the open group.
   const [placeDeleting, setPlaceDeleting] = useState<'photo' | 'place' | null>(null);
   const deleteFromGroup = async (kind: 'photo' | 'place') => {
@@ -447,7 +362,7 @@ export default function App() {
       .filter((key): key is string => !!key && !key.startsWith('demo/'));
     // A place is only its photos, so 핀 삭제 is all of mine there.
     if (!(await groupService.deletePhotos(group.id, paths))) return notify('삭제하지 못했어요. 잠시 뒤에 다시 시도해 주세요.');
-    if (paths.length) setGoneShots((before) => new Set([...before, ...paths]));
+    if (paths.length) markGone(paths);
     // A place is its photos: it stays only while another photo is left there.
     const stays = kind === 'photo' && stack.length > 1;
     setGroupPhotoBig(false);
@@ -537,20 +452,7 @@ export default function App() {
   const cardPhotos = preview ? previewPhotos : activePinPhotos;
   const cardPlace = preview ?? activePin?.place ?? null;
   useEffect(() => setPlacePhoto(null), [preview?.id, activePinId]);
-  // Places I've been (my pings) become 미분류 pins, each ping looked at once.
-  useEffect(() => {
-    const done = loadVisitedPings();
-    let settled: string[] = [];
-    const ready = pinStore.transform(({ pins: now, categories: kinds }, make) => {
-      const visit = visitedPlaces(storedPings, now, done);
-      settled = visit.settled;
-      if (!visit.places.length) return null;
-      return { pins: addPlacesAsPins(now, visit.places, make.pin).pins, categories: kinds };
-    });
-    if (!ready || !settled.length) return;
-    settled.forEach((id) => done.add(id));
-    saveVisitedPings(done);
-  }, [storedPings, pins, pinStore.transform]);
+  useVisitedPins(storedPings, pins, pinStore.transform);
   const myMember = useMemo<GroupMember>(
     () =>
       groupList.flatMap((g) => g.members).find((m) => m.userId === myId) ?? {
@@ -622,32 +524,8 @@ export default function App() {
   useEffect(() => {
     if (!groupPing) setGroupPhotoBig(false);
   }, [groupPing]);
-  // A group's 새 핑 badge: pings that weren't on its map when I last had it
-  // open. Whatever is on the open group's map counts as seen, new arrivals too.
-  const [groupSeen, setGroupSeen] = useState<GroupSeen>(loadGroupSeen);
-  const openGroupKeys = openGroup ? groupPingKeys(openGroup).join(',') : null;
-  useEffect(() => {
-    // Another day's pings aren't today's news, nor what today's badge counts against.
-    if (!openGroup || groupDay) return;
-    setGroupSeen((seen) => {
-      const next = { ...seen, [openGroup.id]: groupPingKeys(openGroup) };
-      saveGroupSeen(next);
-      return next;
-    });
-  }, [openGroup?.id, openGroupKeys, groupDay]);
-  // Each face's badge on a group's map: that member's pings since I last had
-  // them picked. Picking someone sees all of theirs, and so do new ones while picked.
-  const [memberSeen, setMemberSeen] = useState<MemberSeen>(loadMemberSeen);
-  const pickedMember = openGroup && groupPicked ? (openGroup.members.find((m) => m.userId === groupPicked) ?? null) : null;
-  const pickedKeys = pickedMember ? pickedMember.pings.map((p) => groupPingKey(pickedMember, p)).join(',') : null;
-  useEffect(() => {
-    if (!openGroup || !pickedMember || groupDay) return;
-    setMemberSeen((seen) => {
-      const next = { ...seen, [memberSeenKey(openGroup.id, pickedMember.userId)]: pickedMember.pings.map((p) => groupPingKey(pickedMember, p)) };
-      saveMemberSeen(next);
-      return next;
-    });
-  }, [openGroup?.id, pickedMember?.userId, pickedKeys, groupDay]);
+  // What I've seen of my groups: their 새 핑 badges, and each face's on an open group's map.
+  const { groupSeen, memberSeen } = useGroupSeen(openGroup, groupPicked, groupDay);
   useEffect(() => {
     if (!needLogin && tab === 'people' && account.available && !account.user && guest === 'idle') startGuest();
   }, [needLogin, tab, account.available, account.user, guest, startGuest]);
@@ -660,10 +538,7 @@ export default function App() {
   );
   // Left to right on TODAY takes it back to We Now, which shows under it meanwhile
   // (not while drawing, a ping is picked or a photo is big: those fingers are theirs).
-  // Leaving TODAY (or the panel closing) puts its photo away too.
-  useEffect(() => {
-    if (!todayOpen) setTodayPhoto(null);
-  }, [todayOpen]);
+  // The panel closing puts its big photo away too (leaving TODAY closes the panel, above).
   useEffect(() => {
     if (todayPhoto === null) setTodayPhotoBig(false);
   }, [todayPhoto]);
@@ -686,13 +561,7 @@ export default function App() {
   const buildPins = building && routeMode ? building.map((id) => pins.find((p) => p.id === id)).filter((p): p is Pin => !!p) : null;
   // Kept mounted a moment after closing so it can slide down. Up in the
   // same render it opens, so a fit right after (leaving editing) measures it.
-  const [routeTrayLingers, setRouteTrayLingers] = useState(routeOpen);
-  useEffect(() => {
-    if (routeOpen) return setRouteTrayLingers(true);
-    const t = window.setTimeout(() => setRouteTrayLingers(false), ROUTE_TRAY_OUT_MS);
-    return () => window.clearTimeout(t);
-  }, [routeOpen]);
-  const routeTrayShown = routeOpen || routeTrayLingers;
+  const routeTrayShown = useLingering(routeOpen, ROUTE_TRAY_OUT_MS);
   const shownRoute = routeShowing ? (course.courses.find((c) => c.id === shownRouteId) ?? null) : null;
   // The route being edited: the one on show, with the edits so far.
   const editRoute = editing && shownRoute?.id === editing.id ? editing : null;
@@ -700,27 +569,10 @@ export default function App() {
   useEffect(() => {
     if (!routeShowing) setEditing(null);
   }, [routeShowing]);
-  // A route put on show takes the map in turns: it glides over with the pins
-  // still there, and the moment the glide ends the pins fade away and the
-  // route's own stops drop in. Stepping to another route (< >) keeps the
-  // pins hidden until the route view is closed.
-  const [pinsAway, setPinsAway] = useState<'no' | 'fading' | 'gone'>('no');
-  // Only 'gone' changes the markers: re-making them mid-fade would cut the fade short.
-  const pinsGone = pinsAway === 'gone';
   const shownRouteKey = shownRoute?.id ?? null;
-  // The route the map has finished gliding to (set by the fit below).
-  const [landedRoute, setLandedRoute] = useState<string | null>(null);
-  const routeLanded = !!shownRouteKey && landedRoute === shownRouteKey;
-  useEffect(() => {
-    if (!shownRouteKey) {
-      setLandedRoute(null);
-      return setPinsAway('no');
-    }
-    if (pinsGone || !routeLanded) return;
-    setPinsAway('fading');
-    const fade = window.setTimeout(() => setPinsAway('gone'), PINS_FADE_MS);
-    return () => window.clearTimeout(fade);
-  }, [shownRouteKey, routeLanded, pinsGone]);
+  // The glide over to it, then the pins fading off, then its stops dropping in.
+  const arrival = useRouteArrival(shownRouteKey);
+  const { pinsAway, pinsGone, routeLanded, setLandedRoute } = arrival;
   const shownPins = useMemo(() => (pinsHidden ? [] : filterPinsByCategories(pins, categories, picked)), [pins, categories, picked, pinsHidden]);
 
   // Numbered course markers + solid route line.
@@ -756,67 +608,20 @@ export default function App() {
   const search = usePlaceSearch(searchService, query, () => mapRef.current?.getCenter());
   // 제외 주소 are located with the same place search (search failing just leaves the address text to match).
   const privacy = usePrivacy(async (address) => (await searchService?.search(address))?.[0]?.center ?? null);
-  // 카테고리 공유: my shared categories' snapshots follow every change; the ones I follow are read again now and then.
-  const sharedCategories = useSharedCategories(account.user?.id ?? null, pins, categories, privacy.excluded);
-  const followedCategories = useCategorySubscriptions(pinStore.transform, (categoryId) => {
-    const name = categories.find((c) => c.id === categoryId)?.name;
-    notify(`${name ? `'${name}' ` : ''}카테고리 공유가 끝났어요. 받은 장소는 그대로 남아요.`);
-  });
-  const { incoming: incomingCategory, dismiss: dismissCategory } = useIncomingCategory();
-  const incomingFollowed =
-    incomingCategory.status === 'ready' && followedCategories.subs.some((s) => s.slug === incomingCategory.slug);
-  // A link of mine says so instead of offering to follow it; a broken or stopped one says that.
-  useEffect(() => {
-    if (incomingCategory.status === 'invalid') {
-      notify('카테고리 링크를 열 수 없어요. 공유가 끝났을 수 있어요.');
-      dismissCategory();
-    } else if (incomingCategory.status === 'ready' && incomingCategory.opened.mine) {
-      notify('내가 공유한 카테고리예요.');
-      dismissCategory();
-    } else if (incomingCategory.status === 'ready' && incomingFollowed) {
-      followedCategories.subscribe(incomingCategory.slug, incomingCategory.opened); // brings it up to date
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incomingCategory]);
-  const followCategory = () => {
-    if (incomingCategory.status !== 'ready') return;
-    const done = followedCategories.subscribe(incomingCategory.slug, incomingCategory.opened);
-    if (!('places' in done)) return notify(done.result === 'too-many' ? '카테고리가 너무 많아 구독할 수 없어요.' : '잠시 후 다시 시도하세요.');
-    changeTab('pins');
-    const name = incomingCategory.opened.snapshot.category.name;
-    notify(`'${name}' 카테고리를 구독했어요. ${done.places}곳이 추가됐어요.`);
-  };
-  const shareCategory = async (category: PinCategory) => {
-    if (!hasHome(privacy.excluded)) {
+  // 카테고리 공유: sharing mine, following others', and a `#c=` link waiting for its popup.
+  const { categorySharing, incomingCategory, incomingFollowed, followCategory, dismissCategory, unfollowCategory } = useCategorySharing({
+    account,
+    pins,
+    categories,
+    excluded: privacy.excluded,
+    transform: pinStore.transform,
+    notify,
+    onNeedHome: () => {
       setCategoriesOpen(false);
-      return needHome('category');
-    }
-    analytics.track('share_started', { kind: 'category' });
-    // No account yet: a guest one for this phone (the link lives on the server), as for We Now.
-    const userId = account.user?.id ?? ((await account.signInAsGuest()) ? (await authService.current())?.id : undefined);
-    if (!userId) return notify('지금은 링크를 만들 수 없어요. 잠시 후 다시 시도하세요.');
-    const shared = await sharedCategories.share(userId, category);
-    if (!shared) return notify('지금은 링크를 만들 수 없어요. 잠시 후 다시 시도하세요.');
-    const ok = await copyToClipboard(categoryLinkUrl(shared.slug));
-    analytics.track('share_completed', { kind: 'category', method: 'copy_link', ok });
-    const left = shared.removed > 0 ? ` 제외 주소에 있는 ${shared.removed}곳은 빠졌어요.` : '';
-    notify(ok ? `링크를 복사했어요.${left}` : '링크를 복사하지 못했어요.');
-  };
-  const categorySharing: CategorySharing = {
-    available: categoryShareService.available,
-    shared: new Set(sharedCategories.links.keys()),
-    followed: new Map(followedCategories.subs.map((s) => [s.categoryId, s.owner])),
-    onShare: (category) => void shareCategory(category),
-    onStop: (category) => {
-      const userId = account.user?.id;
-      if (!userId) return;
-      void sharedCategories.stop(userId, category.id).then((ok) => notify(ok ? '공유를 중지했어요.' : '공유를 중지하지 못했어요.'));
+      needHome('category');
     },
-    onUnsubscribe: (category) => {
-      followedCategories.unsubscribe(category.id);
-      notify('구독을 취소했어요.');
-    },
-  };
+    onFollowed: () => changeTab('pins'),
+  });
   // 제외 주소 설정 as the profile and 설정 both show it.
   const privacyProps = {
     places: privacy.excluded,
@@ -828,38 +633,7 @@ export default function App() {
   };
 
   // The trays and the bottom bar cover part of the map; fit and focus around them.
-  const mapPadding = useCallback((extraBottom = 0): MapPadding => {
-    const desktop = window.matchMedia(DESKTOP_QUERY).matches;
-    const barHeight = barEl.current?.offsetHeight ?? 0;
-    const cap = (px: number) => Math.min(px, window.innerHeight * 0.5);
-    // Editing a route: its sheet covers the lower part, and the route is
-    // fitted with more room around it (the map steps back a little).
-    const editTray = document.querySelector<HTMLElement>('.route-edit');
-    if (editTray) {
-      const title = document.querySelector<HTMLElement>('.route-title:not(.route-title--out)');
-      const top = title ? title.getBoundingClientRect().bottom + 60 : 120;
-      return { top, right: 90, bottom: editTray.offsetHeight + 60 + extraBottom, left: 90 };
-    }
-    // The 경로 폴더 sheet stands in for the tab buttons while it is up.
-    const folderTray = document.querySelector<HTMLElement>('.route-folders:not(.is-leaving)');
-    if (folderTray) {
-      // Lowered (a route on show) only its top strip covers the map.
-      const lowered = folderTray.classList.contains('is-lowered');
-      const covered = lowered ? FOLDER_LOWERED_PX : folderTray.offsetHeight;
-      // A route on show has its name under the rail; the route sits below it.
-      const title = document.querySelector<HTMLElement>('.route-title:not(.route-title--out)');
-      const top = lowered && title ? title.getBoundingClientRect().bottom + 30 : 90;
-      // …and clear of the < > strips at its sides (.route-step, 64px wide).
-      const side = lowered ? 80 : 40;
-      return { top, right: side, bottom: covered + 30 + extraBottom, left: side };
-    }
-    return {
-      top: 90,
-      right: 40,
-      bottom: desktop ? 40 + extraBottom : cap(barHeight) + 30 + extraBottom,
-      left: 40,
-    };
-  }, []);
+  const mapPadding = useCallback((extraBottom = 0): MapPadding => measureMapPadding(barEl.current, extraBottom), []);
 
   const mapEvents = useRef({
     stop: (_i: number) => {},
@@ -921,8 +695,6 @@ export default function App() {
   // Drag handlers stay attached while place data and the camera update.
   const nearbyContext = useRef({ places: nearbyPlaces, viewport });
   nearbyContext.current = { places: nearbyPlaces, viewport };
-  const refreshAim = useRef(() => {});
-  useEffect(() => { refreshAim.current(); }, [nearbyPlaces, viewport]);
   // A pinned place is drawn by its pin, which looks just like its POI: the POI
   // steps aside so the two don't stack.
   // A category picked (not ALL): only that category's places — the places
@@ -1024,23 +796,8 @@ export default function App() {
     mapRef.current?.setPins(pinMarkers);
   }, [pinMarkers, mapProvider]);
 
-  // An open group: every member's pings (their latest as their face), the
-  // picked member's over the rest, everyone else stepping back; a few
-  // every photo as its ping's head (`photoPings`), the tapped ping marked for the panel.
-  // A place two or more members pinged is one aurora ping at one spot
-  // (`sharedPlaces`): whoever is there now in a row over it, and over them
-  // every photo sent from there by anyone, in the order they were taken.
-  // Each member's own ping there stays as an invisible point under it, where
-  // their lines meet.
-  // My looks in each group (pressed pings and lines): each group's own, apart
-  // from TODAY's, kept on this phone so they stay on my map whether or not the
-  // server (what the other members see) took them.
-  const [myLooks, setMyLooks] = useState(loadMyGroupLooks);
-  const looksOf = useCallback(
-    (m: GroupMember): GroupLooks | undefined => (m.userId === myId && openGroup ? (myLooks[openGroup.id] ?? m.looks) : m.looks),
-    [myId, openGroup, myLooks],
-  );
-  const myGroupRow = openGroup && myId ? (openGroup.members.find((m) => m.userId === myId) ?? null) : null;
+  // My looks in the open group (pressed pings and lines), and my own row in it.
+  const { looksOf, myGroupRow, setGroupLook } = useGroupLooks(openGroup, myId);
   // The day's whiteboard on the group's map: everyone's doodles always
   // shown; mine edited while 꾸미기 is on, in my colour in the group.
   const [boardOn, setBoardOn] = useState(false);
@@ -1054,198 +811,15 @@ export default function App() {
   useEffect(() => setBoardOn(false), [openGroupId]);
   const myLookRow = useRef<{ me: string; count: number } | null>(null);
   myLookRow.current = myGroupRow ? { me: myGroupRow.userId, count: myGroupRow.pings.length } : null;
-  const setGroupLook = (kind: 'ping' | 'edge', key: string, look: PingLook | LineLook | null) => {
-    const group = openGroup;
-    if (!group || !myGroupRow) return;
-    const next = withGroupLook(looksOf(myGroupRow), kind, key, look);
-    setMyLooks((all) => saveMyGroupLooks(all, group.id, next));
-    // Best effort: a server without group_ping_looks yet just leaves it on this phone.
-    void groupService.setLook(group.id, kind, key, look);
-  };
-  const groupMarks = useMemo<GroupPingMark[]>(() => {
-    if (!openGroup) return [];
-    const isPicked = (member: string, seq: number) => groupPing?.member === member && groupPing.seq === seq;
-    const shared = new Map<string, { place: SharedPlace; lead: boolean }>();
-    const places = sharedPlaces(openGroup.members);
-    for (const place of places) {
-      place.pings.forEach(({ member, seq }, k) => shared.set(`${member.userId}|${seq}`, { place, lead: k === 0 }));
-    }
-    const placeMark = (place: SharedPlace): GroupPingMark => {
-      const first = place.pings[0];
-      const inIt = place.pings.find((p) => p.member.userId === groupPicked);
-      const photos = place.pings
-        .flatMap(({ member, seq }) => {
-          const ping = member.pings[seq];
-          const urls = groupPingPhotos(ping);
-          const ats = ping.photoAts ?? urls.map(() => ping.at);
-          return urls.map((url, photo) => ({ url, at: ats[photo] ?? ping.at, of: { member: member.userId, seq, photo } }));
-        })
-        .sort((a, b) => a.at.localeCompare(b.at));
-      const tapped = place.pings.find((p) => isPicked(p.member.userId, p.seq));
-      // The tapped photo, or (from the pin or a face) that ping's newest.
-      const tappedPhoto = tapped && (groupPing?.photo ?? groupPingPhotos(tapped.member.pings[tapped.seq]).length - 1);
-      const selectedPhoto = tapped ? photos.findIndex((p) => p.of.member === tapped.member.userId && p.of.seq === tapped.seq && p.of.photo === tappedPhoto) : -1;
-      return {
-        member: first.member.userId,
-        seq: first.seq,
-        center: place.center,
-        color: memberColor(first.member.color),
-        together: true,
-        faded: !!groupPicked && !inIt,
-        label: inIt ? inIt.member.pings[inIt.seq].name : undefined,
-        faces: place.pings
-          .filter(({ member, seq }) => seq === member.pings.length - 1)
-          .map(({ member, seq }) => ({ member: member.userId, seq, color: memberColor(member.color), photo: member.photo })),
-        photos: photos.length ? photos.map((p) => p.url) : undefined,
-        photoOf: photos.length ? photos.map((p) => p.of) : undefined,
-        selected: !!tapped,
-        selectedPhoto: selectedPhoto >= 0 ? selectedPhoto : undefined,
-      };
-    };
-    return openGroup.members.flatMap((m) => {
-      const photos = photoPings(m);
-      return m.pings.map((p, i): GroupPingMark => {
-        const at = shared.get(`${m.userId}|${i}`);
-        if (at?.lead) return placeMark(at.place);
-        if (at) return { member: m.userId, seq: i, center: at.place.center, color: memberColor(m.color), ghost: true };
-        return {
-          member: m.userId,
-          seq: i,
-          center: p.center,
-          color: memberColor(m.color),
-          face: i === m.pings.length - 1 ? { photo: m.photo } : undefined,
-          faded: !!groupPicked && groupPicked !== m.userId,
-          // The picked member's places by name; nobody's while ALL.
-          label: groupPicked === m.userId ? p.name : undefined,
-          photos: photos.has(i) ? groupPingPhotos(p) : undefined,
-          // Not on a face: their latest stays their face.
-          shape: i === m.pings.length - 1 ? undefined : looksOf(m)?.pings[pingLookKey(p)],
-          selected: isPicked(m.userId, i),
-          selectedPhoto: isPicked(m.userId, i) ? groupPing?.photo : undefined,
-        };
-      });
-    });
-  }, [openGroup, groupPicked, groupPing, looksOf]);
-  const groupLines = useMemo<GroupLine[]>(
-    () =>
-      (openGroup?.members ?? [])
-        .filter((m) => m.pings.length > 1)
-        .map((m) => {
-          const edges = looksOf(m)?.edges;
-          return {
-            member: m.userId,
-            color: memberColor(m.color),
-            count: m.pings.length,
-            faded: !!groupPicked && groupPicked !== m.userId,
-            styles: edges ? m.pings.slice(1).map((p, k) => edges[edgeLookKey(m.pings[k], p)]) : undefined,
-          };
-        }),
-    [openGroup, groupPicked, looksOf],
+  const groupMarks = useMemo(
+    () => (openGroup ? buildGroupMarks(openGroup, groupPicked, groupPing, looksOf) : []),
+    [openGroup, groupPicked, groupPing, looksOf],
   );
-  // Opening a group fits all of it; picking someone brings the map in close on their day.
-  const groupFitted = useRef<{ group: string; picked: string | null } | null>(null);
-  const groupFitKey = openGroup ? `${openGroup.id}|${groupDay ?? ''}|${groupPicked ?? ''}|${focusPoints(openGroup, groupPicked).length}|${groupPing ? `${groupPing.member}:${groupPing.seq}` : ''}` : '';
-  useEffect(() => {
-    if (!openGroup || !atlasRef.current) return;
-    const shown = groupPicked ? openGroup.members.filter((m) => m.userId === groupPicked) : openGroup.members;
-    const keys = shown.flatMap((m) => m.pings.map((_, i) => markKey(m.userId, i)));
-    if (keys.length === 0) return;
-    const el = atlasEl.current;
-    const width = el?.clientWidth ?? window.innerWidth;
-    // Under the title, over the member row along the bottom (and the picked
-    // member's pass over it), clear of the < > at the sides.
-    const side = width < 520 ? 76 : 96;
-    // (The row sits over the 대화 button, 64px higher than it did.)
-    const padding = { top: 150, right: side, bottom: groupPicked ? 344 : 204, left: side };
-    // Like a route: the first move onto someone (from ALL, or opening the
-    // group) glides at the usual pace; going on from one member to the next
-    // is as quick as stepping between routes with < >.
-    const last = groupFitted.current;
-    const memberToMember = !!last && last.group === openGroup.id && !!last.picked && !!groupPicked;
-    groupFitted.current = { group: openGroup.id, picked: groupPicked };
-    const id = requestAnimationFrame(() => {
-      // A tapped ping: it (with its photo head or face, measured off the
-      // marker) in the middle of the room between the photo panel under the
-      // title and the member's pass, not the member's whole day.
-      const ping = groupPing && openGroup.members.find((m) => m.userId === groupPing.member)?.pings[groupPing.seq];
-      const marker = ping && document.querySelector<HTMLElement>('.group-ping.is-selected');
-      const box = el?.getBoundingClientRect();
-      if (ping && marker && box) {
-        const at = marker.getBoundingClientRect().top;
-        const head = Math.min(at, ...[...marker.children].map((c) => c.getBoundingClientRect().top));
-        const above = document.querySelector('.group-photo-panel')?.getBoundingClientRect().bottom ?? box.top + GROUP_TITLE_PX;
-        const below = document.querySelector('.member-pass, .group-rail')?.getBoundingClientRect().top ?? box.bottom;
-        return atlasRef.current?.focus(markKey(groupPing.member, groupPing.seq), { top: above - box.top + (at - head) + 12, right: 0, bottom: Math.max(0, box.bottom - below), left: 0 });
-      }
-      atlasRef.current?.fit(keys, padding, memberToMember ? STEP_GLIDE_MS : undefined);
-    });
-    return () => cancelAnimationFrame(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupFitKey]);
-  useEffect(() => {
-    if (!openGroup) groupFitted.current = null;
-  }, [openGroup]);
+  const groupLines = useMemo(() => buildGroupLines(openGroup, groupPicked, looksOf), [openGroup, groupPicked, looksOf]);
+  useGroupFit({ openGroup, picked: groupPicked, ping: groupPing, day: groupDay, atlasRef, atlasEl });
 
-  // On a group's map, a quick tap (not a pan or a long press) on someone's
-  // ping, photo or face (faded or not) puts the focus on them and opens that
-  // place's photo panel; on bare map it goes back to ALL (panel and all).
-  // The pings let taps through to the atlas under them, so they're found by where they are on screen.
-  useEffect(() => {
-    const el = atlasEl.current;
-    if (!groupOpen || !el) return;
-    let tap: { x: number; y: number; at: number } | null = null;
-    const hit = (x: number, y: number): { member: string; seq: number } | null => {
-      let found: GroupPlace | null = null;
-      for (const p of document.querySelectorAll<HTMLElement>('.group-ping')) {
-        if (!p.dataset.member) continue;
-        const parts = [...p.querySelectorAll<HTMLElement>('.group-ping__photo, .group-ping__face, .group-ping__pin')].filter((c) => getComputedStyle(c).visibility !== 'hidden');
-        const within = (c: HTMLElement) => {
-          const r = c.getBoundingClientRect();
-          return x >= r.left - 6 && x <= r.right + 6 && y >= r.top - 6 && y <= r.bottom + 6;
-        };
-        if (!parts.some(within)) continue;
-        // One of a place's stacked photos: that photo, not just the newest.
-        const photo = parts.find((c) => c.dataset.photo !== undefined && within(c));
-        // On a shared place a photo or face says whose it is; its pin is the place's first ping.
-        const whose = photo?.dataset.member ? photo : parts.find((c) => c.dataset.member && within(c));
-        const member = whose?.dataset.member ?? p.dataset.member;
-        const seq = Number(whose?.dataset.seq ?? p.dataset.seq);
-        found = { member, seq, ...(photo ? { photo: Number(photo.dataset.photo) } : {}) };
-        // A photo or a face is over the pins around it.
-        if (p.classList.contains('has-photo') || p.classList.contains('group-ping--face') || p.classList.contains('has-faces')) break;
-      }
-      return found;
-    };
-    const down = (e: PointerEvent) => {
-      // A touch that only closes the ping / line picker isn't a tap on the map.
-      // Nor is a doodle on the day's board.
-      tap = e.isPrimary && el.contains(e.target as Node) && !document.querySelector('.group-look-picker, .group-board.is-drawing') ? { x: e.clientX, y: e.clientY, at: performance.now() } : null;
-    };
-    const up = (e: PointerEvent) => {
-      const t = tap;
-      tap = null;
-      if (!t || !e.isPrimary || !el.contains(e.target as Node)) return;
-      if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > PRESS.slopPx || performance.now() - t.at >= PRESS.longMs) return;
-      // One of my own pings or lines: that tap opens its shape picker (GroupLookLayer) instead.
-      const mine = myLookRow.current;
-      if (mine && lookTargetAt(e.clientX, e.clientY, mine.me, mine.count)) return;
-      const on = hit(e.clientX, e.clientY);
-      if (on) {
-        setGroupPicked(on.member);
-        setGroupPing(on);
-      } else {
-        // Bare map: back to ALL, with the photo panel too if it's open.
-        setGroupPing(null);
-        setGroupPicked(null);
-      }
-    };
-    document.addEventListener('pointerdown', down, true);
-    document.addEventListener('pointerup', up, true);
-    return () => {
-      document.removeEventListener('pointerdown', down, true);
-      document.removeEventListener('pointerup', up, true);
-    };
-  }, [groupOpen]);
+  // On a group's map a quick tap picks the member (and the place) under it; bare map goes back to ALL.
+  useGroupMapTaps(groupOpen, atlasEl, myLookRow, setGroupPicked, setGroupPing);
 
   // Making or editing a route: a pin already in it steps aside (its numbered stop
   // stands in), and so does one the moment it's added; taken out, it's back.
@@ -1265,6 +839,14 @@ export default function App() {
     });
   }, [editPlaces, pinMarkers, pins, mapProvider]);
 
+  // Once the first screen is up and quiet, the other screens' code is fetched ahead of their first opening.
+  useEffect(() => {
+    const idle = window.requestIdleCallback ?? ((run: () => void) => window.setTimeout(run, 1500));
+    const cancel = window.cancelIdleCallback ?? window.clearTimeout;
+    const id = idle(() => preloadScreens(), { timeout: 4000 });
+    return () => cancel(id);
+  }, []);
+
   useEffect(() => {
     const onResize = () => mapRef.current?.resize();
     window.addEventListener('resize', onResize);
@@ -1280,12 +862,6 @@ export default function App() {
     }
   }, [incomingCourse, dismissCourse, notify]);
 
-  useEffect(() => {
-    if (!toast) return;
-    const id = setTimeout(() => setToast(null), toast.undo ? 4000 : 2600);
-    return () => clearTimeout(id);
-  }, [toast]);
-
   // ----- Map events -----
 
   mapEvents.current.stop = (index: number) => {
@@ -1296,7 +872,6 @@ export default function App() {
     const place = shownStops[index];
     if (!place) return;
     mapRef.current?.focus(place.center, mapPadding());
-    document.querySelectorAll('.stop-list__item')[index]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   };
 
   mapEvents.current.pin = (id: string) => {
@@ -1360,11 +935,6 @@ export default function App() {
     searchInput.current?.blur();
   };
 
-  const startSearch = () => {
-    setSearchOpen(true);
-    searchInput.current?.focus();
-  };
-
   const pickPlace = (place: PlaceRef) => {
     setSearchOpen(false);
     searchInput.current?.blur();
@@ -1418,112 +988,28 @@ export default function App() {
   // With the 경로 sheet up (and no route being made): a quick tap on bare map
   // closes 경로 altogether; pressing a pin and dragging goes straight into
   // making a route, that pin first, then every pin the finger crosses.
-  // Listened for on the document in the capture phase, ahead of the map; the
-  // listener stays for all of 경로 so a stroke that started it keeps going
-  // after the build layer mounts (that layer only takes strokes it began).
-  const buildingRef = useRef(building);
-  buildingRef.current = building;
-  const editingRef = useRef(editing);
-  editingRef.current = editing;
-  const shownRouteRef = useRef(shownRouteId);
-  shownRouteRef.current = shownRouteId;
-  // That stroke's finger, for the build layer's dashed preview line.
-  const handoffStroke = useRef<{ x: number; y: number } | null>(null);
-  useEffect(() => {
-    const el = mapEl.current;
-    if (!routeMode || !el) return;
-    let stroke: { x: number; y: number; at: number; pin: string | null; drawing: boolean; moved: boolean } | null = null;
-    const down = (e: PointerEvent) => {
-      stroke = null;
-      // Making or editing a route: the build layer takes the strokes.
-      if (!e.isPrimary || buildingRef.current || editingRef.current || !el.contains(e.target as Node)) return;
-      stroke = { x: e.clientX, y: e.clientY, at: performance.now(), pin: pinAt(e.clientX, e.clientY), drawing: false, moved: false };
-      if (stroke.pin) mapRef.current?.setPanEnabled(false);
-    };
-    const move = (e: PointerEvent) => {
-      const s = stroke;
-      if (!s || !e.isPrimary) return;
-      if (!s.moved && Math.hypot(e.clientX - s.x, e.clientY - s.y) > PRESS.slopPx) {
-        s.moved = true;
-        if (s.pin) {
-          s.drawing = true;
-          setShownRouteId(null);
-          setActivePinId(null);
-          buildMethod.current = 'drag';
-          setBuilding([s.pin]);
-        }
-      }
-      if (!s.drawing) return;
-      e.preventDefault();
-      handoffStroke.current = { x: e.clientX, y: e.clientY };
-      const id = pinAt(e.clientX, e.clientY);
-      if (id) setBuilding((b) => (b && !b.includes(id) && b.length < COURSE_LIMITS.maxStops ? [...b, id] : b));
-    };
-    const up = (e: PointerEvent) => {
-      const s = stroke;
-      stroke = null;
-      handoffStroke.current = null;
-      if (!s || !e.isPrimary) return;
-      if (s.pin) mapRef.current?.setPanEnabled(true);
-      if (s.drawing) {
-        // The stroke may end on a pin; its click shouldn't open the pin card.
-        const swallow = (c: MouseEvent) => {
-          c.stopPropagation();
-          c.preventDefault();
-        };
-        document.addEventListener('click', swallow, { capture: true, once: true });
-        window.setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 300);
-        return;
-      }
-      // A quick tap on bare map (not a pan, not a long press, not on a marker):
-      // with a route on show it just lets go of it (the sheet comes back up);
-      // otherwise it closes 경로.
-      const onMarker = (e.target as Element | null)?.closest('.map-marker');
-      if (!s.moved && !s.pin && !onMarker && performance.now() - s.at < PRESS.longMs && el.contains(e.target as Node)) {
-        if (shownRouteRef.current) return setShownRouteId(null);
-        setRailMode('menu');
-      }
-    };
-    document.addEventListener('pointerdown', down, true);
-    document.addEventListener('pointermove', move, { capture: true, passive: false });
-    document.addEventListener('pointerup', up, true);
-    document.addEventListener('pointercancel', up, true);
-    return () => {
-      document.removeEventListener('pointerdown', down, true);
-      document.removeEventListener('pointermove', move, true);
-      document.removeEventListener('pointerup', up, true);
-      document.removeEventListener('pointercancel', up, true);
-    };
-  }, [routeMode]);
+  const handoffStroke = useRouteStrokes({
+    on: routeMode,
+    mapEl,
+    mapRef,
+    busy: !!building || !!editing,
+    showing: !!shownRouteId,
+    onStart: (pin) => {
+      setShownRouteId(null);
+      setActivePinId(null);
+      buildMethod.current = 'drag';
+      setBuilding([pin]);
+    },
+    onCross: (id) => setBuilding((b) => (b && !b.includes(id) && b.length < COURSE_LIMITS.maxStops ? [...b, id] : b)),
+    onLetGo: () => setShownRouteId(null),
+    onClose: () => setRailMode('menu'),
+  });
 
   // With 핀's category list out, a quick tap on bare map (not a pan, a long
   // press or a marker) closes it back to just 핀 · 경로; the categories
   // picked stay picked. A tap that closes a pin card or place card does only that.
   const pinsListOpen = onPinHome && railMode === 'pins' && !searchOpen;
-  const cardOpenRef = useRef(false);
-  cardOpenRef.current = !!activePinId || !!preview;
-  useEffect(() => {
-    const el = mapEl.current;
-    if (!pinsListOpen || !el) return;
-    let tap: { x: number; y: number; at: number; card: boolean } | null = null;
-    const down = (e: PointerEvent) => {
-      tap = e.isPrimary && el.contains(e.target as Node) ? { x: e.clientX, y: e.clientY, at: performance.now(), card: cardOpenRef.current } : null;
-    };
-    const up = (e: PointerEvent) => {
-      const t = tap;
-      tap = null;
-      if (!t || !e.isPrimary || t.card || !el.contains(e.target as Node)) return;
-      if ((e.target as Element | null)?.closest('.map-marker')) return;
-      if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > PRESS.slopPx || performance.now() - t.at >= PRESS.longMs) return;
-      setRailMode('menu');
-    };
-    document.addEventListener('pointerdown', down, true);
-    document.addEventListener('pointerup', up, true);
-    return () => {
-      document.removeEventListener('pointerdown', down, true);
-      document.removeEventListener('pointerup', up, true);
-    };
-  }, [pinsListOpen]);
+  useBareMapTap(pinsListOpen, mapEl, !!activePinId || !!preview, () => setRailMode('menu'));
 
   const startBuilding = () => {
     setShownRouteId(null);
@@ -1592,8 +1078,7 @@ export default function App() {
     }
     setEditing(null);
     // Back to showing it: the map glides over, the pins fade off, the stops drop in again.
-    setLandedRoute(null);
-    setPinsAway('no');
+    arrival.replay();
     setRefit((n) => n + 1);
   };
 
@@ -1658,10 +1143,20 @@ export default function App() {
   // Stable, so the card's outside-touch listener isn't re-attached every render.
   const closeNewPin = useCallback(() => setPreview(null), []);
 
+  // The camera screen, and the shot it sends to TODAY and the groups picked.
+  const camera = useCameraShot({
+    here: me?.center ?? null,
+    excluded: privacy.excluded,
+    searchService,
+    pins: pinStore.pins,
+    sendPhoto: groups.sendPhoto,
+    notify,
+  });
+
   // Android's back button closes one layer at a time, innermost first.
   useBackButton(() => {
     if (closeTopDialog()) return true;
-    if (cameraOpen) return setCameraOpen(false), true;
+    if (camera.open) return camera.close(), true;
     if (gallerySeq !== null) return setGallerySeq(null), true;
     if (galleryTab) return closeGallery(), true;
     if (calendarPhoto) return setCalendarPhoto(null), true;
@@ -1693,59 +1188,6 @@ export default function App() {
     return false;
   });
 
-  // 전송 from the camera, first: the places around where I am, for the shot
-  // to say where it was taken (CameraPlaces). Never from near a 제외 주소 (as
-  // pings there never leave the phone). Only the latest lookup lands.
-  const findCameraSpots = async () => {
-    const turn = ++cameraLookup.current;
-    const center = me?.center;
-    if (!center) return setCameraSpots({ places: [], problem: '지금 위치를 찾지 못했어요. 위치 권한을 확인해 주세요.' });
-    if (isExcluded({ center }, privacy.excluded)) return setCameraSpots({ places: [], problem: '제외 주소 근처에서는 보낼 수 없어요.' });
-    setCameraSpots({ places: null, problem: null });
-    const [named, around] = await Promise.all([
-      searchService?.reverse(center) ?? null,
-      searchService?.nearby(center, { limit: CAMERA_PLACE_LIMIT }) ?? [],
-    ]);
-    if (turn !== cameraLookup.current) return;
-    const places = cameraPlaces(center, named && named.name !== UNNAMED_SPOT ? named : null, pinStore.pins, around, privacy.excluded);
-    setCameraSpots({ places, problem: places.length ? null : '제외 주소 근처에서는 보낼 수 없어요.' });
-  };
-
-  // Then the photo and a ping of the place picked to each picked group. What went wrong, or null.
-  // TODAY (MY) in the send popup: the shot pings the picked place on my own
-  // day, with the photo on it — my pin there if it is one (once a day, so a
-  // second shot only adds the photo), else today's ping of the same place
-  // within 50m, else a new ping of the place.
-  const pingShotOnToday = async (photo: string, place: PlaceRef): Promise<boolean> => {
-    const small = await avatarFromDataUrl(photo, PING_PHOTO_PX, 0.8);
-    const pin = pins.find((p) => p.place.id === place.id);
-    let pingId: string | null;
-    if (pin) {
-      recordPing(pin, privacy.excluded);
-      pingId = todayPingOfPin(pin.id);
-    } else {
-      const today = dateKey();
-      pingId =
-        loadPings().find((p) => p.day === today && !p.pinId && p.name === place.name && distanceMeters(p.center, place.center) <= TODAY_PING_RADIUS_M)?.id ??
-        recordPlacePing(place, privacy.excluded);
-    }
-    if (!pingId) return false;
-    if (small) savePingPhoto(pingId, small, new Set(loadPings().map((p) => p.id)));
-    return true;
-  };
-  // TODAY always gets the shot (the gallery's MY is TODAY's photos); the groups are extra.
-  const sendCameraShot = async (groupIds: string[], photo: string, place: PlaceRef): Promise<string | null> => {
-    if (isExcluded(place, privacy.excluded)) return '제외 주소 근처에서는 보낼 수 없어요.';
-    const sent = groupIds.length ? await groups.sendPhoto(groupIds, { day: dateKey(cameraShotAt.current), at: cameraShotAt.current.toISOString(), center: place.center, name: place.name }, photo) : 0;
-    if (groupIds.length && !sent) return '보내지 못했어요. 잠시 뒤에 다시 시도해 주세요.';
-    const pinged = await pingShotOnToday(photo, place);
-    if (!pinged && !sent) return 'TODAY에 핑을 찍지 못했어요.';
-    setCameraShot(null);
-    setCameraOpen(false);
-    notify(sent ? (pinged ? `TODAY와 ${sent}개 그룹에 보냈어요.` : sent === 1 ? '그룹에 보냈어요.' : `${sent}개 그룹에 보냈어요.`) : `'${place.name}' 핑을 TODAY에 찍었어요.`);
-    return null;
-  };
-
   // 📍 again on the pin screen: a new pin right where the map is looking —
   // the same card a search pick or a long press opens (name, memo, group,
   // ✓ to pin). With a card already up, the press first closes it (a touch
@@ -1766,130 +1208,31 @@ export default function App() {
   // nearby icons name the point immediately. Address lookups fill empty spots,
   // one at a time, without ever showing a reply for an earlier camera position.
   const aimable = tab === 'pins' && !onPage && !routeMode && !searchOpen && !preview && !activePinId;
+  const aim = usePanAim({ on: aimable, searchService, mapEl, mapEvents, nearby: nearbyContext });
   useEffect(() => {
-    if (!aimable || !searchService) return;
-    const el = mapEl.current;
-    let alive = true;
-    let pressed = false;
-    let dragging = false;
-    let asked: [number, number] | null = null;
-    let wanted: [number, number] | null = null;
-    let lastAt = 0;
-    let busy = false;
-    let session = 0;
-    let fallbackName: { center: [number, number]; name: string } | null = null;
-    let timer: number | undefined;
-    const next = () => {
-      if (!alive || !dragging || !wanted) return;
-      const context = nearbyContext.current;
-      const nearby = nearbyPlaceAt(context.places, wanted, context.viewport);
-      setAimName(nearby?.name ?? (fallbackName && distanceMeters(fallbackName.center, wanted) < AIM_MIN_MOVE_M ? fallbackName.name : null));
-      if (nearby || busy || timer !== undefined) return;
-      if (asked && distanceMeters(asked, wanted) < AIM_MIN_MOVE_M) return;
-      const wait = AIM_LOOKUP_MS - (performance.now() - lastAt);
-      if (wait > 0) {
-        timer = window.setTimeout(() => {
-          timer = undefined;
-          next();
-        }, wait);
-        return;
-      }
-      const center = wanted;
-      asked = center;
-      lastAt = performance.now();
-      busy = true;
-      const requestSession = session;
-      void searchService.reverse(center).then((named) => {
-        busy = false;
-        if (!alive || !dragging) return;
-        if (requestSession === session) fallbackName = { center, name: named?.name ?? '이름 없는 곳' };
-        next();
-      });
-    };
-    refreshAim.current = next;
-    const down = (e: Event) => {
-      const target = e.target as Element;
-      if (!el?.contains(target)) return;
-      // A tap on a pin or stop moves the map itself (centring it): not a drag.
-      if (target.closest('button, .map-marker, [data-pin-id]')) return;
-      pressed = true;
-    };
-    const up = (e?: Event) => {
-      if (e && 'touches' in e && (e as TouchEvent).touches.length > 0) return;
-      pressed = false;
-      if (!dragging) return;
-      dragging = false;
-      window.clearTimeout(timer);
-      timer = undefined;
-      setPanAim(false);
-    };
-    mapEvents.current.move = (center) => {
-      if (pressed && !dragging) {
-        dragging = true;
-        session += 1;
-        asked = null;
-        fallbackName = null;
-        lastAt = 0;
-        setAimName(null);
-        setPanAim(true);
-      }
-      if (!dragging) return;
-      wanted = center;
-      next();
-    };
-    // Touch and mouse ends too: a map SDK that swallows the pointer events
-    // (or a lost pointer capture) must still never leave the crosshair up.
-    const starts = ['pointerdown', 'touchstart', 'mousedown'];
-    const ends = ['pointerup', 'pointercancel', 'touchend', 'touchcancel', 'mouseup'];
-    starts.forEach((t) => document.addEventListener(t, down, true));
-    ends.forEach((t) => document.addEventListener(t, up, true));
-    window.addEventListener('blur', up);
-    return () => {
-      alive = false;
-      refreshAim.current = () => {};
-      window.clearTimeout(timer);
-      setPanAim(false);
-      mapEvents.current.move = () => {};
-      starts.forEach((t) => document.removeEventListener(t, down, true));
-      ends.forEach((t) => document.removeEventListener(t, up, true));
-      window.removeEventListener('blur', up);
-    };
-  }, [aimable, searchService]);
+    aim.refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nearbyPlaces, viewport]);
 
   // We Now's list is home. The map, or a group or TODAY open on We Now, pushes
   // a history entry so the browser's back comes home first; leaving some
   // other way takes that entry back off, so back at home leaves the app.
   const awayFromHome = tab === 'pins' || Boolean(openGroup) || todayOpen;
-  const pageEntry = useRef(false);
-  useEffect(() => {
-    if (awayFromHome && !pageEntry.current) {
-      pageEntry.current = true;
-      history.pushState({ rootIn: tab }, '');
-    } else if (!awayFromHome && pageEntry.current) {
-      pageEntry.current = false;
-      history.back();
-    }
-  }, [awayFromHome, tab]);
-  useEffect(() => {
-    const pop = () => {
-      if (!pageEntry.current) return;
-      // A photo open big on TODAY goes first, then its panel; TODAY stays (its entry back in place).
-      if (todayPhotoBig || todayPhoto !== null) {
-        if (todayPhotoBig) setTodayPhotoBig(false);
-        else setTodayPhoto(null);
-        history.pushState({ rootIn: tab }, '');
-        return;
-      }
-      pageEntry.current = false;
+  useHomeHistory(awayFromHome, tab, {
+    // A photo open big on TODAY goes first, then its panel; TODAY stays.
+    inner: () => {
+      if (todayPhotoBig) return setTodayPhotoBig(false), true;
+      if (todayPhoto !== null) return setTodayPhoto(null), true;
+      return false;
+    },
+    home: () => {
       if (openGroup || todayOpen) {
         setOpenGroupId(null);
         setTodayOpen(false);
         return;
       }
       changeTab('people');
-    };
-    window.addEventListener('popstate', pop);
-    return () => window.removeEventListener('popstate', pop);
+    },
   });
 
   // ----- Render -----
@@ -1939,6 +1282,9 @@ export default function App() {
     setPrivacyNotice('공유하려면 집 주소를 먼저 입력하세요.');
     setProfileOpen(true);
   };
+
+  // The route being made, as it's drawn: the shapes and line styles picked so far.
+  const builtLook = buildPins ? buildRouteLook(buildPins.map((p) => p.id), buildLook) : null;
 
   return (
     <div className={`app ${searchOpen ? 'app--searching' : ''} ${sheetTop ? 'app--sheet-top' : ''} ${onPage ? 'app--page' : ''} ${shownRoute && !editRoute && pinsAway !== 'no' ? 'app--pins-away' : ''} ${shownRoute && !editRoute && (!routeLanded || !pinsGone) ? 'app--route-arriving' : ''} ${editRoute ? 'app--route-editing' : ''} ${pageMoving ? 'app--page-moving' : ''} ${openGroup ? 'app--group' : ''}`}>
@@ -2023,8 +1369,8 @@ export default function App() {
             const pin = pins.find((p) => p.place.id === place.id);
             return pinStyle(categories, pin?.categoryId ?? UNCATEGORIZED.id, place);
           })}
-          edgeStyles={buildPins ? buildRouteLook(buildPins.map((p) => p.id), buildLook).edgeStyles : editRoute ? editRoute.look.edgeStyles : shownRoute?.edgeStyles}
-          stopShapes={buildPins ? buildRouteLook(buildPins.map((p) => p.id), buildLook).stopShapes : editRoute ? editRoute.look.stopShapes : shownRoute?.stopShapes}
+          edgeStyles={builtLook ? builtLook.edgeStyles : editRoute ? editRoute.look.edgeStyles : shownRoute?.edgeStyles}
+          stopShapes={builtLook ? builtLook.stopShapes : editRoute ? editRoute.look.stopShapes : shownRoute?.stopShapes}
           // A route on show names its stops, as a calendar day names its pings.
           names={shownRoute && !buildPins && !editRoute ? shownRoute.stops.map((s) => s.place.name) : undefined}
           // A route put on show plays in once the map has glided over to it and the pins have gone
@@ -2058,7 +1404,7 @@ export default function App() {
                   const next = neighborRoute(course.courses, routeFolders.folders, routeTab, shownRoute.id, step);
                   if (!next) return;
                   // Even a step during the initial fade must keep individual pins off.
-                  setPinsAway('gone');
+                  arrival.keepPinsOff();
                   setRouteStep({ id: next.id, from: step });
                   setShownRouteId(next.id);
                 }
@@ -2124,8 +1470,8 @@ export default function App() {
         <RouteStyleLayer
           mapEl={mapEl.current}
           stopCount={buildPins.length}
-          stopShapes={buildRouteLook(buildPins.map((p) => p.id), buildLook).stopShapes}
-          edgeStyles={buildRouteLook(buildPins.map((p) => p.id), buildLook).edgeStyles}
+          stopShapes={builtLook?.stopShapes}
+          edgeStyles={builtLook?.edgeStyles}
           onStopShape={(i, shape) => setBuildLook((l) => withBuildShape(l, buildPins.map((p) => p.id), i, shape))}
           onEdgeStyle={(i, style) => setBuildLook((l) => withBuildEdge(l, buildPins.map((p) => p.id), i, style))}
         />
@@ -2271,7 +1617,7 @@ export default function App() {
           <CalendarZoom
             command={calendarCommand}
             nameAt={async (center) => (await searchService?.reverse(center)) ?? null}
-            onToast={(text) => setToast({ text })}
+            onToast={notify}
             excluded={privacy.excluded}
             here={me?.center ?? null}
             pins={pinStore.pins}
@@ -2335,10 +1681,7 @@ export default function App() {
             onGallery={() => openGallery(openGroup.id)}
             onChat={() => setGroupChat(true)}
             chatUnread={unreadTalk.counts[openGroup.id] ?? 0}
-            onCamera={() => {
-              setCameraGroupId(openGroup.id);
-              setCameraOpen(true);
-            }}
+            onCamera={() => camera.openFrom(openGroup.id)}
             onDelete={setPlaceDeleting}
             decorOn={boardOn}
             onDecor={() => setBoardOn((on) => !on)}
@@ -2540,22 +1883,7 @@ export default function App() {
         />
       )}
 
-      {aimable && (
-        <div className={`aim ${panAim ? 'is-on' : ''}`} aria-hidden>
-          <div className="aim__mark">
-            {aimName && (
-              <span className="aim__name">
-                <span>{aimName}</span>
-              </span>
-            )}
-            <svg className="aim__cross" viewBox="0 0 48 48" aria-hidden>
-              <circle cx="24" cy="24" r="13" />
-              <path d="M24 2v12M24 34v12M2 24h12M34 24h12" />
-              <circle className="aim__dot" cx="24" cy="24" r="2.6" />
-            </svg>
-          </div>
-        </div>
-      )}
+      {aimable && <AimCross on={aim.aiming} name={aim.name} />}
 
       <div
         ref={barEl}
@@ -2572,10 +1900,7 @@ export default function App() {
           onMap={() => changeTab('pins')}
           onPin={startPinning}
           onPeople={() => changeTab('people')}
-          onCamera={() => {
-            setCameraGroupId(null);
-            setCameraOpen(true);
-          }}
+          onCamera={() => camera.openFrom(null)}
           onGallery={() => openGallery('my')}
         />
       </div>
@@ -2682,29 +2007,24 @@ export default function App() {
       )}
       {/* 설정, opened from the profile's ⚙: the profile closes once 설정 covers the screen,
           so leaving 설정 goes back to the screen under it, with no grey left over. */}
-      {cameraOpen && (
+      {camera.open && (
         <CameraScreen
           onSend={(photo, takenAt) => {
-            cameraShotAt.current = takenAt;
-            setCameraShot(photo);
             groups.refresh();
-            void findCameraSpots();
+            camera.take(photo, takenAt);
           }}
-          onClose={() => setCameraOpen(false)}
+          onClose={camera.close}
         />
       )}
-      {cameraOpen && cameraShot && (
+      {camera.open && camera.shot && (
         <GroupSendDialog
           groups={groupList}
           status={groups.status}
-          places={cameraSpots.places}
-          placeProblem={cameraSpots.problem}
-          startGroupId={cameraGroupId}
-          onSend={(ids, place) => sendCameraShot(ids, cameraShot, place)}
-          onClose={() => {
-            cameraLookup.current++;
-            setCameraShot(null);
-          }}
+          places={camera.spots.places}
+          placeProblem={camera.spots.problem}
+          startGroupId={camera.groupId}
+          onSend={camera.send}
+          onClose={camera.dropShot}
         />
       )}
       {settingsOpen && (
@@ -2734,27 +2054,14 @@ export default function App() {
           onDrop={pinStore.dropCategory}
           onDelete={(id) => {
             pinStore.deleteCategory(id);
-            followedCategories.unsubscribe(id);
+            unfollowCategory(id);
           }}
           onPickPin={pickListedPin}
           sharing={categorySharing}
         />
       )}
 
-      <div className={`toast ${toast ? 'toast--on' : ''} ${toast?.undo ? 'toast--action' : ''}`} role="status" aria-live="polite">
-        {toast?.text}
-        {toast?.undo && (
-          <button
-            className="toast__undo"
-            onClick={() => {
-              toast.undo?.();
-              setToast(null);
-            }}
-          >
-            되돌리기
-          </button>
-        )}
-      </div>
+      <ToastBar toast={toast} onDismiss={dismissToast} />
     </div>
   );
 }

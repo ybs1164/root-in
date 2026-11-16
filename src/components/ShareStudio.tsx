@@ -24,7 +24,8 @@ import { canShareImage, dayGround, downloadDataUrl, renderShareImage, shareImage
 import DayPattern from './DayPattern';
 import type { StickerDrop } from '../domain/stickerSheets';
 import DecorLayer, { type TextFocus } from './DecorLayer';
-import { DecorRail, DecorTray } from './DecorTools';
+import { DecorRail } from './DecorRail';
+import DecorTray from './DecorTray';
 
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;

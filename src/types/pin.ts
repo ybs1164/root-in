@@ -24,7 +24,6 @@ export type PinIcon = keyof typeof PIN_ICONS;
 
 /** Index into the fixed `--pin-1 … --pin-8` palette (independent of the design theme). */
 export type PinPaletteColor = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
-export const PIN_COLORS: PinPaletteColor[] = [1, 2, 3, 4, 5, 6, 7, 8];
 /**
  * A category's colour: a palette entry, or a lowercase `#rrggbb` picked from
  * the colour wheel (the form's rainbow button, which took the grey's place).

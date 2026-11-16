@@ -56,11 +56,6 @@ export function addFolder(state: RouteFolders, id: string, name = nextFolderName
   };
 }
 
-export function setFolderIcon(state: RouteFolders, id: string, icon: string): RouteFolders {
-  if (!isFolderIcon(icon)) return state;
-  return { ...state, folders: state.folders.map((f) => (f.id === id ? { ...f, icon } : f)) };
-}
-
 /** An empty name keeps the old one. */
 export function renameFolder(state: RouteFolders, id: string, name: string): RouteFolders {
   const trimmed = name.trim().slice(0, ROUTE_FOLDER_LIMITS.name);
@@ -178,11 +173,6 @@ export function gatherPlace(courses: Course[], state: RouteFolders, tab: RouteTa
   const moving = new Set(ids);
   const list = routesInTab(courses, state, tab).map((c) => c.id);
   return list.slice(0, Math.max(0, list.indexOf(held))).filter((id) => !moving.has(id)).length;
-}
-
-/** One route dragged to place `to` in the tab's list (the others close up around it). */
-export function placeRoute(courses: Course[], state: RouteFolders, tab: RouteTab, id: string, to: number): RouteFolders {
-  return placeRoutes(courses, state, tab, [id], to);
 }
 
 /**

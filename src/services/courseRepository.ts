@@ -1,16 +1,14 @@
 import { defaultTitle } from '../domain/course';
 import { cleanRouteLook } from '../domain/routeStyle';
-import type { Course, CourseDraft } from '../types/course';
-import type { TravelRoute } from '../types/travelRoute';
+import type { Course, CourseDraft, PlaceRef } from '../types/course';
 import { localWrote } from './syncBus';
 
 const STORAGE_KEY = 'goodroot:courses:v2';
 const LEGACY_ROUTES_KEY = 'goodroot:travel-routes:v1';
 
 /**
- * Same seam as the old TravelRouteRepository: callers only see this
- * interface, so a server-backed implementation can replace localStorage
- * without touching hooks/components.
+ * Callers only see this interface, so a server-backed implementation can
+ * replace localStorage without touching hooks/components.
  */
 export interface CourseRepository {
   listByUser(userId: string): Promise<Course[]>;
@@ -33,8 +31,20 @@ const generateId = () =>
     ? crypto.randomUUID()
     : `course-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+/** What `goodroot:travel-routes:v1` held: one origin → destination route. */
+interface LegacyTravelRoute {
+  id: string;
+  userId: string;
+  origin: PlaceRef;
+  destination: PlaceRef;
+  title: string;
+  note?: string;
+  sharedBy?: string;
+  createdAt: string;
+}
+
 // v1 stored single origin→destination routes; each becomes a 2-stop course.
-const fromLegacyRoute = (route: TravelRoute): Course => ({
+const fromLegacyRoute = (route: LegacyTravelRoute): Course => ({
   id: route.id,
   userId: route.userId,
   title: route.title,
@@ -70,7 +80,7 @@ export class LocalCourseRepository implements CourseRepository {
     try {
       const legacyRaw = window.localStorage.getItem(LEGACY_ROUTES_KEY);
       if (legacyRaw === null) return;
-      const legacy = JSON.parse(legacyRaw) as TravelRoute[];
+      const legacy = JSON.parse(legacyRaw) as LegacyTravelRoute[];
       const currentRaw = window.localStorage.getItem(STORAGE_KEY);
       const current = currentRaw ? (JSON.parse(currentRaw) as Course[]) : [];
       const known = new Set(current.map((course) => course.id));

@@ -1,5 +1,5 @@
 import { CalendarDays, Camera, MapPin, Users, X } from 'lucide-react';
-import { GalleryButton } from './PhotoGallery';
+import GalleryButton from './GalleryButton';
 import { useLayoutEffect, useRef } from 'react';
 import { barSlot, barTurn, type AppTab, type BarButton } from '../domain/appTabs';
 import { CalendarToday } from './icons';

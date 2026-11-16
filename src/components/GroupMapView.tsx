@@ -8,7 +8,7 @@ import { MemberFace } from './WeNowPage';
 import PhotoViewer, { OpenPhotoMarks } from './PhotoViewer';
 import PhotoPanel from './PhotoPanel';
 import { useGalleryDecors } from '../hooks/useGalleryPhotos';
-import { GalleryButton } from './PhotoGallery';
+import GalleryButton from './GalleryButton';
 import { TalkBadge, TalkBubbles } from './icons';
 
 /** How long 꾸미기's tools take to tuck back up into it (`pin-rail-out`, 0.16s). */

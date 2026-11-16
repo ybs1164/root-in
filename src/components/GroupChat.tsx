@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, Camera, ChevronLeft, ChevronRight, Reply, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
-import { COMMENT_MAX, galleryDayLabel, unreadBy, type FeedItem, type FeedRef } from '../domain/gallery';
+import { COMMENT_MAX, galleryDayLabel, unreadBy, type FeedItem } from '../domain/gallery';
 import { GROUP_LIMITS, isGroupBirthday, memberColor, memberInk, type Group, type GroupMember } from '../domain/groups';
 import { dateKey } from '../domain/diary';
 import { monthGrid, shiftMonth } from '../domain/calendar';

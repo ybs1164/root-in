@@ -11,12 +11,9 @@ import { describe, it } from 'vitest';
 //   1.3 map/courseMap.test.ts (long-press → place card; done with M2 P1.3)
 //   1.5 domain/geo.test.ts, lib/directionsLink.test.ts
 //   1.6 services/courseShareService.test.ts
+//   1.7 test/cleanup.test.ts (services/recommendationService.test.ts: re-keyed on courses)
 //   (extra) daily route diary: domain/diary.test.ts,
 //   services/diaryRepository.test.ts, services/diaryShareService.test.ts
-
-describe('1.7 Cleanup', () => {
-  it.todo('legacy TravelRoute UI, data/places.ts and routingService are removed (after git init)');
-});
 
 describe('1.8 KakaoTalk share', () => {
   it.todo('Kakao.Share feed template contains title, numbered stops and the share link');

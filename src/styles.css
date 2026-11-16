@@ -8,11 +8,7 @@
   --muted: #c49a6c;
   --border: rgba(166, 103, 38, 0.14);
   --accent: #ffd85f;
-  /* Logo (Logo.tsx, public/brand/): light version — navy pin, blue route (cream tile when shown).
-     Follows the light/dark scheme only; decoration themes leave it alone. */
-  --logo-light-tile: #fbf8f1;
-  --logo-light-pin: #2a3354;
-  --logo-light-ink: #6c90d8;
+  /* Logo (Logo.tsx, public/brand/) in the dark scheme: a navy tile, white pin, blue route. */
   --logo-dark-tile: #2a3354;
   --logo-dark-pin: #ffffff;
   --logo-dark-ink: #6c90d8;
@@ -25,13 +21,6 @@
   --accent-soft: #fce89d;
   --on-accent: #a66726;
   --route: #a66726;
-  --sage: #6f9f45;
-  --sage-soft: #e8f2d8;
-  --sky: #3f7fc4;
-  --sky-soft: #e2eefa;
-  --on-sky: #ffffff;
-  --amber: #b7791f;
-  --amber-soft: #fbefd9;
   --danger: #d14b4b;
   --shadow: 0 4px 14px rgba(200, 101, 10, 0.08), 0 1px 2px rgba(200, 101, 10, 0.06);
   --shadow-sm: 0 2px 8px rgba(200, 101, 10, 0.08);
@@ -118,7 +107,6 @@
   --radius: 18px;
   --bar-h: 64px;
   --sheet-peek: 34dvh;
-  --sheet-full: 78dvh;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --pin-1: #d4995c;
@@ -234,13 +222,6 @@
     --accent-soft: #4a3d10;
     --on-accent: #6b3f15;
     --route: #ffd85f;
-    --sage: #9cc46a;
-    --sage-soft: #2c3a20;
-    --sky: #7fb1e6;
-    --sky-soft: #1f3044;
-    --on-sky: #10161d;
-    --amber: #e3b25e;
-    --amber-soft: #3d3020;
     --danger: #ff7b7b;
     --shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
@@ -282,13 +263,6 @@
   --accent-soft: #4a3d10;
   --on-accent: #6b3f15;
   --route: #ffd85f;
-  --sage: #9cc46a;
-  --sage-soft: #2c3a20;
-  --sky: #7fb1e6;
-  --sky-soft: #1f3044;
-  --on-sky: #10161d;
-  --amber: #e3b25e;
-  --amber-soft: #3d3020;
   --danger: #ff7b7b;
   --shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
@@ -445,13 +419,6 @@
   --muted: #8b7d74;
   --border: rgba(47, 38, 34, 0.1);
   --on-accent: #ffffff;
-  --sage: #4f9a72;
-  --sage-soft: #e1f1e7;
-  --sky: #3f7fc4;
-  --sky-soft: #e2eefa;
-  --on-sky: #ffffff;
-  --amber: #b7791f;
-  --amber-soft: #fbefd9;
   --danger: #d14b4b;
   --shadow: 0 10px 30px rgba(47, 38, 34, 0.16);
   --shadow-sm: 0 2px 10px rgba(47, 38, 34, 0.12);
@@ -521,7 +488,6 @@
   --accent-strong: #2f67a6;
   --accent-soft: #dce9f8;
   --route: #3f7fc4;
-  --sky: #2f67a6;
 }
 
 :root[data-theme='mono'],
@@ -811,7 +777,6 @@
   --accent-strong: #e8408f;
   --accent-soft: #ffdcee;
   --route: #4fb3ff;
-  --sky: #4fb3ff;
 }
 
 * {
@@ -1116,7 +1081,6 @@ button:disabled {
 }
 
 /* Searching takes over the screen; the sheet gets out of the way. */
-.app--searching .sheet,
 .app--searching .place-card {
   transform: translateY(110%);
 }
@@ -1249,306 +1213,13 @@ button:disabled {
   transition: transform 0.25s ease;
 }
 
-/* ---------- Bottom sheet ---------- */
-
-.sheet {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--bar-h) + var(--safe-bottom));
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  height: var(--sheet-peek);
-  background: var(--surface);
-  /* The bottom sheets' look: rounded top corners. */
-  border-radius: 22px 22px 0 0;
-  box-shadow: var(--shadow-up);
-  transition:
-    height 0.28s ease,
-    transform 0.25s ease;
-}
-
-.sheet--full {
-  height: var(--sheet-full);
-}
-
-.sheet__grip {
-  flex: none;
-  display: grid;
-  place-items: center;
-  height: 28px;
-  border: 0;
-  background: transparent;
-}
-
-.sheet__grip span {
-  width: 40px;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--border);
-  box-shadow: inset 0 0 0 10px var(--muted);
-  opacity: 0.35;
-}
-
-.sheet__content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 14px 16px 16px;
-}
-
-.tabs {
-  flex: none;
-  display: flex;
-  gap: 4px;
-  margin: 0 16px 8px;
-  padding: 4px;
-  background: var(--surface-2);
-  border-radius: 12px;
-}
-
-.tabs button {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 40px;
-  border: 0;
-  border-radius: 9px;
-  background: transparent;
-  color: var(--muted);
-  --icon-ink: var(--icon);
-  font-weight: 700;
-  font-size: 14px;
-  white-space: nowrap;
-}
-
-.tabs button.is-on {
-  background: var(--card-face);
-  color: var(--text);
-  --icon-ink: var(--icon);
-  box-shadow: var(--shadow-sm);
-}
-
-.tabs__count {
-  min-width: 20px;
-  padding: 1px 6px;
-  border-radius: 10px;
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  --icon-ink: currentColor;
-  font-size: 12px;
-}
-
 /* ---------- Editor ---------- */
-
-.editor,
-.shared {
-  flex: 1 0 auto;
-}
-
-.editor {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.title-input,
-.field input,
-.stop__memo-input {
-  width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface-2);
-  font-size: 16px;
-  outline: none;
-}
-
-.title-input {
-  height: 48px;
-  padding: 0 14px;
-  font-weight: 700;
-  font-size: 18px;
-}
-
-.title-input:focus,
-.field input:focus,
-.stop__memo-input:focus {
-  border-color: var(--accent);
-  background: var(--surface);
-}
-
-.chip-row {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.chip {
-  flex: none;
-  min-height: 38px;
-  padding: 0 16px;
-  border: 1px solid var(--border);
-  border-radius: 19px;
-  background: var(--surface);
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.chip--on {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--on-accent);
-  --icon-ink: var(--on-accent-icon);
-}
-
-.summary-line {
-  margin: 0;
-  color: var(--muted);
-  --icon-ink: var(--icon);
-  font-size: 13px;
-  font-weight: 600;
-}
 
 .hint {
   margin: 0;
   font-size: 13px;
   color: var(--accent-strong);
   --icon-ink: currentColor;
-}
-
-/* ---------- Stops ---------- */
-
-.stop-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.stop {
-  display: flex;
-  gap: 12px;
-}
-
-.stop__num {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  margin-top: 2px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  --icon-ink: var(--on-accent-icon);
-  font-weight: 800;
-  font-size: 14px;
-}
-
-.stop__body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.stop__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.stop__title {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 2px 8px;
-  min-width: 0;
-  padding-top: 6px;
-}
-
-.stop__title strong {
-  font-size: 16px;
-  overflow-wrap: anywhere;
-}
-
-.stop__cat,
-.stop__addr {
-  color: var(--muted);
-  --icon-ink: var(--icon);
-  font-size: 12px;
-}
-
-.stop__addr {
-  margin: 0;
-}
-
-.stop__tools {
-  flex: none;
-  display: flex;
-}
-
-.stop__memo-input {
-  height: 40px;
-  padding: 0 12px;
-  font-size: 16px;
-}
-
-.stop__memo {
-  margin: 2px 0 0;
-  font-size: 14px;
-}
-
-.leg {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding-left: 15px;
-}
-
-.leg__line {
-  align-self: stretch;
-  width: 0;
-  border-left: 2px dashed var(--route);
-  opacity: 0.5;
-  margin-right: 16px;
-}
-
-.leg__text {
-  flex: 1;
-  color: var(--muted);
-  --icon-ink: var(--icon);
-  font-size: 13px;
-}
-
-.leg__link,
-.text-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 36px;
-  padding: 0 10px;
-  border-radius: 10px;
-  background: var(--sky-soft);
-  color: var(--sky);
-  --icon-ink: currentColor;
-  font-size: 13px;
-  font-weight: 700;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.stop-list__item:last-child .stop {
-  padding-bottom: 4px;
 }
 
 /* ---------- Buttons ---------- */
@@ -1590,16 +1261,6 @@ button:disabled {
   white-space: nowrap;
 }
 
-.btn--primary {
-  background: var(--accent);
-  color: var(--on-accent);
-  --icon-ink: var(--on-accent-icon);
-}
-
-.btn--primary:not(:disabled):active {
-  background: var(--accent-strong);
-}
-
 .btn--secondary {
   background: var(--accent-soft);
   color: var(--accent-strong);
@@ -1610,87 +1271,6 @@ button:disabled {
   background: var(--surface-2);
   color: var(--text);
   --icon-ink: var(--icon);
-}
-
-.action-bar {
-  position: sticky;
-  bottom: -16px;
-  display: grid;
-  grid-template-columns: auto 1fr 1fr;
-  gap: 8px;
-  /* auto top margin pins the bar to the sheet bottom when content is short */
-  margin: auto -16px -16px;
-  padding: 12px 16px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: 11px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.badge--date {
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  --icon-ink: currentColor;
-}
-
-.badge--trip {
-  background: var(--sky-soft);
-  color: var(--sky);
-  --icon-ink: currentColor;
-}
-
-.badge--food {
-  background: var(--amber-soft);
-  color: var(--amber);
-  --icon-ink: currentColor;
-}
-
-.badge--etc {
-  background: var(--surface-2);
-  color: var(--muted);
-  --icon-ink: var(--icon);
-}
-
-/* ---------- Shared course ---------- */
-
-.shared {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.shared__from {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  color: var(--muted);
-  --icon-ink: var(--icon);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.shared__title {
-  margin: 0;
-  font-size: 22px;
-  letter-spacing: -0.02em;
-}
-
-.shared__note {
-  margin: 0;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: var(--surface-2);
-  font-size: 14px;
-  line-height: 1.5;
 }
 
 /* ---------- Share sheet (dialog) ---------- */
@@ -1719,15 +1299,6 @@ button:disabled {
   padding: 18px 16px calc(20px + var(--safe-bottom));
 }
 
-.sheet-grip {
-  align-self: center;
-  width: 40px;
-  height: 5px;
-  border-radius: 3px;
-  background: var(--muted);
-  opacity: 0.35;
-}
-
 .share-sheet__head {
   display: flex;
   align-items: center;
@@ -1743,23 +1314,6 @@ button:disabled {
   overflow: hidden;
   font-size: 22px;
   white-space: nowrap;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-  --icon-ink: var(--icon);
-}
-
-.field input {
-  height: 46px;
-  padding: 0 14px;
-  color: var(--text);
-  --icon-ink: var(--icon);
 }
 
 /* ---------- 꾸미기 (calendar day): stickers, pen, theme ---------- */
@@ -3259,8 +2813,6 @@ button:disabled {
   }
 }
 
-/* ---------- Day share (📅 → 공유) ---------- */
-
 /* ---------- 꾸미기 (share card) ---------- */
 
 /* A route on show: 공유 (accent) and 수정 (white) as plain round buttons at
@@ -3500,33 +3052,6 @@ button:disabled {
 .toast--on {
   opacity: 1;
   transform: translate(-50%, 0);
-}
-
-/* ---------- Daily route diary ---------- */
-
-.diary {
-  flex: 1 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.diary-bar {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  margin: 0 -8px;
-}
-
-.diary-bar__title {
-  flex: 1;
-  min-width: 0;
-  padding: 0 6px;
-  font-size: 18px;
-  letter-spacing: -0.02em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* ---------- Top-right settings + bottom bar ---------- */
@@ -5128,12 +4653,6 @@ button:disabled {
   font-size: 15px;
 }
 
-.btn--danger {
-  background: var(--danger);
-  color: var(--ink-white);
-  --icon-ink: var(--ink-white);
-}
-
 /* The open folder's icon picker: a bubble popping up above its tab (like a
    ping's shape picker), kept on screen. Tapping anywhere else closes it. */
 .folder-picker {
@@ -5356,22 +4875,6 @@ button:disabled {
 .route-row.is-shown .route-row__main strong {
   color: var(--accent-strong);
   --icon-ink: currentColor;
-}
-
-.route-row__file {
-  color: var(--muted);
-  --icon-ink: var(--icon);
-}
-
-.route-row__file:not(:disabled):active {
-  background: var(--surface-2);
-}
-
-
-
-.route-row__in {
-  display: inline-flex;
-  vertical-align: -2px;
 }
 
 
@@ -5778,7 +5281,6 @@ button:disabled {
 }
 
 
-
 @media (prefers-reduced-motion: reduce) {
   .pin-rail__item,
   .pin-rail__item.is-leaving {
@@ -6006,12 +5508,6 @@ button:disabled {
 
 .camera-btn:active {
   scale: 0.92;
-}
-
-.bar-camera {
-  position: absolute;
-  right: 16px;
-  bottom: -8px;
 }
 
 /* The camera screen (CameraScreen): a square live view over everything, ✕
@@ -6267,53 +5763,7 @@ button:disabled {
   background: transparent;
 }
 
-/* ---------- Category chips / pills ---------- */
-
-.pill--on {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  --icon-ink: currentColor;
-}
-
 /* ---------- Pin list ---------- */
-
-.pins,
-.feed {
-  flex: 1 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.pins__tools {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.pin-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.pin-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 60px;
-  padding: 8px 4px;
-  border: 0;
-  border-bottom: 1px solid var(--border);
-  background: transparent;
-  text-align: left;
-}
-
-.pin-row--on {
-  background: var(--accent-soft);
-}
 
 .pin-badge {
   flex: none;
@@ -6338,69 +5788,6 @@ button:disabled {
 .pin-badge .pin-glyph {
   width: 20px;
   height: 20px;
-}
-
-.pin-row__text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.pin-row__text strong {
-  font-size: 15px;
-  overflow-wrap: anywhere;
-}
-
-.pin-row__text span {
-  color: var(--muted);
-  --icon-ink: var(--icon);
-  font-size: 13px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.action-bar--two {
-  grid-template-columns: 1fr 1.4fr;
-}
-
-.action-bar--one {
-  grid-template-columns: 1fr;
-}
-
-.place-card .chip-row {
-  margin-top: 10px;
-}
-
-.place-card__memo {
-  width: 100%;
-  height: 44px;
-  margin-top: 10px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface-2);
-  font-size: 16px;
-  outline: none;
-}
-
-.place-card__memo:focus {
-  border-color: var(--accent);
-}
-
-.cat-link {
-  align-self: flex-start;
-  min-height: 32px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  --icon-ink: var(--icon);
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: underline dotted;
 }
 
 /* ---------- Toast with undo ---------- */
@@ -6431,84 +5818,6 @@ button:disabled {
 }
 
 /* ---------- Calendar ---------- */
-
-.calendar__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.calendar__grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
-}
-
-.calendar__weekday {
-  padding: 4px 0;
-  color: var(--muted);
-  --icon-ink: var(--icon);
-  font-size: 12px;
-  font-weight: 700;
-  text-align: center;
-}
-
-.calendar__day {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  border-radius: 12px;
-  background: transparent;
-  font-size: 14px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.calendar__day.is-out {
-  color: var(--muted);
-  --icon-ink: var(--icon);
-  opacity: 0.45;
-}
-
-.calendar__day.is-today > span:first-child {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  --icon-ink: var(--on-accent-icon);
-}
-
-.calendar__day.is-plan {
-  background: var(--sky-soft);
-}
-
-.calendar__day:active {
-  background: var(--surface-2);
-}
-
-.calendar__dots {
-  display: flex;
-  flex-wrap: wrap; /* one dot per place: from the 6th, a second row (10 at most, see dayDots) */
-  justify-content: center;
-  gap: 2px 3px;
-  max-width: 37px; /* exactly five 5px dots with 3px gaps */
-  min-height: 5px;
-}
-
-.calendar__dots i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent);
-}
 
 /* A group's calendar: in place of the dots, the faces of who pinged that day,
    each a little over the one before; past three, the third is +n. */
@@ -6543,12 +5852,6 @@ button:disabled {
   font-weight: 700;
 }
 
-.calendar__day:disabled {
-  color: var(--muted);
-  --icon-ink: var(--icon);
-  opacity: 0.5;
-}
-
 /* The group's calendar over its map (GroupCalendar): TODAY's month view —
    the page's colour, the year where TODAY stands (108px down, Bebas 56px),
    the group's name under it, the month centred below. */
@@ -6567,68 +5870,12 @@ button:disabled {
   touch-action: pan-y;
 }
 
-.group-calendar__head {
-  position: absolute;
-  top: calc(var(--safe-top) + 108px);
-  left: 64px;
-  right: 64px;
-  display: grid;
-  justify-items: center;
-  pointer-events: none;
-}
-
-.group-calendar__year {
-  display: grid;
-  place-items: center;
-  margin: 0;
-  /* The head lets taps through; only the year itself is the way back to today. */
-  pointer-events: auto;
-  cursor: pointer;
-}
-
-.group-calendar__name {
-  max-width: 100%;
-  margin: 2px 0 0;
-  overflow: hidden;
-  color: var(--muted);
-  --icon-ink: var(--icon);
-  font-size: 15px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.group-calendar__month {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  /* As .cal-zoom__month: clear of the year (and the name under it), nudged up. */
-  padding: 200px 16px calc(12dvh + var(--safe-bottom));
-  overflow-y: auto;
-}
-
-.group-calendar__month .calendar {
-  width: 100%;
-  max-width: 640px;
-  margin: 0 auto;
-}
-
 .group-calendar__note {
   margin: 12px 0 0;
   color: var(--muted);
   --icon-ink: var(--icon);
   font-size: 14px;
   text-align: center;
-}
-
-.route-in {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px 12px;
-  border: 1.5px solid var(--accent);
-  border-radius: var(--radius);
-  background: var(--accent-soft);
 }
 
 /* ---------- Profile (popup from the top-right button) ---------- */
@@ -6910,22 +6157,6 @@ button:disabled {
 
 .profile__stub {
   padding: 6px 18px;
-}
-
-/* An open toggle with another below it: its own piece of stub, torn off
-   from the next by a tear line (notches at both its top and bottom). */
-.ticket-dialog__stub--mid {
-  border-radius: 0;
-  -webkit-mask:
-    radial-gradient(circle var(--notch) at 0 0, transparent 98%, black) left top / 51% 51% no-repeat,
-    radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black) right top / 51% 51% no-repeat,
-    radial-gradient(circle var(--notch) at 0 100%, transparent 98%, black) left bottom / 51% 51% no-repeat,
-    radial-gradient(circle var(--notch) at 100% 100%, transparent 98%, black) right bottom / 51% 51% no-repeat;
-  mask:
-    radial-gradient(circle var(--notch) at 0 0, transparent 98%, black) left top / 51% 51% no-repeat,
-    radial-gradient(circle var(--notch) at 100% 0, transparent 98%, black) right top / 51% 51% no-repeat,
-    radial-gradient(circle var(--notch) at 0 100%, transparent 98%, black) left bottom / 51% 51% no-repeat,
-    radial-gradient(circle var(--notch) at 100% 100%, transparent 98%, black) right bottom / 51% 51% no-repeat;
 }
 
 /* 음소거 · 알림 at the popup's top right: bare icons, greyed with a slash when off. */
@@ -7593,12 +6824,6 @@ button:disabled {
   background: var(--accent-soft);
 }
 
-.color-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 .color-dot {
   width: 44px;
   height: 44px;
@@ -8077,12 +7302,6 @@ button:disabled {
   overflow-y: auto;
 }
 
-.cal-zoom__month .calendar {
-  width: 100%; /* full width again inside the centring flex column */
-  max-width: 640px;
-  margin: 0 auto;
-}
-
 .cal-zoom__day {
   overflow: hidden; /* days paging in from the side stay inside the screen */
 }
@@ -8188,45 +7407,6 @@ button:disabled {
   font-weight: 400;
   letter-spacing: 0.1em;
   line-height: 1;
-}
-
-/* The month view's year: TODAY's place and size (the day screen's title sits
-   108px down: .cal-day's top padding). */
-.cal-zoom__year {
-  position: absolute;
-  top: 108px;
-  left: 50%;
-  display: grid;
-  justify-items: center;
-  translate: -50% 0;
-  cursor: pointer;
-}
-
-/* Both years in the same spot; a change of year pages them a whole screen
-   width across like TODAY → DAY n (260ms, same curve). The button stays the
-   year's own size, so only the year itself is the way back to TODAY. */
-.cal-zoom__year-num {
-  grid-area: 1 / 1;
-}
-
-.cal-zoom__year-num.is-out {
-  animation: year-out 260ms var(--slide-ease) forwards;
-}
-
-.cal-zoom__year-num.is-in {
-  animation: year-in 260ms var(--slide-ease);
-}
-
-@keyframes year-out {
-  to {
-    transform: translateX(calc(var(--dir) * -100vw));
-  }
-}
-
-@keyframes year-in {
-  from {
-    transform: translateX(calc(var(--dir) * 100vw));
-  }
 }
 
 .pings {
@@ -8777,29 +7957,6 @@ button:disabled {
 /* ---------- Phones: the pin screen's sheet hangs from the top ---------- */
 
 @media (max-width: 899px) {
-  .sheet--top {
-    --sheet-top-head: calc(76px + var(--safe-top)); /* room for the search bar */
-    top: 0;
-    bottom: auto;
-    height: calc(var(--sheet-peek) + var(--sheet-top-head));
-    max-height: calc(100dvh - var(--bar-h) - var(--safe-bottom) - 12px);
-    padding-top: var(--sheet-top-head);
-    border-radius: 0 0 22px 22px;
-    box-shadow: var(--shadow);
-  }
-
-  .sheet--top.sheet--full {
-    height: calc(var(--sheet-full) + var(--sheet-top-head));
-  }
-
-  /* Grip on the bottom edge, where the sheet is pulled from. */
-  .sheet--top .sheet__grip {
-    order: 2;
-  }
-
-  .app--searching .sheet--top {
-    transform: translateY(-110%);
-  }
 
   .app--sheet-top .place-card {
     bottom: calc(var(--bar-h) + var(--safe-bottom) + 12px);
@@ -8815,22 +7972,6 @@ button:disabled {
 /* ---------- Desktop: sheet becomes a left panel ---------- */
 
 @media (min-width: 900px) {
-  .sheet,
-  .sheet--full {
-    top: 12px;
-    bottom: 12px;
-    left: 12px;
-    right: auto;
-    width: 400px;
-    height: auto;
-    padding-top: 76px;
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-  }
-
-  .sheet__grip {
-    display: none;
-  }
 
   .search {
     left: 24px;
@@ -8846,21 +7987,12 @@ button:disabled {
     width: 360px;
   }
 
-  .app--searching .sheet,
   .app--searching .place-card {
     transform: none;
   }
 
   .toast {
     left: calc(50% + 206px);
-  }
-
-  .sheet,
-  .sheet--full {
-    /* Ends above the button row: at narrow desktop widths the centred
-       buttons pass under the panel, and the big pin is taller than the row. */
-    bottom: calc(28px + var(--bar-h) + 8px);
-    border-radius: var(--radius);
   }
 
   /* The round buttons stay centred on the window at every width (the
@@ -8886,15 +8018,6 @@ button:disabled {
 
   .app--searching .corner-btn {
     transform: none;
-  }
-
-  /* We Now's gallery and 대화 목록 follow the profile down. */
-  .bar-corner {
-    top: calc(24px + 52px + 10px + 48px + 10px);
-  }
-
-  .bar-corner--up {
-    top: calc(24px + 52px + 10px);
   }
 
   .pin-rail {
@@ -9803,20 +8926,6 @@ button:disabled {
   gap: 6px;
 }
 
-.group-photo-panel__seq {
-  color: var(--muted);
-  --icon-ink: var(--icon);
-  font-family: "Bebas Neue", "Oswald", sans-serif;
-  font-size: 15px;
-  letter-spacing: 0.06em;
-}
-
-.group-photo-panel__seq b {
-  color: var(--text);
-  --icon-ink: var(--icon);
-  font-weight: 400;
-}
-
 .group-photo-panel__close {
   display: grid;
   place-items: center;
@@ -10719,31 +9828,6 @@ button.group-photo-panel__photo {
   object-fit: cover;
 }
 
-.group-form__invite {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 8px 8px 14px;
-  border-radius: 14px;
-  background: var(--surface-2);
-  color: var(--muted);
-  --icon-ink: var(--icon);
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.group-form__invite button {
-  flex: none;
-  min-height: 36px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 18px;
-  background: var(--accent);
-  color: var(--on-accent);
-  --icon-ink: var(--on-accent-icon);
-  font-size: 14px;
-}
-
 .group-form__hint {
   margin: 10px 0 0;
   color: var(--muted);
@@ -11322,23 +10406,6 @@ button.group-photo-panel__photo {
   height: 24px;
 }
 
-/* We Now's list: the gallery and, under it, the 대화 목록, in a column under
-   the profile button (top-right, 2026-11-10). Fixed, so they line up with the
-   profile whatever the row's height. The size of a group's ⚙ column (48px,
-   22px icons), centred under the 52px profile. */
-.bar-corner {
-  position: fixed;
-  top: calc(12px + var(--safe-top) + 52px + 10px + 48px + 10px);
-  right: 14px;
-  width: 48px;
-  height: 48px;
-}
-
-.bar-corner--up {
-  top: calc(12px + var(--safe-top) + 52px + 10px);
-}
-
-.bar-corner--up > svg,
 .group-view__btn--gallery > svg {
   width: 22px;
   height: 22px;
@@ -11360,13 +10427,6 @@ button.group-photo-panel__photo {
   font-size: 14px;
   line-height: 20px;
   text-align: center;
-}
-
-/* The 대화 목록 button: the group map's 대화 button (accent, white bubbles). */
-.bar-chats {
-  background: var(--accent);
-  color: var(--on-accent);
-  --icon-ink: var(--on-accent-icon);
 }
 
 /* We Now's 대화 목록 (ChatList): a row per group, its cover, name and last line. */
@@ -12939,7 +11999,6 @@ button.group-photo-panel__photo {
 .pin-rail__btn.is-on:not(.pin-rail__pin),
 .pin-rail__add,
 .group-view__btn--settings,
-.bar-chats,
 .group-view__chat,
 .group-view__camera,
 .studio__action--primary,
@@ -12959,8 +12018,7 @@ button.group-photo-panel__photo {
   mask: none;
 }
 
-.ticket-dialog__stub,
-.ticket-dialog__stub--mid {
+.ticket-dialog__stub {
   border-top: 0;
   border-radius: 0;
   -webkit-mask: none;
