@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, type ReactNode, type Ref, type RefObject } from 'react';
-import { clampView, fitView, zoomAbout, type AtlasView, type Room } from '../domain/atlas';
+import { clampView, fitView, MAX_ZOOM, minZoom, zoomAbout, type AtlasView, type Room } from '../domain/atlas';
 import { createGroupPingElement, type GroupPingMark } from '../map/courseMap';
 import { markKey, useAtlas } from '../hooks/useAtlas';
-import type { MapPart } from '../domain/miniMap';
+import type { MapPart, MapPoint } from '../domain/miniMap';
 import MiniMap from './MiniMap';
-import GroupLines, { type GroupLine } from './GroupLines';
+import GroupLines, { type GroupLine, type LinesHandle } from './GroupLines';
 
 export interface AtlasHandle {
   /** Glide to these marks (`member|seq`), clear of `pad` (title over them, the member row under). */
@@ -31,8 +31,21 @@ const BOARD_TRASH_UP = 260;
 /** A doodle piece on the board: a finger on one is the board's, not the map's. */
 const PIECE = '.decor__sticker, .decor__text';
 
-/** The islands are plain land (2026-11-09): TODAY's roads and parks read as clutter at this size. */
-const plainIsland = (parts: MapPart[]) => parts.filter((part) => part.fill.role !== 'road' && part.fill.role !== 'park');
+/**
+ * The islands are plain land (2026-11-09): TODAY's roads and parks read as
+ * clutter at this size. Its rivers and ponds too (2026-11-16): the island is
+ * its outline in land colour alone — TODAY lays the outline as water and the
+ * base map's land over it, which on an island left white specks (rivers,
+ * ponds) and pale pieces beside it (the 읍면동 past the base map's window,
+ * water-coloured with no land on them).
+ */
+const plainIsland = (parts: MapPart[]) =>
+  parts.filter((part) => !part.clip).map((part) => (part.fill.role === 'water' ? { ...part, fill: { ...part.fill, role: 'land' as const } } : part));
+
+/** After the last move, how long the ground stays one GPU picture (then it's drawn sharp at the new zoom). */
+const SETTLE_MS = 160;
+/** A mouse wheel's notch eases in over a few frames: this much of what's left each frame. */
+const WHEEL_EASE = 0.3;
 
 /**
  * We Now's group map as an atlas (docs/plan-group-atlas.md): a faint Korea,
@@ -70,6 +83,13 @@ export default function GroupAtlas({ marks, lines, handle, rootRef, board, lock 
   const names = useRef<HTMLDivElement>(null);
   const view = useRef<AtlasView | null>(null);
   const glide = useRef(0);
+  const linesRef = useRef<LinesHandle>(null);
+  /** Each mark's canvas spot, for the lines (read in `paint`, which mustn't change with it). */
+  const spotsRef = useRef(atlas.spots);
+  spotsRef.current = atlas.spots;
+  /** Per mark, its marker's centre less its spot on screen: the markers keep their size, so this holds at any zoom. */
+  const offsets = useRef(new Map<string, MapPoint>());
+  const settle = useRef(0);
   const { width, height } = atlas.plan;
   // A leg from one island to another crosses the country, not a street: dotted.
   const legs = useMemo(
@@ -92,9 +112,10 @@ export default function GroupAtlas({ marks, lines, handle, rootRef, board, lock 
     if (!v) return;
     if (ground.current) ground.current.style.transform = `translate3d(${v.x}px, ${v.y}px, 0) scale(${v.zoom})`;
     // The board's trash stays on screen, its own size (it's inside the scaled ground).
+    // Only while a tool is out: set every frame of every drag, they restyled all the doodles.
     const b = boardEl.current;
     const box = root.current;
-    if (b && box) {
+    if (b && box && lockRef.current) {
       b.style.setProperty('--trash-x', `${((box.clientWidth / 2 - v.x) / v.zoom - ATLAS_BOARD.at).toFixed(1)}px`);
       b.style.setProperty('--trash-y', `${((box.clientHeight - BOARD_TRASH_UP - v.y) / v.zoom - ATLAS_BOARD.at).toFixed(1)}px`);
       b.style.setProperty('--unzoom', String(1 / v.zoom));
@@ -107,15 +128,43 @@ export default function GroupAtlas({ marks, lines, handle, rootRef, board, lock 
         node.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
       }
     }
+    // The lines in the same frame as the pins, from the view (no reading the page back).
+    linesRef.current?.draw((member, seq) => {
+      const key = markKey(member, seq);
+      const at = spotsRef.current.get(key);
+      const off = offsets.current.get(key);
+      if (!at || !off) return null;
+      return [Math.round((at.x * v.zoom + v.x + off.x) * 10) / 10, Math.round((at.y * v.zoom + v.y + off.y) * 10) / 10];
+    });
   }, []);
+
+  /**
+   * The view is moving: the ground is one GPU picture slid and scaled as it
+   * goes (redrawing the islands and Korea at every step of a pinch is what
+   * stuttered), then, once still, drawn again sharp at the zoom it ended on.
+   */
+  const moving = useCallback(() => {
+    const el = root.current;
+    if (!el) return;
+    el.classList.add('is-moving');
+    window.clearTimeout(settle.current);
+    settle.current = window.setTimeout(() => el.classList.remove('is-moving'), SETTLE_MS);
+  }, []);
+  useEffect(() => () => window.clearTimeout(settle.current), []);
 
   const show = useCallback(
     (next: AtlasView) => {
+      const before = view.current;
       view.current = clampView(next, width, height, room());
+      const now = view.current;
+      if (before && (before.x !== now.x || before.y !== now.y || before.zoom !== now.zoom)) moving();
       paint();
     },
-    [width, height, room, paint],
+    [width, height, room, paint, moving],
   );
+
+  /** A zoom kept in reach before it's anchored: clamped after, the spot under the fingers would slide away at the ends. */
+  const zoomIn = useCallback((zoom: number) => Math.min(MAX_ZOOM, Math.max(minZoom(width, height, room()), zoom)), [width, height, room]);
 
   const stop = () => cancelAnimationFrame(glide.current);
   const glideTo = useCallback(
@@ -134,12 +183,13 @@ export default function GroupAtlas({ marks, lines, handle, rootRef, board, lock 
         const zoom = Math.exp(Math.log(from.zoom) + (Math.log(to.zoom) - Math.log(from.zoom)) * k);
         const c = { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k };
         view.current = { zoom, x: mid.x - c.x * zoom, y: mid.y - c.y * zoom };
+        moving();
         paint();
         if (t < 1) glide.current = requestAnimationFrame(step);
       };
       glide.current = requestAnimationFrame(step);
     },
-    [width, height, room, paint],
+    [width, height, room, paint, moving],
   );
 
   useImperativeHandle(
@@ -165,6 +215,26 @@ export default function GroupAtlas({ marks, lines, handle, rootRef, board, lock 
     [atlas.spots, glideTo],
   );
 
+  /**
+   * Where each marker's centre stands from its spot (what the lines join):
+   * read once when the markers are made, not every frame. Needs the view
+   * (the markers in place); without one yet, the first view measures.
+   */
+  const measure = useCallback(() => {
+    const v = view.current;
+    const layer = pins.current;
+    if (!v || !layer) return;
+    paint();
+    for (const ping of layer.querySelectorAll<HTMLElement>('.group-ping')) {
+      const key = markKey(ping.dataset.member ?? '', Number(ping.dataset.seq));
+      const at = spotsRef.current.get(key);
+      if (!at) continue;
+      const r = ping.getBoundingClientRect();
+      offsets.current.set(key, { x: r.left + r.width / 2 - (at.x * v.zoom + v.x), y: r.top + r.height / 2 - (at.y * v.zoom + v.y) });
+    }
+    paint();
+  }, [paint]);
+
   // The pins: the real map's markers, rebuilt when the marks change (picking someone fades the rest, a tap marks one).
   useLayoutEffect(() => {
     const layer = pins.current;
@@ -183,8 +253,9 @@ export default function GroupAtlas({ marks, lines, handle, rootRef, board, lock 
         return [wrap];
       }),
     );
-    paint();
-  }, [marks, atlas.spots, paint]);
+    offsets.current = new Map();
+    measure();
+  }, [marks, atlas.spots, measure]);
 
   // The first view: everything in, readable (App glides from here when it fits the group).
   useLayoutEffect(() => {
@@ -196,6 +267,7 @@ export default function GroupAtlas({ marks, lines, handle, rootRef, board, lock 
       view.current = start ?? { zoom: 1, x: 0, y: 0 };
     }
     show(view.current);
+    if (!offsets.current.size && pins.current?.childElementCount) measure();
   });
 
   // Gestures: drag, pinch, wheel; a flick glides on.
@@ -243,7 +315,7 @@ export default function GroupAtlas({ marks, lines, handle, rootRef, board, lock 
       fingers.set(e.pointerId, p);
       if (fingers.size >= 2 && pinch) {
         const now = twoOf();
-        const zoomed = zoomAbout(pinch.view, pinch.view.zoom * (now.d / pinch.d), pinch.mid);
+        const zoomed = zoomAbout(pinch.view, zoomIn(pinch.view.zoom * (now.d / pinch.d)), pinch.mid);
         show({ zoom: zoomed.zoom, x: zoomed.x + now.mid.x - pinch.mid.x, y: zoomed.y + now.mid.y - pinch.mid.y });
         return;
       }
@@ -274,15 +346,40 @@ export default function GroupAtlas({ marks, lines, handle, rootRef, board, lock 
       };
       glide.current = requestAnimationFrame(step);
     };
+    // A mouse wheel's notches: the zoom they're heading to and the spot they zoom about, eased in a frame at a time.
+    let wheelTo: { zoom: number; at: { x: number; y: number } } | null = null;
+    // The wheel's frame: if anything else took the glide (a touch, a fit), the wheel's easing is over.
+    let wheelFrame = -1;
+    const wheelStep = () => {
+      const v = view.current;
+      if (!v || !wheelTo) return;
+      const left = Math.log(wheelTo.zoom / v.zoom);
+      const zoom = Math.abs(left) < 0.004 ? wheelTo.zoom : v.zoom * Math.exp(left * WHEEL_EASE);
+      show(zoomAbout(v, zoom, wheelTo.at));
+      if (zoom === wheelTo.zoom) wheelTo = null;
+      else wheelFrame = glide.current = requestAnimationFrame(wheelStep);
+    };
     const wheel = (e: WheelEvent) => {
       e.preventDefault();
       const v = view.current;
       if (!v) return;
-      stop();
       const r = el.getBoundingClientRect();
-      // A trackpad pinch comes as a ctrl+wheel in small steps; a mouse wheel in big ones.
-      const k = Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015));
-      show(zoomAbout(v, v.zoom * k, { x: e.clientX - r.left, y: e.clientY - r.top }));
+      const at = { x: e.clientX - r.left, y: e.clientY - r.top };
+      // A trackpad pinch comes as a ctrl+wheel in small steps, many a frame: straight on.
+      if (e.ctrlKey) {
+        stop();
+        wheelTo = null;
+        show(zoomAbout(v, zoomIn(v.zoom * Math.exp(-e.deltaY * 0.01)), at));
+        return;
+      }
+      // A mouse wheel comes in big notches (lines on some): each adds to where the zoom is heading.
+      const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
+      const going = !!wheelTo && glide.current === wheelFrame;
+      wheelTo = { zoom: zoomIn((going && wheelTo ? wheelTo.zoom : v.zoom) * Math.exp(-dy * 0.0015)), at };
+      if (!going) {
+        stop();
+        wheelFrame = glide.current = requestAnimationFrame(wheelStep);
+      }
     };
     el.addEventListener('pointerdown', down);
     el.addEventListener('pointermove', move);
@@ -300,7 +397,7 @@ export default function GroupAtlas({ marks, lines, handle, rootRef, board, lock 
       el.removeEventListener('wheel', wheel);
       resized.disconnect();
     };
-  }, [show]);
+  }, [show, zoomIn]);
 
   return (
     <div
@@ -330,7 +427,7 @@ export default function GroupAtlas({ marks, lines, handle, rootRef, board, lock 
           </div>
         )}
       </div>
-      <GroupLines lines={legs} />
+      <GroupLines lines={legs} handle={linesRef} />
       <div ref={names} className="group-atlas__names" aria-hidden>
         {atlas.islands.map(
           (island) =>
