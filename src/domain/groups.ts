@@ -156,6 +156,15 @@ export function withCoverOverrides(groups: readonly Group[], overrides: Readonly
 /** A class on the cover's `<svg>`/wrapper that tints it to `swatch` (`styles.css` `.cover-tint--<id>`); '' for the app theme's own tones. */
 export const coverTintClass = (swatch: ThemeId | undefined): string => (swatch ? `cover-tint cover-tint--${swatch}` : '');
 
+/**
+ * The theme a group's own screens wear (its map, 대화, 달력, its gallery tab,
+ * its dialogs): my own MY COVER colour if I picked one, else the colour its
+ * maker gave the cover. Undefined keeps the app's own theme.
+ */
+export function groupTheme(g: Pick<Group, 'coverSwatch' | 'coverOverride'>): ThemeId | undefined {
+  return g.coverOverride?.swatch ?? g.coverSwatch;
+}
+
 /** What a group's cover actually shows: my own override if I have one (a photo of my own wins over its shape), else its maker's (own colour and all). */
 export function effectiveCover(g: Pick<Group, 'cover' | 'coverPhoto' | 'coverSwatch' | 'coverOverride'>): { cover: number; photo: string | null; tintClass: string } {
   const ov = g.coverOverride;

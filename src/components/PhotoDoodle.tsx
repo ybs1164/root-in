@@ -1,5 +1,7 @@
 import { PenLine, Sticker, Type } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import type { ThemeId } from '../domain/decor';
+import { themeScopeProps, useThemeScope } from '../lib/themeScope';
 import { createPortal } from 'react-dom';
 import {
   canUndo,
@@ -81,8 +83,11 @@ export function usePhotoDoodle(
   color: string | null,
   inkOf?: (userId: string) => string | null,
   /** A group's day (`dayDecorKey`) on its map rather than a photo: the board's own classes. */
-  options?: { board?: boolean },
+  options?: { board?: boolean; theme?: ThemeId },
 ): PhotoDoodle {
+  // The tray is portaled to <body>: it wears the screen's theme itself.
+  const scope = useThemeScope();
+  const theme = options?.theme ?? scope;
   const board = !!options?.board;
   // The board is many screens wide: its pens, stickers and text are drawn smaller than a photo's.
   const scale = board ? BOARD_SCALE : 1;
@@ -240,7 +245,7 @@ export function usePhotoDoodle(
     editable && trayTool
       ? createPortal(
           // The packs' stickers peel off with my edge too.
-          <div className="photo-doodle__tray">
+          <div className="photo-doodle__tray theme-scope" {...themeScopeProps(theme)}>
             <DecorTray
               key={trayTool}
               leaving={trayLeaving}

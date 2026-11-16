@@ -1,6 +1,7 @@
 import { ChevronLeft } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { dayPingers, GROUP_LIMITS, isGroupBirthday, memberColor, memberInk, photoKey, photoPlaces, pingPhotos, withMyPingDays, type Group, type GroupMember } from '../domain/groups';
+import { themeScopeProps } from '../lib/themeScope';
+import { dayPingers, GROUP_LIMITS, groupTheme, isGroupBirthday, memberColor, memberInk, photoKey, photoPlaces, pingPhotos, withMyPingDays, type Group, type GroupMember } from '../domain/groups';
 import { dateKey } from '../domain/diary';
 import { useGroupPingDays, useGroupsOnDay } from '../hooks/useGroups';
 import type { AuthUser } from '../services/authService';
@@ -116,7 +117,7 @@ export default function GroupCalendar({ group, user, me, myDays, day, onPick, on
   };
 
   return (
-    <div className={`group-calendar ${leaving ? 'is-leaving' : ''}`} role="dialog" aria-label={`${group.name} 달력`} {...swipeBack}>
+    <div className={`group-calendar theme-scope ${leaving ? 'is-leaving' : ''}`} {...themeScopeProps(groupTheme(group))} role="dialog" aria-label={`${group.name} 달력`} {...swipeBack}>
       <button className="today-back" aria-label="닫기" onClick={onClose}>
         <ChevronLeft size={24} strokeWidth={2.2} aria-hidden />
       </button>
