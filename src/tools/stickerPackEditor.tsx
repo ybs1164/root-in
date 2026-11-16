@@ -11,7 +11,7 @@
 import React, { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import ReactDOM from 'react-dom/client';
 import { StickerPackBand } from '../components/StickerSheets';
-import { getSticker, STICKERS } from '../domain/decor';
+import { getSticker, THEME_STICKERS, RECOVERED_STICKER_IDS, EDITOR_STICKERS as STICKERS } from '../domain/decor';
 import {
   layOutSheet,
   PACK_LIMITS,
@@ -44,6 +44,14 @@ const PRESETS: { color: string; ink: string }[] = [
   { color: '#e7c8f2', ink: '#5b2e78' },
   { color: '#b9d3a8', ink: '#2f4a26' },
   { color: '#ffffff', ink: '#2a3354' },
+];
+
+/** App theme palettes, paired with readable label ink. */
+const THEME_PRESETS = [
+  { name: '말차', colors: [['#a3c46f', '#3e5329'], ['#dfeac6', '#3e5329'], ['#6e9a3c', '#ffffff']] },
+  { name: '바나나', colors: [['#ffd85f', '#a66726'], ['#fce89d', '#8e571f'], ['#a66726', '#ffffff']] },
+  { name: '딸기', colors: [['#f48fa6', '#6b2337'], ['#fcdbe3', '#6b2337'], ['#c94a6a', '#ffffff']] },
+  { name: '초코', colors: [['#a8704b', '#ffffff'], ['#ecdccf', '#4a2a1a'], ['#6f4128', '#ffffff']] },
 ];
 
 const ZOOMS = [
@@ -277,14 +285,24 @@ function Editor() {
 
   // ----- The sticker library -----
   const [query, setQuery] = useState('');
+  const [imageRevision, setImageRevision] = useState(0);
   const [unusedOnly, setUnusedOnly] = useState(false);
+  const [themeFilter, setThemeFilter] = useState('all');
   const uses = useMemo(() => {
     const m = new Map<string, number>();
     for (const p of packs) for (const s of p.slots) m.set(s.stickerId, (m.get(s.stickerId) ?? 0) + 1);
     return m;
   }, [packs]);
   const unused = STICKERS.filter((s) => !uses.has(s.id));
-  const library = STICKERS.filter((s) => (!unusedOnly || !uses.has(s.id)) && (!query || s.label.includes(query.trim())));
+  const library = STICKERS.filter((s) => {
+    const matchesGroup = themeFilter === 'all'
+      || (themeFilter === 'latest' && s.id.startsWith('theme-20261116-') && !RECOVERED_STICKER_IDS.has(s.id))
+      || (themeFilter === 'previous' && s.id.startsWith('theme-20261115-'))
+      || (themeFilter === 'recovered' && RECOVERED_STICKER_IDS.has(s.id))
+      || (themeFilter === 'new' && /^theme-\d{8}-/.test(s.id))
+      || new RegExp(`^theme-\\d{8}-${themeFilter}-`).test(s.id);
+    return matchesGroup && (!unusedOnly || !uses.has(s.id)) && (!query || s.label.includes(query.trim()));
+  });
 
   // ----- Files -----
   const fileInput = useRef<HTMLInputElement | null>(null);
@@ -556,6 +574,21 @@ function Editor() {
                 </span>
               </label>
             </div>
+            <div className="spe__theme-presets" role="group" aria-label="테마 기본 색상">
+              {THEME_PRESETS.map((theme) => (
+                <div key={theme.name} className="spe__theme-preset-row">
+                  <strong>{theme.name}</strong>
+                  {theme.colors.map(([color, ink], i) => (
+                    <button key={color} style={{ background: color, color: ink }}
+                      aria-label={`${theme.name} ${['기본', '연한색', '진한색'][i]} 색상 적용`}
+                      title={`띠 ${color} · 글자 ${ink}`}
+                      onClick={() => editPack({ color, ink })}>
+                      {['기본', '연한색', '진한색'][i]}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
             <div className="spe__presets" role="group" aria-label="색 조합">
               {PRESETS.map((c) => (
                 <button
@@ -597,11 +630,23 @@ function Editor() {
             스티커 <small>{STICKERS.length}개 · 안 쓴 것 {unused.length}개</small>
           </h2>
           <div className="spe__row">
+            <select aria-label="스티커 테마" value={themeFilter} onChange={(e) => setThemeFilter(e.target.value)}>
+              <option value="all">전체 스티커 · {STICKERS.length}개</option>
+              <option value="previous">이전 작업 · 144개</option>
+              <option value="recovered">누락 복원 · 12개</option>
+              <option value="latest">이번 추가 스티커 · 120개</option>
+              <option value="new">테마 스티커 전체 · {THEME_STICKERS.length}개</option>
+              <option value="matcha">말차 · {THEME_STICKERS.filter(s => s.id.includes('-matcha-')).length}개</option>
+              <option value="banana">바나나 · {THEME_STICKERS.filter(s => s.id.includes('-banana-')).length}개</option>
+              <option value="strawberry">딸기 · {THEME_STICKERS.filter(s => s.id.includes('-strawberry-')).length}개</option>
+              <option value="choco">초코 · {THEME_STICKERS.filter(s => s.id.includes('-choco-')).length}개</option>
+            </select>
             <input placeholder="이름으로 찾기" value={query} onChange={(e) => setQuery(e.target.value)} />
             <label className="spe__check">
               <input type="checkbox" checked={unusedOnly} onChange={(e) => setUnusedOnly(e.target.checked)} /> 안 쓴 것만
             </label>
           </div>
+          <button className="spe__reload-images" onClick={() => setImageRevision(Date.now())}>이미지 다시 불러오기</button>
           <div className="spe__grid">
             {library.map((s) => (
               <button
@@ -612,7 +657,7 @@ function Editor() {
                 onDragStart={(e) => e.dataTransfer.setData('text/x-sticker', s.id)}
                 onClick={() => addSticker(s.id)}
               >
-                <img src={s.src} alt={s.label} draggable={false} loading="lazy" />
+                <img key={`${s.id}-${imageRevision}`} src={imageRevision ? `${s.src}${s.src.includes('?') ? '&' : '?'}reload=${imageRevision}` : s.src} alt={s.label} draggable={false} loading="eager" decoding="async" />
                 {uses.has(s.id) && <span className="spe__uses">{uses.get(s.id)}</span>}
               </button>
             ))}

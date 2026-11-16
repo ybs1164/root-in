@@ -7,6 +7,7 @@
 import type { PolaroidLayout } from './polaroid';
 import themeStationery from '../../public/stickers/theme-stationery-20261115/manifest.json';
 import cuteThemeStickers from '../../public/stickers/theme-cute-20261116/manifest.json';
+import recoveredThemeStickers from '../../public/stickers/theme-recovered-20261116/manifest.json';
 
 /** 'polaroid' (the card's layout) is the share screen's only. */
 export type DecorTool = 'sticker' | 'pen' | 'text' | 'theme' | 'pattern' | 'polaroid';
@@ -208,7 +209,9 @@ export interface StickerAsset {
   src: string;
 }
 
-export const THEME_STICKERS: StickerAsset[] = [...themeStationery.assets, ...cuteThemeStickers.assets].map(({ id, label, src }) => ({ id, label, src: `${import.meta.env.BASE_URL}${src}` }));
+export const RECOVERED_STICKER_IDS = new Set(recoveredThemeStickers.assets.map(s => s.id));
+
+export const THEME_STICKERS: StickerAsset[] = [...themeStationery.assets, ...cuteThemeStickers.assets, ...recoveredThemeStickers.assets].map(({ id, label, src }) => ({ id, label, src: `${import.meta.env.BASE_URL}${src}` }));
 
 const STICKER_ASSETS: StickerAsset[] = [
   ...THEME_STICKERS,
