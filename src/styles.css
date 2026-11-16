@@ -9479,6 +9479,13 @@ button:disabled {
   transform-origin: 0 0;
 }
 
+/* While the view moves (GroupAtlas `moving`), the ground is one GPU picture
+   slid and scaled: redrawing Korea and every island at each step of a pinch
+   stuttered. Once still the class goes and it's drawn sharp at its zoom. */
+.group-atlas.is-moving .group-atlas__ground {
+  will-change: transform;
+}
+
 .group-atlas__korea {
   position: absolute;
   left: 0;
