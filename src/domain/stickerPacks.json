@@ -2,6 +2,249 @@
   "version": 1,
   "packs": [
     {
+      "id":"pack-25","name":"matcha","label":"말차","color":"#a3c46f","ink":"#3e5329","motif":"stripes","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261115-matcha-04","x":0.269,"y":0.294,"size":0.52,"rotate":0},
+        {"stickerId":"theme-20261115-matcha-09","x":0.666,"y":0.162,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-matcha-10","x":0.865,"y":0.329,"size":0.155,"rotate":19},
+        {"stickerId":"theme-20261115-matcha-11","x":0.679,"y":0.696,"size":0.315,"rotate":0},
+        {"stickerId":"theme-20261115-matcha-24","x":0.265,"y":0.762,"size":0.25,"rotate":17}
+      ]
+    },
+    {
+      "id":"pack-16","name":"matcha","label":"말차","color":"#a3c46f","ink":"#3e5329","motif":"stripes","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261115-matcha-14","x":0.171,"y":0.158,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-matcha-22","x":0.687,"y":0.336,"size":0.51,"rotate":0},
+        {"stickerId":"theme-20261115-matcha-17","x":0.213,"y":0.482,"size":0.25,"rotate":11},
+        {"stickerId":"theme-20261115-matcha-16","x":0.194,"y":0.735,"size":0.235,"rotate":-9},
+        {"stickerId":"theme-20261115-matcha-15","x":0.809,"y":0.7,"size":0.275,"rotate":0},
+        {"stickerId":"theme-20261115-matcha-07","x":0.501,"y":0.85,"size":0.25,"rotate":0}
+      ]
+    },
+    {
+      "id":"pack-27","name":"matcha","label":"말차","color":"#a3c46f","ink":"#3e5329","motif":"stripes","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261116-matcha-12","x":0.148,"y":0.331,"size":0.24,"rotate":11},
+        {"stickerId":"theme-20261116-matcha-11","x":0.74,"y":0.764,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261116-matcha-13","x":0.457,"y":0.202,"size":0.295,"rotate":12},
+        {"stickerId":"theme-20261116-matcha-14","x":0.204,"y":0.819,"size":0.275,"rotate":0},
+        {"stickerId":"theme-20261116-matcha-15","x":0.431,"y":0.555,"size":0.27,"rotate":-15},
+        {"stickerId":"theme-20261116-matcha-05","x":0.8,"y":0.356,"size":0.305,"rotate":0}
+      ]
+    },
+    {
+      "id":"pack-17","name":"matcha","label":"말차","color":"#a3c46f","ink":"#3e5329","motif":"stripes","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261116-matcha-21","x":0.826,"y":0.239,"size":0.27,"rotate":11},
+        {"stickerId":"theme-20261116-matcha-23","x":0.204,"y":0.232,"size":0.3,"rotate":0},
+        {"stickerId":"theme-20261116-matcha-28","x":0.809,"y":0.655,"size":0.25,"rotate":-9},
+        {"stickerId":"theme-20261116-matcha-19","x":0.255,"y":0.654,"size":0.36,"rotate":16},
+        {"stickerId":"theme-20261116-matcha-30","x":0.615,"y":0.424,"size":0.3,"rotate":-14},
+        {"stickerId":"theme-20261116-matcha-31","x":0.54,"y":0.814,"size":0.215,"rotate":0},
+        {"stickerId":"theme-20261116-matcha-32","x":0.529,"y":0.172,"size":0.25,"rotate":0}
+      ]
+    },
+    {
+      "id":"pack-26","name":"matcha","label":"말차","color":"#a3c46f","ink":"#3e5329","motif":"stripes","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261115-matcha-26","x":0.19,"y":0.742,"size":0.335,"rotate":0},
+        {"stickerId":"theme-20261115-matcha-27","x":0.518,"y":0.768,"size":0.315,"rotate":-7},
+        {"stickerId":"theme-20261115-matcha-28","x":0.85,"y":0.766,"size":0.2,"rotate":3},
+        {"stickerId":"theme-20261116-matcha-24","x":0.728,"y":0.169,"size":0.255,"rotate":0},
+        {"stickerId":"theme-20261116-matcha-22","x":0.178,"y":0.192,"size":0.25,"rotate":-4},
+        {"stickerId":"theme-20261116-matcha-25","x":0.458,"y":0.392,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261116-matcha-33","x":0.778,"y":0.488,"size":0.23,"rotate":0}
+      ]
+    },
+    {
+      "id":"pack-28","name":"banana","label":"말차","color":"#ffd85f","ink":"#a66726","motif":"dashes","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261115-banana-04","x":0.266,"y":0.285,"size":0.44,"rotate":0},
+        {"stickerId":"theme-20261115-banana-07","x":0.797,"y":0.186,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-banana-15","x":0.143,"y":0.593,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-banana-16","x":0.668,"y":0.374,"size":0.25,"rotate":15},
+        {"stickerId":"theme-20261115-banana-17","x":0.291,"y":0.823,"size":0.25,"rotate":-12},
+        {"stickerId":"theme-20261115-banana-24","x":0.719,"y":0.732,"size":0.3,"rotate":0}
+      ]
+    },
+    {
+      "id":"pack-29","name":"banana","label":"말차","color":"#ffd85f","ink":"#a66726","motif":"dashes","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261115-banana-01","x":0.203,"y":0.212,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-banana-02","x":0.546,"y":0.203,"size":0.345,"rotate":6},
+        {"stickerId":"theme-20261115-banana-11","x":0.843,"y":0.289,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-banana-22","x":0.24,"y":0.716,"size":0.405,"rotate":0},
+        {"stickerId":"theme-20261115-banana-09","x":0.613,"y":0.61,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-banana-10","x":0.841,"y":0.786,"size":0.185,"rotate":34}
+      ]
+    },
+    {
+      "id":"pack-18","name":"banana","label":"말차","color":"#ffd85f","ink":"#a66726","motif":"dashes","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261116-banana-04","x":0.215,"y":0.207,"size":0.345,"rotate":-9},
+        {"stickerId":"theme-20261116-banana-09","x":0.757,"y":0.742,"size":0.29,"rotate":-11},
+        {"stickerId":"theme-20261116-banana-01","x":0.528,"y":0.429,"size":0.275,"rotate":12},
+        {"stickerId":"theme-20261116-banana-26","x":0.829,"y":0.194,"size":0.3,"rotate":9},
+        {"stickerId":"theme-20261116-banana-27","x":0.257,"y":0.747,"size":0.295,"rotate":5}
+      ]
+    },
+    {
+      "id":"pack-19","name":"banana","label":"말차","color":"#ffd85f","ink":"#a66726","motif":"dashes","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261116-banana-11","x":0.174,"y":0.347,"size":0.25,"rotate":-7},
+        {"stickerId":"theme-20261116-banana-12","x":0.482,"y":0.214,"size":0.29,"rotate":8},
+        {"stickerId":"theme-20261116-banana-13","x":0.799,"y":0.345,"size":0.32,"rotate":-6},
+        {"stickerId":"theme-20261116-banana-14","x":0.186,"y":0.814,"size":0.28,"rotate":10},
+        {"stickerId":"theme-20261116-banana-15","x":0.452,"y":0.614,"size":0.275,"rotate":-15},
+        {"stickerId":"theme-20261116-banana-16","x":0.735,"y":0.742,"size":0.365,"rotate":0}
+      ]
+    },
+    {
+      "id":"pack-20","name":"banana","label":"말차","color":"#ffd85f","ink":"#a66726","motif":"dashes","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261116-banana-21","x":0.153,"y":0.217,"size":0.265,"rotate":-14},
+        {"stickerId":"theme-20261116-banana-23","x":0.525,"y":0.183,"size":0.295,"rotate":0},
+        {"stickerId":"theme-20261116-banana-24","x":0.815,"y":0.442,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261116-banana-25","x":0.248,"y":0.753,"size":0.32,"rotate":-2},
+        {"stickerId":"theme-20261116-banana-29","x":0.69,"y":0.75,"size":0.3,"rotate":11},
+        {"stickerId":"theme-20261116-banana-30","x":0.34,"y":0.437,"size":0.25,"rotate":11},
+        {"stickerId":"theme-20261116-banana-33","x":0.819,"y":0.162,"size":0.205,"rotate":0}
+      ]
+    },
+    {
+      "id":"pack-30","name":"banana","label":"말차","color":"#ffd85f","ink":"#a66726","motif":"dashes","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261115-banana-26","x":0.827,"y":0.765,"size":0.33,"rotate":0},
+        {"stickerId":"theme-20261115-banana-27","x":0.476,"y":0.78,"size":0.3,"rotate":0},
+        {"stickerId":"theme-20261115-banana-28","x":0.185,"y":0.777,"size":0.215,"rotate":11},
+        {"stickerId":"theme-20261115-banana-29","x":0.509,"y":0.188,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-banana-36","x":0.189,"y":0.233,"size":0.35,"rotate":0},
+        {"stickerId":"theme-20261115-banana-14","x":0.849,"y":0.134,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261116-banana-22","x":0.78,"y":0.404,"size":0.25,"rotate":10},
+        {"stickerId":"theme-20261116-banana-32","x":0.412,"y":0.492,"size":0.25,"rotate":0}
+      ]
+    },
+    {
+      "id":"pack-22","name":"strawberry","label":"말차","color":"#f48fa6","ink":"#6b2337","motif":"hearts","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261115-strawberry-04","x":0.731,"y":0.272,"size":0.47,"rotate":0},
+        {"stickerId":"theme-20261115-strawberry-09","x":0.166,"y":0.229,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-strawberry-10","x":0.372,"y":0.145,"size":0.15,"rotate":-18},
+        {"stickerId":"theme-20261115-strawberry-11","x":0.818,"y":0.725,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-strawberry-22","x":0.511,"y":0.794,"size":0.295,"rotate":10},
+        {"stickerId":"theme-20261115-strawberry-17","x":0.304,"y":0.514,"size":0.25,"rotate":-17},
+        {"stickerId":"theme-20261115-strawberry-16","x":0.151,"y":0.731,"size":0.25,"rotate":11}
+      ]
+    },
+    {
+      "id":"pack-32","name":"strawberry","label":"말차","color":"#f48fa6","ink":"#6b2337","motif":"hearts","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261115-strawberry-15","x":0.188,"y":0.135,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-strawberry-14","x":0.467,"y":0.143,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-strawberry-24","x":0.817,"y":0.799,"size":0.25,"rotate":11},
+        {"stickerId":"theme-20261115-strawberry-32","x":0.2,"y":0.5,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-strawberry-03","x":0.693,"y":0.436,"size":0.4,"rotate":0},
+        {"stickerId":"theme-20261115-strawberry-07","x":0.394,"y":0.8,"size":0.255,"rotate":-16}
+      ]
+    },
+    {
+      "id":"pack-21","name":"strawberry","label":"말차","color":"#f48fa6","ink":"#6b2337","motif":"hearts","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261116-strawberry-03","x":0.2,"y":0.289,"size":0.33,"rotate":7},
+        {"stickerId":"theme-20261116-strawberry-11","x":0.807,"y":0.228,"size":0.27,"rotate":11},
+        {"stickerId":"theme-20261116-strawberry-12","x":0.544,"y":0.448,"size":0.295,"rotate":-10},
+        {"stickerId":"theme-20261116-strawberry-13","x":0.2,"y":0.685,"size":0.285,"rotate":-9},
+        {"stickerId":"theme-20261116-strawberry-14","x":0.507,"y":0.795,"size":0.265,"rotate":14},
+        {"stickerId":"theme-20261116-strawberry-15","x":0.823,"y":0.78,"size":0.285,"rotate":0}
+      ]
+    },
+    {
+      "id":"pack-31","name":"strawberry","label":"말차","color":"#f48fa6","ink":"#6b2337","motif":"hearts","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261116-strawberry-22","x":0.81,"y":0.639,"size":0.25,"rotate":4},
+        {"stickerId":"theme-20261116-strawberry-24","x":0.514,"y":0.825,"size":0.26,"rotate":0},
+        {"stickerId":"theme-20261116-strawberry-25","x":0.719,"y":0.204,"size":0.28,"rotate":-10},
+        {"stickerId":"theme-20261116-strawberry-27","x":0.175,"y":0.302,"size":0.215,"rotate":22},
+        {"stickerId":"theme-20261116-strawberry-26","x":0.355,"y":0.189,"size":0.215,"rotate":-8},
+        {"stickerId":"theme-20261115-strawberry-26","x":0.207,"y":0.734,"size":0.355,"rotate":6},
+        {"stickerId":"theme-20261115-strawberry-28","x":0.514,"y":0.486,"size":0.205,"rotate":-13}
+      ]
+    },
+    {
+      "id":"pack-36","name":"strawberry","label":"말차","color":"#f48fa6","ink":"#6b2337","motif":"hearts","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261116-strawberry-32","x":0.172,"y":0.182,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261116-strawberry-33","x":0.813,"y":0.795,"size":0.215,"rotate":15},
+        {"stickerId":"theme-20261115-strawberry-29","x":0.52,"y":0.697,"size":0.25,"rotate":-13},
+        {"stickerId":"theme-20261115-strawberry-30","x":0.191,"y":0.757,"size":0.285,"rotate":0},
+        {"stickerId":"theme-20261116-strawberry-29","x":0.752,"y":0.297,"size":0.305,"rotate":0},
+        {"stickerId":"theme-20261115-strawberry-27","x":0.357,"y":0.384,"size":0.28,"rotate":-2}
+      ]
+    },
+    {
+      "id":"pack-23","name":"choco","label":"말차","color":"#6f4128","ink":"#ffffff","motif":"gingham","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261115-choco-01","x":0.21,"y":0.763,"size":0.25,"rotate":-9},
+        {"stickerId":"theme-20261115-choco-02","x":0.54,"y":0.739,"size":0.33,"rotate":9},
+        {"stickerId":"theme-20261115-choco-06","x":0.739,"y":0.243,"size":0.455,"rotate":0},
+        {"stickerId":"theme-20261115-choco-08","x":0.823,"y":0.653,"size":0.175,"rotate":0},
+        {"stickerId":"theme-20261115-choco-11","x":0.175,"y":0.196,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-choco-24","x":0.314,"y":0.41,"size":0.25,"rotate":0}
+      ]
+    },
+    {
+      "id":"pack-34","name":"choco","label":"말차","color":"#6f4128","ink":"#ffffff","motif":"gingham","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261115-choco-09","x":0.487,"y":0.16,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-choco-10","x":0.845,"y":0.552,"size":0.16,"rotate":-23},
+        {"stickerId":"theme-20261115-choco-04","x":0.493,"y":0.558,"size":0.415,"rotate":0},
+        {"stickerId":"theme-20261115-choco-14","x":0.175,"y":0.296,"size":0.25,"rotate":-25},
+        {"stickerId":"theme-20261115-choco-15","x":0.497,"y":0.87,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-choco-16","x":0.834,"y":0.865,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-choco-17","x":0.162,"y":0.867,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-choco-22","x":0.827,"y":0.228,"size":0.25,"rotate":15}
+      ]
+    },
+    {
+      "id":"pack-33","name":"choco","label":"말차","color":"#6f4128","ink":"#ffffff","motif":"gingham","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261116-choco-02","x":0.772,"y":0.195,"size":0.29,"rotate":6},
+        {"stickerId":"theme-20261116-choco-11","x":0.19,"y":0.19,"size":0.225,"rotate":-8},
+        {"stickerId":"theme-20261116-choco-12","x":0.839,"y":0.805,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261116-choco-13","x":0.593,"y":0.802,"size":0.265,"rotate":8},
+        {"stickerId":"theme-20261116-choco-14","x":0.47,"y":0.28,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261116-choco-15","x":0.684,"y":0.531,"size":0.25,"rotate":-9},
+        {"stickerId":"theme-20261116-choco-16","x":0.238,"y":0.719,"size":0.42,"rotate":0}
+      ]
+    },
+    {
+      "id":"pack-24","name":"choco","label":"말차","color":"#6f4128","ink":"#ffffff","motif":"gingham","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261116-choco-21","x":0.196,"y":0.599,"size":0.25,"rotate":-11},
+        {"stickerId":"theme-20261116-choco-23","x":0.557,"y":0.498,"size":0.275,"rotate":0},
+        {"stickerId":"theme-20261116-choco-25","x":0.241,"y":0.211,"size":0.275,"rotate":0},
+        {"stickerId":"theme-20261116-choco-30","x":0.446,"y":0.815,"size":0.25,"rotate":6},
+        {"stickerId":"theme-20261116-choco-24","x":0.802,"y":0.753,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261116-choco-29","x":0.785,"y":0.214,"size":0.27,"rotate":0},
+        {"stickerId":"theme-20261116-choco-32","x":0.143,"y":0.828,"size":0.25,"rotate":0}
+      ]
+    },
+    {
+      "id":"pack-35","name":"choco","label":"말차","color":"#6f4128","ink":"#ffffff","motif":"gingham","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"theme-20261115-choco-26","x":0.501,"y":0.758,"size":0.34,"rotate":0},
+        {"stickerId":"theme-20261115-choco-27","x":0.79,"y":0.768,"size":0.25,"rotate":11},
+        {"stickerId":"theme-20261115-choco-28","x":0.409,"y":0.478,"size":0.225,"rotate":17},
+        {"stickerId":"theme-20261115-choco-29","x":0.199,"y":0.789,"size":0.25,"rotate":0},
+        {"stickerId":"theme-20261115-choco-30","x":0.746,"y":0.464,"size":0.25,"rotate":-8},
+        {"stickerId":"theme-20261116-choco-22","x":0.232,"y":0.181,"size":0.25,"rotate":6},
+        {"stickerId":"theme-20261116-choco-26","x":0.595,"y":0.165,"size":0.2,"rotate":7},
+        {"stickerId":"theme-20261116-choco-27","x":0.828,"y":0.188,"size":0.22,"rotate":-14},
+        {"stickerId":"theme-20261116-choco-33","x":0.147,"y":0.506,"size":0.21,"rotate":-8}
+      ]
+    },
+    {
       "id":"pastel-1","name":"PASTEL","label":"파스텔 문구 1","color":"#bcd9f2","ink":"#2f5d8a","motif":"stripes","nameStyle":"plain",
       "slots": [
         {"stickerId":"pastel-stationery-20261018-004","x":0.209,"y":0.221,"size":0.32,"rotate":-2},
@@ -46,7 +289,7 @@
       ]
     },
     {
-      "id":"stationery-1","name":"STATIONERY","label":"문구 1","color":"#ffe58a","ink":"#3a2e1f","motif":"hearts","nameStyle":"box",
+      "id":"stationery-1","name":"STATIONERY","label":"문구 1","color":"#ffe58a","ink":"#3a2e1f","motif":"dashes","nameStyle":"box",
       "slots": [
         {"stickerId":"minimal-20261017-192","x":0.202,"y":0.788,"size":0.258,"rotate":8},
         {"stickerId":"minimal-20261017-198","x":0.849,"y":0.588,"size":0.263,"rotate":9},
@@ -123,6 +366,38 @@
       ]
     },
     {
+      "id":"paper-1","name":"PAPER","label":"종이","color":"#f48e6c","ink":"#860e0e","motif":"grid","nameStyle":"box",
+      "slots": [
+        {"stickerId":"minimal-20261017-001","x":0.202,"y":0.214,"size":0.24,"rotate":-6},
+        {"stickerId":"minimal-20261017-003","x":0.788,"y":0.745,"size":0.25,"rotate":9},
+        {"stickerId":"minimal-20261017-008","x":0.661,"y":0.469,"size":0.232,"rotate":4},
+        {"stickerId":"minimal-20261017-013","x":0.201,"y":0.705,"size":0.261,"rotate":-4},
+        {"stickerId":"minimal-20261017-014","x":0.496,"y":0.778,"size":0.242,"rotate":11},
+        {"stickerId":"minimal-20261017-019","x":0.503,"y":0.176,"size":0.242,"rotate":11},
+        {"stickerId":"minimal-20261017-180","x":0.334,"y":0.443,"size":0.261,"rotate":-2},
+        {"stickerId":"pop-eyes","x":0.813,"y":0.255,"size":0.25,"rotate":0}
+      ]
+    },
+    {
+      "id":"painted-1","name":"PAINTED","label":"그림","color":"#ca8763","ink":"#4a2626","motif":"lines","nameStyle":"box",
+      "slots": [
+        {"stickerId":"painted-leaf","x":0.714,"y":0.366,"size":0.238,"rotate":-10},
+        {"stickerId":"painted-pretzel","x":0.239,"y":0.605,"size":0.255,"rotate":-6},
+        {"stickerId":"crayon-pudding","x":0.329,"y":0.241,"size":0.235,"rotate":10},
+        {"stickerId":"crayon-croissant","x":0.636,"y":0.719,"size":0.263,"rotate":7}
+      ]
+    },
+    {
+      "id":"glossy-1","name":"CLAY","label":"말랑 1","color":"#f4c6d0","ink":"#2a2a2a","motif":"sparkles","nameStyle":"plain",
+      "slots": [
+        {"stickerId":"minimal-20261017-086","x":0.793,"y":0.713,"size":0.231,"rotate":-6},
+        {"stickerId":"minimal-20261017-091","x":0.244,"y":0.747,"size":0.269,"rotate":-6},
+        {"stickerId":"minimal-20261017-092","x":0.72,"y":0.241,"size":0.266,"rotate":4},
+        {"stickerId":"minimal-20261017-097","x":0.525,"y":0.513,"size":0.241,"rotate":-5},
+        {"stickerId":"minimal-20261017-084","x":0.242,"y":0.316,"size":0.25,"rotate":0}
+      ]
+    },
+    {
       "id":"pixel-1","name":"PIXEL","label":"픽셀 1","color":"#151515","ink":"#ffffff","motif":"checker","nameStyle":"slant",
       "slots": [
         {"stickerId":"minimal-20261017-061","x":0.191,"y":0.359,"size":0.253,"rotate":-9},
@@ -143,39 +418,6 @@
         {"stickerId":"minimal-20261017-078","x":0.183,"y":0.359,"size":0.263,"rotate":-10},
         {"stickerId":"minimal-20261017-079","x":0.5,"y":0.223,"size":0.259,"rotate":13},
         {"stickerId":"minimal-20261017-080","x":0.772,"y":0.38,"size":0.233,"rotate":-1}
-      ]
-    },
-    {
-      "id":"paper-1","name":"PAPER","label":"종이","color":"#f48e6c","ink":"#860e0e","motif":"grid","nameStyle":"box",
-      "slots": [
-        {"stickerId":"minimal-20261017-001","x":0.202,"y":0.214,"size":0.24,"rotate":-6},
-        {"stickerId":"minimal-20261017-003","x":0.788,"y":0.745,"size":0.25,"rotate":9},
-        {"stickerId":"minimal-20261017-008","x":0.661,"y":0.469,"size":0.232,"rotate":4},
-        {"stickerId":"minimal-20261017-013","x":0.201,"y":0.705,"size":0.261,"rotate":-4},
-        {"stickerId":"minimal-20261017-014","x":0.496,"y":0.778,"size":0.242,"rotate":11},
-        {"stickerId":"minimal-20261017-019","x":0.503,"y":0.176,"size":0.242,"rotate":11},
-        {"stickerId":"minimal-20261017-180","x":0.334,"y":0.443,"size":0.261,"rotate":-2},
-        {"stickerId":"pop-eyes","x":0.813,"y":0.255,"size":0.25,"rotate":0}
-      ]
-    },
-    {
-      "id":"glossy-1","name":"CLAY","label":"말랑 1","color":"#f4c6d0","ink":"#2a2a2a","motif":"sparkles","nameStyle":"plain",
-      "slots": [
-        {"stickerId":"minimal-20261017-086","x":0.793,"y":0.713,"size":0.231,"rotate":-6},
-        {"stickerId":"minimal-20261017-091","x":0.244,"y":0.747,"size":0.269,"rotate":-6},
-        {"stickerId":"minimal-20261017-092","x":0.72,"y":0.241,"size":0.266,"rotate":4},
-        {"stickerId":"minimal-20261017-097","x":0.525,"y":0.513,"size":0.241,"rotate":-5},
-        {"stickerId":"minimal-20261017-084","x":0.242,"y":0.316,"size":0.25,"rotate":0}
-      ]
-    },
-    {
-      "id":"painted-1","name":"PAINTED","label":"그림","color":"#ca8763","ink":"#4a2626","motif":"lines","nameStyle":"box",
-      "slots": [
-        {"stickerId":"painted-leaf","x":0.757,"y":0.209,"size":0.238,"rotate":-10},
-        {"stickerId":"painted-pretzel","x":0.216,"y":0.516,"size":0.255,"rotate":-6},
-        {"stickerId":"crayon-pudding","x":0.389,"y":0.222,"size":0.235,"rotate":10},
-        {"stickerId":"crayon-coffee","x":0.741,"y":0.528,"size":0.266,"rotate":5},
-        {"stickerId":"crayon-croissant","x":0.473,"y":0.772,"size":0.263,"rotate":7}
       ]
     }
   ]

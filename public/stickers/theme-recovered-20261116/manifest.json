@@ -1,0 +1,156 @@
+{
+  "assets": [
+    {
+      "id": "theme-20261116-matcha-31",
+      "label": "말차 차 사발",
+      "theme": "matcha",
+      "src": "stickers/theme-recovered-20261116/theme-20261116-matcha-31.png"
+    },
+    {
+      "id": "theme-20261116-banana-31",
+      "label": "바나나 차 사발",
+      "theme": "banana",
+      "src": "stickers/theme-recovered-20261116/theme-20261116-banana-31.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-31",
+      "label": "딸기 차 사발",
+      "theme": "strawberry",
+      "src": "stickers/theme-recovered-20261116/theme-20261116-strawberry-31.png"
+    },
+    {
+      "id": "theme-20261116-choco-31",
+      "label": "초코 차 사발",
+      "theme": "choco",
+      "src": "stickers/theme-recovered-20261116/theme-20261116-choco-31.png"
+    },
+    {
+      "id": "theme-20261116-matcha-32",
+      "label": "말차 롤케이크",
+      "theme": "matcha",
+      "src": "stickers/theme-recovered-20261116/theme-20261116-matcha-32.png"
+    },
+    {
+      "id": "theme-20261116-banana-32",
+      "label": "바나나 롤케이크",
+      "theme": "banana",
+      "src": "stickers/theme-recovered-20261116/theme-20261116-banana-32.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-32",
+      "label": "딸기 롤케이크",
+      "theme": "strawberry",
+      "src": "stickers/theme-recovered-20261116/theme-20261116-strawberry-32.png"
+    },
+    {
+      "id": "theme-20261116-choco-32",
+      "label": "초코 롤케이크",
+      "theme": "choco",
+      "src": "stickers/theme-recovered-20261116/theme-20261116-choco-32.png"
+    },
+    {
+      "id": "theme-20261116-matcha-33",
+      "label": "말차 화이트초코 쿠키",
+      "theme": "matcha",
+      "src": "stickers/theme-recovered-20261116/theme-20261116-matcha-33.png"
+    },
+    {
+      "id": "theme-20261116-banana-33",
+      "label": "바나나 화이트초코 쿠키",
+      "theme": "banana",
+      "src": "stickers/theme-recovered-20261116/theme-20261116-banana-33.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-33",
+      "label": "딸기 화이트초코 쿠키",
+      "theme": "strawberry",
+      "src": "stickers/theme-recovered-20261116/theme-20261116-strawberry-33.png"
+    },
+    {
+      "id": "theme-20261116-choco-33",
+      "label": "초코 화이트초코 쿠키",
+      "theme": "choco",
+      "src": "stickers/theme-recovered-20261116/theme-20261116-choco-33.png"
+    }
+  ],
+  "palettes": {
+    "matcha": [
+      "#a3c46f",
+      "#6e9a3c",
+      "#dfeac6",
+      "#f3f7e9",
+      "#ffffff"
+    ],
+    "banana": [
+      "#ffd85f",
+      "#fea200",
+      "#fce89d",
+      "#fff7d8",
+      "#ffffff"
+    ],
+    "strawberry": [
+      "#f48fa6",
+      "#c94a6a",
+      "#fcdbe3",
+      "#fff0f3",
+      "#ffffff"
+    ],
+    "choco": [
+      "#a8704b",
+      "#6f4128",
+      "#ecdccf",
+      "#f7efe8",
+      "#ffffff"
+    ]
+  },
+  "verification": [
+    {
+      "number": 31,
+      "name": "차 사발",
+      "source": "exec-abbded10-9598-4953-822d-5ecbd266c4be.png",
+      "sourceBox": [
+        0,
+        392,
+        362,
+        726
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 32,
+      "name": "롤케이크",
+      "source": "exec-abbded10-9598-4953-822d-5ecbd266c4be.png",
+      "sourceBox": [
+        724,
+        392,
+        1086,
+        726
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 33,
+      "name": "화이트초코 쿠키",
+      "source": "exec-abbded10-9598-4953-822d-5ecbd266c4be.png",
+      "sourceBox": [
+        724,
+        726,
+        1086,
+        1083
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    }
+  ]
+}

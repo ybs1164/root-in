@@ -1,0 +1,1236 @@
+{
+  "assets": [
+    {
+      "id": "theme-20261116-matcha-01",
+      "label": "말차 고양이 얼굴",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-01.png"
+    },
+    {
+      "id": "theme-20261116-banana-01",
+      "label": "바나나 고양이 얼굴",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-01.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-01",
+      "label": "딸기 고양이 얼굴",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-01.png"
+    },
+    {
+      "id": "theme-20261116-choco-01",
+      "label": "초코 고양이 얼굴",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-01.png"
+    },
+    {
+      "id": "theme-20261116-matcha-02",
+      "label": "말차 곰 얼굴",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-02.png"
+    },
+    {
+      "id": "theme-20261116-banana-02",
+      "label": "바나나 곰 얼굴",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-02.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-02",
+      "label": "딸기 곰 얼굴",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-02.png"
+    },
+    {
+      "id": "theme-20261116-choco-02",
+      "label": "초코 곰 얼굴",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-02.png"
+    },
+    {
+      "id": "theme-20261116-matcha-03",
+      "label": "말차 토끼 얼굴",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-03.png"
+    },
+    {
+      "id": "theme-20261116-banana-03",
+      "label": "바나나 토끼 얼굴",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-03.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-03",
+      "label": "딸기 토끼 얼굴",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-03.png"
+    },
+    {
+      "id": "theme-20261116-choco-03",
+      "label": "초코 토끼 얼굴",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-03.png"
+    },
+    {
+      "id": "theme-20261116-matcha-04",
+      "label": "말차 강아지 얼굴",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-04.png"
+    },
+    {
+      "id": "theme-20261116-banana-04",
+      "label": "바나나 강아지 얼굴",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-04.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-04",
+      "label": "딸기 강아지 얼굴",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-04.png"
+    },
+    {
+      "id": "theme-20261116-choco-04",
+      "label": "초코 강아지 얼굴",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-04.png"
+    },
+    {
+      "id": "theme-20261116-matcha-05",
+      "label": "말차 판다 얼굴",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-05.png"
+    },
+    {
+      "id": "theme-20261116-banana-05",
+      "label": "바나나 판다 얼굴",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-05.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-05",
+      "label": "딸기 판다 얼굴",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-05.png"
+    },
+    {
+      "id": "theme-20261116-choco-05",
+      "label": "초코 판다 얼굴",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-05.png"
+    },
+    {
+      "id": "theme-20261116-matcha-06",
+      "label": "말차 햄스터 얼굴",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-06.png"
+    },
+    {
+      "id": "theme-20261116-banana-06",
+      "label": "바나나 햄스터 얼굴",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-06.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-06",
+      "label": "딸기 햄스터 얼굴",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-06.png"
+    },
+    {
+      "id": "theme-20261116-choco-06",
+      "label": "초코 햄스터 얼굴",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-06.png"
+    },
+    {
+      "id": "theme-20261116-matcha-07",
+      "label": "말차 여우 얼굴",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-07.png"
+    },
+    {
+      "id": "theme-20261116-banana-07",
+      "label": "바나나 여우 얼굴",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-07.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-07",
+      "label": "딸기 여우 얼굴",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-07.png"
+    },
+    {
+      "id": "theme-20261116-choco-07",
+      "label": "초코 여우 얼굴",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-07.png"
+    },
+    {
+      "id": "theme-20261116-matcha-08",
+      "label": "말차 펭귄",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-08.png"
+    },
+    {
+      "id": "theme-20261116-banana-08",
+      "label": "바나나 펭귄",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-08.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-08",
+      "label": "딸기 펭귄",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-08.png"
+    },
+    {
+      "id": "theme-20261116-choco-08",
+      "label": "초코 펭귄",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-08.png"
+    },
+    {
+      "id": "theme-20261116-matcha-09",
+      "label": "말차 병아리",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-09.png"
+    },
+    {
+      "id": "theme-20261116-banana-09",
+      "label": "바나나 병아리",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-09.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-09",
+      "label": "딸기 병아리",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-09.png"
+    },
+    {
+      "id": "theme-20261116-choco-09",
+      "label": "초코 병아리",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-09.png"
+    },
+    {
+      "id": "theme-20261116-matcha-10",
+      "label": "말차 물범",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-10.png"
+    },
+    {
+      "id": "theme-20261116-banana-10",
+      "label": "바나나 물범",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-10.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-10",
+      "label": "딸기 물범",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-10.png"
+    },
+    {
+      "id": "theme-20261116-choco-10",
+      "label": "초코 물범",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-10.png"
+    },
+    {
+      "id": "theme-20261116-matcha-11",
+      "label": "말차 알람시계",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-11.png"
+    },
+    {
+      "id": "theme-20261116-banana-11",
+      "label": "바나나 알람시계",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-11.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-11",
+      "label": "딸기 알람시계",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-11.png"
+    },
+    {
+      "id": "theme-20261116-choco-11",
+      "label": "초코 알람시계",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-11.png"
+    },
+    {
+      "id": "theme-20261116-matcha-12",
+      "label": "말차 스마트폰",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-12.png"
+    },
+    {
+      "id": "theme-20261116-banana-12",
+      "label": "바나나 스마트폰",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-12.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-12",
+      "label": "딸기 스마트폰",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-12.png"
+    },
+    {
+      "id": "theme-20261116-choco-12",
+      "label": "초코 스마트폰",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-12.png"
+    },
+    {
+      "id": "theme-20261116-matcha-13",
+      "label": "말차 휴대용 게임기",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-13.png"
+    },
+    {
+      "id": "theme-20261116-banana-13",
+      "label": "바나나 휴대용 게임기",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-13.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-13",
+      "label": "딸기 휴대용 게임기",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-13.png"
+    },
+    {
+      "id": "theme-20261116-choco-13",
+      "label": "초코 휴대용 게임기",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-13.png"
+    },
+    {
+      "id": "theme-20261116-matcha-14",
+      "label": "말차 카세트테이프",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-14.png"
+    },
+    {
+      "id": "theme-20261116-banana-14",
+      "label": "바나나 카세트테이프",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-14.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-14",
+      "label": "딸기 카세트테이프",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-14.png"
+    },
+    {
+      "id": "theme-20261116-choco-14",
+      "label": "초코 카세트테이프",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-14.png"
+    },
+    {
+      "id": "theme-20261116-matcha-15",
+      "label": "말차 음악 플레이어",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-15.png"
+    },
+    {
+      "id": "theme-20261116-banana-15",
+      "label": "바나나 음악 플레이어",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-15.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-15",
+      "label": "딸기 음악 플레이어",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-15.png"
+    },
+    {
+      "id": "theme-20261116-choco-15",
+      "label": "초코 음악 플레이어",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-15.png"
+    },
+    {
+      "id": "theme-20261116-matcha-16",
+      "label": "말차 배낭",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-16.png"
+    },
+    {
+      "id": "theme-20261116-banana-16",
+      "label": "바나나 배낭",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-16.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-16",
+      "label": "딸기 배낭",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-16.png"
+    },
+    {
+      "id": "theme-20261116-choco-16",
+      "label": "초코 배낭",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-16.png"
+    },
+    {
+      "id": "theme-20261116-matcha-17",
+      "label": "말차 포근한 양말",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-17.png"
+    },
+    {
+      "id": "theme-20261116-banana-17",
+      "label": "바나나 포근한 양말",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-17.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-17",
+      "label": "딸기 포근한 양말",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-17.png"
+    },
+    {
+      "id": "theme-20261116-choco-17",
+      "label": "초코 포근한 양말",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-17.png"
+    },
+    {
+      "id": "theme-20261116-matcha-18",
+      "label": "말차 실내화",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-18.png"
+    },
+    {
+      "id": "theme-20261116-banana-18",
+      "label": "바나나 실내화",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-18.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-18",
+      "label": "딸기 실내화",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-18.png"
+    },
+    {
+      "id": "theme-20261116-choco-18",
+      "label": "초코 실내화",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-18.png"
+    },
+    {
+      "id": "theme-20261116-matcha-19",
+      "label": "말차 찻주전자",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-19.png"
+    },
+    {
+      "id": "theme-20261116-banana-19",
+      "label": "바나나 찻주전자",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-19.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-19",
+      "label": "딸기 찻주전자",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-19.png"
+    },
+    {
+      "id": "theme-20261116-choco-19",
+      "label": "초코 찻주전자",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-19.png"
+    },
+    {
+      "id": "theme-20261116-matcha-20",
+      "label": "말차 꿀단지",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-20.png"
+    },
+    {
+      "id": "theme-20261116-banana-20",
+      "label": "바나나 꿀단지",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-20.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-20",
+      "label": "딸기 꿀단지",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-20.png"
+    },
+    {
+      "id": "theme-20261116-choco-20",
+      "label": "초코 꿀단지",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-20.png"
+    },
+    {
+      "id": "theme-20261116-matcha-21",
+      "label": "말차 크루아상",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-21.png"
+    },
+    {
+      "id": "theme-20261116-banana-21",
+      "label": "바나나 크루아상",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-21.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-21",
+      "label": "딸기 크루아상",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-21.png"
+    },
+    {
+      "id": "theme-20261116-choco-21",
+      "label": "초코 크루아상",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-21.png"
+    },
+    {
+      "id": "theme-20261116-matcha-22",
+      "label": "말차 와플",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-22.png"
+    },
+    {
+      "id": "theme-20261116-banana-22",
+      "label": "바나나 와플",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-22.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-22",
+      "label": "딸기 와플",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-22.png"
+    },
+    {
+      "id": "theme-20261116-choco-22",
+      "label": "초코 와플",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-22.png"
+    },
+    {
+      "id": "theme-20261116-matcha-23",
+      "label": "말차 팬케이크",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-23.png"
+    },
+    {
+      "id": "theme-20261116-banana-23",
+      "label": "바나나 팬케이크",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-23.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-23",
+      "label": "딸기 팬케이크",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-23.png"
+    },
+    {
+      "id": "theme-20261116-choco-23",
+      "label": "초코 팬케이크",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-23.png"
+    },
+    {
+      "id": "theme-20261116-matcha-24",
+      "label": "말차 컵케이크",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-24.png"
+    },
+    {
+      "id": "theme-20261116-banana-24",
+      "label": "바나나 컵케이크",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-24.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-24",
+      "label": "딸기 컵케이크",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-24.png"
+    },
+    {
+      "id": "theme-20261116-choco-24",
+      "label": "초코 컵케이크",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-24.png"
+    },
+    {
+      "id": "theme-20261116-matcha-25",
+      "label": "말차 푸딩",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-25.png"
+    },
+    {
+      "id": "theme-20261116-banana-25",
+      "label": "바나나 푸딩",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-25.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-25",
+      "label": "딸기 푸딩",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-25.png"
+    },
+    {
+      "id": "theme-20261116-choco-25",
+      "label": "초코 푸딩",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-25.png"
+    },
+    {
+      "id": "theme-20261116-matcha-26",
+      "label": "말차 막대사탕",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-26.png"
+    },
+    {
+      "id": "theme-20261116-banana-26",
+      "label": "바나나 막대사탕",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-26.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-26",
+      "label": "딸기 막대사탕",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-26.png"
+    },
+    {
+      "id": "theme-20261116-choco-26",
+      "label": "초코 막대사탕",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-26.png"
+    },
+    {
+      "id": "theme-20261116-matcha-27",
+      "label": "말차 포장사탕",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-27.png"
+    },
+    {
+      "id": "theme-20261116-banana-27",
+      "label": "바나나 포장사탕",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-27.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-27",
+      "label": "딸기 포장사탕",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-27.png"
+    },
+    {
+      "id": "theme-20261116-choco-27",
+      "label": "초코 포장사탕",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-27.png"
+    },
+    {
+      "id": "theme-20261116-matcha-28",
+      "label": "말차 티백",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-28.png"
+    },
+    {
+      "id": "theme-20261116-banana-28",
+      "label": "바나나 티백",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-28.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-28",
+      "label": "딸기 티백",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-28.png"
+    },
+    {
+      "id": "theme-20261116-choco-28",
+      "label": "초코 티백",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-28.png"
+    },
+    {
+      "id": "theme-20261116-matcha-29",
+      "label": "말차 팝콘",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-29.png"
+    },
+    {
+      "id": "theme-20261116-banana-29",
+      "label": "바나나 팝콘",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-29.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-29",
+      "label": "딸기 팝콘",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-29.png"
+    },
+    {
+      "id": "theme-20261116-choco-29",
+      "label": "초코 팝콘",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-29.png"
+    },
+    {
+      "id": "theme-20261116-matcha-30",
+      "label": "말차 식빵",
+      "theme": "matcha",
+      "src": "stickers/theme-cute-20261116/theme-20261116-matcha-30.png"
+    },
+    {
+      "id": "theme-20261116-banana-30",
+      "label": "바나나 식빵",
+      "theme": "banana",
+      "src": "stickers/theme-cute-20261116/theme-20261116-banana-30.png"
+    },
+    {
+      "id": "theme-20261116-strawberry-30",
+      "label": "딸기 식빵",
+      "theme": "strawberry",
+      "src": "stickers/theme-cute-20261116/theme-20261116-strawberry-30.png"
+    },
+    {
+      "id": "theme-20261116-choco-30",
+      "label": "초코 식빵",
+      "theme": "choco",
+      "src": "stickers/theme-cute-20261116/theme-20261116-choco-30.png"
+    }
+  ],
+  "palettes": {
+    "matcha": [
+      "#a3c46f",
+      "#6e9a3c",
+      "#dfeac6",
+      "#f3f7e9",
+      "#ffffff"
+    ],
+    "banana": [
+      "#ffd85f",
+      "#fea200",
+      "#fce89d",
+      "#fff7d8",
+      "#ffffff"
+    ],
+    "strawberry": [
+      "#f48fa6",
+      "#c94a6a",
+      "#fcdbe3",
+      "#fff0f3",
+      "#ffffff"
+    ],
+    "choco": [
+      "#a8704b",
+      "#6f4128",
+      "#ecdccf",
+      "#f7efe8",
+      "#ffffff"
+    ]
+  },
+  "verification": [
+    {
+      "number": 1,
+      "name": "고양이 얼굴",
+      "source": "exec-121f9151-9607-4bbf-a41e-7ae2a89306a3.png",
+      "sourceBox": [
+        0,
+        0,
+        512,
+        309
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 2,
+      "name": "곰 얼굴",
+      "source": "exec-121f9151-9607-4bbf-a41e-7ae2a89306a3.png",
+      "sourceBox": [
+        512,
+        0,
+        1024,
+        309
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 3,
+      "name": "토끼 얼굴",
+      "source": "exec-121f9151-9607-4bbf-a41e-7ae2a89306a3.png",
+      "sourceBox": [
+        0,
+        309,
+        512,
+        631
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 4,
+      "name": "강아지 얼굴",
+      "source": "exec-121f9151-9607-4bbf-a41e-7ae2a89306a3.png",
+      "sourceBox": [
+        512,
+        309,
+        1024,
+        631
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 5,
+      "name": "판다 얼굴",
+      "source": "exec-121f9151-9607-4bbf-a41e-7ae2a89306a3.png",
+      "sourceBox": [
+        0,
+        631,
+        512,
+        922
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 6,
+      "name": "햄스터 얼굴",
+      "source": "exec-121f9151-9607-4bbf-a41e-7ae2a89306a3.png",
+      "sourceBox": [
+        512,
+        631,
+        1024,
+        922
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 7,
+      "name": "여우 얼굴",
+      "source": "exec-121f9151-9607-4bbf-a41e-7ae2a89306a3.png",
+      "sourceBox": [
+        0,
+        922,
+        512,
+        1229
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 8,
+      "name": "펭귄",
+      "source": "exec-121f9151-9607-4bbf-a41e-7ae2a89306a3.png",
+      "sourceBox": [
+        512,
+        922,
+        1024,
+        1229
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 9,
+      "name": "병아리",
+      "source": "exec-121f9151-9607-4bbf-a41e-7ae2a89306a3.png",
+      "sourceBox": [
+        0,
+        1229,
+        512,
+        1536
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 10,
+      "name": "물범",
+      "source": "exec-121f9151-9607-4bbf-a41e-7ae2a89306a3.png",
+      "sourceBox": [
+        512,
+        1229,
+        1024,
+        1536
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 11,
+      "name": "알람시계",
+      "source": "exec-ec3322dd-6c72-4245-83e3-3a5b8be1e34c.png",
+      "sourceBox": [
+        0,
+        0,
+        512,
+        339
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 12,
+      "name": "스마트폰",
+      "source": "exec-ec3322dd-6c72-4245-83e3-3a5b8be1e34c.png",
+      "sourceBox": [
+        512,
+        0,
+        1024,
+        339
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 13,
+      "name": "휴대용 게임기",
+      "source": "exec-ec3322dd-6c72-4245-83e3-3a5b8be1e34c.png",
+      "sourceBox": [
+        0,
+        339,
+        512,
+        617
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 14,
+      "name": "카세트테이프",
+      "source": "exec-ec3322dd-6c72-4245-83e3-3a5b8be1e34c.png",
+      "sourceBox": [
+        512,
+        339,
+        1024,
+        617
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 15,
+      "name": "음악 플레이어",
+      "source": "exec-ec3322dd-6c72-4245-83e3-3a5b8be1e34c.png",
+      "sourceBox": [
+        0,
+        617,
+        512,
+        953
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 16,
+      "name": "배낭",
+      "source": "exec-ec3322dd-6c72-4245-83e3-3a5b8be1e34c.png",
+      "sourceBox": [
+        512,
+        617,
+        1024,
+        953
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 17,
+      "name": "포근한 양말",
+      "source": "exec-ec3322dd-6c72-4245-83e3-3a5b8be1e34c.png",
+      "sourceBox": [
+        0,
+        953,
+        512,
+        1255
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 18,
+      "name": "실내화",
+      "source": "exec-ec3322dd-6c72-4245-83e3-3a5b8be1e34c.png",
+      "sourceBox": [
+        512,
+        953,
+        1024,
+        1255
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 19,
+      "name": "찻주전자",
+      "source": "exec-ec3322dd-6c72-4245-83e3-3a5b8be1e34c.png",
+      "sourceBox": [
+        0,
+        1255,
+        512,
+        1536
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 20,
+      "name": "꿀단지",
+      "source": "exec-ec3322dd-6c72-4245-83e3-3a5b8be1e34c.png",
+      "sourceBox": [
+        512,
+        1255,
+        1024,
+        1536
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 21,
+      "name": "크루아상",
+      "source": "exec-26d14d84-525a-4616-9629-8fd5b7a7568a.png",
+      "sourceBox": [
+        0,
+        0,
+        512,
+        341
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 22,
+      "name": "와플",
+      "source": "exec-26d14d84-525a-4616-9629-8fd5b7a7568a.png",
+      "sourceBox": [
+        512,
+        0,
+        1024,
+        341
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 23,
+      "name": "팬케이크",
+      "source": "exec-26d14d84-525a-4616-9629-8fd5b7a7568a.png",
+      "sourceBox": [
+        0,
+        341,
+        512,
+        676
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 24,
+      "name": "컵케이크",
+      "source": "exec-26d14d84-525a-4616-9629-8fd5b7a7568a.png",
+      "sourceBox": [
+        512,
+        341,
+        1024,
+        676
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 25,
+      "name": "푸딩",
+      "source": "exec-26d14d84-525a-4616-9629-8fd5b7a7568a.png",
+      "sourceBox": [
+        0,
+        676,
+        512,
+        992
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 26,
+      "name": "막대사탕",
+      "source": "exec-26d14d84-525a-4616-9629-8fd5b7a7568a.png",
+      "sourceBox": [
+        512,
+        676,
+        1024,
+        992
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 27,
+      "name": "포장사탕",
+      "source": "exec-26d14d84-525a-4616-9629-8fd5b7a7568a.png",
+      "sourceBox": [
+        0,
+        992,
+        512,
+        1240
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 28,
+      "name": "티백",
+      "source": "exec-26d14d84-525a-4616-9629-8fd5b7a7568a.png",
+      "sourceBox": [
+        512,
+        992,
+        1024,
+        1240
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 29,
+      "name": "팝콘",
+      "source": "exec-26d14d84-525a-4616-9629-8fd5b7a7568a.png",
+      "sourceBox": [
+        0,
+        1240,
+        512,
+        1536
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    },
+    {
+      "number": 30,
+      "name": "식빵",
+      "source": "exec-26d14d84-525a-4616-9629-8fd5b7a7568a.png",
+      "sourceBox": [
+        512,
+        1240,
+        1024,
+        1536
+      ],
+      "size": [
+        512,
+        512
+      ],
+      "variantAlphaChangedPixels": 0
+    }
+  ]
+}

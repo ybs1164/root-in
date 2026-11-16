@@ -20,7 +20,7 @@ export interface SheetSlot {
 }
 
 /** The band's pattern beside the pack's name (drawn in CSS, `sticker-pack__motif--*`). */
-export type PackMotif = 'stripes' | 'hearts' | 'dots' | 'checker' | 'grid' | 'sparkles' | 'lines' | 'none';
+export type PackMotif = 'stripes' | 'hearts' | 'dots' | 'checker' | 'grid' | 'sparkles' | 'lines' | 'vertical-lines' | 'crosshatch' | 'diamonds' | 'gingham' | 'mini-dots' | 'rings' | 'dashes' | 'diagonal-dots' | 'brick' | 'herringbone' | 'none';
 /** How the name is set: plain, in an outlined box, or slanted heavy. */
 export type PackNameStyle = 'plain' | 'box' | 'slant';
 
@@ -32,6 +32,16 @@ export const PACK_MOTIFS: { motif: PackMotif; label: string }[] = [
   { motif: 'grid', label: '모눈' },
   { motif: 'sparkles', label: '반짝이' },
   { motif: 'lines', label: '가로줄' },
+  { motif: 'vertical-lines', label: '세로줄' },
+  { motif: 'crosshatch', label: '사선 격자' },
+  { motif: 'diamonds', label: '다이아' },
+  { motif: 'gingham', label: '깅엄' },
+  { motif: 'mini-dots', label: '잔도트' },
+  { motif: 'rings', label: '동그라미' },
+  { motif: 'dashes', label: '점선' },
+  { motif: 'diagonal-dots', label: '엇갈린 도트' },
+  { motif: 'brick', label: '블록' },
+  { motif: 'herringbone', label: '헤링본' },
   { motif: 'none', label: '없음' },
 ];
 

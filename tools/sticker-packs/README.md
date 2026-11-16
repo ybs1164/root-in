@@ -22,3 +22,13 @@ npx vite-node scripts/apply-sticker-packs.ts <sticker-packs.json>
 ```
 
 앱이 읽는 방식(`readPacks`)으로 검사해 형식이 맞지 않는 팩·모르는 스티커 자리는 빼고 알려 주며, 쓸 수 있는 팩이 하나도 없으면 거부합니다. 이전 `src/domain/stickerPacks.json`은 `output/sticker-packs/backups/`에 보관합니다. 적용 뒤 `npm run check`.
+
+## 테마 꾸미기 스티커 (2026-11-15)
+
+오른쪽 스티커 목록의 **스티커 테마**에서 새 스티커 전체 또는 말차·바나나·딸기·초코를 고릅니다.
+36종 × 4색, 총 144개입니다. 목록에서 누르거나 팩으로 끌어 넣습니다.
+새 스티커도 내보내기/불러오기와 적용 스크립트에서 인식합니다.
+기존 브라우저 작업과 앱의 팩 순서는 자동으로 바꾸지 않습니다.
+
+개별 PNG와 팔레트/원본 정보: `public/stickers/theme-stationery-20261115/manifest.json`.
+동일한 원본 마스크로 색상만 바꾸며 네 테마 간 크기와 알파 채널은 같습니다.

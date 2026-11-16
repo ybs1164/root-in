@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import packsFile from './stickerPacks.json';
 import packsText from './stickerPacks.json?raw';
-import { formatPacks, layOutSheet, packsDocument, peelFold, readPacks, STICKER_SHEETS } from './stickerSheets';
+import { formatPacks, layOutSheet, packsDocument, peelFold, readPacks, PACK_MOTIFS, STICKER_SHEETS } from './stickerSheets';
 
 describe('sticker packs', () => {
+  it('retains every band motif through editor export and import', () => {
+    for (const { motif } of PACK_MOTIFS) {
+      const pack = { ...STICKER_SHEETS[0], motif };
+      expect(readPacks(JSON.parse(formatPacks(packsDocument([pack]))))[0]).toEqual(pack);
+    }
+  });
+
   it('reads the app\'s pack file as it is (nothing dropped or changed)', () => {
     expect(STICKER_SHEETS.length).toBe(packsFile.packs.length);
     expect(packsDocument(STICKER_SHEETS)).toEqual(packsFile);

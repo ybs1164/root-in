@@ -388,3 +388,38 @@ body {
   max-height: 120px;
   overflow-y: auto;
 }
+
+.spe__library .spe__row { flex-wrap: wrap; }
+.spe__library select {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+}
+.spe__library .spe__row > input { flex: 1; min-width: 120px; width: auto; }
+
+/* Keep the actual pack usable inside the app's narrow side panel. */
+@media (max-width: 1000px) {
+  .spe {
+    height: auto;
+    min-height: 100vh;
+    grid-template-columns: 160px minmax(0, 1fr);
+    grid-template-rows: auto 540px auto auto;
+    grid-template-areas: 'head head' 'packs stage' 'side side' 'foot foot';
+  }
+  .spe__head { flex-wrap: wrap; gap: 10px; }
+  .spe__head h1 { flex: 1 0 100%; }
+  .spe__note { flex: 1 0 100%; }
+  .spe__side { overflow: visible; border-left: 0; border-top: 1px solid var(--border); }
+  .spe__foot { flex-wrap: wrap; }
+}
+
+.spe__theme-presets { display: grid; gap: 6px; margin: 14px 0; }
+.spe__theme-preset-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.spe__theme-preset-row strong { width: 44px; font-size: 13px; }
+.spe__reload-images { align-self: flex-start; margin-bottom: 10px; }
+.spe__grid { grid-auto-rows: 72px; align-content: start; }
