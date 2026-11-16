@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, Share } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type TouchEvent } from 'react';
 import { createPortal } from 'react-dom';
-import { dayTitle, edgeKey, photoPingTarget, PINCH, pinchOutcome, pinchProgress, pingCounts, pingKey, pingsForDate, pingsLandedMs, type DayPing } from '../domain/dayPings';
+import { dayTitle, edgeKey, photoPingTarget, PINCH, pinchOutcome, pinchProgress, pingCounts, pingKey, pingsForDate, pingsLandedMs, type DayPing, type LineLook, type PingLook } from '../domain/dayPings';
 import { useStoredPings } from '../hooks/useStoredPings';
 import { loadPings, recordPing, recordPlacePing, removePing, todayPingOfPin } from '../services/pingRepository';
 import { deletePingPhoto, PING_PHOTO_PX, savePingPhoto } from '../services/pingPhotoRepository';
@@ -9,7 +9,7 @@ import { usePingPhotos } from '../hooks/usePingPhotos';
 import { avatarFromFile } from '../lib/avatarImage';
 import { pointPlace } from '../services/placeSearch/placeSearchService';
 import { pinStyle, UNCATEGORIZED } from '../domain/pin';
-import type { Pin, PinCategory } from '../types/pin';
+import type { Pin, PinCategory, PinIcon, PinTint } from '../types/pin';
 import type { PlaceRef } from '../types/course';
 import ConfirmDialog from './ConfirmDialog';
 import PhotoViewer, { OpenPhotoMarks } from './PhotoViewer';
@@ -42,7 +42,7 @@ import DayPings from './DayPings';
 import type { StickerDrop } from '../domain/stickerSheets';
 import DecorLayer, { type TextFocus } from './DecorLayer';
 import { DecorRail, DecorTray } from './DecorTools';
-import MonthCalendar from './MonthCalendar';
+import WeekCalendar, { cardRoute, weekCardDay, type CalendarPhotos } from './WeekCalendar';
 import type { ExcludedPlace } from '../domain/privacy';
 
 type Mode = 'day' | 'month';
@@ -57,7 +57,6 @@ interface Gesture {
   scale: number;
 }
 
-const NO_PLANS = new Set<string>();
 const SLIDE_MS = 260;
 
 /** One-finger sideways drag on a day screen, paging to the day before / after. */
@@ -78,7 +77,6 @@ function layerLooks(mode: Mode, scale: number | null): { day: LayerLook; month: 
     ? { day: look(scale, 1 - p * 0.6), month: look(4 - 3 * p, p) }
     : { day: look(0.25 + 0.75 * p, p), month: look(scale, 1 - p * 0.6) };
 }
-const monthOf = (key: string) => ({ year: Number(key.slice(0, 4)), month: Number(key.slice(5, 7)) - 1 });
 
 /**
  * 📅 tab. Opens on today's pings ("TODAY"); pinching in zooms out to the
@@ -136,6 +134,13 @@ interface CalendarZoomProps {
   onPhotoPick?: (pick: TodayPhotoPick | null) => void;
   photoBig?: boolean;
   onPhotoBig?: (big: boolean) => void;
+  /** Opens on the month (switched to MY from a group's calendar), not on TODAY. */
+  startMode?: Mode;
+  /** The calendars the month's name switches between (MY first, then my groups). */
+  calendars?: readonly { id: string; name: string }[];
+  onCalendar?: (id: string) => void;
+  /** A photo on the month's card tapped: the app opens it big (★ and comments, as TODAY's own big photo). */
+  onPhotos?: (open: CalendarPhotos) => void;
 }
 
 /** A photo picked on TODAY: its ping, and which of the ping's stack (oldest = 0). */
@@ -153,11 +158,12 @@ const clock = (iso: string | undefined, fallback: string) => {
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
 
-export default function CalendarZoom({ command, onMode, onDecorating, onPingPicked, pingDropZone, onPingDropHover, onDayPattern, onDayTheme, excluded, here, pins, categories, holdIntro = false, onCamera, nameAt, onToast, photoPick = null, onPhotoPick, photoBig = false, onPhotoBig }: CalendarZoomProps) {
+export default function CalendarZoom({ command, onMode, onDecorating, onPingPicked, pingDropZone, onPingDropHover, onDayPattern, onDayTheme, excluded, here, pins, categories, holdIntro = false, onCamera, nameAt, onToast, photoPick = null, onPhotoPick, photoBig = false, onPhotoBig, startMode = 'day', calendars, onCalendar, onPhotos }: CalendarZoomProps) {
   const today = dateKey();
-  const [mode, setMode] = useState<Mode>('day');
+  const [mode, setMode] = useState<Mode>(startMode);
   const [date, setDate] = useState(today);
-  const [month, setMonth] = useState(() => monthOf(today));
+  // The month screen's picked day (its week strip and preview card); a day opened is picked there.
+  const [pick, setPick] = useState(today);
   const [origin, setOrigin] = useState<Point | null>(null);
   // Pinching out of the month: the day under the fingers, shown as it grows.
   const [preview, setPreview] = useState<string | null>(null);
@@ -201,14 +207,6 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
 
   // Paging days: the day sliding in beside the current one.
   const [neighbor, setNeighbor] = useState<{ date: string; side: -1 | 1 } | null>(null);
-  // The month view's year on its way out (and which way the months went: 1 = on to a later year).
-  const [yearOut, setYearOut] = useState<{ year: number; dir: -1 | 1 } | null>(null);
-  const yearShown = useRef(month.year);
-  useEffect(() => {
-    if (month.year === yearShown.current) return;
-    setYearOut({ year: yearShown.current, dir: month.year > yearShown.current ? 1 : -1 });
-    yearShown.current = month.year;
-  }, [month.year]);
   const sliding = useRef(false);
   const resetSlide = useRef(false);
   const curEl = useRef<HTMLDivElement | null>(null);
@@ -370,6 +368,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
   });
 
   const toMonth = (at?: Point) => {
+    setPick(date);
     setOrigin(at ?? cellCenter(date) ?? stageCenter());
     setMode('month');
   };
@@ -378,7 +377,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
   const toDay = (key: string, at?: Point) => {
     setOrigin(at ?? cellCenter(key) ?? stageCenter());
     setDate(key);
-    setMonth(monthOf(key));
+    setPick(key);
     setPreview(null);
     setVisit((v) => v + 1);
     setMode('day');
@@ -553,7 +552,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
           sliding.current = false;
           resetSlide.current = true;
           setDate(to);
-          setMonth(monthOf(to));
+          setPick(to);
           setVisit((v) => v + 1);
           setNeighbor(null);
         }, SLIDE_MS);
@@ -696,26 +695,33 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
         aria-hidden={mode !== 'month'}
         inert={mode !== 'month'}
       >
-        {/* The year up top, where TODAY / DAY n stand on the day screen; the grid names only the month. */}
-        {/* Tapping the year goes back to TODAY, whichever year is showing. */}
-        <button className="cal-zoom__title cal-zoom__year" aria-label="오늘로" onClick={() => toDay(today)}>
-          {/* Crossing into another year, the old one slides off and the new one
-              in from the side the months went, as TODAY pages to DAY n. */}
-          {yearOut && (
-            <span
-              key={`out-${yearOut.year}`}
-              className="cal-zoom__year-num is-out"
-              style={{ '--dir': yearOut.dir } as CSSProperties}
-              onAnimationEnd={() => setYearOut(null)}
-            >
-              {yearOut.year}
-            </span>
-          )}
-          <span key={month.year} className={`cal-zoom__year-num ${yearOut ? 'is-in' : ''}`} style={{ '--dir': yearOut?.dir ?? 1 } as CSSProperties}>
-            {month.year}
-          </span>
-        </button>
-        <MonthCalendar counts={counts} plans={NO_PLANS} onPick={(key) => toDay(key)} view={month} onView={setMonth} />
+        <WeekCalendar
+          day={pick}
+          today={today}
+          onSelect={setPick}
+          onOpen={(key) => toDay(key)}
+          calendars={calendars}
+          calendar="my"
+          onCalendar={onCalendar}
+          isDisabled={(key) => key > today}
+          mark={(key) => {
+            const n = counts.get(key) ?? 0;
+            return n ? { node: <i className="week-cal__dot" />, label: `${n}곳` } : null;
+          }}
+        >
+          <DayCard
+            day={pick}
+            today={today}
+            pings={pingsForDate(pick, stored)}
+            photosOf={(ping) => (ping.id ? (photos[ping.id] ?? []) : [])}
+            shapeOf={(ping) => days.shapes[pingKey(pick, ping)] ?? 'pin'}
+            edgeStyleOf={(from, to) => days.edges[edgeKey(pick, from, to)] ?? 'solid'}
+            pinLookOf={pinLookOf}
+            decor={days.decor[pick] ?? EMPTY_DECOR}
+            onOpen={() => toDay(pick)}
+            onPhotos={onPhotos}
+          />
+        </WeekCalendar>
       </div>
 
       <section
@@ -934,6 +940,91 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
         />
       )}
 
+    </div>
+  );
+}
+
+interface DayCardProps {
+  day: string;
+  today: string;
+  pings: DayPing[];
+  photosOf: (ping: DayPing) => readonly { id: string; src: string }[];
+  shapeOf: (ping: DayPing) => PingLook;
+  edgeStyleOf: (from: DayPing, to: DayPing) => LineLook;
+  pinLookOf: (ping: DayPing) => { icon: PinIcon; color: PinTint };
+  decor: DayDecor;
+  onOpen(): void;
+  onPhotos?: (open: CalendarPhotos) => void;
+}
+
+/** Photos shown on the card at most; more read +n. */
+const CARD_PHOTOS = 4;
+
+/**
+ * The month screen's preview of the picked day (calendar H): its drawing as
+ * TODAY shows it (read-only, small), how many places and photos, where it
+ * went, and its photos. The card (or its →) opens the day.
+ */
+function DayCard({ day, today, pings, photosOf, shapeOf, edgeStyleOf, pinLookOf, decor, onOpen, onPhotos }: DayCardProps) {
+  const [, m, d] = day.split('-').map(Number);
+  if (!pings.length) {
+    return (
+      <div className="week-card week-card--empty">
+        <b>
+          {m}.{d}
+        </b>
+        {day === today ? '아래 카메라로 첫 사진을 찍어 보세요.' : '이날은 찍은 사진이 없어요.'}
+      </div>
+    );
+  }
+  const shots = pings.flatMap((ping) => photosOf(ping).map((photo) => ({ ...photo, ping })));
+  const photos = shots.map((s) => s.src);
+  const places = pings.length;
+  // As TODAY's own big photo: ★ and comments by `ping:<photo id>`; no ♥ (they're mine), no doodles.
+  const open = (seq: number) =>
+    onPhotos?.({
+      seq,
+      photos: shots.map(({ src, id, ping }) => ({ photo: src, name: ping.name, who: ping.time, face: null, date: galleryDayLabel(day, today), path: `ping:${id}`, heart: false })),
+    });
+  return (
+    <div className="week-card">
+      {/* Only the drawing goes to the day (its TODAY); the photos open big. */}
+      <div className="week-card__map" role="button" tabIndex={0} aria-label={`${weekCardDay(day, today)} 열기`} onClick={onOpen} onKeyDown={(e) => e.key === 'Enter' && onOpen()}>
+        <DayPings
+          key={day}
+          pings={pings}
+          shapeOf={shapeOf}
+          onShape={() => {}}
+          edgeStyleOf={edgeStyleOf}
+          onEdgeStyle={() => {}}
+          pinLookOf={pinLookOf}
+          draggable={false}
+          pressable={() => false}
+          showNames={!decor.hideNames}
+          showTimes={false}
+        />
+      </div>
+      <div className="week-card__meta">
+        <p className="week-card__label">
+          {weekCardDay(day, today)} · {places} PLACE{places > 1 ? 'S' : ''}
+          {photos.length ? ` · ${photos.length} PHOTO${photos.length > 1 ? 'S' : ''}` : ''}
+        </p>
+        <p className="week-card__route">{cardRoute(pings.map((p) => p.name))}</p>
+        {photos.length > 0 && (
+          <div className="week-card__photos">
+            {photos.slice(0, CARD_PHOTOS).map((src, i) => (
+              <button key={i} type="button" className="week-card__photo" aria-label={`${shots[i].ping.name} 사진 크게 보기`} onClick={() => open(i)}>
+                <img src={src} alt="" />
+              </button>
+            ))}
+            {photos.length > CARD_PHOTOS && (
+              <button type="button" className="week-card__more" aria-label="사진 더 보기" onClick={() => open(CARD_PHOTOS)}>
+                +{photos.length - CARD_PHOTOS}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
