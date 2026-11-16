@@ -3,7 +3,7 @@ import type { Group, GroupMember, GroupPing } from '../domain/groups';
 import { GROUP_LIMITS, firstFreeColor, photoKey } from '../domain/groups';
 import type { GalleryPhoto } from '../domain/gallery';
 import type { GroupService } from '../services/groupService';
-import { COMMENT_MAX, type FeedItem, type MetPair } from '../domain/gallery';
+import { COMMENT_MAX, type FeedItem, type FeedRef, type MetPair } from '../domain/gallery';
 import { getDisplayName } from '../lib/currentUser';
 import type { DayDecor } from '../domain/decor';
 import type { LiveEvent, LiveNote } from '../services/groupLive';
@@ -128,7 +128,7 @@ export function createGroupDemoService(service: GroupService): GroupService {
   const demoHearts = new Set<string>();
   // The demo photos' comments and the demo 대화's messages, in memory only
   // (userId null = mine). Seeded with a little talk about the first photos.
-  type Said = { id: string; userId: string | null; body: string; at: string };
+  type Said = { id: string; userId: string | null; body: string; at: string; replyTo?: FeedRef; deleted?: boolean };
   const demoComments = new Map<string, Said[]>();
   // A little from the days before too, so the 대화 has more than one day to jump between.
   // My doodles on the demo photos, in memory only.
@@ -244,7 +244,9 @@ export function createGroupDemoService(service: GroupService): GroupService {
       if (!target || groupId !== target.id) return result;
       // My own lines carry my id in the real feed; here the app finds them by `mine`.
       const said = (kind: 'comment' | 'message', c: Said, photo?: (typeof feedPhotos)[number]): FeedItem => ({
-        kind, id: c.id, userId: c.userId ?? 'me', at: c.at, mine: c.userId === null, body: c.body,
+        kind, id: c.id, userId: c.userId ?? 'me', at: c.at, mine: c.userId === null,
+        ...(c.deleted ? { deleted: true } : { body: c.body }),
+        ...(c.replyTo ? { replyTo: c.replyTo } : {}),
         ...(photo ? { path: photo.path ?? undefined, photo: photo.photo, place: photo.place } : {}),
       });
       const demo: FeedItem[] = [
@@ -288,13 +290,28 @@ export function createGroupDemoService(service: GroupService): GroupService {
       demoDecor.set(path, { decor, ink });
       return true;
     },
-    async sendMessage(groupId, body) {
-      if (!target || groupId !== target.id) return service.sendMessage(groupId, body);
+    async sendMessage(groupId, body, replyTo) {
+      if (!target || groupId !== target.id) return service.sendMessage(groupId, body, replyTo);
       const id = `demo-m${demoMessages.length}-${Date.now()}`;
-      demoMessages.push({ id, userId: null, body: body.trim().slice(0, COMMENT_MAX), at: new Date().toISOString() });
+      demoMessages.push({ id, userId: null, body: body.trim().slice(0, COMMENT_MAX), at: new Date().toISOString(), ...(replyTo ? { replyTo } : {}) });
       tell(`group:${groupId}`, { kind: 'message', id, by: 'me' });
       replyLater(DEMO_IDS[0], (said) => demoMessages.push(said), [`group:${groupId}`]);
       return true;
+    },
+    async deleteLine(groupId, line) {
+      if (!target || groupId !== target.id || !line.id.startsWith('demo-')) return service.deleteLine(groupId, line);
+      if (line.kind === 'message') {
+        const said = demoMessages.find((m) => m.id === line.id && m.userId === null);
+        if (said) said.deleted = true;
+        return !!said;
+      }
+      if (line.kind === 'comment' && line.path) {
+        const list = demoComments.get(line.path) ?? [];
+        const at = list.findIndex((c) => c.id === line.id && c.userId === null);
+        if (at >= 0) list.splice(at, 1);
+        return at >= 0;
+      }
+      return false;
     },
     async kick(id, userId) {
       if (!DEMO_IDS.includes(userId)) return service.kick(id, userId);

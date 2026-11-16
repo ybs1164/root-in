@@ -16,7 +16,6 @@ import {
 } from '../domain/decor';
 import { inLayerInk, type PhotoDecorLayer } from '../domain/gallery';
 import type { StickerDrop } from '../domain/stickerSheets';
-import { resolvedColour } from '../lib/cssColour';
 import { usePhotoDecor } from '../hooks/usePhotoDecor';
 import DecorLayer, { type TextFocus } from './DecorLayer';
 import { DecorTray } from './DecorTools';
@@ -27,21 +26,6 @@ const DOODLE_TOOLS: { tool: DoodleTool; label: string; Icon: typeof PenLine }[] 
   { tool: 'sticker', label: '스티커', Icon: Sticker },
   { tool: 'text', label: '텍스트', Icon: Type },
 ];
-/** How far a sticker's edge goes from its doodler's colour toward white. */
-const EDGE_WHITE = 0.45;
-
-/**
- * A doodler's stickers wear a die-cut edge in their colour, paler (toward
- * white) than the colour itself; white when it's not known. A plain rgb(),
- * not a CSS mix: the peeling sticker reads it onto a canvas.
- */
-function edgeOf(ink: string | null | undefined): CSSProperties | undefined {
-  if (!ink) return undefined;
-  const rgb = /^rgba?\((\d+), ?(\d+), ?(\d+)/.exec(resolvedColour(`--${ink}`));
-  const edge = rgb ? `rgb(${rgb.slice(1, 4).map((v) => Math.round(Number(v) + (255 - Number(v)) * EDGE_WHITE)).join(', ')})` : `var(--${ink})`;
-  return { '--sticker-edge': edge } as CSSProperties;
-}
-
 /**
  * A photo's doodles, shown only (a gallery square): every member's layer in
  * their colour now, oldest change first. Fills the square it's put in.
@@ -52,7 +36,7 @@ export function DoodleLayers({ layers, inkOf }: { layers: readonly PhotoDecorLay
       {layers.map((layer) => {
         const ink = inkOf?.(layer.userId) ?? layer.ink;
         return (
-          <span key={layer.userId} className="photo-doodle__layer" style={edgeOf(ink)}>
+          <span key={layer.userId} className="photo-doodle__layer">
             <DecorLayer decor={inLayerInk(layer.decor, ink)} tool={null} pen={DEFAULT_PEN} onChange={() => {}} />
           </span>
         );
@@ -227,11 +211,11 @@ export function usePhotoDoodle(
     // Everyone else's doodles under mine; only mine take the tools.
     <div className={`photo-doodle ${board ? 'group-board' : ''} ${tool ? 'is-drawing' : ''}`}>
       {others?.map((layer) => (
-        <div key={layer.userId} className="photo-doodle__layer" style={edgeOf(layer.ink)}>
+        <div key={layer.userId} className="photo-doodle__layer">
           <DecorLayer decor={layer.decor} tool={null} pen={pen} onChange={() => {}} scale={scale} />
         </div>
       ))}
-      <div className="photo-doodle__layer" style={edgeOf(mineInk)}>
+      <div className="photo-doodle__layer">
         <DecorLayer
           decor={mine}
           tool={editable ? tool : null}
@@ -253,7 +237,7 @@ export function usePhotoDoodle(
     editable && trayTool
       ? createPortal(
           // The packs' stickers peel off with my edge too.
-          <div className="photo-doodle__tray" style={edgeOf(ink)}>
+          <div className="photo-doodle__tray">
             <DecorTray
               key={trayTool}
               leaving={trayLeaving}

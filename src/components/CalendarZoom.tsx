@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { dayTitle, edgeKey, photoPingTarget, PINCH, pinchOutcome, pinchProgress, pingCounts, pingKey, pingsForDate, pingsLandedMs, type DayPing } from '../domain/dayPings';
 import { useStoredPings } from '../hooks/useStoredPings';
 import { loadPings, recordPing, recordPlacePing, removePing, todayPingOfPin } from '../services/pingRepository';
-import { PING_PHOTO_PX, savePingPhoto } from '../services/pingPhotoRepository';
+import { deletePingPhoto, PING_PHOTO_PX, savePingPhoto } from '../services/pingPhotoRepository';
 import { usePingPhotos } from '../hooks/usePingPhotos';
 import { avatarFromFile } from '../lib/avatarImage';
 import { pointPlace } from '../services/placeSearch/placeSearchService';
@@ -13,6 +13,7 @@ import type { Pin, PinCategory } from '../types/pin';
 import type { PlaceRef } from '../types/course';
 import ConfirmDialog from './ConfirmDialog';
 import PhotoViewer, { OpenPhotoMarks } from './PhotoViewer';
+import PhotoPanel from './PhotoPanel';
 import { galleryDayLabel } from '../domain/gallery';
 import { addDays } from '../domain/calendar';
 import {
@@ -128,17 +129,31 @@ interface CalendarZoomProps {
   /** A short line at the bottom (the photo's ping, or why there isn't one). */
   onToast?: (text: string) => void;
   /**
-   * The day's photo open big (its place among the day's pings with a photo),
-   * null = none. The app holds it, for the back button.
+   * The photo picked on a ping's stack (its panel up top), null = none, and
+   * whether it's open big. The app holds them, for the back button.
    */
-  photoSeq?: number | null;
-  onPhotoSeq?: (seq: number | null) => void;
+  photoPick?: TodayPhotoPick | null;
+  onPhotoPick?: (pick: TodayPhotoPick | null) => void;
+  photoBig?: boolean;
+  onPhotoBig?: (big: boolean) => void;
 }
+
+/** A photo picked on TODAY: its ping, and which of the ping's stack (oldest = 0). */
+export interface TodayPhotoPick {
+  pingId: string;
+  photo: number;
+}
+
+/** When a photo was taken, as the panel shows it (HH:MM, local). */
+const clock = (iso: string | undefined, fallback: string) => {
+  const at = iso ? new Date(iso) : null;
+  return at && !Number.isNaN(at.getTime()) ? `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}` : fallback;
+};
 
 /** How long the sheet takes to go down when switching tools (matches `tray-down` in styles.css). */
 const TRAY_SWAP_MS = 170;
 
-export default function CalendarZoom({ command, onMode, onDecorating, onPingPicked, pingDropZone, onPingDropHover, onDayPattern, onDayTheme, excluded, here, pins, categories, holdIntro = false, onCamera, nameAt, onToast, photoSeq = null, onPhotoSeq }: CalendarZoomProps) {
+export default function CalendarZoom({ command, onMode, onDecorating, onPingPicked, pingDropZone, onPingDropHover, onDayPattern, onDayTheme, excluded, here, pins, categories, holdIntro = false, onCamera, nameAt, onToast, photoPick = null, onPhotoPick, photoBig = false, onPhotoBig }: CalendarZoomProps) {
   const today = dateKey();
   const [mode, setMode] = useState<Mode>('day');
   const [date, setDate] = useState(today);
@@ -215,8 +230,46 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
   const stored = useStoredPings();
   const pings = preview || holdIntro ? [] : pingsForDate(shownDate, stored);
   const photos = usePingPhotos();
-  // The day's pings with a photo, in order: what the big photo pages through.
-  const shots = pings.filter((p) => p.id && photos[p.id]);
+  // Every photo of the day, ping by ping and each ping's stack oldest first: what the big photo pages through.
+  const shots = pings.flatMap((ping) => (ping.id ? (photos[ping.id] ?? []) : []).map((photo, index) => ({ ping, index, photo })));
+  const pickedSeq = photoPick ? shots.findIndex((s) => s.ping.id === photoPick.pingId && s.index === photoPick.photo) : -1;
+  const picked = pickedSeq >= 0 ? shots[pickedSeq] : null;
+  // A pick that's gone (its photo deleted, the day changed): the panel goes with it.
+  useEffect(() => {
+    if (photoPick && !picked) onPhotoPick?.(null);
+  }, [photoPick, picked, onPhotoPick]);
+  // The panel's … : 사진 삭제 asks first, 핀 삭제 is the ping's own delete.
+  const [bigWriting, setBigWriting] = useState(false);
+  // The panel stands over the top of the drawing: while it's up, the drawing
+  // steps down so the picked photo's stack shows under it (a group's map pans
+  // its ping there instead), and back when it goes.
+  const pingsBox = useRef<HTMLDivElement | null>(null);
+  const [photoDrop, setPhotoDrop] = useState(0);
+  const pickedKey = picked ? `${picked.ping.id}|${picked.index}` : null;
+  useLayoutEffect(() => {
+    if (!pickedKey) return setPhotoDrop(0);
+    const box = pingsBox.current;
+    const panel = document.querySelector('.group-photo-panel--today');
+    const marker = box?.querySelector('.ping.has-photo-picked');
+    if (!box?.parentElement || !panel || !marker) return;
+    // Measured against where the drawing sits unmoved (its parent isn't moved), so a drop under way doesn't count.
+    const boxTop = box.getBoundingClientRect().top;
+    const head = Math.min(...[...marker.children].map((c) => c.getBoundingClientRect().top)) - boxTop;
+    const restTop = box.parentElement.getBoundingClientRect().top + box.offsetTop;
+    setPhotoDrop(Math.max(0, Math.ceil(panel.getBoundingClientRect().bottom + 40 - (restTop + head))));
+  }, [pickedKey]);
+  const [photoDeleting, setPhotoDeleting] = useState<{ id: string; name: string } | null>(null);
+  // A tap outside the panel (and the stacks, the big photo, a popup) puts it away, as on a group's map.
+  useEffect(() => {
+    if (!photoPick || photoBig) return;
+    const away = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      if (target?.closest('.group-photo-panel, .ping__photo, .group-photo-viewer, dialog, .bottom-bar-wrap')) return;
+      onPhotoPick?.(null);
+    };
+    document.addEventListener('pointerdown', away, true);
+    return () => document.removeEventListener('pointerdown', away, true);
+  }, [photoPick, photoBig, onPhotoPick]);
   // 카메라: a photo taken on TODAY pings where you are at once — your pin
   // there if there is one (no 위치 선택 to answer), or the spot itself.
   const camera = useRef<HTMLInputElement | null>(null);
@@ -707,7 +760,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
           <button className="cal-zoom__title" aria-label={`${dayTitle(shownDate, today)}, 달력 보기`} onClick={() => toMonth()}>
             {dayTitle(shownDate, today)}
           </button>
-          <div className="cal-zoom__pings">
+          <div ref={pingsBox} className="cal-zoom__pings" style={photoDrop ? ({ translate: `0 ${photoDrop}px` } as CSSProperties) : undefined}>
             <DayPings
               key={`${shownDate}-${visit}`}
               pings={pings}
@@ -718,9 +771,10 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
                 setDays((d) => ({ ...d, edges: { ...d.edges, [edgeKey(shownDate, from, to)]: style } }))
               }
               pinLookOf={pinLookOf}
-              photoOf={(ping) => (ping.id ? photos[ping.id] : undefined)}
-              // One tap and it's big at once (the group's map goes by its panel first).
-              onPhoto={(ping) => onPhotoSeq?.(shots.findIndex((p) => p.id === ping.id))}
+              photoOf={(ping) => (ping.id ? photos[ping.id]?.map((p) => p.src) : undefined)}
+              // A tap picks it: its panel opens up top (as on a group's map); the panel's photo opens it big.
+              onPhoto={(ping, index) => ping.id && onPhotoPick?.({ pingId: ping.id, photo: index })}
+              pickedPhotoOf={(ping) => (photoPick && ping.id === photoPick.pingId ? photoPick.photo : null)}
               onDelete={(ping) => ping.id && setDeleting(ping)}
               onPickedChange={(ping) => onPingPicked?.(ping?.id ? () => setDeleting(ping) : null)}
               dropZone={pingDropZone}
@@ -769,25 +823,69 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
         />
       )}
 
+      {picked && picked.ping.id && (
+        <PhotoPanel
+          className="group-photo-panel--today"
+          name={picked.ping.name || '이름 없는 곳'}
+          color="var(--day-ping, var(--accent))"
+          anchor=".ping.has-photo-picked"
+          centred
+          placeKey={picked.ping.id}
+          photo={picked.photo.src}
+          time={clock(picked.photo.at, picked.ping.time)}
+          // My own photos: ★ only (the same 즐겨찾기 as the gallery's MY), no ♥.
+          marks={<OpenPhotoMarks path={`ping:${picked.photo.id}`} heart={false} hearts={false} />}
+          onOpen={() => {
+            setBigWriting(false);
+            onPhotoBig?.(true);
+          }}
+          onComment={() => {
+            setBigWriting(true);
+            onPhotoBig?.(true);
+          }}
+          onClose={() => onPhotoPick?.(null)}
+          onDelete={(kind) =>
+            kind === 'photo' ? setPhotoDeleting({ id: picked.photo.id, name: picked.ping.name }) : setDeleting(picked.ping)
+          }
+        />
+      )}
+
+      {photoDeleting && (
+        <ConfirmDialog
+          label="사진 삭제"
+          message={`'${photoDeleting.name}' 사진을 삭제합니다.`}
+          detail="삭제한 사진은 복구할 수 없어요."
+          onConfirm={() => {
+            deletePingPhoto(photoDeleting.id);
+            onPhotoPick?.(null);
+          }}
+          onClose={() => setPhotoDeleting(null)}
+        />
+      )}
+
       {/* On the body: over the app's bottom row, which stands over the calendar page. */}
-      {photoSeq !== null && shots[photoSeq] && createPortal(
+      {photoBig && picked && createPortal(
         <PhotoViewer
-          items={shots.map((p) => ({
-            photo: photos[p.id!],
-            name: p.name,
-            who: p.time,
+          items={shots.map((s) => ({
+            photo: s.photo.src,
+            name: s.ping.name,
+            who: clock(s.photo.at, s.ping.time),
             face: null,
             date: galleryDayLabel(shownDate, today),
           }))}
-          seq={photoSeq}
-          onSeq={(seq) => onPhotoSeq?.(seq)}
-          onClose={() => onPhotoSeq?.(null)}
+          seq={pickedSeq}
+          onSeq={(seq) => {
+            const shot = shots[seq];
+            if (shot?.ping.id) onPhotoPick?.({ pingId: shot.ping.id, photo: shot.index });
+          }}
+          onClose={() => onPhotoBig?.(false)}
+          startWriting={bigWriting}
           prevLabel="이전 사진"
           nextLabel="다음 사진"
           counted={false}
-          commentPath={`ping:${shots[photoSeq].id}`}
+          commentPath={`ping:${picked.photo.id}`}
           // My own photos: ★ only (the same 즐겨찾기 as the gallery's MY), no ♥.
-          side={<OpenPhotoMarks path={`ping:${shots[photoSeq].id}`} heart={false} hearts={false} />}
+          side={<OpenPhotoMarks path={`ping:${picked.photo.id}`} heart={false} hearts={false} />}
         />,
         document.body,
       )}

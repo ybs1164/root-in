@@ -1,4 +1,5 @@
 import type { StoredPing } from './dayPings';
+import type { StackedPhoto } from './gallery';
 import { TODAY_PING_RADIUS_M } from './dayPings';
 import { haversineMeters } from './geo';
 import type { PlaceRef } from '../types/course';
@@ -43,7 +44,7 @@ export function visitedPlaces(
 }
 
 export interface PlacePhoto {
-  /** The ping it was taken at. */
+  /** The photo's own id (a ping's first photo: the ping's). */
   id: string;
   url: string;
   at: string;
@@ -58,13 +59,10 @@ export function placePhotos(
   place: Pick<PlaceRef, 'id' | 'name' | 'center'>,
   pinId: string | null,
   pings: readonly StoredPing[],
-  photos: Readonly<Record<string, string>>,
+  photos: Readonly<Record<string, readonly StackedPhoto[]>>,
 ): PlacePhoto[] {
   return pings
-    .filter(
-      (ping) =>
-        photos[ping.id] && ((pinId && ping.pinId === pinId) || place.id === visitPlaceId(ping.id) || samePlace(place, ping)),
-    )
-    .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
-    .map((ping) => ({ id: ping.id, url: photos[ping.id], at: ping.at }));
+    .filter((ping) => (pinId && ping.pinId === pinId) || place.id === visitPlaceId(ping.id) || samePlace(place, ping))
+    .flatMap((ping) => (photos[ping.id] ?? []).map((photo) => ({ id: photo.id, url: photo.src, at: photo.at ?? ping.at })))
+    .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
 }

@@ -8171,6 +8171,8 @@ button:disabled {
   place-items: center;
   width: 100%;
   min-height: 0;
+  /* Steps down under TODAY's photo panel while it's up (CalendarZoom `photoDrop`). */
+  transition: translate 0.3s var(--settle-ease);
 }
 
 .cal-zoom__title {
@@ -8549,11 +8551,14 @@ button:disabled {
 
 /* The photo taken there: a small rounded print in the accent colour over
    the ping, its tail on the icon's head — as a group's map shows a sent
-   photo. Its own button: a tap opens it big. */
+   photo. Several from one place stack upwards (`--stack`, 0 = the oldest,
+   nearest the ping: 52px prints, their tails in the 14px between). Its own
+   button: a tap picks it (its panel opens up top), and it swells a little. */
 .ping__photo {
+  --stack-step: 66px;
   position: absolute;
   left: 50%;
-  top: -67px;
+  top: calc(-67px - var(--stack, 0) * var(--stack-step));
   z-index: 1;
   width: 52px;
   height: 52px;
@@ -8563,6 +8568,8 @@ button:disabled {
   background: var(--day-ping, var(--accent));
   box-shadow: var(--pin-shadow);
   translate: -50% 0;
+  transform-origin: 50% calc(100% + 12px);
+  transition: scale 0.2s ease, translate 0.2s ease;
   cursor: pointer;
   animation: pop-in 0.28s var(--pop-ease) both;
   -webkit-touch-callout: none;
@@ -8587,6 +8594,20 @@ button:disabled {
   border: 7px solid transparent;
   border-top: 12px solid var(--day-ping, var(--accent));
   border-bottom: 0;
+}
+
+.ping.has-photo-picked {
+  z-index: 3;
+}
+
+.ping__photo.is-picked {
+  scale: 1.18;
+}
+
+/* Over the swollen one, the rest of the stack steps up by what it grew
+   (52px + its 12px tail, × 0.18), so they never overlap. */
+.ping__photo.is-lifted {
+  translate: -50% -12px;
 }
 
 .ping.is-dragging .ping__photo {
@@ -12302,6 +12323,216 @@ button.group-photo-panel__photo {
   --icon-ink: currentColor;
   font-size: 13px;
   text-align: center;
+}
+
+.group-chat__list {
+  /* A line slid to answer it reaches past the side: no sideways scroll. */
+  overflow-x: hidden;
+}
+
+/* Hold a line for its menu, slide it inward to answer it (GroupChat
+   lineHandlers): sideways moves are the line's, up and down still scroll;
+   no text selection or callout under a held finger. */
+.group-chat__line {
+  position: relative;
+  --pull: 0;
+}
+
+.group-chat__said {
+  touch-action: pan-y;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.group-chat__line.is-settling {
+  transition: translate 0.2s var(--settle-ease);
+}
+
+/* The reply arrow, just off the line's outer side: slid inward, it comes into
+   view and fills in as the line nears the reply point. */
+.group-chat__slide-reply {
+  position: absolute;
+  top: 50%;
+  left: -40px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--icon);
+  --icon-ink: var(--icon);
+  opacity: var(--pull);
+  transform: translateY(-50%) scale(calc(0.6 + var(--pull) * 0.4));
+  pointer-events: none;
+}
+
+.group-chat__line.is-mine .group-chat__slide-reply {
+  left: auto;
+  right: -40px;
+}
+
+/* A reply's quote of the line it answers, at the top of its bubble. */
+.group-chat__reply-quote {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 0 0 6px 8px;
+  border: 0;
+  border-left: 3px solid currentColor;
+  background: none;
+  color: inherit;
+  --icon-ink: currentColor;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: left;
+  opacity: 0.75;
+}
+
+.group-chat__reply-quote b,
+.group-chat__reply-quote span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-chat__text.is-deleted {
+  opacity: 0.6;
+  font-size: 14px;
+}
+
+/* A quoted line jumped to: its bubble glows a moment. */
+.group-chat__line.is-lit .group-chat__bubble {
+  animation: chat-lit 1.2s ease;
+}
+
+@keyframes chat-lit {
+  0%,
+  40% {
+    box-shadow: 0 0 0 3px var(--accent);
+  }
+  100% {
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+/* Answering a line: which, over the input; ✕ stops. In the column, so the thread shortens for it. */
+.group-chat__replying {
+  flex: none;
+  width: calc(100% - 32px);
+  max-width: 688px;
+  margin: 6px auto 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 12px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  --icon-ink: var(--icon);
+  animation: rise-in 0.16s var(--settle-ease) both;
+}
+
+.group-chat__replying > div {
+  flex: 1;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.group-chat__replying span {
+  overflow: hidden;
+  color: var(--muted);
+  --icon-ink: var(--icon);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-chat__replying button {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--muted);
+  --icon-ink: var(--icon);
+}
+
+/* A line held down: what it says, then 답장하기 · 모두에게 삭제하기 · 나에게만 삭제하기. */
+.chat-menu {
+  width: min(300px, calc(100vw - 48px));
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--text);
+  --icon-ink: var(--icon);
+  box-shadow: var(--dialog-shadow);
+  animation: mac-open 0.18s var(--pop-ease) both;
+}
+
+.chat-menu::backdrop {
+  background: var(--backdrop);
+}
+
+.chat-menu__quote {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 18px 20px 14px;
+  font-size: 13px;
+}
+
+.chat-menu__quote span {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--muted);
+  --icon-ink: var(--icon);
+  font-size: 15px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.chat-menu__actions {
+  display: grid;
+  padding: 4px 8px 8px;
+}
+
+.chat-menu__actions button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  --icon-ink: var(--icon);
+  font: inherit;
+  font-size: 16px;
+  text-align: left;
+}
+
+.chat-menu__actions button.is-danger {
+  color: var(--danger);
+  --icon-ink: currentColor;
+}
+
+.chat-menu__actions button:active {
+  background: var(--surface-2);
 }
 
 /* Doodles on a group photo (PhotoViewer): the photo a square (sent photos

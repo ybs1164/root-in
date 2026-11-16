@@ -6,7 +6,7 @@ import { inKorea } from './pinShareService';
 import { dataUrlToBlob } from './remoteProfileService';
 import { newSlug } from './shareLinkService';
 import { createGroupDemoService } from '../dev/groupDemoService';
-import { COMMENT_MAX, isMemberInk, type FeedItem, type GalleryPhoto, type MetPair, type PhotoComment, type PhotoDecorLayer } from '../domain/gallery';
+import { COMMENT_MAX, isMemberInk, type FeedItem, type FeedRef, type GalleryPhoto, type MetPair, type PhotoComment, type PhotoDecorLayer } from '../domain/gallery';
 import type { DayDecor } from '../domain/decor';
 import { isBlankDecor, readDecor } from './dayRepository';
 import { publicAppUrl } from '../lib/appUrl';
@@ -117,8 +117,14 @@ export interface GroupService {
   comment(path: string, body: string): Promise<boolean>;
   /** A group's 대화 (its photos, their comments, its messages), oldest first; 'error' when the server couldn't be asked. */
   feed(groupId: string): Promise<FeedItem[] | 'error'>;
-  /** A message in a group's 대화; false when the server said no. */
-  sendMessage(groupId: string, body: string): Promise<boolean>;
+  /** A message in a group's 대화, maybe answering one of its lines; false when the server said no. */
+  sendMessage(groupId: string, body: string, replyTo?: FeedRef): Promise<boolean>;
+  /**
+   * One of my own lines of a group's 대화 deleted for everyone: a message
+   * (it stays as '삭제된 메시지예요'), a comment (gone from its photo), or a
+   * photo (gone from that group). False when the server said no.
+   */
+  deleteLine(groupId: string, line: Pick<FeedItem, 'kind' | 'id' | 'path'>): Promise<boolean>;
   /** Every member's doodles on a photo (by its upload `path`) or a group's day (`dayDecorKey`); 'error' when the server couldn't be asked. */
   decors(path: string): Promise<PhotoDecorLayer[] | 'error'>;
   /**
@@ -320,9 +326,13 @@ export function readFeed(data: unknown, photoUrl: (path: string) => string | nul
     if (typeof r.id !== 'string' || !UUID.test(r.id) || typeof r.user_id !== 'string' || !UUID.test(r.user_id)) continue;
     if (typeof r.at !== 'string' || Number.isNaN(Date.parse(r.at))) continue;
     const item: FeedItem = { kind: r.kind, id: r.id, userId: r.user_id, at: new Date(r.at).toISOString(), mine: r.mine === true };
-    if (r.kind !== 'photo') {
+    if (r.kind === 'message' && r.deleted === true) item.deleted = true;
+    else if (r.kind !== 'photo') {
       if (typeof r.body !== 'string' || !r.body.trim()) continue;
       item.body = r.body.trim().slice(0, COMMENT_MAX);
+    }
+    if (r.kind === 'message' && (r.reply_kind === 'photo' || r.reply_kind === 'comment' || r.reply_kind === 'message') && typeof r.reply_id === 'string' && UUID.test(r.reply_id)) {
+      item.replyTo = { kind: r.reply_kind, id: r.reply_id };
     }
     if (r.kind !== 'message') {
       if (typeof r.path !== 'string' || !PHOTO_PATH.test(r.path)) continue;
@@ -908,14 +918,33 @@ export function createSupabaseGroupService(
       }
     },
 
-    async sendMessage(groupId, body) {
+    async sendMessage(groupId, body, replyTo) {
       try {
         const text = body.trim();
         if (!UUID.test(groupId) || !text || text.length > COMMENT_MAX) return false;
         const client = await getClient();
         if (!client) return false;
-        const { data, error } = await client.rpc('send_group_message', { gid: groupId, message: text });
+        const reply = replyTo && UUID.test(replyTo.id) ? { reply_kind: replyTo.kind, reply_id: replyTo.id } : {};
+        let { data, error } = await client.rpc('send_group_message', { gid: groupId, message: text, ...reply });
+        // A server without 20261117000000_chat_reply_delete.sql: the message goes, without what it answers.
+        if (error && replyTo) ({ data, error } = await client.rpc('send_group_message', { gid: groupId, message: text }));
         return !error && typeof data === 'string';
+      } catch {
+        return false;
+      }
+    },
+
+    async deleteLine(groupId, line) {
+      if (line.kind === 'photo') return line.path ? this.deletePhotos(groupId, [line.path]) : false;
+      try {
+        if (!UUID.test(line.id)) return false;
+        const client = await getClient();
+        if (!client) return false;
+        const { data, error } =
+          line.kind === 'message'
+            ? await client.rpc('delete_group_message', { mid: line.id })
+            : await client.rpc('delete_photo_comment', { cid: line.id });
+        return !error && data === true;
       } catch {
         return false;
       }

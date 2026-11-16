@@ -62,12 +62,19 @@ describe('placePhotos', () => {
     ping('nophoto', '서촌 카페', CAFE, '2026-11-04T01:00:00.000Z'),
     ping('elsewhere', '공원', PARK, '2026-11-05T01:00:00.000Z'),
   ];
-  const photos = { old: 'data:o', new: 'data:n', pinned: 'data:p', elsewhere: 'data:e' };
+  const one = (id: string, src: string) => [{ id, src }];
+  const photos = { old: one('old', 'data:o'), new: one('new', 'data:n'), pinned: one('pinned', 'data:p'), elsewhere: one('elsewhere', 'data:e') };
 
   it("are the place's photos, newest first", () => {
     const got = placePhotos({ id: 'place-p1', name: '서촌 카페', center: CAFE }, 'p1', pings, photos);
     expect(got.map((p) => p.id)).toEqual(['new', 'pinned', 'old']);
     expect(got[0].url).toBe('data:n');
+  });
+
+  it('list every photo stacked on a ping, each by when it was taken', () => {
+    const stacked = { ...photos, new: [{ id: 'new', src: 'data:n' }, { id: 'new~2', src: 'data:n2', at: '2026-11-03T05:00:00.000Z' }] };
+    const got = placePhotos({ id: 'place-p1', name: '서촌 카페', center: CAFE }, 'p1', pings, stacked);
+    expect(got.map((p) => p.id)).toEqual(['new~2', 'new', 'pinned', 'old']);
   });
 
   it('keep the visit a pin was made from through a rename', () => {
