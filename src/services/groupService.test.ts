@@ -56,6 +56,12 @@ describe('groupService', () => {
     expect(readGroups('nope', () => null)).toEqual([]);
   });
 
+  it("reads the maker's cover swatch, checked", () => {
+    expect(readGroups([{ ...row, cover_swatch: 'matcha' }], () => null)[0].coverSwatch).toBe('matcha');
+    expect(readGroups([{ ...row, cover_swatch: 'not-a-theme' }], () => null)[0].coverSwatch).toBeUndefined();
+    expect(readGroups([row], () => null)[0].coverSwatch).toBeUndefined();
+  });
+
   it('lists through my_groups for the given day, and says error rather than rejecting', async () => {
     const fake = fakeClient(() => ({ data: [row] }));
     const service = createSupabaseGroupService(async () => fake.client, true);
@@ -73,8 +79,21 @@ describe('groupService', () => {
     const slugs = ['first0', 'second'];
     const service = createSupabaseGroupService(async () => fake.client, true, () => slugs.shift() ?? 'xxxxxx');
     expect(await service.create(' 러닝크루 ', 9)).toEqual({ id: G1, inviteSlug: 'second' });
-    expect(fake.rpc).toHaveBeenLastCalledWith('create_group', { group_name: '러닝크루', group_cover: 0, slug: 'second' });
+    expect(fake.rpc).toHaveBeenLastCalledWith('create_group', { group_name: '러닝크루', group_cover: 0, slug: 'second', group_swatch: null });
     expect(await service.create('   ', 0)).toBeNull();
+  });
+
+  it('sends a colour swatch when creating, and drops it for a server that does not know it yet', async () => {
+    const fake = fakeClient(() => ({ data: G1 }));
+    const service = createSupabaseGroupService(async () => fake.client, true, () => 'abcdef');
+    expect(await service.create('그룹', 0, undefined, 'matcha')).toEqual({ id: G1, inviteSlug: 'abcdef' });
+    expect(fake.rpc).toHaveBeenLastCalledWith('create_group', { group_name: '그룹', group_cover: 0, slug: 'abcdef', group_swatch: 'matcha' });
+
+    let calls = 0;
+    const oldServer = fakeClient(() => (++calls === 1 ? { error: {} } : { data: G1 }));
+    const service2 = createSupabaseGroupService(async () => oldServer.client, true, () => 'abcdef');
+    expect(await service2.create('그룹', 0, undefined, 'matcha')).toEqual({ id: G1, inviteSlug: 'abcdef' });
+    expect(oldServer.rpc).toHaveBeenLastCalledWith('create_group', { group_name: '그룹', group_cover: 0, slug: 'abcdef' });
   });
 
   it('joins by invite slug, and checks the slug before asking', async () => {

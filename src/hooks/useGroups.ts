@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { dateKey } from '../domain/diary';
 import type { Group, PingDays } from '../domain/groups';
+import type { ThemeId } from '../domain/decor';
 import type { AuthUser } from '../services/authService';
 import { groupService as defaultService, readInviteSlug, type GroupService, type PhotoPing } from '../services/groupService';
 
@@ -10,9 +11,9 @@ export interface Groups {
   status: GroupsStatus;
   groups: Group[];
   refresh(): void;
-  create(name: string, cover: number, inviteSlug?: string): Promise<{ id: string; inviteSlug: string } | null>;
+  create(name: string, cover: number, inviteSlug?: string, swatch?: ThemeId): Promise<{ id: string; inviteSlug: string } | null>;
   rename(id: string, name: string): Promise<boolean>;
-  setCover(id: string, cover: number, photo?: string | null): Promise<boolean>;
+  setCover(id: string, cover: number, photo?: string | null, swatch?: ThemeId): Promise<boolean>;
   leave(id: string): Promise<boolean>;
   kick(id: string, userId: string): Promise<boolean>;
   setAlias(id: string, alias: string): Promise<boolean>;
@@ -115,8 +116,8 @@ export function useGroups(
   }, [invite, service, userId, refresh]);
 
   const create = useCallback(
-    async (name: string, cover: number, inviteSlug?: string) => {
-      const made = await service.create(name, cover, inviteSlug);
+    async (name: string, cover: number, inviteSlug?: string, swatch?: ThemeId) => {
+      const made = await service.create(name, cover, inviteSlug, swatch);
       if (made) refresh();
       return made;
     },
@@ -131,8 +132,8 @@ export function useGroups(
     [service, refresh],
   );
   const setCover = useCallback(
-    async (id: string, cover: number, photo?: string | null) => {
-      const ok = await service.setCover(id, cover, photo);
+    async (id: string, cover: number, photo?: string | null, swatch?: ThemeId) => {
+      const ok = await service.setCover(id, cover, photo, swatch);
       if (ok) refresh();
       return ok;
     },

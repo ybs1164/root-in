@@ -9235,19 +9235,23 @@ button:disabled {
 .group-form__colors.group-form__swatches {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 10px 0 8px;
+  gap: 4px;
 }
 
 .group-form__colors.group-form__swatches button {
-  width: 26px;
-  max-width: 26px;
-  height: 26px;
+  width: 22px;
+  max-width: 22px;
+  height: 28px;
 }
 
 .group-form__colors.group-form__swatches span {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
+}
+
+/* MY COVER's colour row sits under the toggle, not inline on a label. */
+.group-form__swatches--block {
+  margin: 12px 0 8px;
 }
 
 .group-tile__line {
@@ -10628,6 +10632,14 @@ button.group-photo-panel__photo {
   font-family: "Bebas Neue", "Oswald", sans-serif;
   font-size: 14px;
   letter-spacing: 0.12em;
+}
+
+/* COVER's label carries its own colour row at the right (2026-11-16). */
+.group-form__label--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .group-form__covers {

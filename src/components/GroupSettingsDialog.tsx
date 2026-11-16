@@ -1,7 +1,7 @@
 import { ChevronDown, Images, PenLine } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { GROUP_LIMITS, MEMBER_COLORS, MEMBER_COLOR_NAMES, coverTintClass, memberColor, takenColors, type Group, type GroupCoverOverride, type GroupMember } from '../domain/groups';
-import { THEMES } from '../domain/decor';
+import { APP_COVER_THEMES, type ThemeId } from '../domain/decor';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import { inviteUrl } from '../services/groupService';
 import { avatarFromFile } from '../lib/avatarImage';
@@ -21,8 +21,12 @@ interface GroupSettingsDialogProps {
   me: string | null;
   /** The group's maker: its name (resolves false when it didn't go through). */
   onRename(name: string): Promise<boolean>;
-  /** The group's maker: its cover — the pattern, and a new photo (data URL), null to take it off, undefined to keep it. */
-  onCover(cover: number, photo?: string | null): Promise<boolean>;
+  /**
+   * The group's maker: its cover — the pattern, a new photo (data URL), null
+   * to take it off, undefined to keep it, and its colour (2026-11-16, one of
+   * the four app themes; undefined = none, follow each viewer's own app theme).
+   */
+  onCover(cover: number, photo?: string | null, swatch?: ThemeId): Promise<boolean>;
   /** My own look for the cover, this phone only (`Group.coverOverride`); null = none, the maker's shows. */
   coverOverride: GroupCoverOverride | null;
   /** Sets my own look for the cover (shape, colour, or a personal photo) — applies at once, no 저장. */
@@ -289,8 +293,6 @@ export default function GroupSettingsDialog({ group, me, onRename, onCover, cove
   );
 }
 
-/** MY COVER's palette (2026-11-15): the four app themes only — not the full 테마 list. */
-const MY_COVER_THEMES = THEMES.slice(0, 4);
 
 /**
  * MY COVER (2026-11-15; a member only — the maker has no use for it, their
@@ -335,8 +337,8 @@ function MyCoverRow({
       </div>
       {mine && (
         <>
-          <div className="group-form__colors group-form__swatches" role="radiogroup" aria-label="그룹 테마 색">
-            {MY_COVER_THEMES.map((t) => (
+          <div className="group-form__colors group-form__swatches group-form__swatches--block" role="radiogroup" aria-label="그룹 테마 색">
+            {APP_COVER_THEMES.map((t) => (
               <button
                 key={t.id}
                 type="button"
@@ -414,7 +416,7 @@ function GroupManageDialog({
   group: Group;
   me: string | null;
   onRename(name: string): Promise<boolean>;
-  onCover(cover: number, photo?: string | null): Promise<boolean>;
+  onCover(cover: number, photo?: string | null, swatch?: ThemeId): Promise<boolean>;
   coverOverride: GroupCoverOverride | null;
   onMyCover(override: GroupCoverOverride): void;
   onResetMyCover(): void;
@@ -429,6 +431,7 @@ function GroupManageDialog({
   const [name, setName] = useState(group.name);
   const [cover, setCover] = useState(group.cover);
   const [photo, setPhoto] = useState<string | null>(group.coverPhoto ?? null);
+  const [swatch, setSwatch] = useState<ThemeId | undefined>(group.coverSwatch);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   useEffect(() => {
@@ -441,12 +444,12 @@ function GroupManageDialog({
     // The group's name can't be emptied: that's no change.
     const renamed = !!nextName && nextName !== group.name.trim();
     const photoChanged = photo !== (group.coverPhoto ?? null);
-    const recovered = cover !== group.cover || photoChanged;
+    const recovered = cover !== group.cover || photoChanged || swatch !== group.coverSwatch;
     if (!renamed && !recovered) return dialogRef.current?.close();
     setBusy(true);
     const named = !renamed || (await onRename(nextName));
     // A photo already up is kept as it is (undefined); a new one is a data URL.
-    const covered = !recovered || (await onCover(cover, photoChanged ? photo : undefined));
+    const covered = !recovered || (await onCover(cover, photoChanged ? photo : undefined, swatch));
     setBusy(false);
     if (named && covered) dialogRef.current?.close();
     else if (!named) setProblem('이름을 바꾸지 못했어요.');
@@ -457,7 +460,7 @@ function GroupManageDialog({
     <dialog
       ref={dialogRef}
       className="group-form ticket-dialog theme-scope"
-      data-theme={coverOverride?.swatch}
+      data-theme={coverOverride?.swatch ?? (owner ? swatch : group.coverSwatch)}
       aria-label="그룹 관리"
       onClose={(event) => {
         event.stopPropagation();
@@ -500,13 +503,17 @@ function GroupManageDialog({
                 {[...name].length}/{GROUP_LIMITS.name}
               </small>
             </label>
-            <p className="group-form__label">COVER</p>
             <CoverPicker
               cover={cover}
               photo={photo}
+              swatch={swatch}
               onChange={(c, p) => {
                 setCover(c);
                 setPhoto(p);
+                setProblem(null);
+              }}
+              onSwatch={(s) => {
+                setSwatch(s);
                 setProblem(null);
               }}
             />

@@ -5,6 +5,8 @@
  */
 
 import type { PolaroidLayout } from './polaroid';
+import themeStationery from '../../public/stickers/theme-stationery-20261115/manifest.json';
+import cuteThemeStickers from '../../public/stickers/theme-cute-20261116/manifest.json';
 
 /** 'polaroid' (the card's layout) is the share screen's only. */
 export type DecorTool = 'sticker' | 'pen' | 'text' | 'theme' | 'pattern' | 'polaroid';
@@ -206,7 +208,10 @@ export interface StickerAsset {
   src: string;
 }
 
+export const THEME_STICKERS: StickerAsset[] = [...themeStationery.assets, ...cuteThemeStickers.assets].map(({ id, label, src }) => ({ id, label, src: `${import.meta.env.BASE_URL}${src}` }));
+
 const STICKER_ASSETS: StickerAsset[] = [
+  ...THEME_STICKERS,
   { id: 'minimal-20261017-121', label: '심플 두들 웃는 얼굴', src: `${import.meta.env.BASE_URL}stickers/minimal-20261017-121.png` },
   { id: 'doodle-20261017-001', label: '두들 잔잔한 미소', src: `${import.meta.env.BASE_URL}stickers/doodle-20261017-001.png` },
   { id: 'doodle-20261017-008', label: '두들 신난 얼굴', src: `${import.meta.env.BASE_URL}stickers/doodle-20261017-008.png` },
@@ -446,7 +451,9 @@ const RETIRED_STICKER_IDS = new Set([
   "pop-bubble",
 ]);
 
-export const STICKERS: StickerAsset[] = STICKER_ASSETS.filter((sticker) => !RETIRED_STICKER_IDS.has(sticker.id));
+export const STICKERS: StickerAsset[] = STICKER_ASSETS.filter((sticker) => !/^theme-\d{8}-/.test(sticker.id) && !RETIRED_STICKER_IDS.has(sticker.id));
+
+export const EDITOR_STICKERS: StickerAsset[] = [...THEME_STICKERS, ...STICKERS];
 
 export const getSticker = (id: string) => STICKER_ASSETS.find((sticker) => sticker.id === id);
 
@@ -608,6 +615,9 @@ export const THEMES: { id: ThemeId; label: string }[] = [
   { id: 'y2k', label: 'Y2K' },
   { id: 'mono', label: '모노' },
 ];
+
+/** The four app themes (말차·바나나·초코·딸기) — the only ones a group's own cover colour (its maker's, or a member's MY COVER) picks from. */
+export const APP_COVER_THEMES = THEMES.slice(0, 4);
 
 /** Background patterns (꾸미기); some drift slowly on screen, the share image is a still. */
 export type PatternId =

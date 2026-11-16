@@ -104,6 +104,12 @@ export interface Group {
   /** The group's own cover photo (URL), picked from the gallery: shown in place of `cover`'s pattern. */
   coverPhoto?: string;
   /**
+   * The maker's own colour for the shared cover (2026-11-16, one of the four
+   * app themes) — what everyone sees whose own MY COVER hasn't overridden it.
+   * Synced (`groups.cover_swatch`); undefined keeps the viewer's own app theme.
+   */
+  coverSwatch?: ThemeId;
+  /**
    * My own look for the cover (2026-11-15): a shape and, optionally, a
    * colour swatch, in place of the maker's — this phone only, never sent to
    * the group. `cover`/`coverPhoto` above stay the maker's own choice (what
@@ -150,11 +156,12 @@ export function withCoverOverrides(groups: readonly Group[], overrides: Readonly
 /** A class on the cover's `<svg>`/wrapper that tints it to `swatch` (`styles.css` `.cover-tint--<id>`); '' for the app theme's own tones. */
 export const coverTintClass = (swatch: ThemeId | undefined): string => (swatch ? `cover-tint cover-tint--${swatch}` : '');
 
-/** What a group's cover actually shows: my own override if I have one (a photo of my own wins over its shape), else its maker's. */
-export function effectiveCover(g: Pick<Group, 'cover' | 'coverPhoto' | 'coverOverride'>): { cover: number; photo: string | null; tintClass: string } {
+/** What a group's cover actually shows: my own override if I have one (a photo of my own wins over its shape), else its maker's (own colour and all). */
+export function effectiveCover(g: Pick<Group, 'cover' | 'coverPhoto' | 'coverSwatch' | 'coverOverride'>): { cover: number; photo: string | null; tintClass: string } {
   const ov = g.coverOverride;
   if (ov?.photo) return { cover: ov.cover, photo: ov.photo, tintClass: '' };
-  return ov ? { cover: ov.cover, photo: null, tintClass: coverTintClass(ov.swatch) } : { cover: g.cover, photo: g.coverPhoto ?? null, tintClass: '' };
+  if (ov) return { cover: ov.cover, photo: null, tintClass: coverTintClass(ov.swatch) };
+  return { cover: g.cover, photo: g.coverPhoto ?? null, tintClass: g.coverPhoto ? '' : coverTintClass(g.coverSwatch) };
 }
 
 export const GROUP_LIMITS = { name: 12, alias: 20, members: 20, pingsPerMember: 200, covers: 7 } as const;

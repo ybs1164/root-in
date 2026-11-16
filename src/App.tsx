@@ -2368,11 +2368,11 @@ export default function App() {
 
       {groupFormOpen && (
         <GroupFormDialog
-          onSubmit={async (name, cover, slug, photo) => {
-            const made = await groups.create(name, cover, slug);
+          onSubmit={async (name, cover, slug, photo, swatch) => {
+            const made = await groups.create(name, cover, slug, swatch);
             if (!made) return false;
             // The cover photo goes up once the group is there; the group stands even if it doesn't.
-            if (photo && !(await groups.setCover(made.id, cover, photo))) return notify('그룹을 만들었어요. 표지 사진은 올리지 못했어요.'), true;
+            if (photo && !(await groups.setCover(made.id, cover, photo, swatch))) return notify('그룹을 만들었어요. 표지 사진은 올리지 못했어요.'), true;
             notify(made.inviteSlug === slug ? '그룹을 만들었어요.' : '그룹을 만들었어요. 초대 링크가 바뀌었으니 ⚙에서 다시 복사하세요.');
             return true;
           }}
@@ -2384,7 +2384,7 @@ export default function App() {
         <GroupSettingsDialog
           group={openGroup}
           onRename={(name) => groups.rename(openGroup.id, name)}
-          onCover={(cover, photo) => groups.setCover(openGroup.id, cover, photo)}
+          onCover={(cover, photo, swatch) => groups.setCover(openGroup.id, cover, photo, swatch)}
           coverOverride={openGroup.coverOverride ?? null}
           onMyCover={(override) => setMyCover(openGroup.id, override)}
           onResetMyCover={() => setMyCover(openGroup.id, null)}

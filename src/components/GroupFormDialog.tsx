@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { GROUP_LIMITS } from '../domain/groups';
+import type { ThemeId } from '../domain/decor';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import { inviteUrl } from '../services/groupService';
 import { newSlug } from '../services/shareLinkService';
@@ -8,8 +9,12 @@ import CoverPicker from './CoverPicker';
 import { showModalQuietly } from '../lib/dialog';
 
 interface GroupFormDialogProps {
-  /** Resolves false when it didn't go through (the dialog then stays open with a note). `photo`: a cover photo picked from the gallery. */
-  onSubmit(name: string, cover: number, inviteSlug: string, photo: string | null): Promise<boolean>;
+  /**
+   * Resolves false when it didn't go through (the dialog then stays open
+   * with a note). `photo`: a cover photo picked from the gallery. `swatch`
+   * (2026-11-16): the cover's own colour, one of the four app themes.
+   */
+  onSubmit(name: string, cover: number, inviteSlug: string, photo: string | null, swatch?: ThemeId): Promise<boolean>;
   onClose(): void;
 }
 
@@ -24,6 +29,7 @@ export default function GroupFormDialog({ onSubmit, onClose }: GroupFormDialogPr
   const [name, setName] = useState('');
   const [cover, setCover] = useState(0);
   const [photo, setPhoto] = useState<string | null>(null);
+  const [swatch, setSwatch] = useState<ThemeId | undefined>();
   // The group's invite slug, picked now so its link can be shown (and copied) before 만들기.
   const [slug] = useState(() => newSlug());
   const [busy, setBusy] = useState(false);
@@ -38,7 +44,7 @@ export default function GroupFormDialog({ onSubmit, onClose }: GroupFormDialogPr
   const submit = async () => {
     if (!canSubmit) return;
     setBusy(true);
-    const ok = await onSubmit(name.trim(), cover, slug, photo);
+    const ok = await onSubmit(name.trim(), cover, slug, photo, swatch);
     setBusy(false);
     if (ok) dialogRef.current?.close();
     else setProblem('그룹을 만들지 못했어요. 잠시 뒤에 다시 시도해 주세요.');
@@ -81,14 +87,15 @@ export default function GroupFormDialog({ onSubmit, onClose }: GroupFormDialogPr
             {[...name].length}/{GROUP_LIMITS.name}
           </small>
         </label>
-        <p className="group-form__label">COVER</p>
         <CoverPicker
           cover={cover}
           photo={photo}
+          swatch={swatch}
           onChange={(c, p) => {
             setCover(c);
             setPhoto(p);
           }}
+          onSwatch={setSwatch}
         />
         <p className="group-form__label">INVITE</p>
         <InviteLinkField url={inviteUrl(slug)} />
