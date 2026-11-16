@@ -340,6 +340,34 @@ describe('groupService', () => {
     expect(await service.sendMessage('bad', 'hi')).toBe(false);
   });
 
+  it('reads replies and lines deleted for everyone, answers a line, and deletes my own', async () => {
+    const C1 = '11111111-2222-4333-8444-555555555555';
+    const C2 = '11111111-2222-4333-8444-555555555556';
+    const feed = readFeed(
+      [
+        { kind: 'message', id: C2, user_id: U2, at: '2026-11-16T02:00:00Z', body: '응', reply_kind: 'message', reply_id: C1, deleted: false },
+        { kind: 'message', id: C1, user_id: U1, at: '2026-11-16T01:00:00Z', body: null, deleted: true },
+        { kind: 'message', id: C1, user_id: U1, at: '2026-11-16T00:00:00Z', body: 'x', reply_kind: 'poll', reply_id: C2 },
+      ],
+      () => null,
+    );
+    // Oldest first: the bad reply's message, the deleted one, the reply.
+    expect(feed[0]).toMatchObject({ body: 'x' });
+    expect(feed[0].replyTo).toBeUndefined();
+    expect(feed[1]).toMatchObject({ id: C1, deleted: true });
+    expect(feed[1].body).toBeUndefined();
+    expect(feed[2]).toMatchObject({ body: '응', replyTo: { kind: 'message', id: C1 } });
+
+    const fake = fakeClient((fn) => ({ data: fn === 'send_group_message' ? C2 : true }));
+    const service = createSupabaseGroupService(async () => fake.client, true);
+    expect(await service.sendMessage(G1, '응', { kind: 'message', id: C1 })).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('send_group_message', { gid: G1, message: '응', reply_kind: 'message', reply_id: C1 });
+    expect(await service.deleteLine(G1, { kind: 'message', id: C1 })).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('delete_group_message', { mid: C1 });
+    expect(await service.deleteLine(G1, { kind: 'comment', id: C2 })).toBe(true);
+    expect(fake.rpc).toHaveBeenLastCalledWith('delete_photo_comment', { cid: C2 });
+  });
+
   it("reads every member's doodles on a photo, pieces only, and saves mine (nothing on it: taken off)", async () => {
     const path = `${U1}/AbCdEf123456.jpg`;
     const stroke = { tool: 'pen', color: 'member-3', width: 'medium', points: [[0.1, 0.2], [0.3, 0.4]] };

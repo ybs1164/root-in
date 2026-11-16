@@ -37,6 +37,7 @@ const KEYS: Record<string, KeyInfo> = {
   'goodroot:member-seen:v1': { status: 'current', what: '그룹원을 마지막으로 본 때 (얼굴 배지)' },
   'goodroot:photo-comments:v1': { status: 'current', what: 'TODAY 사진 댓글 (이 폰에만)' },
   'goodroot:ping-photos:v1': { status: 'legacy', what: 'TODAY 핑 사진, 핑마다 한 장', into: 'goodroot:ping-photos:v2' },
+  'goodroot:chat-hidden:v1': { status: 'current', what: '그룹 대화에서 나에게만 삭제한 줄 id (이 폰에만)' },
   'goodroot:ping-photos:v2': { status: 'current', what: 'TODAY 핑 사진, 핑마다 쌓임 (이 폰에만)' },
   'goodroot:anonymous-user-id': { status: 'current', what: '이 기기의 익명 사용자 id (버전 없는 옛 키)' },
   'goodroot:share-display-name': { status: 'current', what: '공유할 때 이름 (버전 없는 옛 키)' },

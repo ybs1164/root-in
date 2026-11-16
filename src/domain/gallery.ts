@@ -189,6 +189,16 @@ export interface FeedItem {
   photo?: string;
   /** Where that photo was taken. */
   place?: string;
+  /** A message answering another line of the 대화 (by its kind and id). */
+  replyTo?: FeedRef;
+  /** A message its writer deleted for everyone: no `body`, shown as '삭제된 메시지예요'. */
+  deleted?: boolean;
+}
+
+/** A line of a group's 대화, as a reply points at it. */
+export interface FeedRef {
+  kind: FeedItem['kind'];
+  id: string;
 }
 
 /**
