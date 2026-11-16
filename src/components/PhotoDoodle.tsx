@@ -18,7 +18,10 @@ import { inLayerInk, type PhotoDecorLayer } from '../domain/gallery';
 import type { StickerDrop } from '../domain/stickerSheets';
 import { usePhotoDecor } from '../hooks/usePhotoDecor';
 import DecorLayer, { type TextFocus } from './DecorLayer';
-import { DecorTray } from './DecorTools';
+import { lazyScreen } from '../lib/lazyScreen';
+
+// The tool sheet (sticker packs, pens, colours) comes with the first tool opened, not with the photo.
+const DecorTray = lazyScreen(() => import('./DecorTray'));
 
 type DoodleTool = 'pen' | 'sticker' | 'text';
 const DOODLE_TOOLS: { tool: DoodleTool; label: string; Icon: typeof PenLine }[] = [

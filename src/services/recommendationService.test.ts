@@ -1,47 +1,46 @@
 import { describe, expect, it } from 'vitest';
 import { samplePlaces } from '../test/fixtures';
-import type { PlaceRef, TravelRoute } from '../types/travelRoute';
+import type { Course, PlaceRef } from '../types/course';
 import { getPopularRoutes } from './recommendationService';
-import type { TravelRouteRepository } from './travelRouteRepository';
 
-const route = (origin: PlaceRef, destination: PlaceRef, userId = 'u'): TravelRoute => ({
+const course = (places: PlaceRef[], userId = 'u'): Course => ({
   id: Math.random().toString(16),
   userId,
-  origin,
-  destination,
   title: '',
+  theme: 'etc',
+  travelMode: 'walk',
+  stops: places.map((place) => ({ place })),
   createdAt: '2026-09-28T00:00:00.000Z',
 });
 
-const fakeRepo = (routes: TravelRoute[]): TravelRouteRepository => ({
-  listAll: async () => routes,
-  listByUser: async (userId) => routes.filter((r) => r.userId === userId),
-  add: async () => {
-    throw new Error('not used');
-  },
-  remove: async () => {},
-});
+const fakeRepo = (courses: Course[]) => ({ listAll: async () => courses });
 
 const { onionSeongsu: a, seoulForest: b, haeundae: c, gamcheon: d } = samplePlaces;
 
 describe('getPopularRoutes', () => {
-  it('ranks origin→destination pairs by how often they were saved', async () => {
-    const repo = fakeRepo([route(a, b), route(c, d, 'x'), route(a, b, 'y'), route(a, b, 'z'), route(c, d)]);
+  it('ranks routes through the same places by how often they were saved', async () => {
+    const repo = fakeRepo([course([a, b]), course([c, d], 'x'), course([a, b], 'y'), course([a, b], 'z'), course([c, d])]);
     const result = await getPopularRoutes(repo);
 
-    expect(result.map((r) => [r.originId, r.destinationId, r.count])).toEqual([
-      [a.id, b.id, 3],
-      [c.id, d.id, 2],
+    expect(result.map((r) => [r.placeIds, r.count])).toEqual([
+      [[a.id, b.id], 3],
+      [[c.id, d.id], 2],
     ]);
+    expect(result[0].placeNames).toEqual([a.name, b.name]);
   });
 
-  it('treats direction as significant', async () => {
-    const result = await getPopularRoutes(fakeRepo([route(a, b), route(b, a)]));
+  it('treats the order of the stops as significant', async () => {
+    const result = await getPopularRoutes(fakeRepo([course([a, b]), course([b, a])]));
     expect(result).toHaveLength(2);
   });
 
+  it('tells a route apart from a longer one that starts the same way', async () => {
+    const result = await getPopularRoutes(fakeRepo([course([a, b]), course([a, b, c])]));
+    expect(result.map((r) => r.placeIds.length).sort()).toEqual([2, 3]);
+  });
+
   it('respects the limit', async () => {
-    const repo = fakeRepo([route(a, b), route(b, c), route(c, d), route(d, a)]);
+    const repo = fakeRepo([course([a, b]), course([b, c]), course([c, d]), course([d, a])]);
     expect(await getPopularRoutes(repo, 2)).toHaveLength(2);
   });
 

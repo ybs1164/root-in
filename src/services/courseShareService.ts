@@ -3,6 +3,8 @@ import { COURSE_LIMITS, COURSE_THEMES, TRAVEL_MODES } from '../domain/course';
 import type { CourseStop, CourseTheme, PlaceRef, SharedCourse, TravelMode } from '../types/course';
 import { decodeSharedRoute, readShareToken, SHARE_LIMITS } from './routeShareService';
 import { publicAppUrl } from '../lib/appUrl';
+import { fromBase64Url, toBase64Url } from '../lib/base64url';
+import { clampText, isFiniteNumber } from './sharePayload';
 
 const SHARE_HASH_KEY = 'share';
 const PAYLOAD_VERSION = 2;
@@ -35,30 +37,6 @@ interface WirePayloadV2 {
   b?: string;
   a: string;
 }
-
-const toBase64Url = (text: string): string => {
-  const bytes = new TextEncoder().encode(text);
-  let binary = '';
-  bytes.forEach((byte) => {
-    binary += String.fromCharCode(byte);
-  });
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-};
-
-const fromBase64Url = (token: string): string => {
-  const base64 = token.replace(/-/g, '+').replace(/_/g, '/');
-  const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
-  const bytes = Uint8Array.from(atob(padded), (ch) => ch.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
-};
-
-const clampText = (value: unknown, max: number): string | undefined => {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim().slice(0, max);
-  return trimmed || undefined;
-};
-
-const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
 // 6 decimals ≈ 10cm; more precision only makes links longer.
 const round6 = (n: number) => Math.round(n * 1e6) / 1e6;

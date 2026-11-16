@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { addDays } from './calendar';
 import { classifyPress, dayTitle, EDGE_STYLES, edgeKey, latestPingIndex, layoutPings, pingCounts, pingKey, pinchOutcome, pinchProgress, pingsForDate, pingsLandedMs, photoPingTarget, todayCandidates, type DayPing, type StoredPing } from './dayPings';
 
 const SAMPLE_TODAY_PINGS: DayPing[] = [

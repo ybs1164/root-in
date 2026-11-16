@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Course } from '../types/course';
 import type { DayPing } from './dayPings';
-import { BACK_CARD, cardToScene, CLOTHESLINE, clotheslineY, DEFAULT_LAYOUT, DRAWING_BOX, POLAROID_LAYOUTS, FRONT_CARD, LAYOUT_CARDS, POLAROID, SCENE, sceneToCard, STRIP } from './polaroid';
+import { BACK_CARD, cardToScene, CLOTHESLINE, clotheslineY, DEFAULT_LAYOUT, DRAWING_BOX, POLAROID_LAYOUTS, FRONT_CARD, LAYOUT_CARDS, POLAROID, SCENE, STRIP } from './polaroid';
 import type { ExcludedPlace } from './privacy';
 import { dayCardTitle, daySubject, routeSubject } from './shareSubject';
 

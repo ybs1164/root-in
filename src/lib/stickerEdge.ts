@@ -5,9 +5,6 @@
  * isn't all edge.
  */
 
-/** The edge's width, as a share of the sticker picture's width (the pack sheet and the peel). */
-export const STICKER_EDGE = 0.022;
-
 /**
  * A placed sticker's edge, as a share of the drawing's width: the same for
  * every sticker however big it's made — scaled with the sticker, a shrunk

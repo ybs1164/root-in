@@ -1,5 +1,6 @@
-import type { PlaceRef, SharedRoute } from '../types/travelRoute';
-import { publicAppUrl } from '../lib/appUrl';
+import type { PlaceRef } from '../types/course';
+import { fromBase64Url, toBase64Url } from '../lib/base64url';
+import { clampText, isFiniteNumber } from './sharePayload';
 
 const SHARE_HASH_KEY = 'share';
 const PAYLOAD_VERSION = 1;
@@ -12,18 +13,18 @@ export const SHARE_LIMITS = {
 } as const;
 
 /**
- * Turning a route into something another person can open, and back.
- *
- * `LinkRouteShareService` below needs no server: the whole route is encoded
- * into the URL fragment (`#share=…`), which browsers never send to a server,
- * so nothing is uploaded anywhere. Once there's a backend, a service that
- * stores the payload and returns a short id link can implement this same
- * interface — callers already treat both methods as async.
+ * The first share links (`#share=…`, payload v1): one origin → destination
+ * route. Nothing makes these any more, but an old link must still open —
+ * courseShareService reads one as a 2-stop course.
  */
-export interface RouteShareService {
-  createShareUrl(route: SharedRoute): Promise<string>;
-  /** Reads a shared route from a URL; null when there is none or it's invalid. */
-  resolveFromUrl(url: string): Promise<SharedRoute | null>;
+export interface SharedRoute {
+  origin: PlaceRef;
+  destination: PlaceRef;
+  title: string;
+  note?: string;
+  /** Display name the sharer chose; empty means anonymous. */
+  sharedBy?: string;
+  sharedAt: string; // ISO timestamp
 }
 
 // Compact wire format keeps links short.
@@ -41,31 +42,6 @@ interface WirePayload {
   b?: string;
   a: string;
 }
-
-const toBase64Url = (text: string): string => {
-  const bytes = new TextEncoder().encode(text);
-  let binary = '';
-  bytes.forEach((byte) => {
-    binary += String.fromCharCode(byte);
-  });
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-};
-
-const fromBase64Url = (token: string): string => {
-  const base64 = token.replace(/-/g, '+').replace(/_/g, '/');
-  const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
-  const binary = atob(padded);
-  const bytes = Uint8Array.from(binary, (ch) => ch.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
-};
-
-const clampText = (value: unknown, max: number): string | undefined => {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim().slice(0, max);
-  return trimmed || undefined;
-};
-
-const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
 // Share links come from anyone, so every field is validated rather than
 // trusted: wrong shapes are rejected, and strings are length-clamped.
@@ -132,28 +108,4 @@ export function clearShareFromLocation(): void {
   params.delete('s'); // a short link (#s=…, shareLinkService)
   const rest = params.toString();
   window.history.replaceState(null, '', `${url.pathname}${url.search}${rest ? `#${rest}` : ''}`);
-}
-
-export class LinkRouteShareService implements RouteShareService {
-  constructor(private readonly baseUrl: () => string = publicAppUrl) {}
-
-  async createShareUrl(route: SharedRoute): Promise<string> {
-    return `${this.baseUrl()}#${SHARE_HASH_KEY}=${encodeSharedRoute(route)}`;
-  }
-
-  async resolveFromUrl(url: string): Promise<SharedRoute | null> {
-    const token = readShareToken(url);
-    return token ? decodeSharedRoute(token) : null;
-  }
-}
-
-export const routeShareService: RouteShareService = new LinkRouteShareService();
-
-/** Plain-text version for chat apps that don't unfurl links nicely. */
-export function formatShareText(route: SharedRoute, url: string): string {
-  const lines = [`🗺️ ${route.title}`, `${route.origin.name} → ${route.destination.name}`];
-  if (route.note) lines.push(`📝 ${route.note}`);
-  if (route.sharedBy) lines.push(`— ${route.sharedBy}`);
-  lines.push(url);
-  return lines.join('\n');
 }

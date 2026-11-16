@@ -128,6 +128,7 @@ interface Course {
 ### 1.7 정리 (0.5일)
 - `data/places.ts`, 기존 출발/도착 select UI, `TravelRoute` 타입 제거
 - `recommendationService`는 코스 기준으로 키만 바꿔 유지 (스톱 id 목록 해시) — 실제 추천은 M3
+- **완료 (2026-11-16)**: `data/places.ts`·`hooks/useTravelRoutes.ts`·`services/travelRouteRepository.ts`·`services/routingService.ts`·`types/travelRoute.ts` 삭제. `PlaceRef`는 `types/course.ts`로, 옛 저장소 키(`goodroot:travel-routes:v1`) 마이그레이션용 타입은 `courseRepository` 안으로, 옛 `#share=`(v1) 디코더용 `SharedRoute`는 `routeShareService`로 옮김(만드는 쪽 `LinkRouteShareService`·`formatShareText`는 삭제). `recommendationService`는 같은 장소를 같은 순서로 지나는 코스를 세도록 바꿈. 확인: `src/test/cleanup.test.ts`.
 
 ### 추가: 하루 경로 기록(다이어리) + 위시리스트 (2026-09-28)
 정보량은 셋로그처럼 최소로: 하루 = **시간 · 장소 · 한 줄** 타임라인.

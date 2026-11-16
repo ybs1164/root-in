@@ -1,48 +1,44 @@
-import { travelRouteRepository, type TravelRouteRepository } from './travelRouteRepository';
+import type { Course } from '../types/course';
+import { courseRepository, type CourseRepository } from './courseRepository';
 
 export interface RouteRecommendation {
-  originId: string;
-  destinationId: string;
-  originName: string;
-  destinationName: string;
-  /** How many saved routes matched this origin→destination pair. */
+  /** The route's places in order: what makes two saved routes the same one. */
+  placeIds: string[];
+  placeNames: string[];
+  /** How many saved routes go through exactly these places in this order. */
   count: number;
 }
 
+/** Two routes are the same recommendation when they visit the same places in the same order. */
+const routeKey = (course: Pick<Course, 'stops'>): string => course.stops.map((stop) => stop.place.id).join('>');
+
 /**
  * Extension point for the planned "recommend based on other users' saved
- * routes" feature.
+ * routes" feature (M3; nothing shows it yet).
  *
  * `repository.listAll()` is the seam: right now it only sees this one
- * browser's own routes (LocalTravelRouteRepository), so this just counts
- * duplicate origin→destination pairs among them. Once travel routes move to
- * a real backend, `listAll()` starts returning every user's routes and this
- * function begins ranking genuine cross-user popularity — no caller-side
- * changes needed. From there it's natural to layer in things like recency,
- * distance from the user's current search, or per-user ratings.
+ * browser's own routes (LocalCourseRepository), so this just counts routes
+ * through the same places among them. Once routes are read from a backend,
+ * `listAll()` starts returning every user's routes and this begins ranking
+ * genuine cross-user popularity — no caller-side changes needed.
  */
 export async function getPopularRoutes(
-  repository: TravelRouteRepository = travelRouteRepository,
+  repository: Pick<CourseRepository, 'listAll'> = courseRepository,
   limit = 3,
 ): Promise<RouteRecommendation[]> {
-  const routes = await repository.listAll();
-  const byPair = new Map<string, RouteRecommendation>();
-
-  for (const route of routes) {
-    const key = `${route.origin.id}->${route.destination.id}`;
-    const existing = byPair.get(key);
-    if (existing) {
-      existing.count += 1;
-    } else {
-      byPair.set(key, {
-        originId: route.origin.id,
-        destinationId: route.destination.id,
-        originName: route.origin.name,
-        destinationName: route.destination.name,
+  const byRoute = new Map<string, RouteRecommendation>();
+  for (const course of await repository.listAll()) {
+    if (course.stops.length === 0) continue;
+    const key = routeKey(course);
+    const existing = byRoute.get(key);
+    if (existing) existing.count += 1;
+    else {
+      byRoute.set(key, {
+        placeIds: course.stops.map((stop) => stop.place.id),
+        placeNames: course.stops.map((stop) => stop.place.name),
         count: 1,
       });
     }
   }
-
-  return [...byPair.values()].sort((a, b) => b.count - a.count).slice(0, limit);
+  return [...byRoute.values()].sort((a, b) => b.count - a.count).slice(0, limit);
 }

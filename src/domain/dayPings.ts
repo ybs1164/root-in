@@ -1,4 +1,3 @@
-import { addDays } from './calendar';
 import { dateKey, timeKey } from './diary';
 import { haversineMeters } from './geo';
 import type { PlaceKind } from './placeKinds';

@@ -6,6 +6,7 @@ import type { PlaceRef, TravelMode } from '../types/course';
 import type { DiaryMood, DiaryStop, SharedDiary } from '../types/diary';
 import { SHARE_LIMITS } from './routeShareService';
 import { publicAppUrl } from '../lib/appUrl';
+import { clampText, isFiniteNumber } from './sharePayload';
 
 // A separate fragment key from course links (`#share=`), so each link type
 // has its own decoder and adding one never breaks the other.
@@ -39,14 +40,6 @@ interface WirePayload {
   b?: string; // shared by
   a: string; // shared at
 }
-
-const clampText = (value: unknown, max: number): string | undefined => {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim().slice(0, max);
-  return trimmed || undefined;
-};
-
-const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
 
 const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
 

@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Share } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type TouchEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { dayTitle, edgeKey, photoPingTarget, PINCH, pinchOutcome, pinchProgress, pingCounts, pingKey, pingsForDate, pingsLandedMs, type DayPing, type LineLook, type PingLook } from '../domain/dayPings';
@@ -41,7 +41,11 @@ import { dateKey } from '../domain/diary';
 import DayPings from './DayPings';
 import type { StickerDrop } from '../domain/stickerSheets';
 import DecorLayer, { type TextFocus } from './DecorLayer';
-import { DecorRail, DecorTray } from './DecorTools';
+import { DecorRail } from './DecorRail';
+import { lazyScreen } from '../lib/lazyScreen';
+
+// The tool sheet (sticker packs, pens, colours) comes with the first tool opened, not with TODAY.
+const DecorTray = lazyScreen(() => import('./DecorTray'));
 import WeekCalendar, { cardRoute, weekCardDay, type CalendarPhotos } from './WeekCalendar';
 import type { ExcludedPlace } from '../domain/privacy';
 

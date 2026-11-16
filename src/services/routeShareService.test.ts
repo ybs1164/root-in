@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { samplePlaces, sampleSharedRoute } from '../test/fixtures';
+import { sampleSharedRoute } from '../test/fixtures';
 import {
   decodeSharedRoute,
   encodeSharedRoute,
-  formatShareText,
-  LinkRouteShareService,
   readShareToken,
   SHARE_LIMITS,
 } from './routeShareService';
@@ -82,39 +80,9 @@ describe('share link validation (links come from anyone)', () => {
   });
 });
 
-describe('LinkRouteShareService', () => {
-  const service = new LinkRouteShareService(() => 'https://goodroot.app/');
-
-  it('puts the route in the URL fragment only (never the query string)', async () => {
-    const url = new URL(await service.createShareUrl(sampleSharedRoute()));
-    expect(url.search).toBe('');
-    expect(url.hash).toMatch(/^#share=/);
-  });
-
-  it('resolves what it created', async () => {
-    const route = sampleSharedRoute();
-    expect(await service.resolveFromUrl(await service.createShareUrl(route))).toEqual(route);
-  });
-
+describe('readShareToken', () => {
   it('keeps other hash params alongside the share token', () => {
     expect(readShareToken('https://goodroot.app/#foo=1&share=abc')).toBe('abc');
     expect(readShareToken('https://goodroot.app/#foo=1')).toBeNull();
-  });
-
-  it('resolves to null for a URL without a share', async () => {
-    expect(await service.resolveFromUrl('https://goodroot.app/')).toBeNull();
-  });
-});
-
-describe('formatShareText', () => {
-  it('includes title, stops, note, author and link', () => {
-    const text = formatShareText(sampleSharedRoute(), 'https://goodroot.app/#share=x');
-    expect(text.split('\n')).toEqual([
-      '🗺️ 성수 데이트 코스',
-      `${samplePlaces.onionSeongsu.name} → ${samplePlaces.seoulForest.name}`,
-      '📝 카페에서 브런치 먹고 서울숲 산책 🌳',
-      '— 지우',
-      'https://goodroot.app/#share=x',
-    ]);
   });
 });
