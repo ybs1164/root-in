@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { cleanGroupName, GROUP_LIMITS, readDayDecorKey, readGroupLooks, readPingDays, type Group, type GroupMember, type GroupPing, type PingDays } from '../domain/groups';
+import { isThemeId, type ThemeId } from '../domain/decor';
 import { getSupabase, supabaseConfigured } from '../lib/supabase';
 import { inKorea } from './pinShareService';
 import { dataUrlToBlob } from './remoteProfileService';
@@ -36,16 +37,19 @@ export interface GroupService {
   /**
    * The new group's id and invite slug, or null. `inviteSlug` is the one the
    * dialog already shows; only if it was taken (rare) does another replace it.
+   * `swatch` (2026-11-16): the maker's own colour for the shared cover, one
+   * of the four app themes — undefined keeps each viewer's own app theme.
    */
-  create(name: string, cover: number, inviteSlug?: string): Promise<{ id: string; inviteSlug: string } | null>;
+  create(name: string, cover: number, inviteSlug?: string, swatch?: ThemeId): Promise<{ id: string; inviteSlug: string } | null>;
   /** The group's id once joined (or already in it); null: no such group, or it's full. */
   join(slug: string): Promise<string | null | 'error'>;
   rename(id: string, name: string): Promise<boolean>;
   /**
-   * The group's cover (its maker only): the pattern, and the photo — a new
-   * square JPEG data URL, null to take it off, undefined to keep it.
+   * The group's cover (its maker only): the pattern, the photo — a new
+   * square JPEG data URL, null to take it off, undefined to keep it — and
+   * its colour (2026-11-16, one of the four app themes; undefined keeps it).
    */
-  setCover(id: string, cover: number, photo?: string | null): Promise<boolean>;
+  setCover(id: string, cover: number, photo?: string | null, swatch?: ThemeId): Promise<boolean>;
   leave(id: string): Promise<boolean>;
   /** 추방 (the group's maker only, never themselves). */
   kick(id: string, userId: string): Promise<boolean>;
@@ -398,6 +402,7 @@ export function readGroups(raw: unknown, photoUrl: (path: string) => string | nu
     const group: Group = { id: r.id, name: name || '이름 없는 그룹', cover, inviteSlug: r.invite_slug, mine: r.mine === true, members };
     const coverPhoto = typeof r.cover_path === 'string' && GROUP_COVER.test(r.cover_path) ? photoUrl(r.cover_path) : null;
     if (coverPhoto) group.coverPhoto = coverPhoto;
+    if (isThemeId(r.cover_swatch)) group.coverSwatch = r.cover_swatch;
     if (typeof r.created_at === 'string' && !Number.isNaN(Date.parse(r.created_at))) group.createdAt = new Date(r.created_at).toISOString();
     groups.push(group);
   }
@@ -486,7 +491,7 @@ export function createSupabaseGroupService(
       }
     },
 
-    async create(name, cover, wanted) {
+    async create(name, cover, wanted, swatch) {
       try {
         const clean = cleanGroupName(name);
         const client = await getClient();
@@ -494,7 +499,9 @@ export function createSupabaseGroupService(
         let safeCover = Number.isInteger(cover) && cover >= 0 && cover < GROUP_LIMITS.covers ? cover : 0;
         for (let attempt = 0; attempt < 3; attempt += 1) {
           const inviteSlug = attempt === 0 && wanted && SLUG.test(wanted) ? wanted : slug();
-          const { data, error } = await client.rpc('create_group', { group_name: clean, group_cover: safeCover, slug: inviteSlug });
+          let { data, error } = await client.rpc('create_group', { group_name: clean, group_cover: safeCover, slug: inviteSlug, group_swatch: swatch ?? null });
+          // A server before 20261116000000 (no group_swatch param yet): same call, without it.
+          if (error && swatch) ({ data, error } = await client.rpc('create_group', { group_name: clean, group_cover: safeCover, slug: inviteSlug }));
           if (!error) return typeof data === 'string' && UUID.test(data) ? { id: data, inviteSlug } : null;
           // A server with only the first four covers: made with the first one rather than not at all.
           if (error.code === CHECK_VIOLATION && safeCover > 0) {
@@ -509,7 +516,7 @@ export function createSupabaseGroupService(
       }
     },
 
-    async setCover(id, cover, photo) {
+    async setCover(id, cover, photo, swatch) {
       try {
         if (!UUID.test(id) || !Number.isInteger(cover) || cover < 0 || cover >= GROUP_LIMITS.covers) return false;
         const client = await getClient();
@@ -526,7 +533,10 @@ export function createSupabaseGroupService(
           const { error } = await bucket.upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
           if (error) return false;
         }
-        const { data, error } = await client.rpc('set_group_cover', { gid: id, new_cover: cover, new_photo: photo === undefined ? null : (path ?? '') });
+        const newPhoto = photo === undefined ? null : (path ?? '');
+        let { data, error } = await client.rpc('set_group_cover', { gid: id, new_cover: cover, new_photo: newPhoto, new_swatch: swatch ?? null });
+        // A server before 20261116000000 (no new_swatch param yet): same call, without it.
+        if (error && swatch) ({ data, error } = await client.rpc('set_group_cover', { gid: id, new_cover: cover, new_photo: newPhoto }));
         const ok = !error && !!data && (data as { ok?: unknown }).ok === true;
         if (!ok) {
           if (path) await bucket.remove([path]);

@@ -1,6 +1,7 @@
 import { haversineMeters } from './geo';
 import type { LineLook, PingLook } from './dayPings';
 import { dateKey } from './diary';
+import { isThemeId, type ThemeId } from './decor';
 /** We Now: a group whose members see each other's TODAY pings on one map. */
 export interface GroupPing {
   at: string;
@@ -102,12 +103,65 @@ export interface Group {
   cover: number;
   /** The group's own cover photo (URL), picked from the gallery: shown in place of `cover`'s pattern. */
   coverPhoto?: string;
+  /**
+   * The maker's own colour for the shared cover (2026-11-16, one of the four
+   * app themes) — what everyone sees whose own MY COVER hasn't overridden it.
+   * Synced (`groups.cover_swatch`); undefined keeps the viewer's own app theme.
+   */
+  coverSwatch?: ThemeId;
+  /**
+   * My own look for the cover (2026-11-15): a shape and, optionally, a
+   * colour swatch, in place of the maker's — this phone only, never sent to
+   * the group. `cover`/`coverPhoto` above stay the maker's own choice (what
+   * their own 그룹 관리 editor shows and 초기화 restores); a render reads
+   * this instead where it's set (`effectiveCover`).
+   */
+  coverOverride?: GroupCoverOverride;
   inviteSlug: string;
   /** Whether I made it (only the maker renames it). */
   mine: boolean;
   members: GroupMember[];
   /** When it was made (ISO), if the server said: its day wears a yellow star in the 대화's calendar. */
   createdAt?: string;
+}
+
+/**
+ * A member's own cover look (`Group.coverOverride`): a shape and colour
+ * swatch, or — a personal touch the maker never sees in their own editor —
+ * a photo of their own picked from their phone's gallery (2026-11-15); a
+ * photo wins over `cover`/`swatch` wherever the cover renders.
+ */
+export interface GroupCoverOverride {
+  cover: number;
+  swatch?: ThemeId;
+  photo?: string;
+}
+
+/** A stored `GroupCoverOverride`, checked; undefined if it doesn't look right. */
+export function readGroupCoverOverride(raw: unknown): GroupCoverOverride | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const cover = (raw as { cover?: unknown }).cover;
+  if (typeof cover !== 'number' || !Number.isInteger(cover) || cover < 0 || cover >= GROUP_LIMITS.covers) return undefined;
+  const swatch = (raw as { swatch?: unknown }).swatch;
+  const photo = (raw as { photo?: unknown }).photo;
+  return { cover, ...(isThemeId(swatch) ? { swatch } : {}), ...(typeof photo === 'string' && photo ? { photo } : {}) };
+}
+
+/** `groups` with each one's `coverOverride` set from `overrides` (mine only, by group id) — undefined where I have none. */
+export function withCoverOverrides(groups: readonly Group[], overrides: Readonly<Record<string, GroupCoverOverride>>): Group[] {
+  if (!Object.keys(overrides).length) return groups as Group[];
+  return groups.map((g) => (overrides[g.id] ? { ...g, coverOverride: overrides[g.id] } : g));
+}
+
+/** A class on the cover's `<svg>`/wrapper that tints it to `swatch` (`styles.css` `.cover-tint--<id>`); '' for the app theme's own tones. */
+export const coverTintClass = (swatch: ThemeId | undefined): string => (swatch ? `cover-tint cover-tint--${swatch}` : '');
+
+/** What a group's cover actually shows: my own override if I have one (a photo of my own wins over its shape), else its maker's (own colour and all). */
+export function effectiveCover(g: Pick<Group, 'cover' | 'coverPhoto' | 'coverSwatch' | 'coverOverride'>): { cover: number; photo: string | null; tintClass: string } {
+  const ov = g.coverOverride;
+  if (ov?.photo) return { cover: ov.cover, photo: ov.photo, tintClass: '' };
+  if (ov) return { cover: ov.cover, photo: null, tintClass: coverTintClass(ov.swatch) };
+  return { cover: g.cover, photo: g.coverPhoto ?? null, tintClass: g.coverPhoto ? '' : coverTintClass(g.coverSwatch) };
 }
 
 export const GROUP_LIMITS = { name: 12, alias: 20, members: 20, pingsPerMember: 200, covers: 7 } as const;

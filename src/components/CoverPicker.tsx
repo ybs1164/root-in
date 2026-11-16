@@ -1,6 +1,7 @@
 import { Images } from 'lucide-react';
-import { useRef, useState } from 'react';
-import { GROUP_LIMITS } from '../domain/groups';
+import { useRef, useState, type CSSProperties } from 'react';
+import { coverTintClass, GROUP_LIMITS } from '../domain/groups';
+import { APP_COVER_THEMES, type ThemeId } from '../domain/decor';
 import { avatarFromFile } from '../lib/avatarImage';
 import { GroupCover } from './WeNowPage';
 
@@ -8,17 +9,53 @@ import { GroupCover } from './WeNowPage';
 const COVER_PX = 512;
 
 /**
- * COVER: the seven patterns, then a square with the gallery icon that picks
- * a photo from the phone's gallery for the cover (the square shows it once
- * picked; pressed again it picks another). `photo` is the picked one (a URL
- * or a data URL), null for a pattern; picking a pattern takes the photo off.
+ * COVER: its label with a colour row at the right (2026-11-16, one of the
+ * four app themes — tints the two patterns' tones, `.cover-tint--<id>`, the
+ * same as a member's own MY COVER), the seven patterns, then a square with
+ * the gallery icon that picks a photo from the phone's gallery for the cover
+ * (the square shows it once picked; pressed again it picks another, and a
+ * photo takes the colour's tint off — a photo has its own colours already).
+ * `photo` is the picked one (a URL or a data URL), null for a pattern.
  */
-export default function CoverPicker({ cover, photo, onChange }: { cover: number; photo: string | null; onChange(cover: number, photo: string | null): void }) {
+export default function CoverPicker({
+  title = 'COVER',
+  cover,
+  photo,
+  swatch,
+  onChange,
+  onSwatch,
+}: {
+  title?: string;
+  cover: number;
+  photo: string | null;
+  swatch?: ThemeId;
+  onChange(cover: number, photo: string | null): void;
+  onSwatch(swatch: ThemeId): void;
+}) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [failed, setFailed] = useState(false);
   return (
     <>
-      <div className="group-form__covers" role="radiogroup" aria-label="표지">
+      <p className="group-form__label group-form__label--row">
+        {title}
+        <span className="group-form__colors group-form__swatches" role="radiogroup" aria-label="표지 색">
+          {APP_COVER_THEMES.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="radio"
+              className={!photo && swatch === t.id ? 'is-on' : ''}
+              style={{ color: `var(--swatch-${t.id}-accent)` } as CSSProperties}
+              aria-checked={!photo && swatch === t.id}
+              aria-label={t.label}
+              onClick={() => onSwatch(t.id)}
+            >
+              <span aria-hidden />
+            </button>
+          ))}
+        </span>
+      </p>
+      <div className={`group-form__covers ${coverTintClass(photo ? undefined : swatch)}`} role="radiogroup" aria-label="표지">
         {Array.from({ length: GROUP_LIMITS.covers }, (_, i) => (
           <button key={i} role="radio" aria-checked={!photo && cover === i} aria-label={`표지 ${i + 1}`} className={!photo && cover === i ? 'is-on' : ''} onClick={() => onChange(i, null)}>
             <svg viewBox="0 0 100 100" aria-hidden>

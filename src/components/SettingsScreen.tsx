@@ -3,7 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { GROUP_ALERT_KINDS, GROUP_ALERT_LABELS, groupAlertOn, PING_ALERT_HOURS, toggleGroupAlert, toggleGroupAlertsAll } from '../domain/profile';
-import type { Group } from '../domain/groups';
+import { effectiveCover, type Group } from '../domain/groups';
 import type { Account } from '../hooks/useAccount';
 import type { AppTheme, Profile } from '../services/profileRepository';
 import { clearAppData } from '../services/settingsRepository';
@@ -346,12 +346,14 @@ function GroupAlerts({ groups, off, onChange }: { groups: readonly Pick<Group, '
         <p className="alerts__empty">아직 그룹이 없어요.</p>
       ) : (
         <ul className="alerts__groups">
-          {groups.map((g) => (
+          {groups.map((g) => {
+            const myCover = effectiveCover(g);
+            return (
             // Each group: its cover and name with 전체 at the right, then its board — one flip cell per kind.
             <li key={g.id} className="alerts__group" role="group" aria-label={`${g.name} 알림`}>
               <div className="alerts__group-head">
-                <svg className="alerts__cover" viewBox="0 0 100 100" aria-hidden>
-                  <GroupCover cover={g.cover} photo={g.coverPhoto} />
+                <svg className={`alerts__cover ${myCover.tintClass}`} viewBox="0 0 100 100" aria-hidden>
+                  <GroupCover cover={myCover.cover} photo={myCover.photo} />
                 </svg>
                 <span className="settings__label alerts__group-name">{g.name}</span>
                 <button className="alerts__all" aria-label={`${g.name} 알림 전체`} onClick={() => onChange(toggleGroupAlertsAll(off, [g.id]))}>
@@ -366,7 +368,8 @@ function GroupAlerts({ groups, off, onChange }: { groups: readonly Pick<Group, '
                 ))}
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>

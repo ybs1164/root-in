@@ -1,7 +1,7 @@
 import { CalendarCheck, Check, MapPin, PenLine } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { TYPED_PLACE_MAX, typedCameraPlace } from '../domain/cameraPlaces';
-import type { Group } from '../domain/groups';
+import { effectiveCover, type Group } from '../domain/groups';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import type { GroupsStatus } from '../hooks/useGroups';
 import type { PlaceRef } from '../types/course';
@@ -232,11 +232,12 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
               {!empty &&
                 groups.map((g) => {
                   const on = picked.has(g.id);
+                  const myCover = effectiveCover(g);
                   return (
                     <li key={g.id}>
                       <button type="button" className={`group-send__item ${on ? 'is-on' : ''}`} aria-pressed={on} onClick={() => toggle(g.id)}>
-                        <svg className="group-send__cover" viewBox="0 0 100 100" aria-hidden>
-                          <GroupCover cover={g.cover} photo={g.coverPhoto} />
+                        <svg className={`group-send__cover ${myCover.tintClass}`} viewBox="0 0 100 100" aria-hidden>
+                          <GroupCover cover={myCover.cover} photo={myCover.photo} />
                         </svg>
                         <span className="group-send__name">{g.name}</span>
                         <span className="group-send__count">{g.members.length}명</span>

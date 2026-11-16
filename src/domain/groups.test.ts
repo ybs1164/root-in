@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, sharedPlaces, mergeSamePlace, photoPlaces, pingPhotos, memberPhotoItems, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, orderGroups, moveId, withoutPhotos, pingLookKey, edgeLookKey, withGroupLook, readGroupLooks, type Group } from './groups';
+import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, stepMember, cleanGroupName, focusPoints, groupPingCount, memberColor, memberInitial, neighborGroup, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, sharedPlaces, mergeSamePlace, photoPlaces, pingPhotos, memberPhotoItems, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, orderGroups, moveId, withoutPhotos, pingLookKey, edgeLookKey, withGroupLook, readGroupLooks, readGroupCoverOverride, withCoverOverrides, effectiveCover, coverTintClass, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -378,5 +378,38 @@ describe('orderGroups / moveId', () => {
     expect(moveId(['a', 'b', 'c', 'd'], 'a', 2)).toEqual(['b', 'c', 'a', 'd']);
     expect(moveId(['a', 'b', 'c', 'd'], 'd', 0)).toEqual(['d', 'a', 'b', 'c']);
     expect(moveId(['a', 'b', 'c'], 'b', 9)).toEqual(['a', 'c', 'b']);
+  });
+});
+
+describe('MY COVER override (2026-11-15)', () => {
+  it('reads a stored override, checked', () => {
+    expect(readGroupCoverOverride({ cover: 3, swatch: 'matcha' })).toEqual({ cover: 3, swatch: 'matcha' });
+    expect(readGroupCoverOverride({ cover: 2 })).toEqual({ cover: 2 });
+    expect(readGroupCoverOverride({ cover: 2, swatch: 'not-a-theme' })).toEqual({ cover: 2 });
+    expect(readGroupCoverOverride({ cover: 99 })).toBeUndefined();
+    expect(readGroupCoverOverride({ cover: -1 })).toBeUndefined();
+    expect(readGroupCoverOverride('nope')).toBeUndefined();
+    expect(readGroupCoverOverride({ cover: 1, photo: 'me.jpg' })).toEqual({ cover: 1, photo: 'me.jpg' });
+    expect(readGroupCoverOverride({ cover: 1, photo: '' })).toEqual({ cover: 1 });
+    expect(readGroupCoverOverride({ cover: 1, photo: 3 })).toEqual({ cover: 1 });
+  });
+
+  it('sets coverOverride from a map of overrides, by group id, mine only', () => {
+    const gs = [{ id: 'a', cover: 0 }, { id: 'b', cover: 1 }] as unknown as Group[];
+    const out = withCoverOverrides(gs, { b: { cover: 5, swatch: 'strawberry' } });
+    expect(out[0].coverOverride).toBeUndefined();
+    expect(out[1].coverOverride).toEqual({ cover: 5, swatch: 'strawberry' });
+    expect(withCoverOverrides(gs, {})).toBe(gs);
+  });
+
+  it('shows the override in place of the maker\'s cover/photo, with its tint class', () => {
+    const maker = { cover: 0, coverPhoto: 'x.jpg' };
+    expect(effectiveCover(maker)).toEqual({ cover: 0, photo: 'x.jpg', tintClass: '' });
+    const mine = { ...maker, coverOverride: { cover: 4, swatch: 'matcha' as const } };
+    expect(effectiveCover(mine)).toEqual({ cover: 4, photo: null, tintClass: 'cover-tint cover-tint--matcha' });
+    expect(coverTintClass(undefined)).toBe('');
+    // A personal photo (2026-11-15) wins over the override's own shape/swatch, untinted.
+    const myPhoto = { ...maker, coverOverride: { cover: 4, swatch: 'matcha' as const, photo: 'me.jpg' } };
+    expect(effectiveCover(myPhoto)).toEqual({ cover: 4, photo: 'me.jpg', tintClass: '' });
   });
 });
