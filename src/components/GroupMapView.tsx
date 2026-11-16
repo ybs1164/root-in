@@ -1,12 +1,12 @@
-import { Brush, CalendarDays, Camera, ChevronLeft, ChevronRight, MessageCircle, MoreHorizontal, Settings, X } from 'lucide-react';
+import { Brush, CalendarDays, Camera, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { GROUP_LIMITS, memberColor, memberInk, memberPhotoItems, passRoute, photoKey, pingPhotos, placeTime, type Group, type GroupMember, type GroupPing } from '../domain/groups';
 import { addDays } from '../domain/calendar';
 import { dateKey } from '../domain/diary';
-import { galleryDayLabel, type PhotoDecorLayer } from '../domain/gallery';
+import { galleryDayLabel } from '../domain/gallery';
 import { MemberFace } from './WeNowPage';
 import PhotoViewer, { OpenPhotoMarks } from './PhotoViewer';
-import { DoodleLayers } from './PhotoDoodle';
+import PhotoPanel from './PhotoPanel';
 import { useGalleryDecors } from '../hooks/useGalleryPhotos';
 import { GalleryButton } from './PhotoGallery';
 import { TalkBadge, TalkBubbles } from './icons';
@@ -201,8 +201,10 @@ export default function GroupMapView({ group, day, onDay, picked, me, newPings, 
         return (
           <>
             <PhotoPanel
-              member={pickedMember}
-              seq={place.seq}
+              name={placeName(pickedMember.pings[place.seq].name)}
+              color={memberColor(pickedMember.color)}
+              anchor=".group-ping.is-selected"
+              placeKey={`${pickedMember.userId}|${place.seq}`}
               photo={shownPhoto(pickedMember.pings[place.seq], place.photo)}
               time={placeTime(pickedMember.pings[place.seq], place.photo)}
               doodles={doodles}
@@ -313,142 +315,3 @@ function MemberPass({ member, mine, day }: { member: GroupMember; mine: boolean;
   );
 }
 
-/**
- * Under the title: the tapped ping's photo (an empty frame where none was
- * sent), the place, who, and n / N with ‹ › through their day. A faint
- * thread in their colour runs from the panel down to the ping on the map,
- * redrawn every frame from the marker so it follows pans and zooms.
- */
-function PhotoPanel({
-  member,
-  seq,
-  photo,
-  time,
-  marks,
-  doodles,
-  inkOf,
-  onOpen,
-  onComment,
-  onClose,
-  onDelete,
-}: {
-  member: GroupMember;
-  seq: number;
-  photo?: string;
-  time: string;
-  /** ♥ ★ for the photo, as on it big. */
-  marks: ReactNode;
-  /** Its doodles, everyone's, drawn over it as on it big. */
-  doodles?: PhotoDecorLayer[];
-  inkOf?: (userId: string) => string | null;
-  onOpen(): void;
-  /** 💬: open it big, writing a comment. */
-  onComment(): void;
-  onClose(): void;
-  /** With it, … in place of ✕: a little menu of 사진 삭제 (with a photo) and 핀 삭제. */
-  onDelete?(kind: 'photo' | 'place'): void;
-}) {
-  const ping = member.pings[seq];
-  const [menu, setMenu] = useState(false);
-  const more = useRef<HTMLDivElement>(null);
-  // Another place or photo, or a press anywhere outside it: the menu folds.
-  useEffect(() => setMenu(false), [seq, photo]);
-  useEffect(() => {
-    if (!menu) return;
-    const away = (event: PointerEvent) => {
-      if (!more.current?.contains(event.target as Node)) setMenu(false);
-    };
-    document.addEventListener('pointerdown', away, true);
-    return () => document.removeEventListener('pointerdown', away, true);
-  }, [menu]);
-  const panel = useRef<HTMLElement>(null);
-  const thread = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    let frame = 0;
-    const draw = () => {
-      const line = thread.current;
-      const box = panel.current?.getBoundingClientRect();
-      const marker = document.querySelector<HTMLElement>('.group-ping.is-selected');
-      if (line && box && marker) {
-        const at = marker.getBoundingClientRect();
-        const head = Math.min(at.top, ...[...marker.children].map((c) => c.getBoundingClientRect().top));
-        const height = Math.max(0, head - box.bottom - 4);
-        line.style.transform = `translate(${Math.round(at.left)}px, ${Math.round(box.bottom)}px)`;
-        line.style.height = `${height}px`;
-      }
-      frame = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => cancelAnimationFrame(frame);
-  }, [member.userId, seq]);
-  return (
-    <>
-      <span ref={thread} className="group-photo-thread" style={{ '--member': memberColor(member.color) } as CSSProperties} aria-hidden />
-      <section ref={panel} className="group-photo-panel" style={{ '--member': memberColor(member.color) } as CSSProperties} aria-label={`${placeName(ping.name)} 사진`}>
-        {photo ? (
-          // Tap the photo to see it big.
-          <button key={`${seq}|${photo}`} className="group-photo-panel__photo" aria-label="사진 크게 보기" onClick={onOpen}>
-            <img src={photo} alt="" draggable={false} />
-            {doodles && <DoodleLayers layers={doodles} inkOf={inkOf} />}
-          </button>
-        ) : (
-          <div key={seq} className="group-photo-panel__photo is-empty">
-            <Camera size={26} strokeWidth={2} aria-hidden />
-            <span>아직 사진이 없어요</span>
-          </div>
-        )}
-        <div className="group-photo-panel__text">
-          <div className="group-photo-panel__top">
-            {/* When the photo was taken (or they were there); who it is, the pass below says. */}
-            <time className="group-photo-panel__time">{time}</time>
-            {onDelete ? (
-              <div ref={more} className="group-photo-panel__more">
-                <button className="group-photo-panel__close" aria-label="더보기" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((open) => !open)}>
-                  <MoreHorizontal size={20} strokeWidth={2.4} />
-                </button>
-                {menu && (
-                  <div className="group-photo-panel__menu" role="menu">
-                    {photo && (
-                      <button
-                        role="menuitem"
-                        onClick={() => {
-                          setMenu(false);
-                          onDelete('photo');
-                        }}
-                      >
-                        사진 삭제
-                      </button>
-                    )}
-                    <button
-                      role="menuitem"
-                      onClick={() => {
-                        setMenu(false);
-                        onDelete('place');
-                      }}
-                    >
-                      핀 삭제
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button className="group-photo-panel__close" aria-label="사진 닫기" onClick={onClose}>
-                <X size={18} strokeWidth={2.4} />
-              </button>
-            )}
-          </div>
-          <strong className="group-photo-panel__name">{placeName(ping.name)}</strong>
-          {/* As under the photo big: 💬 opens it big to write, ♥ ★ right here. */}
-          {photo && (
-            <div className="group-photo-panel__foot">
-              <button className="gallery__mark gallery__comment" aria-label="댓글 쓰기" onClick={onComment}>
-                <MessageCircle size={27} strokeWidth={2} aria-hidden />
-              </button>
-              {marks}
-            </div>
-          )}
-        </div>
-      </section>
-    </>
-  );
-}

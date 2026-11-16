@@ -45,7 +45,7 @@ describe('gallery tabs', () => {
     { id: 'p1', day: '2026-10-28', at: '2026-10-28T01:00:00.000Z', name: '서촌', center: [127, 37.5] },
     { id: 'p2', day: '2026-10-28', at: '2026-10-28T02:00:00.000Z', name: '사진 없음', center: [127, 37.5] },
   ];
-  const local = localGalleryPhotos(stored, { p1: 'data:image/jpeg;base64,AA' }, 'me');
+  const local = localGalleryPhotos(stored, { p1: [{ id: 'p1', src: 'data:image/jpeg;base64,AA' }] }, 'me');
 
   it("MY is only TODAY's own photos (not what I sent to groups again); a group's tab is everything sent there", () => {
     expect(local.map((p) => p.name)).toEqual(['서촌']);

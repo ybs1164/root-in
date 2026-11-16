@@ -2,6 +2,14 @@ import type { StoredPing } from './dayPings';
 import type { GroupAlertKind } from './profile';
 import type { DayDecor } from './decor';
 
+/** One of the photos stacked on a TODAY ping (the phone's own, `pingPhotoRepository`). */
+export interface StackedPhoto {
+  id: string;
+  src: string;
+  /** When it was taken; none: its ping's time. */
+  at?: string;
+}
+
 /** A photo sent to a group from the camera, as the gallery lists it. */
 export interface GalleryPhoto {
   /** The row's id (one per group it was sent to). */
@@ -73,10 +81,19 @@ export function dayPosters(photos: readonly GalleryItem[]): string[] {
 export type GalleryTab = 'my' | string;
 
 /** TODAY's photos kept on this phone (one per ping), as gallery photos of mine with no group. */
-export function localGalleryPhotos(pings: readonly StoredPing[], photos: Readonly<Record<string, string>>, me: string): GalleryPhoto[] {
-  return pings
-    .filter((p) => photos[p.id])
-    .map((p) => ({ id: `ping:${p.id}`, groupId: '', userId: me, day: p.day, at: p.at, name: p.name, path: `ping:${p.id}`, url: photos[p.id] }));
+export function localGalleryPhotos(pings: readonly StoredPing[], photos: Readonly<Record<string, readonly StackedPhoto[]>>, me: string): GalleryPhoto[] {
+  return pings.flatMap((p) =>
+    (photos[p.id] ?? []).map((photo) => ({
+      id: `ping:${photo.id}`,
+      groupId: '',
+      userId: me,
+      day: p.day,
+      at: photo.at ?? p.at,
+      name: p.name,
+      path: `ping:${photo.id}`,
+      url: photo.src,
+    })),
+  );
 }
 
 /**

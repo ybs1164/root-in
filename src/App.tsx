@@ -13,7 +13,7 @@ import { LOCATION_MESSAGES } from './lib/geolocation';
 import BottomBar from './components/BottomBar';
 import SettingsScreen from './components/SettingsScreen';
 import GroupCalendar from './components/GroupCalendar';
-import CalendarZoom, { type CalendarCommand } from './components/CalendarZoom';
+import CalendarZoom, { type CalendarCommand, type TodayPhotoPick } from './components/CalendarZoom';
 import NewPinCard, { type NewPinInput } from './components/NewPinCard';
 import PinCard from './components/PinCard';
 import PinRail from './components/PinRail';
@@ -336,7 +336,9 @@ export default function App() {
   // Test build: We Now's TODAY tile opens TODAY itself, full screen, without the bottom row.
   const [todayOpen, setTodayOpen] = useState(false);
   // TODAY's photo open big (its place among the day's photos); closed with TODAY.
-  const [todayPhoto, setTodayPhoto] = useState<number | null>(null);
+  // TODAY: the photo picked on a ping's stack (its panel up top), and whether it's open big.
+  const [todayPhoto, setTodayPhoto] = useState<TodayPhotoPick | null>(null);
+  const [todayPhotoBig, setTodayPhotoBig] = useState(false);
   useEffect(() => {
     if (!todayOpen) setTodayPhoto(null);
   }, [todayOpen]);
@@ -647,7 +649,14 @@ export default function App() {
   );
   // Left to right on TODAY takes it back to We Now, which shows under it meanwhile
   // (not while drawing, a ping is picked or a photo is big: those fingers are theirs).
-  const todaySwipe = usePageSwipe(null, todayOpen && !decorating && !todayPhoto && !pingRemove ? () => setTodayOpen(false) : null);
+  // Leaving TODAY (or the panel closing) puts its photo away too.
+  useEffect(() => {
+    if (!todayOpen) setTodayPhoto(null);
+  }, [todayOpen]);
+  useEffect(() => {
+    if (todayPhoto === null) setTodayPhotoBig(false);
+  }, [todayPhoto]);
+  const todaySwipe = usePageSwipe(null, todayOpen && !decorating && todayPhoto === null && !pingRemove ? () => setTodayOpen(false) : null);
   // While the page is swiped off, the map screen under it stays whole.
   const pageMoving = swipe.moving;
   // The screen the moving page is heading for (the bottom row turns to it meanwhile).
@@ -1654,6 +1663,7 @@ export default function App() {
     if (groupBoard.active) return groupBoard.putAway(), true;
     if (boardOn) return setBoardOn(false), true;
     if (openGroupId) return setOpenGroupId(null), true;
+    if (todayPhotoBig) return setTodayPhotoBig(false), true;
     if (todayPhoto !== null) return setTodayPhoto(null), true;
     if (placePhoto !== null) return setPlacePhoto(null), true;
     if (todayOpen) return setTodayOpen(false), true;
@@ -1849,9 +1859,10 @@ export default function App() {
   useEffect(() => {
     const pop = () => {
       if (!pageEntry.current) return;
-      // A photo open big on TODAY goes first; TODAY stays (its entry back in place).
-      if (todayPhoto !== null) {
-        setTodayPhoto(null);
+      // A photo open big on TODAY goes first, then its panel; TODAY stays (its entry back in place).
+      if (todayPhotoBig || todayPhoto !== null) {
+        if (todayPhotoBig) setTodayPhotoBig(false);
+        else setTodayPhoto(null);
         history.pushState({ rootIn: tab }, '');
         return;
       }
@@ -2245,8 +2256,10 @@ export default function App() {
             onDayPattern={setDayPattern}
             onDayTheme={setLivePageTheme}
             onMode={setCalendarMode}
-            photoSeq={todayPhoto}
-            onPhotoSeq={setTodayPhoto}
+            photoPick={todayPhoto}
+            onPhotoPick={setTodayPhoto}
+            photoBig={todayPhotoBig}
+            onPhotoBig={setTodayPhotoBig}
           />
           <button className="today-back" aria-label="그룹 목록으로" onClick={() => setTodayOpen(false)}>
             <ChevronLeft size={24} strokeWidth={2.2} />

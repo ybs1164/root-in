@@ -8171,6 +8171,8 @@ button:disabled {
   place-items: center;
   width: 100%;
   min-height: 0;
+  /* Steps down under TODAY's photo panel while it's up (CalendarZoom `photoDrop`). */
+  transition: translate 0.3s var(--settle-ease);
 }
 
 .cal-zoom__title {
@@ -8549,11 +8551,14 @@ button:disabled {
 
 /* The photo taken there: a small rounded print in the accent colour over
    the ping, its tail on the icon's head — as a group's map shows a sent
-   photo. Its own button: a tap opens it big. */
+   photo. Several from one place stack upwards (`--stack`, 0 = the oldest,
+   nearest the ping: 52px prints, their tails in the 14px between). Its own
+   button: a tap picks it (its panel opens up top), and it swells a little. */
 .ping__photo {
+  --stack-step: 66px;
   position: absolute;
   left: 50%;
-  top: -67px;
+  top: calc(-67px - var(--stack, 0) * var(--stack-step));
   z-index: 1;
   width: 52px;
   height: 52px;
@@ -8563,6 +8568,8 @@ button:disabled {
   background: var(--day-ping, var(--accent));
   box-shadow: var(--pin-shadow);
   translate: -50% 0;
+  transform-origin: 50% calc(100% + 12px);
+  transition: scale 0.2s ease, translate 0.2s ease;
   cursor: pointer;
   animation: pop-in 0.28s var(--pop-ease) both;
   -webkit-touch-callout: none;
@@ -8587,6 +8594,20 @@ button:disabled {
   border: 7px solid transparent;
   border-top: 12px solid var(--day-ping, var(--accent));
   border-bottom: 0;
+}
+
+.ping.has-photo-picked {
+  z-index: 3;
+}
+
+.ping__photo.is-picked {
+  scale: 1.18;
+}
+
+/* Over the swollen one, the rest of the stack steps up by what it grew
+   (52px + its 12px tail, × 0.18), so they never overlap. */
+.ping__photo.is-lifted {
+  translate: -50% -12px;
 }
 
 .ping.is-dragging .ping__photo {

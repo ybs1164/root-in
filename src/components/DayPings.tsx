@@ -48,11 +48,14 @@ interface DayPingsProps {
   /** The place's own pin icon and colour, shown when its ping is set to 투명. */
   pinLookOf?: (ping: DayPing) => { icon: PinIcon; color: PinTint };
   /**
-   * The photo taken there on TODAY, if any: a small print in a speech bubble
-   * over the ping (as on a group's map). Tapped, `onPhoto` opens it big.
+   * The photos taken there on TODAY, oldest first: small prints in speech
+   * bubbles stacked up over the ping (as on a group's map). Tapped, `onPhoto`
+   * picks one (its panel opens up top).
    */
-  photoOf?: (ping: DayPing) => string | undefined;
-  onPhoto?: (ping: DayPing) => void;
+  photoOf?: (ping: DayPing) => readonly string[] | undefined;
+  onPhoto?: (ping: DayPing, index: number) => void;
+  /** Which of a ping's photos is picked (it swells; the ones over it step up), or null. */
+  pickedPhotoOf?: (ping: DayPing) => number | null;
   /** The ✕ on a ping whose picker is open (or a ping dropped on `dropZone`): takes the place out of the day. */
   onDelete?: (ping: DayPing) => void;
   /** Which ping is picked (its picker open), or null: the app turns its calendar button into ✕. */
@@ -106,7 +109,7 @@ function EdgeSample({ style }: { style: EdgeStyle }) {
  * again. Long-press a ping to change its shape, or a line to change its
  * style; a short tap on a ping is reported through `onTap`.
  */
-export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, pinLookOf, photoOf, onPhoto, onDelete, onPickedChange, dropZone, onDropHover, draggable = true, pressable, children, showNames = true, showTimes = true }: DayPingsProps) {
+export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeStyle, pinLookOf, photoOf, onPhoto, pickedPhotoOf, onDelete, onPickedChange, dropZone, onDropHover, draggable = true, pressable, children, showNames = true, showTimes = true }: DayPingsProps) {
   const latest = latestPingIndex(pings);
   // The real map behind the pings; the stops are fitted with its areas.
   const centers = pings.map((p) => p.center);
@@ -342,7 +345,9 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
       {pings.map((ping, i) => {
         const shape = shapeOf(ping);
         const own = shape === 'transparent' ? (pinLookOf?.(ping) ?? { icon: 'pin' as PinIcon, color: 0 as PinTint }) : null;
-        const photo = photoOf?.(ping);
+        const stack = photoOf?.(ping) ?? [];
+        const photo = stack.length > 0;
+        const pickedPhoto = photo ? (pickedPhotoOf?.(ping) ?? null) : null;
         const { name, time } = labels[i];
         // The photo's bubble stands over the ping: its name never goes up under it.
         const side = photo && labels[i].side.startsWith('above') ? 'below' : labels[i].side;
@@ -358,6 +363,7 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
               same(pressed, { kind: 'ping', index: i }) ? 'is-pressed' : '',
               same(picking, { kind: 'ping', index: i }) ? 'is-picked' : '',
               drag?.index === i ? `is-dragging ${drag.over ? 'is-over' : ''}` : '',
+              pickedPhoto !== null ? 'has-photo-picked' : '',
             ].join(' ')}
             role="listitem"
             style={{
@@ -380,20 +386,24 @@ export default function DayPings({ pings, shapeOf, onShape, edgeStyleOf, onEdgeS
                 <PingIcon shape={shape as PingShape} className="ping__icon" />
               )}
             </button>
-            {photo && (
+            {stack.map((src, n) => (
               <button
-                className="ping__photo"
-                aria-label={`${ping.name} 사진 크게 보기`}
+                key={n}
+                className={`ping__photo ${pickedPhoto === n ? 'is-picked' : pickedPhoto !== null && n > pickedPhoto ? 'is-lifted' : ''}`}
+                // Each later one above the one before (0 = the oldest, nearest the ping).
+                style={{ '--stack': n } as CSSProperties}
+                aria-label={stack.length > 1 ? `${ping.name} 사진 ${n + 1}/${stack.length}` : `${ping.name} 사진`}
+                aria-pressed={pickedPhoto === n}
                 // Its own press: never the ping's picker or a drag.
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (pressable()) onPhoto?.(ping);
+                  if (pressable()) onPhoto?.(ping, n);
                 }}
               >
-                <img src={photo} alt="" draggable={false} />
+                <img src={src} alt="" draggable={false} />
               </button>
-            )}
+            ))}
             {(showNames || showTimes) && (
               <span className="ping__label" aria-hidden>
                 {name}
