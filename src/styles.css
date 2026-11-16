@@ -4986,7 +4986,7 @@ button:disabled {
   height: 40px;
   border-radius: 10px;
   overflow: hidden;
-  background: var(--cover-bg, var(--accent-soft));
+  background: var(--cover-bg, color-mix(in srgb, var(--accent) 8%, var(--bg)));
 }
 
 .group-send__name {
@@ -7196,7 +7196,7 @@ button:disabled {
   height: 32px;
   border-radius: 8px;
   overflow: hidden;
-  background: var(--cover-bg, var(--accent-soft));
+  background: var(--cover-bg, color-mix(in srgb, var(--accent) 8%, var(--bg)));
 }
 
 .alerts__group-name {
@@ -9186,16 +9186,19 @@ button:disabled {
   /* The maker's own cover uses the app theme's land; a member's own
      `.cover-tint--<id>` (MY COVER) sets `--cover-bg` instead, so the gaps a
      shape doesn't fill (파도·허니콤·하트) read as that swatch, not green. */
-  background: var(--cover-bg, var(--accent-soft));
+  background: var(--cover-bg, color-mix(in srgb, var(--accent) 8%, var(--bg)));
 }
 
 /* The covers' two tones (2026-11-15, 카페·디저트 시안): a pale one and the
    theme's map-ground colour, so all seven read clearly on the white tile and
    follow 말차·바나나·초코·딸기 with no cover-specific colour of their own.
    A member's own 색상 팔레트 pick (`.cover-tint--<id>`) sets `--cover-a`/
-   `--cover-b` on an ancestor instead; these fall back to the app theme's. */
+   `--cover-b` on an ancestor instead; these fall back to the app theme's.
+   The pale tone (2026-11-16) is its own mix, not `--accent-soft` — that one
+   is about as pale as the backing square below it (`--cover-bg`), so the
+   two read as one flat colour; this one sits visibly between the two. */
 .group-cover__area {
-  fill: var(--cover-a, var(--accent-soft));
+  fill: var(--cover-a, color-mix(in srgb, var(--accent) 45%, var(--bg)));
 }
 
 .group-cover__other {
@@ -10643,7 +10646,7 @@ button.group-photo-panel__photo {
      than the shape's own `--cover-a`/`--cover-b`, so the corners a shape
      doesn't fill (허니콤·하트) read as a backing, not the same tone as the
      shape and lose it; COVER's own editor (no swatch) keeps the app's land. */
-  background: var(--cover-bg, var(--accent-soft));
+  background: var(--cover-bg, color-mix(in srgb, var(--accent) 8%, var(--bg)));
 }
 
 .group-form__covers button svg {
@@ -11359,7 +11362,7 @@ button.group-photo-panel__photo {
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  background: var(--cover-bg, var(--accent-soft));
+  background: var(--cover-bg, color-mix(in srgb, var(--accent) 8%, var(--bg)));
 }
 
 .chat-list__text {
@@ -11517,7 +11520,7 @@ button.group-photo-panel__photo {
   height: 68px;
   overflow: hidden;
   border-radius: 20px;
-  background: var(--cover-bg, var(--accent-soft));
+  background: var(--cover-bg, color-mix(in srgb, var(--accent) 8%, var(--bg)));
   /* A soft shadow lifts it off the page (the covers are pale). */
   box-shadow: var(--ticket-shadow);
   /* Pressed it shrinks and springs back (scale, so the row never moves); picked, a ring. */
