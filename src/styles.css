@@ -8071,11 +8071,10 @@ button:disabled {
 }
 
 .cal-zoom__month {
-  /* Vertically centred, then nudged up: the extra bottom padding lifts it. */
+  /* Calendar H (WeekCalendar) from the top: its head clears the ‹. */
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 180px 16px 12dvh; /* top: clear of the year (108px down, 56px tall) + 16px */
+  overflow-y: auto;
 }
 
 .cal-zoom__month .calendar {
@@ -13266,3 +13265,633 @@ button.group-photo-panel__photo {
 .sticker-pack__motif--diagonal-dots { background: radial-gradient(circle, var(--pack-ink) 1.5px, transparent 1.8px) 0 0 / 10px 10px, radial-gradient(circle, var(--pack-ink) 1.5px, transparent 1.8px) 5px 5px / 10px 10px; }
 .sticker-pack__motif--brick { background: linear-gradient(var(--pack-ink) 1px, transparent 0) 0 0 / 12px 6px, linear-gradient(90deg, var(--pack-ink) 1px, transparent 0) 0 0 / 12px 12px, linear-gradient(90deg, var(--pack-ink) 1px, transparent 0) 6px 6px / 12px 12px; }
 .sticker-pack__motif--herringbone { background: linear-gradient(135deg, transparent 40%, var(--pack-ink) 40% 52%, transparent 52%) 0 0 / 12px 8px, linear-gradient(45deg, transparent 40%, var(--pack-ink) 40% 52%, transparent 52%) 6px 0 / 12px 8px; }
+
+/* ---------- Calendar H: week strip + the picked day's card (WeekCalendar, 2026-11-16) ---------- */
+
+.week-cal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  /* Under the ‹ (12px + 48px), and clear of the camera row at the bottom. */
+  padding: calc(var(--safe-top) + 66px) 0 calc(var(--safe-bottom) + 150px);
+}
+
+.week-cal__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px;
+}
+
+.week-cal__title {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  --icon-ink: var(--icon);
+  font-family: "Bebas Neue", "Pretendard", sans-serif;
+  font-size: 46px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+
+.week-cal__toggle {
+  flex: none;
+  min-height: 36px;
+  margin-left: auto;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--round-btn-shadow);
+  color: var(--accent-strong);
+  --icon-ink: currentColor;
+  font-size: 15px;
+}
+
+/* Open: the button is pressed in, the theme's colour. */
+.week-cal__toggle[aria-expanded="true"] {
+  background: var(--accent);
+  box-shadow: var(--round-btn-shadow-accent);
+  color: var(--on-accent);
+}
+
+.week-cal__strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  padding: 10px 12px 0;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.week-cal__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-height: 72px;
+  padding: 8px 0;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--text);
+  --icon-ink: var(--icon);
+}
+
+.week-cal__dow {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.week-cal__day b {
+  font-family: "Oswald", sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.week-cal__day.is-today b {
+  color: var(--accent-strong);
+}
+
+.week-cal__day.is-picked {
+  background: var(--accent);
+  box-shadow: var(--round-btn-shadow-accent);
+  color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
+}
+
+.week-cal__day.is-picked b,
+.week-cal__day.is-picked .week-cal__dow {
+  color: var(--on-accent);
+}
+
+.week-cal__day:disabled,
+.week-cal__cell:disabled {
+  opacity: 0.4;
+}
+
+.week-cal__mark {
+  display: flex;
+  justify-content: center;
+  min-height: 16px;
+  align-items: center;
+}
+
+.week-cal__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-strong);
+}
+
+.week-cal__day.is-picked .week-cal__dot {
+  background: var(--on-accent);
+}
+
+.week-cal__mark .calendar__marks {
+  min-height: 16px;
+}
+
+.week-cal__mark .calendar__more {
+  min-width: 16px;
+  height: 16px;
+}
+
+/* The whole month, grown out of the strip. */
+.week-cal__month {
+  padding: 4px 12px 0;
+  animation: unfold 0.22s var(--settle-ease) both;
+}
+
+.week-cal__month-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.week-cal__month-head strong {
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.week-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: 2px;
+}
+
+.week-cal__weekday {
+  padding: 6px 0;
+  color: var(--muted);
+  --icon-ink: var(--icon);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* The picked week: a soft band across its row. */
+.week-cal__slot.is-week {
+  background: var(--surface-2);
+}
+
+.week-cal__slot.is-week:nth-child(7n + 1) {
+  border-radius: 14px 0 0 14px;
+}
+
+.week-cal__slot.is-week:nth-child(7n) {
+  border-radius: 0 14px 14px 0;
+}
+
+.week-cal__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  min-height: 46px;
+  padding: 4px 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  --icon-ink: var(--icon);
+}
+
+.week-cal__cell b {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-family: "Oswald", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.week-cal__cell.is-out {
+  opacity: 0.4;
+}
+
+.week-cal__cell.is-today b {
+  box-shadow: inset 0 0 0 2px var(--accent);
+  color: var(--accent-strong);
+}
+
+.week-cal__cell.is-picked b {
+  background: var(--accent);
+  box-shadow: var(--round-btn-shadow-accent);
+  color: var(--on-accent);
+}
+
+.week-cal__cell .week-cal__mark {
+  min-height: 12px;
+}
+
+.week-cal__cell .member-face {
+  width: 13px !important;
+  height: 13px !important;
+}
+
+.week-cal__cell .calendar__more {
+  min-width: 13px;
+  height: 13px;
+  font-size: 8px;
+}
+
+.week-cal__grabber {
+  display: block;
+  width: 64px;
+  height: 22px;
+  margin: 4px auto 0;
+  padding: 0;
+  border: 0;
+  background: linear-gradient(var(--accent-soft), var(--accent-soft)) center / 38px 4px no-repeat;
+  border-radius: 2px;
+}
+
+.week-cal__card {
+  padding: 14px 14px 0;
+}
+
+/* ---- the card ---- */
+
+.week-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  --icon-ink: var(--icon);
+  text-align: left;
+}
+
+.week-card--empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  min-height: 300px;
+  box-shadow: none;
+  outline: 2px dashed var(--accent-soft);
+  outline-offset: -2px;
+  color: var(--muted);
+  font-size: 15px;
+  text-align: center;
+  cursor: default;
+}
+
+.week-card--empty b {
+  color: var(--accent-soft);
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+}
+
+.week-card--empty.is-loading {
+  outline-color: var(--surface-2);
+}
+
+.week-card__map {
+  display: grid;
+  place-items: center;
+  height: 210px;
+  overflow: hidden;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+/* The drawing is only a picture here: the whole box is the one way in. */
+.week-card__map .pings {
+  pointer-events: none;
+  width: auto;
+  height: 100%;
+  translate: none;
+}
+
+.week-card__meta {
+  position: relative;
+  padding: 12px 14px 14px;
+}
+
+
+.week-card__label {
+  margin: 0;
+  color: var(--muted);
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.18em;
+}
+
+.week-card__route {
+  margin: 6px 0 0;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.week-card__photos {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0 0;
+}
+
+.week-card__photos img,
+.week-card__more {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.week-card__more {
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  color: var(--accent-strong);
+  font-family: "Oswald", sans-serif;
+  font-size: 14px;
+}
+
+/* A group's card: a row per member. */
+.week-card__lanes {
+  margin: 0;
+  padding: 0 14px 8px;
+  list-style: none;
+}
+
+.week-card__lane {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid var(--surface-2);
+  transition: opacity 0.2s ease;
+}
+
+.week-card__lane:first-child {
+  border-top: 0;
+}
+
+.week-card__lane.is-dim {
+  opacity: 0.35;
+}
+
+.week-card__who-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.week-card__who-text b {
+  display: block;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.week-card__who-text span {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.week-card__stack {
+  display: flex;
+  flex: none;
+}
+
+.week-card__stack img {
+  width: 38px;
+  height: 38px;
+  margin-left: -12px;
+  border: 2px solid var(--surface);
+  border-radius: 9px;
+  object-fit: cover;
+  box-shadow: var(--shadow-sm);
+}
+
+.week-card__stack img:first-child {
+  margin-left: 0;
+}
+
+/* Who's on the card: ALL, or one member alone. */
+.week-card__who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.week-card__all {
+  flex: none;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--round-btn-shadow);
+  color: var(--muted);
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.1em;
+}
+
+.week-card__all.is-on {
+  background: var(--accent);
+  box-shadow: var(--round-btn-shadow-accent);
+  color: var(--on-accent);
+}
+
+.week-card__face {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.week-card__face.is-on .member-face {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4.5px var(--member);
+}
+
+.group-calendar .week-cal {
+  /* .group-calendar already keeps clear of the safe area; no camera row below. */
+  padding: 66px 0 calc(var(--safe-bottom) + 32px);
+  overflow-y: auto;
+}
+
+/* The photos on a calendar card: each one opens big. */
+.week-card__photo {
+  display: block;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  line-height: 0;
+}
+
+.week-card__stack .week-card__photo {
+  margin-left: -12px;
+  border-radius: 9px;
+}
+
+.week-card__stack .week-card__photo:first-child {
+  margin-left: 0;
+}
+
+.week-card__stack .week-card__photo img {
+  margin-left: 0;
+}
+
+.week-card__more {
+  border: 0;
+  padding: 0;
+}
+
+/* The calendar's name beside the title (MY or a group): opens the list of calendars. */
+.week-cal__switch {
+  position: relative;
+  min-width: 0;
+}
+
+.week-cal__which {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  --icon-ink: var(--icon);
+  font-size: 15px;
+}
+
+.week-cal__which span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.week-cal__list {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 20;
+  display: grid;
+  gap: 2px;
+  min-width: 160px;
+  max-width: 240px;
+  max-height: 50dvh;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--dialog-shadow);
+  list-style: none;
+  animation: rise-in 0.16s ease-out both;
+}
+
+.week-cal__list button {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font-size: 16px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.week-cal__list button.is-on {
+  background: var(--accent-soft);
+}
+
+/* A group's day on its calendar card: the map under everyone's places, each member's in their colour. */
+.group-day-map {
+  position: relative;
+  height: 100%;
+  aspect-ratio: 1;
+  pointer-events: none;
+}
+
+.group-day-map__marks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  animation: map-in 0.5s ease both;
+}
+
+.group-day-map__marks polyline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.group-day-map__marks circle {
+  fill: var(--surface);
+  stroke: currentColor;
+  stroke-width: 2.5px;
+  vector-effect: non-scaling-stroke;
+}
+
+.group-day-map__marks circle.is-last {
+  fill: currentColor;
+}
+
+.group-day-map__marks g {
+  transition: opacity 0.2s ease;
+}
+
+.group-day-map__marks g.is-faded {
+  opacity: 0.25;
+}
+
+/* Going to a day from a group's calendar: it fades and swells away, showing the map coming to that day. */
+.group-calendar.is-leaving {
+  animation: group-calendar-out 240ms var(--settle-ease) forwards;
+  pointer-events: none;
+}
+
+@keyframes group-calendar-out {
+  to {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group-calendar.is-leaving {
+    animation-duration: 1ms;
+  }
+}

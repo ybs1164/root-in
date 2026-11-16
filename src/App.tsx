@@ -78,7 +78,8 @@ import { useGroupNews } from './hooks/useGroupNews';
 import { useGalleryPhotos } from './hooks/useGalleryPhotos';
 import { usePingPhotos } from './hooks/usePingPhotos';
 import { galleryDayLabel, localGalleryPhotos, type GalleryTab } from './domain/gallery';
-import PhotoViewer from './components/PhotoViewer';
+import PhotoViewer, { OpenPhotoMarks } from './components/PhotoViewer';
+import type { CalendarPhotos } from './components/WeekCalendar';
 import CameraScreen from './components/CameraScreen';
 import GroupSendDialog from './components/GroupSendDialog';
 import GroupFormDialog from './components/GroupFormDialog';
@@ -335,6 +336,13 @@ export default function App() {
   const [openGroupId, setOpenGroupId] = useState<string | null>(null);
   // Test build: We Now's TODAY tile opens TODAY itself, full screen, without the bottom row.
   const [todayOpen, setTodayOpen] = useState(false);
+  // TODAY opened from a group's calendar (its MY): it starts on the month, not the day.
+  const [todayStart, setTodayStart] = useState<'day' | 'month'>('day');
+  useEffect(() => {
+    if (!todayOpen) setTodayStart('day');
+  }, [todayOpen]);
+  // A photo tapped on a calendar's card (TODAY's month, a group's calendar), open big.
+  const [calendarPhoto, setCalendarPhoto] = useState<CalendarPhotos | null>(null);
   // TODAY's photo open big (its place among the day's photos); closed with TODAY.
   // TODAY: the photo picked on a ping's stack (its panel up top), and whether it's open big.
   const [todayPhoto, setTodayPhoto] = useState<TodayPhotoPick | null>(null);
@@ -476,9 +484,12 @@ export default function App() {
   const [groupDay, setGroupDay] = useState<string | null>(null);
   // The group's calendar over its map (from the button under ⚙).
   const [groupCalendar, setGroupCalendar] = useState(false);
+  // Switched to from another calendar: the group opens on its calendar, not its map.
+  const calendarOnOpen = useRef(false);
   useEffect(() => {
     setGroupDay(null);
-    setGroupCalendar(false);
+    setGroupCalendar(calendarOnOpen.current);
+    calendarOnOpen.current = false;
   }, [openGroupId]);
   // The group calendar's days of mine the server may not have yet: today, once I've sent this group a photo.
   const myPingDays = useMemo(() => {
@@ -1653,6 +1664,7 @@ export default function App() {
     if (cameraOpen) return setCameraOpen(false), true;
     if (gallerySeq !== null) return setGallerySeq(null), true;
     if (galleryTab) return closeGallery(), true;
+    if (calendarPhoto) return setCalendarPhoto(null), true;
     if (groupCalendar) return setGroupCalendar(false), true;
     if (studio) return setStudio(null), true;
     if (chatPhoto !== null) return setChatPhoto(null), true;
@@ -1666,6 +1678,8 @@ export default function App() {
     if (todayPhotoBig) return setTodayPhotoBig(false), true;
     if (todayPhoto !== null) return setTodayPhoto(null), true;
     if (placePhoto !== null) return setPlacePhoto(null), true;
+    // TODAY's month goes back to TODAY; TODAY itself back to the list.
+    if (todayOpen && calendarMode === 'month') return calendarTo('today'), true;
     if (todayOpen) return setTodayOpen(false), true;
     if (searchOpen) return setSearchOpen(false), setQuery(''), searchInput.current?.blur(), true;
     if (preview) return setPreview(null), true;
@@ -1896,9 +1910,22 @@ export default function App() {
   const calendarZoom = tab === 'people' && todayOpen;
 
   // The big calendar button on TODAY goes to the month, and from the month back to TODAY.
-  const calendarButton = () => {
-    const type = calendarAgain(calendarMode);
-    setCalendarCommand((c) => ({ type, seq: (c?.seq ?? 0) + 1 }));
+  const calendarTo = (type: CalendarCommand['type']) => setCalendarCommand((c) => ({ type, seq: (c?.seq ?? 0) + 1 }));
+  const calendarButton = () => calendarTo(calendarAgain(calendarMode));
+  // The calendars a calendar's name switches between: MY (TODAY's month), then my groups.
+  const calendars = useMemo(() => [{ id: 'my', name: 'MY' }, ...groupList.map((g) => ({ id: g.id, name: g.name }))], [groupList]);
+  const switchCalendar = (id: string) => {
+    if (id === 'my') {
+      setGroupCalendar(false);
+      setOpenGroupId(null);
+      setTodayStart('month');
+      setTodayOpen(true);
+      return;
+    }
+    setTodayOpen(false);
+    if (id === openGroupId) return setGroupCalendar(true);
+    calendarOnOpen.current = true;
+    setOpenGroupId(id);
   };
 
   // The tab buttons step aside for a 꾸미기 tool's tray, for the 경로 폴더, and under the 꾸미기 screen.
@@ -2260,8 +2287,17 @@ export default function App() {
             onPhotoPick={setTodayPhoto}
             photoBig={todayPhotoBig}
             onPhotoBig={setTodayPhotoBig}
+            startMode={todayStart}
+            calendars={calendars}
+            onCalendar={switchCalendar}
+            onPhotos={setCalendarPhoto}
           />
-          <button className="today-back" aria-label="그룹 목록으로" onClick={() => setTodayOpen(false)}>
+          {/* On the month it goes back to TODAY; on TODAY, to the list. */}
+          <button
+            className="today-back"
+            aria-label={calendarMode === 'month' ? 'TODAY로' : '그룹 목록으로'}
+            onClick={() => (calendarMode === 'month' ? calendarTo('today') : setTodayOpen(false))}
+          >
             <ChevronLeft size={24} strokeWidth={2.2} />
           </button>
         </section>
@@ -2344,6 +2380,7 @@ export default function App() {
 
       {groupCalendar && openGroup && (
         <GroupCalendar
+          key={openGroup.id}
           group={openGroup}
           user={account.user}
           me={myId}
@@ -2353,11 +2390,34 @@ export default function App() {
             setGroupDay(day >= dateKey() ? null : day);
             setGroupCalendar(false);
           }}
-          onToday={() => {
-            setGroupDay(null);
-            setGroupCalendar(false);
-          }}
           onClose={() => setGroupCalendar(false)}
+          calendars={calendars}
+          onCalendar={switchCalendar}
+          onPhotos={setCalendarPhoto}
+        />
+      )}
+
+      {calendarPhoto && calendarPhoto.photos[calendarPhoto.seq] && (
+        // As the big photo where it came from: 💬 and ★ everywhere; a group's also ♥ (not on mine) and doodles in my colour there.
+        <PhotoViewer
+          items={calendarPhoto.photos}
+          seq={calendarPhoto.seq}
+          onSeq={(seq) => setCalendarPhoto((p) => (p ? { ...p, seq } : p))}
+          onClose={() => setCalendarPhoto(null)}
+          prevLabel="이전 사진"
+          nextLabel="다음 사진"
+          counted={false}
+          commentPath={calendarPhoto.photos[calendarPhoto.seq].path}
+          decorPath={calendarPhoto.group ? calendarPhoto.photos[calendarPhoto.seq].path : undefined}
+          decorColor={calendarPhoto.group?.decorColor}
+          inkOf={calendarPhoto.group?.inkOf}
+          side={
+            <OpenPhotoMarks
+              path={calendarPhoto.photos[calendarPhoto.seq].path}
+              heart={calendarPhoto.photos[calendarPhoto.seq].heart}
+              hearts={!!calendarPhoto.group}
+            />
+          }
         />
       )}
 
