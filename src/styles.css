@@ -5897,6 +5897,48 @@ button:disabled {
   text-align: center;
 }
 
+/* A day with no photos on a calendar (MY and a group's): the empty mark, under the week. */
+.empty-day {
+  display: grid;
+  place-items: center;
+  padding: 72px 0 0;
+}
+
+.empty-day__text {
+  margin: 8px 0 0;
+  /* Lighter than the usual muted text: it only whispers under the mark. */
+  color: color-mix(in srgb, var(--muted) 60%, var(--bg));
+  font-size: 17px;
+}
+
+/* The mark for an empty screen (EmptyMark): a dashed pin over a tile of land, in the theme's colours. */
+.empty-mark {
+  display: block;
+  overflow: visible;
+}
+
+.empty-mark__land {
+  fill: var(--accent-soft);
+}
+
+.empty-mark__side {
+  fill: var(--accent);
+  opacity: 0.55;
+}
+
+.empty-mark__shadow {
+  fill: var(--surface);
+  opacity: 0.85;
+}
+
+.empty-mark__pin {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3.3;
+  stroke-linecap: round;
+  stroke-dasharray: 7.6 8.7;
+}
+
 /* ---------- Profile (popup from the top-right button) ---------- */
 
 /* The photo fills the round profile buttons. */
@@ -12609,33 +12651,6 @@ button.group-photo-panel__photo {
   text-align: left;
 }
 
-.week-card--empty {
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 6px;
-  min-height: 300px;
-  box-shadow: none;
-  outline: 2px dashed var(--accent-soft);
-  outline-offset: -2px;
-  color: var(--muted);
-  font-size: 15px;
-  text-align: center;
-  cursor: default;
-}
-
-.week-card--empty b {
-  color: var(--accent-soft);
-  font-family: "Bebas Neue", sans-serif;
-  font-size: 30px;
-  font-weight: 400;
-  letter-spacing: 0.1em;
-}
-
-.week-card--empty.is-loading {
-  outline-color: var(--surface-2);
-}
-
 .week-card__map {
   display: grid;
   place-items: center;
@@ -12705,19 +12720,14 @@ button.group-photo-panel__photo {
 
 .week-card__lane {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
-  padding: 9px 0;
+  padding: 12px 0;
   border-top: 1px solid var(--surface-2);
-  transition: opacity 0.2s ease;
 }
 
 .week-card__lane:first-child {
   border-top: 0;
-}
-
-.week-card__lane.is-dim {
-  opacity: 0.35;
 }
 
 .week-card__who-text {
@@ -12731,33 +12741,29 @@ button.group-photo-panel__photo {
   font-weight: 400;
 }
 
-.week-card__who-text span {
+.week-card__who-text > span {
   display: block;
   margin-top: 3px;
-  overflow: hidden;
   color: var(--muted);
   font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.45;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
-.week-card__stack {
+/* A member's photos under their route: in order, side by side, onto the next line when they run out of room. */
+.week-card__row-photos {
   display: flex;
-  flex: none;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
 }
 
-.week-card__stack img {
-  width: 38px;
-  height: 38px;
-  margin-left: -12px;
-  border: 2px solid var(--surface);
-  border-radius: 9px;
+.week-card__row-photos img {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
   object-fit: cover;
-  box-shadow: var(--shadow-sm);
-}
-
-.week-card__stack img:first-child {
-  margin-left: 0;
 }
 
 /* Who's on the card: ALL, or one member alone. */
@@ -12765,7 +12771,9 @@ button.group-photo-panel__photo {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0 0 12px;
+  /* Room for the chips' own shadows inside the scrolling strip. */
+  margin: 0 -4px 6px;
+  padding: 2px 4px 8px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -12790,20 +12798,37 @@ button.group-photo-panel__photo {
   color: var(--on-accent);
 }
 
+/* A member's chip: face + nickname. */
 .week-card__face {
   flex: none;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  max-width: 180px;
+  padding: 0 13px 0 4px;
   border: 0;
-  border-radius: 50%;
-  background: transparent;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--round-btn-shadow);
+  color: var(--muted);
+  font-size: 15px;
 }
 
-.week-card__face.is-on .member-face {
-  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4.5px var(--member);
+.week-card__face .member-face {
+  flex: none;
+}
+
+.week-card__face > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.week-card__face.is-on {
+  background: var(--accent);
+  box-shadow: var(--round-btn-shadow-accent);
+  color: var(--on-accent);
 }
 
 .group-calendar .week-cal {
@@ -12821,19 +12846,6 @@ button.group-photo-panel__photo {
   border-radius: 10px;
   background: transparent;
   line-height: 0;
-}
-
-.week-card__stack .week-card__photo {
-  margin-left: -12px;
-  border-radius: 9px;
-}
-
-.week-card__stack .week-card__photo:first-child {
-  margin-left: 0;
-}
-
-.week-card__stack .week-card__photo img {
-  margin-left: 0;
 }
 
 .week-card__more {
@@ -12856,7 +12868,7 @@ button.group-photo-panel__photo {
   padding: 0 14px;
   border: 0;
   border-radius: 999px;
-  background: var(--surface-2);
+  background: transparent;
   color: var(--text);
   --icon-ink: var(--icon);
   font-size: 15px;

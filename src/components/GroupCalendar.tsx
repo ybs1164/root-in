@@ -5,16 +5,15 @@ import { dayPingers, GROUP_LIMITS, groupTheme, isGroupBirthday, memberColor, mem
 import { dateKey } from '../domain/diary';
 import { useGroupPingDays, useGroupsOnDay } from '../hooks/useGroups';
 import type { AuthUser } from '../services/authService';
-import WeekCalendar, { cardRoute, weekCardDay, type CalendarPhoto, type CalendarPhotos } from './WeekCalendar';
+import WeekCalendar, { weekCardDay, type CalendarPhoto, type CalendarPhotos } from './WeekCalendar';
 import GroupDayMap from './GroupDayMap';
+import EmptyMark from './EmptyMark';
 import { galleryDayLabel } from '../domain/gallery';
 import { MemberFace } from './WeNowPage';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 
 /** Faces under a day at most; more read +n. */
 const FACES = 2;
-/** Photos on a member's row at most. */
-const ROW_PHOTOS = 3;
 /** How long the calendar takes to fade away when going to a day (`group-calendar-out` in styles.css). */
 const LEAVE_MS = 240;
 
@@ -40,14 +39,15 @@ interface GroupCalendarProps {
  * A group's calendar, from the ⚙'s calendar button on its map — calendar H
  * like TODAY's: the week as a strip with the faces of who sent the group a
  * photo each day (+n past two), the picked day's card under it with a row
- * per member (face, name, where, their photos). A face over the card leaves
- * that member alone on it. The card opens the map on that day; the days to
- * come can't be picked.
+ * per member (face, name, the whole route, then every photo in order). A
+ * member's chip over the card leaves only their row on it (the map keeps the
+ * others, faded). The map opens the group's map on that day; the days to come
+ * can't be picked.
  */
 export default function GroupCalendar({ group, user, me, myDays, day, onPick, onClose, calendars, onCalendar, onPhotos }: GroupCalendarProps) {
   const today = dateKey();
   const [pick, setPick] = useState(day);
-  const [only, setOnly] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
   // Who pinged when: the month around the picked day, with a week either side (the open month shows a few days of its neighbours).
   const span = useMemo(() => {
     const [y, m] = pick.split('-').map(Number);
@@ -65,6 +65,8 @@ export default function GroupCalendar({ group, user, me, myDays, day, onPick, on
       .filter((row) => row.places.length)
       .sort((a, b) => (a.places[0].at < b.places[0].at ? -1 : 1));
   }, [onDay.groups, group.id]);
+  // The member picked stays picked across days, but only counts on a day they're on.
+  const only = picked && rows.some((row) => row.member.userId === picked) ? picked : null;
   // Every photo of the day, member by member (the card's order): what a tapped photo pages through.
   const items = useMemo(
     () =>
@@ -138,7 +140,7 @@ export default function GroupCalendar({ group, user, me, myDays, day, onPick, on
       >
         {rows.length > 1 && (
           <div className="week-card__who" data-swipe-keep>
-            <button type="button" className={`week-card__all ${only ? '' : 'is-on'}`} onClick={() => setOnly(null)}>
+            <button type="button" className={`week-card__all ${only ? '' : 'is-on'}`} onClick={() => setPicked(null)}>
               ALL
             </button>
             {rows.map(({ member }) => (
@@ -147,11 +149,11 @@ export default function GroupCalendar({ group, user, me, myDays, day, onPick, on
                 type="button"
                 className={`week-card__face ${only === member.userId ? 'is-on' : ''}`}
                 style={{ '--member': memberColor(member.color) } as CSSProperties}
-                aria-label={member.nickname}
                 aria-pressed={only === member.userId}
-                onClick={() => setOnly((o) => (o === member.userId ? null : member.userId))}
+                onClick={() => setPicked(only === member.userId ? null : member.userId)}
               >
-                <MemberFace member={member} size={30} />
+                <MemberFace member={member} size={28} />
+                <span>{member.nickname}</span>
               </button>
             ))}
           </div>
@@ -162,38 +164,45 @@ export default function GroupCalendar({ group, user, me, myDays, day, onPick, on
             <div className="week-card__map" role="button" tabIndex={0} aria-label={`${weekCardDay(pick, today)} 지도 보기`} onClick={() => goTo(pick)} onKeyDown={(e) => e.key === 'Enter' && goTo(pick)}>
               <GroupDayMap lanes={rows} only={only} />
             </div>
-            <div className="week-card__meta">
-              <p className="week-card__label">
-                {weekCardDay(pick, today)} · {rows.length}명 · {items.length} PHOTOS
-              </p>
-            </div>
             <ul className="week-card__lanes">
-              {rows.map(({ member, places }) => {
-                const first = items.findIndex((it) => it.key === member.userId);
-                const photos = places.flatMap(pingPhotos);
-                return (
-                  <li key={member.userId} className={`week-card__lane ${only && only !== member.userId ? 'is-dim' : ''}`}>
-                    <MemberFace member={member} size={30} />
-                    <div className="week-card__who-text">
-                      <b>{member.userId === me ? `${member.nickname} (나)` : member.nickname}</b>
-                      <span>{cardRoute(places.map((p) => p.name ?? '이름 없는 곳'))}</span>
-                    </div>
-                    <div className="week-card__stack">
-                      {photos.slice(0, ROW_PHOTOS).map((src, i) => (
-                        <button key={i} type="button" className="week-card__photo" aria-label={`${member.nickname}의 사진 크게 보기`} onClick={() => openPhoto(first + i)}>
-                          <img src={src} alt="" />
-                        </button>
-                      ))}
-                    </div>
-                  </li>
-                );
-              })}
+              {rows
+                .filter(({ member }) => !only || only === member.userId)
+                .map(({ member, places }) => {
+                  const first = items.findIndex((it) => it.key === member.userId);
+                  const photos = places.flatMap(pingPhotos);
+                  return (
+                    <li key={member.userId} className="week-card__lane">
+                      <MemberFace member={member} size={30} />
+                      <div className="week-card__who-text">
+                        <b>{member.userId === me ? `${member.nickname} (나)` : member.nickname}</b>
+                        {/* The whole route, wrapping onto as many lines as it takes. */}
+                        <span>{places.map((p) => p.name ?? '이름 없는 곳').join(' → ')}</span>
+                        {/* Every photo in the order of the route, side by side, wrapping too. */}
+                        <div className="week-card__row-photos">
+                          {photos.map((src, i) => (
+                            <button key={i} type="button" className="week-card__photo" aria-label={`${member.nickname}의 사진 크게 보기`} onClick={() => openPhoto(first + i)}>
+                              <img src={src} alt="" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
             </ul>
           </div>
         ) : (
-          <div className={`week-card week-card--empty ${onDay.status === 'loading' ? 'is-loading' : ''}`}>
-            {onDay.status === 'error' ? '그날 사진을 불러오지 못했어요.' : onDay.status === 'loading' ? '' : '이날은 아무도 사진을 보내지 않았어요.'}
-          </div>
+          // A day with no photos: just the empty pin (nothing while it loads); a failed read says so.
+          onDay.status === 'error' ? (
+            <p className="group-calendar__note">그날 사진을 불러오지 못했어요.</p>
+          ) : (
+            onDay.status !== 'loading' && (
+              <div className="empty-day">
+                <EmptyMark label="" />
+                <p className="empty-day__text">휴식중...</p>
+              </div>
+            )
+          )
         )}
         {asked.status === 'error' && <p className="group-calendar__note">달력을 불러오지 못했어요.</p>}
       </WeekCalendar>

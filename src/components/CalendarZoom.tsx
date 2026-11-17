@@ -39,6 +39,7 @@ import { loadDays, saveDays, type DayStore } from '../services/dayRepository';
 import { onPulled } from '../services/syncBus';
 import { dateKey } from '../domain/diary';
 import DayPings from './DayPings';
+import DayRouteMap from './DayRouteMap';
 import type { StickerDrop } from '../domain/stickerSheets';
 import DecorLayer, { type TextFocus } from './DecorLayer';
 import { DecorRail } from './DecorRail';
@@ -46,6 +47,7 @@ import { lazyScreen } from '../lib/lazyScreen';
 
 // The tool sheet (sticker packs, pens, colours) comes with the first tool opened, not with TODAY.
 const DecorTray = lazyScreen(() => import('./DecorTray'));
+import EmptyMark from './EmptyMark';
 import WeekCalendar, { cardRoute, weekCardDay, type CalendarPhotos } from './WeekCalendar';
 import type { ExcludedPlace } from '../domain/privacy';
 
@@ -718,10 +720,6 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
             today={today}
             pings={pingsForDate(pick, stored)}
             photosOf={(ping) => (ping.id ? (photos[ping.id] ?? []) : [])}
-            shapeOf={(ping) => days.shapes[pingKey(pick, ping)] ?? 'pin'}
-            edgeStyleOf={(from, to) => days.edges[edgeKey(pick, from, to)] ?? 'solid'}
-            pinLookOf={pinLookOf}
-            decor={days.decor[pick] ?? EMPTY_DECOR}
             onOpen={() => toDay(pick)}
             onPhotos={onPhotos}
           />
@@ -953,10 +951,6 @@ interface DayCardProps {
   today: string;
   pings: DayPing[];
   photosOf: (ping: DayPing) => readonly { id: string; src: string }[];
-  shapeOf: (ping: DayPing) => PingLook;
-  edgeStyleOf: (from: DayPing, to: DayPing) => LineLook;
-  pinLookOf: (ping: DayPing) => { icon: PinIcon; color: PinTint };
-  decor: DayDecor;
   onOpen(): void;
   onPhotos?: (open: CalendarPhotos) => void;
 }
@@ -965,19 +959,17 @@ interface DayCardProps {
 const CARD_PHOTOS = 4;
 
 /**
- * The month screen's preview of the picked day (calendar H): its drawing as
- * TODAY shows it (read-only, small), how many places and photos, where it
- * went, and its photos. The card (or its →) opens the day.
+ * The month screen's preview of the picked day (calendar H): the map with a
+ * plain line through its places (as a group's card), how many places and
+ * photos, where it went, and its photos. The card (or its →) opens the day.
  */
-function DayCard({ day, today, pings, photosOf, shapeOf, edgeStyleOf, pinLookOf, decor, onOpen, onPhotos }: DayCardProps) {
-  const [, m, d] = day.split('-').map(Number);
+function DayCard({ day, today, pings, photosOf, onOpen, onPhotos }: DayCardProps) {
+  // A day with no photos: just the empty mark, as on a group's calendar.
   if (!pings.length) {
     return (
-      <div className="week-card week-card--empty">
-        <b>
-          {m}.{d}
-        </b>
-        {day === today ? '아래 카메라로 첫 사진을 찍어 보세요.' : '이날은 찍은 사진이 없어요.'}
+      <div className="empty-day">
+        <EmptyMark label="" />
+        <p className="empty-day__text">휴식중...</p>
       </div>
     );
   }
@@ -994,19 +986,8 @@ function DayCard({ day, today, pings, photosOf, shapeOf, edgeStyleOf, pinLookOf,
     <div className="week-card">
       {/* Only the drawing goes to the day (its TODAY); the photos open big. */}
       <div className="week-card__map" role="button" tabIndex={0} aria-label={`${weekCardDay(day, today)} 열기`} onClick={onOpen} onKeyDown={(e) => e.key === 'Enter' && onOpen()}>
-        <DayPings
-          key={day}
-          pings={pings}
-          shapeOf={shapeOf}
-          onShape={() => {}}
-          edgeStyleOf={edgeStyleOf}
-          onEdgeStyle={() => {}}
-          pinLookOf={pinLookOf}
-          draggable={false}
-          pressable={() => false}
-          showNames={!decor.hideNames}
-          showTimes={false}
-        />
+        {/* As a group's card draws a day: the map and a plain line through the places, no pins. */}
+        <DayRouteMap key={day} tracks={[{ id: 'me', color: 'var(--day-ping, var(--accent))', centers: pings.map((p) => p.center) }]} />
       </div>
       <div className="week-card__meta">
         <p className="week-card__label">
