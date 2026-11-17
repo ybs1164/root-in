@@ -27,10 +27,11 @@ interface GroupSendDialogProps {
 
 /**
  * 전송 from the camera: a boarding pass (`ticket-dialog`) in two steps. First
- * 위치 선택 — the places within 50m I've been to before on top (방문한 적 있는
- * 장소, the nearest picked to start with), 직접 입력 under them (the very top
- * when there are none), then the spot itself (picked to start with when I've
- * been nowhere near) and the places around; 다음 goes on to TODAY (MY — my own day, always sent to: the gallery's
+ * 위치 선택, three headed groups — 방문한 적 있는 장소 (the places within 50m
+ * I've been to before, the nearest picked to start with; left out when there
+ * are none), 직접 입력 (a name typed by hand), 주변 장소 (the spot itself —
+ * picked to start with when I've been nowhere near — and the places around).
+ * The picked row is only tinted: no check marks on this step. 다음 goes on to TODAY (MY — my own day, always sent to: the gallery's
  * MY is TODAY's photos, so every shot lands there) and every group I'm in,
  * each with its cover; tap as many groups as you like, then 전송 sends the
  * photo and a ping of that place to each.
@@ -113,9 +114,6 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
             {/* The spot itself says so; the rest show where they are. */}
             {p.id === spot?.id ? <span className="group-send__sub">현재 위치</span> : p.address && <span className="group-send__sub">{p.address}</span>}
           </span>
-          <span className="group-send__check" aria-hidden>
-            {on && <Check size={16} strokeWidth={3} />}
-          </span>
         </button>
       </li>
     );
@@ -156,7 +154,12 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
                 )}
                 {places.visited.map(placeRow)}
                 {spot && (
-                  <li className={places.visited.length > 0 ? 'group-send__typed-row' : undefined}>
+                  <li className="group-send__head" role="presentation">
+                    직접 입력
+                  </li>
+                )}
+                {spot && (
+                  <li>
                     {/* A div, not a button: the name field sits inside it. */}
                     <div
                       role="radio"
@@ -197,15 +200,17 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
                             }}
                           />
                         ) : (
-                          <span className="group-send__name">{typedName.trim() || '직접 입력'}</span>
+                          <span className={`group-send__name ${typedName.trim() ? '' : 'is-blank'}`}>{typedName.trim() || '장소 이름을 입력하세요'}</span>
                         )}
                         {/* Where the ping lands: the address nearest to where I am. */}
                         <span className="group-send__sub">{spot.address ?? '현재 위치'}</span>
                       </span>
-                      <span className="group-send__check" aria-hidden>
-                        {typing && <Check size={16} strokeWidth={3} />}
-                      </span>
                     </div>
+                  </li>
+                )}
+                {places.others.length > 0 && (
+                  <li className="group-send__head" role="presentation">
+                    주변 장소
                   </li>
                 )}
                 {places.others.map(placeRow)}

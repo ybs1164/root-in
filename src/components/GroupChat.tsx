@@ -29,10 +29,13 @@ const placeName = (name: string | undefined) => name || '이름 없는 곳';
 /** A press held this long on a line opens its menu (답장 · 모두에게 삭제 · 나에게만 삭제). */
 const HOLD_MS = 450;
 /** A line slid inward this far (px) answers it on letting go; it follows the finger up to `SWIPE_MAX_PX`. */
-export const SWIPE_REPLY_PX = 56;
-const SWIPE_MAX_PX = 80;
+export const SWIPE_REPLY_PX = 40;
+const SWIPE_MAX_PX = 72;
+/** …or flicked inward: at least this far (px), let go at this speed (px/ms) or faster. */
+const FLICK_REPLY_PX = 18;
+const FLICK_REPLY_SPEED = 0.45;
 /** A finger that moved this far isn't holding still: no menu (it scrolls, or slides the line). */
-const MOVE_PX = 8;
+const MOVE_PX = 6;
 
 /** What a line says, short: a reply's quote and the reply bar show it. */
 export function lineSnippet(item: Pick<FeedItem, 'kind' | 'body' | 'place' | 'deleted'>): string {
@@ -156,19 +159,31 @@ export default function GroupChat({
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
     setUnseen(false);
   };
+  // How far the thread is from its newest line (px), as last scrolled or laid out.
+  const fromBottom = useRef(0);
   const onScroll = () => {
     const el = list.current;
-    if (unseen && el && el.scrollHeight - el.scrollTop - el.clientHeight <= NEAR_BOTTOM_PX) setUnseen(false);
+    if (!el) return;
+    fromBottom.current = Math.max(0, el.scrollHeight - el.scrollTop - el.clientHeight);
+    if (unseen && fromBottom.current <= NEAR_BOTTOM_PX) setUnseen(false);
   };
+  // Lines coming in or hidden change that distance without a scroll.
+  useEffect(() => {
+    const el = list.current;
+    if (el) fromBottom.current = Math.max(0, el.scrollHeight - el.scrollTop - el.clientHeight);
+  }, [shownItems]);
 
-  // The keyboard coming up shortens the thread (the screen sits on it): with
-  // the input focused, the newest line stays in sight right over it.
+  // The thread's height changes under it — the keyboard coming up or going
+  // down (the screen sits on it), the reply bar opening or closing: the line
+  // at its foot stays at its foot, wherever the thread is scrolled to. (It
+  // used to jump to the newest whenever the input had the focus: cancelling
+  // a reply to an older line, or the keyboard going down, threw the talk up.)
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     const el = list.current;
     if (!el || typeof ResizeObserver !== 'function') return;
     const watch = new ResizeObserver(() => {
-      if (document.activeElement === input.current) el.scrollTop = el.scrollHeight;
+      el.scrollTop = el.scrollHeight - el.clientHeight - fromBottom.current;
     });
     watch.observe(el);
     return () => watch.disconnect();
@@ -199,7 +214,8 @@ export default function GroupChat({
   const [replyTo, setReplyTo] = useState<FeedItem | null>(null);
   const startReply = (item: FeedItem) => {
     setReplyTo(item);
-    input.current?.focus();
+    // No scroll of its own from the focus: the thread stays where it is (the resize keeps its foot).
+    input.current?.focus({ preventScroll: true });
   };
   const send = async () => {
     if (!text.trim() || sending) return;
@@ -213,9 +229,10 @@ export default function GroupChat({
     void read();
   };
 
-  // A line held down: its menu. 모두에게 삭제 (my own lines only) asks first.
+  // A line held down: its menu. Both deletes ask first (모두에게 삭제 is for my own lines only).
   const [menuFor, setMenuFor] = useState<FeedItem | null>(null);
   const [deletingAll, setDeletingAll] = useState<FeedItem | null>(null);
+  const [deletingMine, setDeletingMine] = useState<FeedItem | null>(null);
   const [deleteFailed, setDeleteFailed] = useState(false);
   const deleteForAll = async (item: FeedItem) => {
     const ok = await groupService.deleteLine(group.id, item);
@@ -232,7 +249,7 @@ export default function GroupChat({
   // right for theirs, left for mine), the line follows and, past
   // SWIPE_REPLY_PX, answers it on letting go. The finger is moved on the
   // line's own style, not React state, so it keeps up.
-  const press = useRef<{ item: FeedItem; line: HTMLElement; x: number; y: number; mode: 'wait' | 'held' | 'slide' | 'off'; pull: number; timer: number } | null>(null);
+  const press = useRef<{ item: FeedItem; line: HTMLElement; x: number; y: number; mode: 'wait' | 'held' | 'slide' | 'off'; pull: number; timer: number; raw: number; at: number; speed: number } | null>(null);
   const swallowClick = useRef(false);
   const settle = (line: HTMLElement) => {
     line.classList.add('is-settling');
@@ -241,13 +258,18 @@ export default function GroupChat({
     window.setTimeout(() => line.classList.remove('is-settling'), 200);
   };
   const lineHandlers = (item: FeedItem) => ({
-    'data-swipe-keep': '',
+    // Their rows slide the way the screen's swipe back goes: the row keeps
+    // that move. Mine slide the other way, so only my bubble does (as before)
+    // and a swipe back from the empty side of my row still closes the 대화.
+    'data-swipe-keep': item.mine ? undefined : '',
     onPointerDown: (e: ReactPointerEvent<HTMLElement>) => {
       if (e.button > 0) return;
       swallowClick.current = false;
       const line = e.currentTarget.closest('li');
       if (!line) return;
-      const timer = window.setTimeout(() => {
+      // The whole row slides (a short bubble is a small thing to catch); only the bubble's side is held for the menu.
+      const onSaid = !!(e.target as Element).closest?.('.group-chat__said');
+      const timer = !onSaid ? 0 : window.setTimeout(() => {
         const p = press.current;
         if (!p || p.mode !== 'wait') return;
         p.mode = 'held';
@@ -255,7 +277,7 @@ export default function GroupChat({
         navigator.vibrate?.(10);
         setMenuFor(item);
       }, HOLD_MS);
-      press.current = { item, line, x: e.clientX, y: e.clientY, mode: 'wait', pull: 0, timer };
+      press.current = { item, line, x: e.clientX, y: e.clientY, mode: 'wait', pull: 0, timer, raw: 0, at: e.timeStamp, speed: 0 };
     },
     onPointerMove: (e: ReactPointerEvent<HTMLElement>) => {
       const p = press.current;
@@ -266,12 +288,18 @@ export default function GroupChat({
       if (p.mode === 'wait') {
         if (Math.hypot(dx, dy) < MOVE_PX) return;
         window.clearTimeout(p.timer);
-        if (item.deleted || inward <= 0 || Math.abs(dx) < Math.abs(dy) * 1.3) return void (p.mode = 'off');
+        // Inward and more sideways than up or down: the line's (anything else scrolls the thread).
+        if (item.deleted || inward <= 0 || Math.abs(dx) < Math.abs(dy)) return void (p.mode = 'off');
         p.mode = 'slide';
         e.currentTarget.setPointerCapture?.(e.pointerId);
       }
       // Past the reply point it gives, so it never runs off.
       const raw = Math.max(0, inward);
+      // How fast it's going inward, smoothed over the last moves: a flick answers too.
+      const dt = e.timeStamp - p.at;
+      if (dt > 0) p.speed = p.speed * 0.4 + ((raw - p.raw) / dt) * 0.6;
+      p.raw = raw;
+      p.at = e.timeStamp;
       p.pull = raw <= SWIPE_REPLY_PX ? raw : Math.min(SWIPE_MAX_PX, SWIPE_REPLY_PX + (raw - SWIPE_REPLY_PX) * 0.35);
       p.line.style.translate = `${item.mine ? -p.pull : p.pull}px 0`;
       p.line.style.setProperty('--pull', String(Math.min(1, p.pull / SWIPE_REPLY_PX)));
@@ -284,7 +312,7 @@ export default function GroupChat({
       if (p.mode !== 'slide') return;
       swallowClick.current = true;
       settle(p.line);
-      if (p.pull >= SWIPE_REPLY_PX) startReply(item);
+      if (p.pull >= SWIPE_REPLY_PX || (p.pull >= FLICK_REPLY_PX && p.speed >= FLICK_REPLY_SPEED)) startReply(item);
     },
     onPointerCancel: () => {
       const p = press.current;
@@ -316,17 +344,17 @@ export default function GroupChat({
   useEffect(() => {
     if (photoSeq !== null) return;
     const key = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || menuFor || deletingAll) return;
+      if (e.key !== 'Escape' || menuFor || deletingAll || deletingMine) return;
       if (picker) setPicker(null);
       else if (replyTo) setReplyTo(null);
       else onClose();
     };
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
-  }, [photoSeq, onClose, picker, replyTo, menuFor, deletingAll]);
+  }, [photoSeq, onClose, picker, replyTo, menuFor, deletingAll, deletingMine]);
 
   // Left to right, back to the group's map under it (not while a photo is big over it).
-  const swipeBack = useSwipeBack(onClose, photoSeq === null && !picker && !menuFor && !deletingAll);
+  const swipeBack = useSwipeBack(onClose, photoSeq === null && !picker && !menuFor && !deletingAll && !deletingMine);
 
   const today = dateKey();
   const theme = groupTheme(group);
@@ -359,14 +387,14 @@ export default function GroupChat({
                 </button>
               </li>
             ),
-            <li key={item.id} data-line={item.id} className={`group-chat__line ${item.mine ? 'is-mine' : ''}`} style={{ '--member': memberColor(member.color) } as CSSProperties}>
+            <li key={item.id} data-line={item.id} className={`group-chat__line ${item.mine ? 'is-mine' : ''}`} style={{ '--member': memberColor(member.color) } as CSSProperties} {...lineHandlers(item)}>
               {/* Slid inward, the reply arrow fades in behind it. */}
               <span className="group-chat__slide-reply" aria-hidden>
                 <Reply size={20} strokeWidth={2.4} />
               </span>
               {/* Mine on the right, bare; everyone else's with their face and name. */}
               {!item.mine && <MemberFace member={member} size={36} />}
-              <div className="group-chat__said" {...lineHandlers(item)}>
+              <div className="group-chat__said" data-swipe-keep={item.mine ? '' : undefined}>
                 {!item.mine && <span className="group-chat__who">{member.nickname}</span>}
                 <div className="group-chat__row">
                   <div className="group-chat__bubble">
@@ -469,7 +497,7 @@ export default function GroupChat({
           who={nameOf(menuFor)}
           onReply={() => startReply(menuFor)}
           onDeleteAll={menuFor.mine && !menuFor.deleted ? () => setDeletingAll(menuFor) : undefined}
-          onDeleteMine={() => deleteForMe(menuFor)}
+          onDeleteMine={() => setDeletingMine(menuFor)}
           onClose={() => setMenuFor(null)}
         />
       )}
@@ -480,6 +508,15 @@ export default function GroupChat({
           detail={deletingAll.kind === 'photo' ? '그룹 지도·갤러리에서도 사라지고 복구할 수 없어요.' : '삭제한 메시지는 복구할 수 없어요.'}
           onConfirm={() => void deleteForAll(deletingAll)}
           onClose={() => setDeletingAll(null)}
+        />
+      )}
+      {deletingMine && (
+        <ConfirmDialog
+          label="나에게만 삭제"
+          message={deletingMine.kind === 'photo' ? '이 사진을 나에게만 삭제합니다.' : deletingMine.kind === 'comment' ? '이 댓글을 나에게만 삭제합니다.' : '이 메시지를 나에게만 삭제합니다.'}
+          detail={'이 폰의 대화에서만 사라지고 다른 그룹원에게는 그대로 보여요.\n삭제하면 다시 볼 수 없어요.'}
+          onConfirm={() => deleteForMe(deletingMine)}
+          onClose={() => setDeletingMine(null)}
         />
       )}
 
