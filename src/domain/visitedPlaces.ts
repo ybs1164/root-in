@@ -6,10 +6,10 @@ import type { PlaceRef } from '../types/course';
 import type { Pin } from '../types/pin';
 
 /** The place id of a pin made from a visit: which ping it came from. */
-const visitPlaceId = (pingId: string) => `visit:${pingId}`;
+export const visitPlaceId = (pingId: string) => `visit:${pingId}`;
 
 /** A ping of this place: the same name within the radius a photo pings by. */
-const samePlace = (a: { name: string; center: [number, number] }, b: { name: string; center: [number, number] }) =>
+export const samePlace = (a: { name: string; center: [number, number] }, b: { name: string; center: [number, number] }) =>
   a.name === b.name && haversineMeters(a.center, b.center) <= TODAY_PING_RADIUS_M;
 
 /**

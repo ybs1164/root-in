@@ -1,6 +1,6 @@
 import { CalendarCheck, Check, MapPin, PenLine } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { TYPED_PLACE_MAX, typedCameraPlace } from '../domain/cameraPlaces';
+import { firstCameraPlace, TYPED_PLACE_MAX, typedCameraPlace, type CameraPlaces } from '../domain/cameraPlaces';
 import { effectiveCover, type Group } from '../domain/groups';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import type { GroupsStatus } from '../hooks/useGroups';
@@ -10,8 +10,8 @@ import { GroupCover } from './WeNowPage';
 interface GroupSendDialogProps {
   groups: Group[];
   status: GroupsStatus;
-  /** Where the shot can say it was taken, the spot I'm on first (`cameraPlaces`); null while still looking. */
-  places: PlaceRef[] | null;
+  /** Where the shot can say it was taken (`cameraPlaces`): places I've been first, then the rest; null while still looking. */
+  places: CameraPlaces | null;
   /** Why there's nowhere to send from (no location, near a 제외 주소). */
   placeProblem: string | null;
   /** The group the camera was opened from: picked to start with, unpickable like any other (TODAY alone can't be). */
@@ -27,8 +27,10 @@ interface GroupSendDialogProps {
 
 /**
  * 전송 from the camera: a boarding pass (`ticket-dialog`) in two steps. First
- * 위치 선택 — the places around where I am, the spot itself picked to start
- * with; 다음 goes on to TODAY (MY — my own day, always sent to: the gallery's
+ * 위치 선택 — the places within 50m I've been to before on top (방문한 적 있는
+ * 장소, the nearest picked to start with), 직접 입력 under them (the very top
+ * when there are none), then the spot itself (picked to start with when I've
+ * been nowhere near) and the places around; 다음 goes on to TODAY (MY — my own day, always sent to: the gallery's
  * MY is TODAY's photos, so every shot lands there) and every group I'm in,
  * each with its cover; tap as many groups as you like, then 전송 sends the
  * photo and a ping of that place to each.
@@ -45,11 +47,12 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
   const [typing, setTyping] = useState(false);
   const [typedName, setTypedName] = useState('');
   const typedRef = useRef<HTMLInputElement | null>(null);
-  // Typed: a ping of that name on the spot I'm on (the first place, with its
-  // nearest address); nothing until a name is in. Otherwise the place picked,
-  // and with nothing picked yet the first one (where I'm standing).
-  const spot = places?.[0] ?? null;
-  const place = typing ? (spot && typedCameraPlace(spot, typedName)) : (places?.find((p) => p.id === placeId) ?? spot);
+  // Typed: a ping of that name on the spot I'm on (with its nearest address);
+  // nothing until a name is in. Otherwise the place picked, and with nothing
+  // picked yet the first one (the nearest place I've been, else where I'm standing).
+  const spot = places?.here ?? null;
+  const listed = places ? [...places.visited, ...places.others] : [];
+  const place = typing ? (spot && typedCameraPlace(spot, typedName)) : (listed.find((p) => p.id === placeId) ?? (places && firstCameraPlace(places)));
   // No close() in cleanup: it would fire onClose during StrictMode's check (as ConfirmDialog).
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -88,6 +91,36 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
             ? '아직 들어간 그룹이 없어요. We Now에서 그룹을 만들거나 초대 링크로 들어가 보세요.'
             : null;
 
+  const placeRow = (p: PlaceRef) => {
+    const on = !typing && p.id === place?.id;
+    return (
+      <li key={p.id}>
+        <button
+          type="button"
+          role="radio"
+          aria-checked={on}
+          className={`group-send__item ${on ? 'is-on' : ''}`}
+          onClick={() => {
+            setTyping(false);
+            setPlaceId(p.id);
+          }}
+        >
+          <span className="group-send__spot" aria-hidden>
+            <MapPin size={20} strokeWidth={2.2} />
+          </span>
+          <span className="group-send__place">
+            <span className="group-send__name">{p.name}</span>
+            {/* The spot itself says so; the rest show where they are. */}
+            {p.id === spot?.id ? <span className="group-send__sub">현재 위치</span> : p.address && <span className="group-send__sub">{p.address}</span>}
+          </span>
+          <span className="group-send__check" aria-hidden>
+            {on && <Check size={16} strokeWidth={3} />}
+          </span>
+        </button>
+      </li>
+    );
+  };
+
   return (
     <dialog
       ref={dialogRef}
@@ -116,37 +149,14 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
               <p className="group-send__empty">주변 장소를 찾는 중이에요…</p>
             ) : (
               <ul className="group-send__list" role="radiogroup" aria-label="보낼 위치">
-                {places.map((p, i) => {
-                  const on = !typing && p.id === place?.id;
-                  return (
-                    <li key={p.id}>
-                      <button
-                        type="button"
-                        role="radio"
-                        aria-checked={on}
-                        className={`group-send__item ${on ? 'is-on' : ''}`}
-                        onClick={() => {
-                          setTyping(false);
-                          setPlaceId(p.id);
-                        }}
-                      >
-                        <span className="group-send__spot" aria-hidden>
-                          <MapPin size={20} strokeWidth={2.2} />
-                        </span>
-                        <span className="group-send__place">
-                          <span className="group-send__name">{p.name}</span>
-                          {/* The first is the spot itself; the rest are what's around it. */}
-                          {i === 0 ? <span className="group-send__sub">현재 위치</span> : p.address && <span className="group-send__sub">{p.address}</span>}
-                        </span>
-                        <span className="group-send__check" aria-hidden>
-                          {on && <Check size={16} strokeWidth={3} />}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
+                {places.visited.length > 0 && (
+                  <li className="group-send__head" role="presentation">
+                    방문한 적 있는 장소
+                  </li>
+                )}
+                {places.visited.map(placeRow)}
                 {spot && (
-                  <li>
+                  <li className={places.visited.length > 0 ? 'group-send__typed-row' : undefined}>
                     {/* A div, not a button: the name field sits inside it. */}
                     <div
                       role="radio"
@@ -198,6 +208,7 @@ export default function GroupSendDialog({ groups, status, places, placeProblem, 
                     </div>
                   </li>
                 )}
+                {places.others.map(placeRow)}
               </ul>
             )}
           </div>

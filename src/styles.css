@@ -4580,7 +4580,20 @@ button:disabled {
   white-space: nowrap;
 }
 
-/* 직접 입력, the last place: picked, its name becomes a field in the same
+/* 방문한 적 있는 장소: the places I've been to before, apart on top of the list. */
+.group-send__head {
+  padding: 2px 10px 4px;
+  color: var(--muted);
+  --icon-ink: var(--icon);
+  font-size: 13px;
+}
+
+/* 직접 입력 under them: a little apart, so the group above reads as its own. */
+.group-send__typed-row {
+  margin-top: 8px;
+}
+
+/* 직접 입력: picked, its name becomes a field in the same
    spot and size as the other names (16px also keeps iOS from zooming). */
 .group-send__item--typed {
   cursor: pointer;

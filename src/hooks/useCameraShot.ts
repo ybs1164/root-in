@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { CAMERA_PLACE_LIMIT, cameraPlaces } from '../domain/cameraPlaces';
+import { CAMERA_PLACE_LIMIT, cameraPlaces, type CameraPlaces } from '../domain/cameraPlaces';
 import { TODAY_PING_RADIUS_M } from '../domain/dayPings';
 import { dateKey } from '../domain/diary';
 import { haversineMeters as distanceMeters } from '../domain/geo';
@@ -35,7 +35,8 @@ export function useCameraShot({ here, excluded, searchService, pins, sendPhoto, 
   // When it was taken: the photo ping's time (and day) is the shutter's, not 전송's.
   const shotAt = useRef(new Date());
   // Where that shot can say it was taken (null while still looking), or why there's nowhere.
-  const [spots, setSpots] = useState<{ places: PlaceRef[] | null; problem: string | null }>({ places: null, problem: null });
+  const [spots, setSpots] = useState<{ places: CameraPlaces | null; problem: string | null }>({ places: null, problem: null });
+  const nowhere: CameraPlaces = { visited: [], here: null, others: [] };
   const lookup = useRef(0);
 
   // 전송 from the camera, first: the places around where I am, for the shot
@@ -44,16 +45,16 @@ export function useCameraShot({ here, excluded, searchService, pins, sendPhoto, 
   const findSpots = async () => {
     const turn = ++lookup.current;
     const center = here;
-    if (!center) return setSpots({ places: [], problem: '지금 위치를 찾지 못했어요. 위치 권한을 확인해 주세요.' });
-    if (isExcluded({ center }, excluded)) return setSpots({ places: [], problem: '제외 주소 근처에서는 보낼 수 없어요.' });
+    if (!center) return setSpots({ places: nowhere, problem: '지금 위치를 찾지 못했어요. 위치 권한을 확인해 주세요.' });
+    if (isExcluded({ center }, excluded)) return setSpots({ places: nowhere, problem: '제외 주소 근처에서는 보낼 수 없어요.' });
     setSpots({ places: null, problem: null });
     const [named, around] = await Promise.all([
       searchService?.reverse(center) ?? null,
       searchService?.nearby(center, { limit: CAMERA_PLACE_LIMIT }) ?? [],
     ]);
     if (turn !== lookup.current) return;
-    const places = cameraPlaces(center, named && named.name !== UNNAMED_SPOT ? named : null, pins, around, excluded);
-    setSpots({ places, problem: places.length ? null : '제외 주소 근처에서는 보낼 수 없어요.' });
+    const places = cameraPlaces(center, named && named.name !== UNNAMED_SPOT ? named : null, pins, around, excluded, loadPings());
+    setSpots({ places, problem: places.visited.length + places.others.length ? null : '제외 주소 근처에서는 보낼 수 없어요.' });
   };
 
   // TODAY (MY) in the send popup: the shot pings the picked place on my own
