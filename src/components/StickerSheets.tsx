@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as R
 import { createPortal } from 'react-dom';
 import { getSticker } from '../domain/decor';
 import { outlinedSticker } from '../lib/stickerEdge';
-import { SHEET_PULL, swipeCommits } from '../domain/appTabs';
+import { SHEET_PULL, SWIPE, swipeCommits } from '../domain/appTabs';
 import { peelFold, STICKER_SHEETS, type PeelFold, type SheetSlot, type StickerDrop, type StickerSheet } from '../domain/stickerSheets';
 
 /** Less movement than this is a tap on a sticker, not a pull (px). */
@@ -133,7 +133,8 @@ function drawPeel(canvas: HTMLCanvasElement, p: Peel, fold: PeelFold | null) {
 
 /**
  * The sticker tool: a printed sheet of stickers a little below the middle of
- * the screen, `<` `>` to the sheets either side. Pull a sticker and it peels
+ * the screen, `<` `>` (or a sideways swipe on its band or bare paper) to the
+ * sheets either side. Pull a sticker and it peels
  * off toward the pull, page-turn style, then comes away and follows the
  * finger; let go and it's stuck on the drawing there. A tap sticks it in the
  * drawing's middle. Once it's off, the sheet drops to the bottom edge (its
@@ -449,8 +450,27 @@ export default function StickerSheets({
 
   // Up, the pack can be dragged down by its band or bare paper the same way:
   // it follows the finger and, let go far or fast enough, tucks down to its
-  // band; otherwise it springs back up.
-  const lower = useRef<{ id: number; y: number; t: number; down: number; dy: number; on: boolean } | null>(null);
+  // band; otherwise it springs back up. Dragged sideways instead, it pages
+  // like the arrows: the sheet follows the finger and, let go far or fast
+  // enough, the next (or previous) one slides in.
+  const lower = useRef<{
+    id: number;
+    x: number;
+    y: number;
+    t: number;
+    down: number;
+    dx: number;
+    dy: number;
+    on: 'down' | 'side' | null;
+  } | null>(null);
+  /** Slides the sheet sideways with the finger (null puts it back, gliding when `animate`). */
+  const slideSheet = (x: number | null, animate: boolean) => {
+    const el = sheetEl.current;
+    if (!el) return;
+    el.style.transition = animate ? 'translate 0.18s var(--slide-ease), opacity 0.18s var(--slide-ease)' : 'none';
+    el.style.translate = x === null ? '' : `${x}px 0`;
+    el.style.opacity = x === null ? '' : String(Math.max(0.4, 1 - Math.abs(x) / (el.offsetWidth * 1.5)));
+  };
   const lowered = useRef(false);
   const onLowerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     const sheetBox = sheetEl.current;
@@ -458,20 +478,29 @@ export default function StickerSheets({
     const band = sheetBox.querySelector<HTMLElement>('.sticker-pack__band');
     // How far down the tucked pack sits: all but its band (and a sliver) below the screen.
     const down = Math.max(0, window.innerHeight - sheetBox.getBoundingClientRect().top - (band?.offsetHeight ?? 0) - 6);
-    lower.current = { id: e.pointerId, y: e.clientY, t: performance.now(), down, dy: 0, on: false };
+    lower.current = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), down, dx: 0, dy: 0, on: null };
   };
   const onLowerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const r = lower.current;
     if (!r || r.id !== e.pointerId) return;
-    const dy = e.clientY - r.y;
+    const [dx, dy] = [e.clientX - r.x, e.clientY - r.y];
     if (!r.on) {
-      if (Math.abs(dy) < SHEET_PULL.startPx) return;
-      r.on = true;
+      const side = Math.abs(dx) > Math.abs(dy);
+      if (side ? Math.abs(dx) < SWIPE.startPx : Math.abs(dy) < SHEET_PULL.startPx) return;
+      // Only one pack: nothing to page to.
+      if (side && count < 2) return;
+      r.on = side ? 'side' : 'down';
+      r.t = performance.now();
       try {
         e.currentTarget.setPointerCapture(e.pointerId);
       } catch {
         // Moves still come while the finger is over the pack.
       }
+    }
+    if (r.on === 'side') {
+      r.dx = dx;
+      slideSheet(dx, false);
+      return;
     }
     r.dy = Math.max(0, Math.min(r.down, dy));
     placeSheets(r.dy, false);
@@ -482,9 +511,19 @@ export default function StickerSheets({
     if (!r || r.id !== e.pointerId || !r.on) return;
     lowered.current = true;
     window.setTimeout(() => (lowered.current = false), 0);
+    const cancelled = e.type === 'pointercancel';
+    if (r.on === 'side') {
+      const velocity = r.dx / Math.max(1, performance.now() - r.t);
+      const width = sheetEl.current?.offsetWidth ?? window.innerWidth;
+      const dir = r.dx < 0 ? -1 : 1;
+      // Pulled left, the next sheet comes in from the right (like `>`).
+      if (!cancelled && swipeCommits(dir, r.dx, width, velocity)) step(dir < 0 ? 1 : -1);
+      else slideSheet(null, true);
+      return;
+    }
     const velocity = r.dy / Math.max(1, performance.now() - r.t);
     placeSheets(null, true);
-    if (e.type !== 'pointercancel' && swipeCommits(1, r.dy, r.down, velocity, SHEET_PULL)) setPeek(true);
+    if (!cancelled && swipeCommits(1, r.dy, r.down, velocity, SHEET_PULL)) setPeek(true);
   };
 
   if (!sheet) return null;
@@ -514,6 +553,7 @@ export default function StickerSheets({
             className={`sticker-sheet ${from ? `is-from-${from}` : ''}`}
             style={{ '--pack': sheet.color, '--pack-ink': sheet.ink } as CSSProperties}
             role="group"
+            data-swipe-keep
             aria-label={`스티커 한 장 ${sheet.label ?? sheet.name}`}
             onPointerDown={onLowerDown}
             onPointerMove={onLowerMove}

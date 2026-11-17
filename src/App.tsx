@@ -1152,6 +1152,8 @@ export default function App() {
     excluded: privacy.excluded,
     searchService,
     pins: pinStore.pins,
+    savePin: pinStore.savePin,
+    updatePin: pinStore.updatePin,
     sendPhoto: groups.sendPhoto,
     notify,
   });
@@ -2032,6 +2034,9 @@ export default function App() {
           places={camera.spots.places}
           placeProblem={camera.spots.problem}
           startGroupId={camera.groupId}
+          defaultGroupIds={profile.sendGroups}
+          categories={categories}
+          pins={pins}
           onSend={camera.send}
           onClose={camera.dropShot}
         />

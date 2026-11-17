@@ -4560,6 +4560,55 @@ button:disabled {
   --icon-ink: currentColor;
 }
 
+.group-send__item--place {
+  cursor: pointer;
+}
+
+/* The place's category: its glyph in its colour on the row's tile; tapped,
+   the categories open under the row. */
+.group-send__category {
+  padding: 0;
+  border: 0;
+  color: var(--pin, var(--accent));
+  --icon-ink: currentColor;
+}
+
+.group-send__category .pin-glyph {
+  width: 24px;
+  height: 24px;
+}
+
+.group-send__category:disabled {
+  opacity: 1;
+}
+
+.group-send__cats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 44px);
+  justify-content: start;
+  gap: 6px;
+  padding: 6px 10px 10px;
+  animation: rise-in 0.18s var(--settle-ease, ease) both;
+}
+
+.group-send__cats .pin-card__icon-opt.is-on {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--accent);
+}
+
+/* TODAY in 그룹에 보내기: always sent to, so 기본 where the others' checks are. */
+.group-send__default {
+  flex: none;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
 .group-send__place {
   display: flex;
   flex: 1;
@@ -6496,6 +6545,32 @@ button:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.send-groups__lead {
+  margin: 0 0 8px;
+  color: var(--muted);
+  --icon-ink: var(--icon);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.send-groups__list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.send-groups__row {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  --icon-ink: var(--icon);
+  text-align: left;
 }
 
 .alerts__empty {
