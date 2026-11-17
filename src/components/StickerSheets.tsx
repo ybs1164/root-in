@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { getSticker } from '../domain/decor';
 import { outlinedSticker } from '../lib/stickerEdge';
 import { SHEET_PULL, SWIPE, swipeCommits } from '../domain/appTabs';
+import StickerPackList from './StickerPackList';
 import { peelFold, STICKER_SHEETS, type PeelFold, type SheetSlot, type StickerDrop, type StickerSheet } from '../domain/stickerSheets';
 
 /** Less movement than this is a tap on a sticker, not a pull (px). */
@@ -143,7 +144,8 @@ function drawPeel(canvas: HTMLCanvasElement, p: Peel, fold: PeelFold | null) {
  * from the first lift until the pack next comes up, full again — so at
  * most one spot is ever bare. While it's up, a touch anywhere off it tucks
  * it down (and only the next one puts the tool away), and so does dragging
- * it down by its band or bare paper.
+ * it down by its band or bare paper. A tap on the band (while it's up)
+ * opens the list of every pack (StickerPackList) to pick one from.
  */
 export default function StickerSheets({
   onPlace,
@@ -162,6 +164,7 @@ export default function StickerSheets({
   // Tucked down to its band at the bottom of the screen, so the drawing (and
   // stickers under the sheet) can be reached; only a tap on it brings it back.
   const [peek, setPeekState] = useState(false);
+  const [listing, setListing] = useState(false);
   const setPeek = (down: boolean) => {
     setPeekState(down);
     if (!down) setTaken(null);
@@ -203,7 +206,7 @@ export default function StickerSheets({
   // the drawing that touch would also put the tool away; here it only tucks
   // (heard first, and stopped), and the next touch out there closes as before.
   useEffect(() => {
-    if (peek) return;
+    if (peek || listing) return;
     const tuck = (e: PointerEvent) => {
       const t = e.target as Element | null;
       if (!e.isPrimary || peel.current || t?.closest('.sticker-sheets__row, .decor-rail, .color-picker')) return;
@@ -220,7 +223,14 @@ export default function StickerSheets({
     };
     document.addEventListener('pointerdown', tuck, true);
     return () => document.removeEventListener('pointerdown', tuck, true);
-  }, [peek]);
+  }, [peek, listing]);
+
+  const pickPack = (i: number) => {
+    setListing(false);
+    if (i === index) return;
+    setIndex(i);
+    setFrom(null);
+  };
 
   const slotKey = (i: number) => `${sheet.id}:${i}`;
 
@@ -542,7 +552,7 @@ export default function StickerSheets({
           onClick={() => raised.current || setPeek(false)}
         />
       )}
-      <div ref={sheetsEl} className={`sticker-sheets ${peek ? 'is-peek' : ''}`}>
+      <div ref={sheetsEl} className={`sticker-sheets ${peek ? 'is-peek' : ''} ${listing ? 'is-listing' : ''}`}>
         <div className="sticker-sheets__row">
           <button className="sticker-sheets__step" aria-label="이전 스티커 한 장" onClick={() => step(-1)}>
             <ChevronLeft size={30} strokeWidth={2.2} aria-hidden />
@@ -559,8 +569,14 @@ export default function StickerSheets({
             onPointerMove={onLowerMove}
             onPointerUp={onLowerUp}
             onPointerCancel={onLowerUp}
-            // Tucked down: a tap brings it back up. Up: a tap off the stickers tucks it down.
-            onClick={(e) => lowered.current || (peek ? setPeek(false) : !(e.target as Element).closest('.sticker-sheet__slot') && setPeek(true))}
+            // Tucked down: a tap brings it back up. Up: a tap on the band opens every pack, one off the stickers tucks it down.
+            onClick={(e) => {
+              if (lowered.current) return;
+              if (peek) return setPeek(false);
+              const t = e.target as Element;
+              if (t.closest('.sticker-pack__band')) return setListing(true);
+              if (!t.closest('.sticker-sheet__slot')) setPeek(true);
+            }}
           >
             <StickerPackBand sheet={sheet} />
             <div className="sticker-sheet__body">
@@ -613,6 +629,7 @@ export default function StickerSheets({
             document.body,
           )}
       </div>
+      {listing && <StickerPackList sheets={sheets} current={Math.min(index, count - 1)} onPick={pickPack} onClose={() => setListing(false)} />}
     </>
   );
 }
