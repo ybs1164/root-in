@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, cleanGroupName, focusPoints, groupPingCount, memberColor, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, sharedPlaces, mergeSamePlace, photoPlaces, pingPhotos, memberPhotoItems, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, orderGroups, moveId, withoutPhotos, pingLookKey, edgeLookKey, withGroupLook, readGroupLooks, readGroupCoverOverride, withCoverOverrides, effectiveCover, coverTintClass, type Group } from './groups';
+import { firstFreeColor, takenColors, MEMBER_COLORS, MEMBER_COLOR_NAMES, cleanGroupName, focusPoints, groupPingCount, memberColor, tilePaths, newPingCount, newMemberPings, photoPings, passRoute, viewerStep, groupPingKey, groupPingKeys, sharedPlaces, mergeSamePlace, photoPlaces, pingPhotos, memberPhotoItems, metPairs, photoKey, placeTime, isGroupBirthday, readPingDays, withMyPingDays, dayPingers, orderGroups, moveId, withoutPhotos, pingLookKey, edgeLookKey, withGroupLook, readGroupLooks, readGroupCoverOverride, withCoverOverrides, effectiveCover, coverTintClass, groupTheme, type Group } from './groups';
 
 const member = (userId: string, slot: number, pings: [number, number][]) => ({
   userId,
@@ -386,5 +386,18 @@ describe('MY COVER override (2026-11-15)', () => {
     // A personal photo (2026-11-15) wins over the override's own shape/swatch, untinted.
     const myPhoto = { ...maker, coverOverride: { cover: 4, swatch: 'matcha' as const, photo: 'me.jpg' } };
     expect(effectiveCover(myPhoto)).toEqual({ cover: 4, photo: 'me.jpg', tintClass: '' });
+  });
+});
+
+describe('groupTheme', () => {
+  it("is the maker's cover colour for everyone without a MY COVER of their own", () => {
+    expect(groupTheme({ coverSwatch: 'choco' })).toBe('choco');
+    expect(groupTheme({})).toBeUndefined();
+  });
+
+  it('is my own MY COVER colour over the maker\'s', () => {
+    expect(groupTheme({ coverSwatch: 'choco', coverOverride: { cover: 2, swatch: 'strawberry' } })).toBe('strawberry');
+    // A MY COVER photo carries no colour of its own: the maker's still shows.
+    expect(groupTheme({ coverSwatch: 'choco', coverOverride: { cover: 2, photo: 'me.jpg' } })).toBe('choco');
   });
 });

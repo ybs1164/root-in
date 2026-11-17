@@ -227,7 +227,7 @@ export default function GroupSettingsDialog({ group, me, onRename, onCover, cove
     <dialog
       ref={dialogRef}
       className="group-form ticket-dialog theme-scope"
-      data-theme={coverOverride?.swatch}
+      data-theme={coverOverride?.swatch ?? group.coverSwatch}
       aria-label="그룹 설정"
       onClose={(event) => {
         event.stopPropagation();

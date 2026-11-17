@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp, Camera, ChevronLeft, ChevronRight, Reply, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { COMMENT_MAX, galleryDayLabel, unreadBy, type FeedItem } from '../domain/gallery';
-import { GROUP_LIMITS, isGroupBirthday, memberColor, memberInk, type Group, type GroupMember } from '../domain/groups';
+import { GROUP_LIMITS, groupTheme, isGroupBirthday, memberColor, memberInk, type Group, type GroupMember } from '../domain/groups';
 import { dateKey } from '../domain/diary';
 import { monthGrid, shiftMonth } from '../domain/calendar';
 import { groupService } from '../services/groupService';
@@ -11,6 +11,7 @@ import PhotoViewer, { OpenPhotoMarks } from './PhotoViewer';
 import { useSwipeBack } from '../hooks/useSwipeBack';
 import { hideLine, loadHiddenLines } from '../services/chatHideRepository';
 import { showModalQuietly } from '../lib/dialog';
+import { ThemeScopeProvider, themeScopeProps } from '../lib/themeScope';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import ConfirmDialog from './ConfirmDialog';
 
@@ -328,9 +329,11 @@ export default function GroupChat({
   const swipeBack = useSwipeBack(onClose, photoSeq === null && !picker && !menuFor && !deletingAll);
 
   const today = dateKey();
+  const theme = groupTheme(group);
   let lastDay = '';
   return (
-    <div className="group-chat" role="dialog" aria-modal="true" aria-label={`${group.name} 대화`} {...swipeBack}>
+    <ThemeScopeProvider value={theme}>
+    <div className="group-chat theme-scope" {...themeScopeProps(theme)} role="dialog" aria-modal="true" aria-label={`${group.name} 대화`} {...swipeBack}>
       <header className="group-chat__head">
         <button className="gallery__back" aria-label="닫기" onClick={onClose}>
           <ChevronLeft size={24} strokeWidth={2.2} />
@@ -502,6 +505,7 @@ export default function GroupChat({
         />
       )}
     </div>
+    </ThemeScopeProvider>
   );
 }
 

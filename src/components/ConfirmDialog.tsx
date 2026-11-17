@@ -1,4 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import type { ThemeId } from '../domain/decor';
+import { themeScopeProps, useThemeScope } from '../lib/themeScope';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 
 interface ConfirmDialogProps {
@@ -11,6 +13,8 @@ interface ConfirmDialogProps {
   confirmLabel?: string;
   /** …and whether it's red (deleting, the default) or the accent (going somewhere). */
   tone?: 'danger' | 'action';
+  /** The theme it wears, over the screen's own (`useThemeScope`): a group's confirm mounted outside the group's screen. */
+  theme?: ThemeId;
   onConfirm: () => void;
   /** Closed either way: after 확인, 취소, Esc or a tap outside. */
   onClose: () => void;
@@ -23,7 +27,9 @@ interface ConfirmDialogProps {
  * sheet (and its slide-in transform), with Esc and focus handling built in.
  * Mount it to ask; it opens itself.
  */
-export default function ConfirmDialog({ label, message, detail, confirmLabel = '확인', tone = 'danger', onConfirm, onClose }: ConfirmDialogProps) {
+export default function ConfirmDialog({ label, message, detail, confirmLabel = '확인', tone = 'danger', theme, onConfirm, onClose }: ConfirmDialogProps) {
+  // A group's own confirm wears the group's theme, wherever it's mounted.
+  const scope = useThemeScope();
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const backdrop = useBackdropTap(dialogRef);
   // No close() in cleanup: it would fire onClose during StrictMode's
@@ -36,7 +42,8 @@ export default function ConfirmDialog({ label, message, detail, confirmLabel = '
   return (
     <dialog
       ref={dialogRef}
-      className="confirm-dialog ticket-dialog"
+      className="confirm-dialog ticket-dialog theme-scope"
+      {...themeScopeProps(theme ?? scope)}
       aria-label={label}
       // React passes a dialog's close / cancel up through its component
       // tree: stop them here, or closing this would close a dialog it sits in

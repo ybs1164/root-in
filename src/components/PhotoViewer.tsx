@@ -5,6 +5,7 @@ import { usePhotoComments } from '../hooks/usePhotoComments';
 import { COMMENT_MAX } from '../domain/gallery';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { viewerStep } from '../domain/groups';
+import { themeScopeProps, useThemeScope } from '../lib/themeScope';
 import { SWIPE, swipeCommits } from '../domain/appTabs';
 import { motionMs, slideEase, SLIDE_OFF_MS, SPRING_BACK_MS } from '../lib/swipeSlide';
 
@@ -129,6 +130,8 @@ export default function PhotoViewer({
   startWriting?: boolean;
 }) {
   const [writing, setWriting] = useState(startWriting);
+  // Opened beside a group's screen rather than inside it (the calendar's), it wears that group's theme itself.
+  const scope = useThemeScope();
   const doodle = usePhotoDoodle(decorPath ?? null, decorColor ?? null, inkOf);
   const tool = doodle.active;
   const ping = items[seq];
@@ -386,7 +389,8 @@ export default function PhotoViewer({
   return (
     <div
       ref={root}
-      className="group-photo-viewer"
+      className="group-photo-viewer theme-scope"
+      {...themeScopeProps(scope)}
       role="dialog"
       aria-modal="true"
       aria-label={`${ping.name} 사진`}

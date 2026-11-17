@@ -47,7 +47,7 @@ import { getDisplayName } from './lib/currentUser';
 import { copyToClipboard } from './lib/clipboard';
 import { useGroups, useGroupsOnDay } from './hooks/useGroups';
 import { groupService, groupsNeedLogin } from './services/groupService';
-import { dayDecorKey, GROUP_LIMITS as GROUP_SIZE, memberInk, pingPhotos as groupPingPhotos, newMemberPings, photoKey, withoutPhotos, newPingCount, photoPlaces, type GroupMember } from './domain/groups';
+import { dayDecorKey, GROUP_LIMITS as GROUP_SIZE, groupTheme, memberInk, pingPhotos as groupPingPhotos, newMemberPings, photoKey, withoutPhotos, newPingCount, photoPlaces, type GroupMember } from './domain/groups';
 import WeNowPage from './components/WeNowPage';
 import { useUnreadTalk } from './hooks/useUnreadTalk';
 import { memberSeenKey } from './services/groupSeenRepository';
@@ -95,6 +95,7 @@ import { usePanAim } from './hooks/usePanAim';
 import { useBareMapTap, useRouteStrokes } from './hooks/useRouteStrokes';
 import { useToast } from './hooks/useToast';
 import { measureMapPadding, STEP_GLIDE_MS } from './lib/mapPadding';
+import { ThemeScopeProvider, themeScopeProps } from './lib/themeScope';
 import { useGroupFit } from './hooks/useGroupFit';
 import { useGroupList } from './hooks/useGroupList';
 import { useGroupLooks } from './hooks/useGroupLooks';
@@ -801,12 +802,14 @@ export default function App() {
   // The day's whiteboard on the group's map: everyone's doodles always
   // shown; mine edited while 꾸미기 is on, in my colour in the group.
   const [boardOn, setBoardOn] = useState(false);
+  // The group wears its cover's colour all through: its map here, and what opens over it.
+  const openTheme = openGroup ? groupTheme(openGroup) : undefined;
   const boardInkOf = useCallback((userId: string) => (openGroup ? memberInk([openGroup], userId) : null), [openGroup]);
   const groupBoard = usePhotoDoodle(
     openGroup ? dayDecorKey(openGroup.id, groupDay ?? dateKey()) : null,
     boardOn && myGroupRow ? `member-${myGroupRow.color % GROUP_SIZE.members}` : null,
     boardInkOf,
-    { board: true },
+    { board: true, theme: openTheme },
   );
   useEffect(() => setBoardOn(false), [openGroupId]);
   const myLookRow = useRef<{ me: string; count: number } | null>(null);
@@ -1650,7 +1653,7 @@ export default function App() {
       )}
 
       {openGroup && (
-        <div className="theme-scope" data-theme={openGroup.coverOverride?.swatch}>
+        <div className="theme-scope" {...themeScopeProps(openTheme)}>
           <GroupAtlas
             marks={groupMarks}
             lines={groupLines}
@@ -1742,6 +1745,7 @@ export default function App() {
 
       {calendarPhoto && calendarPhoto.photos[calendarPhoto.seq] && (
         // As the big photo where it came from: 💬 and ★ everywhere; a group's also ♥ (not on mine) and doodles in my colour there.
+        <ThemeScopeProvider value={calendarPhoto.group ? openTheme : undefined}>
         <PhotoViewer
           items={calendarPhoto.photos}
           seq={calendarPhoto.seq}
@@ -1762,6 +1766,7 @@ export default function App() {
             />
           }
         />
+        </ThemeScopeProvider>
       )}
 
       {galleryTab && (
@@ -1819,6 +1824,7 @@ export default function App() {
       {placeDeleting && openGroup && groupPing && (
         <ConfirmDialog
           label={placeDeleting === 'photo' ? '사진 삭제' : '핀 삭제'}
+          theme={openTheme}
           message={placeDeleting === 'photo' ? '이 사진을 삭제합니다.' : '이 핀을 삭제합니다.'}
           detail={
             placeDeleting === 'photo'
@@ -1834,6 +1840,7 @@ export default function App() {
       {kicking && openGroup && (
         <ConfirmDialog
           label="그룹원 추방"
+          theme={openTheme}
           message={`'${kicking.nickname}'님을 그룹에서 내보냅니다.`}
           detail="초대 링크로 다시 들어올 수 있어요."
           confirmLabel="추방"
@@ -1851,6 +1858,7 @@ export default function App() {
       {groupDeleting && openGroup && (
         <ConfirmDialog
           label="그룹 삭제"
+          theme={openTheme}
           message={`'${openGroup.name}' 그룹을 삭제합니다.`}
           detail="모든 그룹원이 이 그룹을 더는 볼 수 없어요. 되돌릴 수 없어요."
           confirmLabel="삭제"
@@ -1868,6 +1876,7 @@ export default function App() {
       {groupLeaving && openGroup && (
         <ConfirmDialog
           label="그룹 나가기"
+          theme={openTheme}
           message={`'${openGroup.name}' 그룹에서 나갑니다.`}
           detail="내 오늘 핑도 이 그룹에서 더는 안 보여요."
           confirmLabel="나가기"

@@ -1,7 +1,8 @@
 import { ChevronLeft, Images, MapPin, Search, Star, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { dayPosters, filterGallery, galleryDayLabel, galleryTabDays, metDays, placeSuggestions, viewerOrder, type GalleryItem, type GalleryPhoto, type GalleryTab } from '../domain/gallery';
-import { effectiveCover, memberColor, memberInk, type Group, type GroupMember } from '../domain/groups';
+import { ThemeScopeProvider, themeScopeProps } from '../lib/themeScope';
+import { effectiveCover, groupTheme, memberColor, memberInk, type Group, type GroupMember } from '../domain/groups';
 import { centeredScrollLeft } from '../domain/routeFolders';
 import { useGalleryDecors, useMetDays, type GalleryState } from '../hooks/useGalleryPhotos';
 import { usePhotoMarks } from '../hooks/usePhotoMarks';
@@ -185,8 +186,12 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
 
   const today = dateKey();
   const tabs: { id: GalleryTab; label: string }[] = [{ id: 'my', label: 'MY' }, ...groups.map((g) => ({ id: g.id, label: g.name }))];
+  // A group's tab wears that group's theme; MY keeps the app's.
+  const tabGroup = tab === 'my' ? undefined : groups.find((g) => g.id === tab);
+  const theme = tabGroup && groupTheme(tabGroup);
   return (
-    <div className="gallery" role="dialog" aria-modal="true" aria-label="갤러리" {...swipeBack}>
+    <ThemeScopeProvider value={theme}>
+    <div className="gallery theme-scope" {...themeScopeProps(theme)} role="dialog" aria-modal="true" aria-label="갤러리" {...swipeBack}>
       <header className="gallery__head">
         <button className="gallery__back" aria-label="닫기" onClick={onClose}>
           <ChevronLeft size={24} strokeWidth={2.2} />
@@ -383,6 +388,7 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
         />
       )}
     </div>
+    </ThemeScopeProvider>
   );
 }
 
