@@ -9,6 +9,7 @@ import { PING_PHOTO_PX, savePingPhoto } from '../services/pingPhotoRepository';
 import { loadPings, recordPing, recordPlacePing, todayPingOfPin } from '../services/pingRepository';
 import { UNNAMED_SPOT, type PlaceSearchService } from '../services/placeSearch/placeSearchService';
 import type { PlaceRef } from '../types/course';
+import { UNCATEGORIZED } from '../domain/pin';
 import type { Pin } from '../types/pin';
 
 interface CameraShot {
@@ -17,6 +18,9 @@ interface CameraShot {
   excluded: Parameters<typeof isExcluded>[1];
   searchService: PlaceSearchService | null;
   pins: Pin[];
+  /** Pins a place in a category (null when it can't); changes a pin's category. */
+  savePin: (place: PlaceRef, categoryId: string) => { pin: Pin } | null;
+  updatePin: (id: string, patch: { categoryId: string }) => void;
   /** Sends the photo with a ping of the place to those groups; how many took it. */
   sendPhoto: (groupIds: string[], ping: { day: string; at: string; center: [number, number]; name: string }, photo: string) => Promise<number>;
   notify: (text: string) => void;
@@ -26,7 +30,7 @@ interface CameraShot {
  * The camera screen and what it sends: a shot waits for its place and its
  * groups (the 그룹에 보내기 popup), then goes to TODAY and to the groups picked.
  */
-export function useCameraShot({ here, excluded, searchService, pins, sendPhoto, notify }: CameraShot) {
+export function useCameraShot({ here, excluded, searchService, pins, savePin, updatePin, sendPhoto, notify }: CameraShot) {
   const [open, setOpen] = useState(false);
   // The group the camera was opened from: picked to send to, to start with (can be unpicked).
   const [groupId, setGroupId] = useState<string | null>(null);
@@ -61,9 +65,8 @@ export function useCameraShot({ here, excluded, searchService, pins, sendPhoto, 
   // day, with the photo on it — my pin there if it is one (once a day, so a
   // second shot only adds the photo), else today's ping of the same place
   // within 50m, else a new ping of the place.
-  const pingOnToday = async (photo: string, place: PlaceRef): Promise<boolean> => {
+  const pingOnToday = async (photo: string, place: PlaceRef, pin: Pin | undefined): Promise<boolean> => {
     const small = await avatarFromDataUrl(photo, PING_PHOTO_PX, 0.8);
-    const pin = pins.find((p) => p.place.id === place.id);
     let pingId: string | null;
     if (pin) {
       recordPing(pin, excluded);
@@ -81,12 +84,25 @@ export function useCameraShot({ here, excluded, searchService, pins, sendPhoto, 
 
   // Then the photo and a ping of the place picked to each picked group. What went wrong, or null.
   // TODAY always gets the shot (the gallery's MY is TODAY's photos); the groups are extra.
-  const send = async (groupIds: string[], place: PlaceRef): Promise<string | null> => {
+  // The category picked in 위치 선택 lands with the ping: my pin there moves
+  // to it; no pin yet, one is made in it (and the ping recorded from it).
+  // 미분류 with no pin changes nothing — the visit becomes a 미분류 pin anyway.
+  const pinIn = (place: PlaceRef, categoryId: string): Pin | undefined => {
+    const pin = pins.find((p) => p.place.id === place.id);
+    if (pin) {
+      if (pin.categoryId !== categoryId) updatePin(pin.id, { categoryId });
+      return pin;
+    }
+    if (categoryId === UNCATEGORIZED.id) return undefined;
+    return savePin(place, categoryId)?.pin;
+  };
+
+  const send = async (groupIds: string[], place: PlaceRef, categoryId: string = UNCATEGORIZED.id): Promise<string | null> => {
     if (!shot) return '보내지 못했어요. 잠시 뒤에 다시 시도해 주세요.';
     if (isExcluded(place, excluded)) return '제외 주소 근처에서는 보낼 수 없어요.';
     const sent = groupIds.length ? await sendPhoto(groupIds, { day: dateKey(shotAt.current), at: shotAt.current.toISOString(), center: place.center, name: place.name }, shot) : 0;
     if (groupIds.length && !sent) return '보내지 못했어요. 잠시 뒤에 다시 시도해 주세요.';
-    const pinged = await pingOnToday(shot, place);
+    const pinged = await pingOnToday(shot, place, pinIn(place, categoryId));
     if (!pinged && !sent) return 'TODAY에 핑을 찍지 못했어요.';
     setShot(null);
     setOpen(false);

@@ -1,4 +1,4 @@
-import { Bell, ChevronLeft, ChevronRight, FileText, Link, LocateFixed, MapPinOff, Monitor, UserRound, Volume2, VolumeX } from 'lucide-react';
+import { Bell, ChevronLeft, ChevronRight, FileText, Link, LocateFixed, MapPinOff, Monitor, Send, UserRound, Volume2, VolumeX } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -28,12 +28,13 @@ const APP_THEME_CHOICES: { id: AppTheme; label: string }[] = [
   { id: 'strawberry', label: '딸기' },
 ];
 
-type Page = 'main' | 'location' | 'links' | 'privacy' | 'alerts' | 'display' | 'account' | 'terms';
+type Page = 'main' | 'location' | 'links' | 'privacy' | 'send' | 'alerts' | 'display' | 'account' | 'terms';
 
 const PAGES: { id: Exclude<Page, 'main'>; title: string; icon: ReactNode }[] = [
   { id: 'location', title: '위치 설정', icon: <LocateFixed size={20} aria-hidden /> },
   { id: 'links', title: '초대 링크 연결', icon: <Link size={20} aria-hidden /> },
   { id: 'privacy', title: '제외 주소 설정', icon: <MapPinOff size={20} aria-hidden /> },
+  { id: 'send', title: '장소 전송', icon: <Send size={20} aria-hidden /> },
   { id: 'alerts', title: '알림 설정', icon: <Bell size={20} aria-hidden /> },
   { id: 'display', title: '디스플레이 및 언어', icon: <Monitor size={20} aria-hidden /> },
   { id: 'account', title: '계정 관리', icon: <UserRound size={20} aria-hidden /> },
@@ -171,6 +172,8 @@ export default function SettingsScreen({ profile, onChange, account, privacy, lo
       body = <AppLinksSection />;
     } else if (page === 'privacy') {
       body = <PrivacySection {...privacy} />;
+    } else if (page === 'send') {
+      body = <SendGroups groups={groups} picked={profile.sendGroups} onChange={(sendGroups) => onChange({ ...profile, sendGroups })} />;
     } else if (page === 'alerts') {
       body = (
         <section className="privacy alerts" aria-label="알림 설정">
@@ -326,6 +329,50 @@ export default function SettingsScreen({ profile, onChange, account, privacy, lo
       )}
     </dialog>,
     document.body,
+  );
+}
+
+/**
+ * 장소 전송 → 기본 전송 그룹: every group of mine with a switch; those on
+ * start picked in the camera's 그룹에 보내기 (still unpickable there).
+ * TODAY isn't one: a shot always goes there, so it's no choice. Groups I've
+ * left stay in the list kept, harmless (they're never offered to send to).
+ */
+function SendGroups({ groups, picked, onChange }: { groups: readonly Pick<Group, 'id' | 'name' | 'cover' | 'coverPhoto'>[]; picked: readonly string[]; onChange: (picked: string[]) => void }) {
+  return (
+    <section className="privacy alerts send-groups" aria-label="장소 전송">
+      <div className="alerts__head">
+        <span className="alerts__label">기본 전송 그룹</span>
+      </div>
+      <p className="send-groups__lead">사진 촬영 후 기본으로 전송할 그룹을 선택해 주세요.</p>
+      {groups.length === 0 ? (
+        <p className="alerts__empty">아직 그룹이 없어요.</p>
+      ) : (
+        <ul className="send-groups__list">
+          {groups.map((g) => {
+            const on = picked.includes(g.id);
+            const myCover = effectiveCover(g);
+            return (
+              <li key={g.id}>
+                <button
+                  className="alerts__group-head send-groups__row"
+                  role="switch"
+                  aria-checked={on}
+                  aria-label={`${g.name} 기본 전송`}
+                  onClick={() => onChange(on ? picked.filter((id) => id !== g.id) : [...picked, g.id])}
+                >
+                  <svg className={`alerts__cover ${myCover.tintClass}`} viewBox="0 0 100 100" aria-hidden>
+                    <GroupCover cover={myCover.cover} photo={myCover.photo} />
+                  </svg>
+                  <span className="settings__label alerts__group-name">{g.name}</span>
+                  <span className={`settings__switch ${on ? 'is-on' : ''}`} aria-hidden />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 

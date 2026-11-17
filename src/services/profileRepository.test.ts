@@ -8,12 +8,12 @@ describe('profileRepository', () => {
   });
 
   it('starts from an id made from the user id, no photo, sound and every ping alert on', () => {
-    expect(loadProfile()).toEqual({ handle: 'userabc123', photo: null, sound: true, pingAlerts: [7, 9, 12, 16, 20, 23], groupAlertsOff: [], scheme: null, appTheme: 'matcha' });
+    expect(loadProfile()).toEqual({ handle: 'userabc123', photo: null, sound: true, pingAlerts: [7, 9, 12, 16, 20, 23], groupAlertsOff: [], sendGroups: [], scheme: null, appTheme: 'matcha' });
   });
 
   it('round-trips a saved profile, its switches too', () => {
-    saveProfile({ handle: 'rootin', photo: 'data:image/jpeg;base64,AAAA', sound: false, pingAlerts: [9, 20], groupAlertsOff: ['g1:chat'], scheme: 'dark', appTheme: 'matcha' });
-    expect(loadProfile()).toEqual({ handle: 'rootin', photo: 'data:image/jpeg;base64,AAAA', sound: false, pingAlerts: [9, 20], groupAlertsOff: ['g1:chat'], scheme: 'dark', appTheme: 'matcha' });
+    saveProfile({ handle: 'rootin', photo: 'data:image/jpeg;base64,AAAA', sound: false, pingAlerts: [9, 20], groupAlertsOff: ['g1:chat'], sendGroups: ['g1'], scheme: 'dark', appTheme: 'matcha' });
+    expect(loadProfile()).toEqual({ handle: 'rootin', photo: 'data:image/jpeg;base64,AAAA', sound: false, pingAlerts: [9, 20], groupAlertsOff: ['g1:chat'], sendGroups: ['g1'], scheme: 'dark', appTheme: 'matcha' });
   });
 
   it('keeps the switches on for a profile saved before they existed', () => {
@@ -23,7 +23,7 @@ describe('profileRepository', () => {
 
   it('drops stored values that fail the checks', () => {
     window.localStorage.setItem('goodroot:profile:v1', JSON.stringify({ handle: 'Bad Id', photo: 'javascript:alert(1)' }));
-    expect(loadProfile()).toEqual({ handle: 'userabc123', photo: null, sound: true, pingAlerts: [7, 9, 12, 16, 20, 23], groupAlertsOff: [], scheme: null, appTheme: 'matcha' });
+    expect(loadProfile()).toEqual({ handle: 'userabc123', photo: null, sound: true, pingAlerts: [7, 9, 12, 16, 20, 23], groupAlertsOff: [], sendGroups: [], scheme: null, appTheme: 'matcha' });
     window.localStorage.setItem('goodroot:profile:v1', '{not json');
     expect(loadProfile().handle).toBe('userabc123');
   });

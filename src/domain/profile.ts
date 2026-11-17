@@ -91,6 +91,16 @@ export function sanitizeGroupIds(value: unknown): string[] | null {
   return [...new Set(keys)].slice(0, GROUP_ALERTS_MAX);
 }
 
+/** How many groups 장소 전송 can keep picked by default (as many as I can be in). */
+export const SEND_GROUPS_MAX = 30;
+
+/** 장소 전송's default groups from untrusted stored data: ids only, once each. */
+export function sanitizeSendGroups(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const ids = value.filter((id): id is string => typeof id === 'string' && id.length > 0 && id.length <= 64);
+  return [...new Set(ids)].slice(0, SEND_GROUPS_MAX);
+}
+
 /** Whether `kind` alerts are on for the group. */
 export const groupAlertOn = (off: readonly string[], groupId: string, kind: GroupAlertKind): boolean => !off.includes(offKey(groupId, kind));
 

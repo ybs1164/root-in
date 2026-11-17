@@ -1,4 +1,4 @@
-import { defaultHandle, isValidHandle, PING_ALERT_HOURS, PROFILE_LIMITS, sanitizeAlerts, sanitizeGroupIds } from '../domain/profile';
+import { defaultHandle, isValidHandle, PING_ALERT_HOURS, PROFILE_LIMITS, sanitizeAlerts, sanitizeGroupIds, sanitizeSendGroups } from '../domain/profile';
 import { getCurrentUserId } from '../lib/currentUser';
 
 const PROFILE_KEY = 'goodroot:profile:v1';
@@ -15,6 +15,8 @@ export interface Profile {
   pingAlerts: number[];
   /** 알림 설정 → 그룹 알림: the cells switched off, `<group id>:<kind>` (GROUP_ALERT_KINDS); everything else, groups joined later too, is on. */
   groupAlertsOff: string[];
+  /** 장소 전송: the groups a camera shot starts picked to be sent to (TODAY always is, so it isn't one). */
+  sendGroups: string[];
   /** Old 디스플레이 choice (기본 / 다크). Kept for stored and synced rows; the app now always draws light. */
   scheme: ColorScheme | null;
   /** 디스플레이 및 언어 → 디스플레이: the app's colour theme, 말차 until another is picked. */
@@ -30,7 +32,7 @@ export function isPhoto(value: unknown): value is string {
 }
 
 export function defaultProfile(handle = defaultHandle(getCurrentUserId())): Profile {
-  return { handle, photo: null, sound: true, pingAlerts: [...PING_ALERT_HOURS], groupAlertsOff: [], scheme: null, appTheme: 'matcha' };
+  return { handle, photo: null, sound: true, pingAlerts: [...PING_ALERT_HOURS], groupAlertsOff: [], sendGroups: [], scheme: null, appTheme: 'matcha' };
 }
 
 /**
@@ -47,6 +49,7 @@ export function profileFromRecord(parsed: Record<string, unknown> | null | undef
     pingAlerts: sanitizeAlerts(parsed?.pingAlerts, PING_ALERT_HOURS) ?? (parsed?.alerts === false ? [] : [...PING_ALERT_HOURS]),
     // 공유수 알림 (shareAlerts) is gone; a stored one is dropped.
     groupAlertsOff: sanitizeGroupIds(parsed?.groupAlertsOff) ?? [],
+    sendGroups: sanitizeSendGroups(parsed?.sendGroups),
     scheme: parsed?.scheme === 'light' || parsed?.scheme === 'dark' ? parsed.scheme : null,
     appTheme: APP_THEMES.includes(parsed?.appTheme as AppTheme) ? (parsed!.appTheme as AppTheme) : 'matcha',
   };
