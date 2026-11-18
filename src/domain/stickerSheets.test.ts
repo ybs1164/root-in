@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import packsFile from './stickerPacks.json';
 import packsText from './stickerPacks.json?raw';
-import { formatPacks, layOutSheet, packsDocument, peelFold, readPacks, PACK_MOTIFS, STICKER_SHEETS } from './stickerSheets';
+import { formatPacks, layOutSheet, orderPackGroups, packGroups, packsDocument, squareTarget, peelFold, readPacks, PACK_MOTIFS, STICKER_SHEETS, type StickerSheet } from './stickerSheets';
 
 describe('sticker packs', () => {
   it('retains every band motif through editor export and import', () => {
@@ -76,5 +76,33 @@ describe('formatPacks', () => {
 
   it('is how the packs file is kept', () => {
     expect(packsText).toBe(formatPacks(JSON.parse(packsText)));
+  });
+});
+
+describe('packGroups', () => {
+  const pack = (id: string, name: string): StickerSheet => ({ id, name, color: '#000000', ink: '#ffffff', motif: 'none', nameStyle: 'plain', slots: [] });
+  it('groups packs by name in first-seen order and keeps each pack index', () => {
+    const groups = packGroups([pack('a', 'MATCHA'), pack('b', 'BANANA'), pack('c', 'MATCHA')]);
+    expect(groups.map((g) => g.name)).toEqual(['MATCHA', 'BANANA']);
+    expect(groups[0].packs.map((p) => p.index)).toEqual([0, 2]);
+    expect(groups[1].packs.map((p) => p.sheet.id)).toEqual(['b']);
+  });
+});
+
+describe('orderPackGroups', () => {
+  it('puts dragged themes first in my order and keeps the rest in their own', () => {
+    const g = [{ name: 'A' }, { name: 'B' }, { name: 'C' }, { name: 'D' }];
+    expect(orderPackGroups(g, ['C', 'A', 'GONE']).map((x) => x.name)).toEqual(['C', 'A', 'B', 'D']);
+    expect(orderPackGroups(g, []).map((x) => x.name)).toEqual(['A', 'B', 'C', 'D']);
+  });
+});
+
+describe('squareTarget', () => {
+  it('counts the other squares left of the dragged centre', () => {
+    const centers = [50, 150, 250, 350];
+    expect(squareTarget(centers, 0, 0)).toBe(0);
+    expect(squareTarget(centers, 0, 160)).toBe(1);
+    expect(squareTarget(centers, 0, 210)).toBe(2);
+    expect(squareTarget(centers, 3, -320)).toBe(0);
   });
 });

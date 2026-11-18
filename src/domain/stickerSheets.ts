@@ -231,3 +231,29 @@ export interface StickerDrop {
   width?: number;
   rotate?: number;
 }
+
+/** Packs that share a name (MATCHA, BANANA …): one theme each, in the order they first appear. */
+export function packGroups(sheets: StickerSheet[]): { name: string; color: string; packs: { sheet: StickerSheet; index: number }[] }[] {
+  const out: { name: string; color: string; packs: { sheet: StickerSheet; index: number }[] }[] = [];
+  sheets.forEach((sheet, index) => {
+    let group = out.find((g) => g.name === sheet.name);
+    if (!group) out.push((group = { name: sheet.name, color: sheet.color, packs: [] }));
+    group.packs.push({ sheet, index });
+  });
+  return out;
+}
+
+/** The themes in the order I dragged them into; themes I never placed keep their own order, after. */
+export function orderPackGroups<T extends { name: string }>(groups: readonly T[], order: readonly string[]): T[] {
+  const rank = (name: string) => {
+    const i = order.indexOf(name);
+    return i < 0 ? order.length : i;
+  };
+  return groups.map((g, i) => ({ g, i })).sort((a, b) => rank(a.g.name) - rank(b.g.name) || a.i - b.i).map(({ g }) => g);
+}
+
+/** Where a dragged theme square lands: how many other squares' centres sit left of its own. */
+export function squareTarget(centers: readonly number[], from: number, dx: number): number {
+  const at = centers[from] + dx;
+  return centers.filter((c, i) => i !== from && c < at).length;
+}

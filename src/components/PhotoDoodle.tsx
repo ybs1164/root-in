@@ -180,7 +180,7 @@ export function usePhotoDoodle(
     if (!tool) return;
     const away = (e: PointerEvent) => {
       const t = e.target as Element | null;
-      if (t?.closest('.photo-doodle, .photo-doodle__tools, .decor-tray, .color-picker')) return;
+      if (t?.closest('.photo-doodle, .photo-doodle__tools, .decor-tray, .color-picker, .sticker-shop')) return;
       setTool(null);
       // ✕ still closes the photo: a doodle just made mustn't take the first tap on it.
       if (t?.closest('.group-photo-viewer__close')) return;

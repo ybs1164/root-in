@@ -10,7 +10,7 @@
 
 import React, { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import ReactDOM from 'react-dom/client';
-import { StickerPackBand } from '../components/StickerSheets';
+import StickerPackBand from '../components/StickerPackBand';
 import { getSticker, THEME_STICKERS, RECOVERED_STICKER_IDS, EDITOR_STICKERS as STICKERS } from '../domain/decor';
 import {
   layOutSheet,

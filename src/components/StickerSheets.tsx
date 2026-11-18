@@ -1,11 +1,13 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
+import { ChevronLeft, ChevronRight, Store } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { getSticker } from '../domain/decor';
 import { outlinedSticker } from '../lib/stickerEdge';
 import { SHEET_PULL, SWIPE, swipeCommits } from '../domain/appTabs';
-import StickerPackList from './StickerPackList';
-import { peelFold, STICKER_SHEETS, type PeelFold, type SheetSlot, type StickerDrop, type StickerSheet } from '../domain/stickerSheets';
+import StickerPackBand from './StickerPackBand';
+import StickerShop from './StickerShop';
+import { loadPackOrder, savePackOrder } from '../services/stickerPackOrderRepository';
+import { orderPackGroups, packGroups, peelFold, squareTarget, STICKER_SHEETS, type PeelFold, type SheetSlot, type StickerDrop, type StickerSheet } from '../domain/stickerSheets';
 
 /** Less movement than this is a tap on a sticker, not a pull (px). */
 const TAP_SLOP = 6;
@@ -15,6 +17,17 @@ const EDGE_PX = 2.5;
 const UNPEEL_MS = 140;
 /** A new sheet slides in this long (ms, matches `sheet-in`). */
 const SLIDE_MS = 260;
+/** Tucked down, this much of the panel stays up: the row of themes (px, matches `--peek-h`). */
+const PEEK_PX = 66;
+/** A theme square held this long lifts, to be dragged to a new place (ms). */
+const LIFT_MS = 400;
+/** Moving more than this before then is a scroll of the row, not a hold (px). */
+const LIFT_SLOP = 8;
+/** The gap between theme squares (px, matches the CSS). */
+const SQUARE_GAP = 10;
+
+/** A theme square held and being dragged along the row. */
+type SquareLift = { name: string; from: number; centers: number[]; widths: number[]; dx: number };
 
 /** The sticker's die-cut edge, and its paper back, drawn once when a peel starts. */
 interface Textures {
@@ -34,19 +47,6 @@ function makeTextures(img: HTMLImageElement, width: number, colours: { edge: str
   bc.fillStyle = colours.back;
   bc.fillRect(0, 0, back.width, back.height);
   return { front, back, size: front.width / dpr };
-}
-
-/** The pack's band: its colour (set on the sheet), its name, a pattern and a STICKER PACK tag. */
-export function StickerPackBand({ sheet }: { sheet: Pick<StickerSheet, 'name' | 'nameStyle' | 'motif'> }) {
-  return (
-    <div className="sticker-pack__band" aria-hidden>
-      <span className={`sticker-pack__name sticker-pack__name--${sheet.nameStyle}`}>{sheet.name}</span>
-      <span className="sticker-pack__side">
-        {sheet.motif !== 'none' && <i className={`sticker-pack__motif sticker-pack__motif--${sheet.motif}`} />}
-        <span className="sticker-pack__tag">STICKER PACK</span>
-      </span>
-    </div>
-  );
 }
 
 /** One sticker on its way off a sheet. */
@@ -144,8 +144,12 @@ function drawPeel(canvas: HTMLCanvasElement, p: Peel, fold: PeelFold | null) {
  * from the first lift until the pack next comes up, full again — so at
  * most one spot is ever bare. While it's up, a touch anywhere off it tucks
  * it down (and only the next one puts the tool away), and so does dragging
- * it down by its band or bare paper. A tap on the band (while it's up)
- * opens the list of every pack (StickerPackList) to pick one from.
+ * it down by its band or bare paper. It all sits on a low panel (the day
+ * shows above, over half the screen), under a row of squares, one per theme
+ * with a sticker standing for it; a square brings up that theme's first pack,
+ * and `<` `>` page through that theme only. A square held a moment lifts and
+ * drags to a new place (the order is kept on this phone). In front of the
+ * row, standing still while it scrolls, the store button opens the shop.
  */
 export default function StickerSheets({
   onPlace,
@@ -164,7 +168,16 @@ export default function StickerSheets({
   // Tucked down to its band at the bottom of the screen, so the drawing (and
   // stickers under the sheet) can be reached; only a tap on it brings it back.
   const [peek, setPeekState] = useState(false);
-  const [listing, setListing] = useState(false);
+  const [order, setOrder] = useState(loadPackOrder);
+  const themes = useMemo(() => orderPackGroups(packGroups(sheets), order), [sheets, order]);
+  const [shop, setShop] = useState(false);
+  const squares = useRef<HTMLDivElement | null>(null);
+  const [squareLift, setSquareLift] = useState<SquareLift | null>(null);
+  const squareLiftRef = useRef<SquareLift | null>(null);
+  squareLiftRef.current = squareLift;
+  const squarePress = useRef<{ x: number; y: number; timer: number; lifted: boolean } | null>(null);
+  /** Swallows the click that ends a drag of a square. */
+  const squareDropped = useRef(false);
   const setPeek = (down: boolean) => {
     setPeekState(down);
     if (!down) setTaken(null);
@@ -183,8 +196,96 @@ export default function StickerSheets({
   const pulled = useRef(false);
   const count = sheets.length;
   const sheet = sheets[Math.min(index, count - 1)];
+  /** One pack in the theme: nothing for `<` `>` to page to. */
+  const alone = !!sheet && sheets.filter((s) => s.name === sheet.name).length < 2;
 
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
+
+  // Keep the shown theme's square whole in its row (not half under the fade at either end).
+  useEffect(() => {
+    const row = squares.current;
+    const on = row?.querySelector<HTMLElement>('.sticker-sheets__theme.is-on');
+    if (!row || !on) return;
+    const [r, o] = [row.getBoundingClientRect(), on.getBoundingClientRect()];
+    const edge = 28;
+    if (o.left < r.left + edge) row.scrollBy({ left: o.left - r.left - edge, behavior: 'smooth' });
+    else if (o.right > r.right - edge) row.scrollBy({ left: o.right - r.right + edge, behavior: 'smooth' });
+  }, [sheet?.name]);
+
+  // While a square is held the row mustn't scroll under the finger.
+  useEffect(() => {
+    const row = squares.current;
+    if (!row || !squareLift) return;
+    const stop = (e: TouchEvent) => e.preventDefault();
+    row.addEventListener('touchmove', stop, { passive: false });
+    return () => row.removeEventListener('touchmove', stop);
+  }, [squareLift]);
+
+  const pressSquare = (e: ReactPointerEvent<HTMLButtonElement>, name: string) => {
+    if (e.button !== 0 || !e.isPrimary) return;
+    const press = { x: e.clientX, y: e.clientY, timer: 0, lifted: false };
+    press.timer = window.setTimeout(() => {
+      const els = [...(squares.current?.querySelectorAll<HTMLElement>('[data-theme-square]') ?? [])];
+      const rects = els.map((el) => el.getBoundingClientRect());
+      press.lifted = true;
+      setSquareLift({
+        name,
+        from: els.findIndex((el) => el.dataset.themeSquare === name),
+        centers: rects.map((r) => r.left + r.width / 2),
+        widths: rects.map((r) => r.width),
+        dx: 0,
+      });
+      navigator.vibrate?.(10);
+    }, LIFT_MS);
+    squarePress.current = press;
+    const move = (ev: PointerEvent) => {
+      const cur = squarePress.current;
+      if (!cur) return;
+      if (!cur.lifted) {
+        if (Math.hypot(ev.clientX - cur.x, ev.clientY - cur.y) > LIFT_SLOP) done(false);
+        return;
+      }
+      setSquareLift((l) => l && { ...l, dx: ev.clientX - cur.x });
+    };
+    const done = (drop: boolean) => {
+      const cur = squarePress.current;
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', cancel);
+      squarePress.current = null;
+      if (!cur) return;
+      window.clearTimeout(cur.timer);
+      if (!cur.lifted) return;
+      squareDropped.current = true;
+      window.setTimeout(() => (squareDropped.current = false), 0);
+      const l = squareLiftRef.current;
+      setSquareLift(null);
+      if (!l || !drop) return;
+      const to = squareTarget(l.centers, l.from, l.dx);
+      if (to === l.from) return;
+      const names = themes.map((g) => g.name);
+      names.splice(to, 0, ...names.splice(l.from, 1));
+      setOrder(names);
+      savePackOrder(names);
+    };
+    const up = () => done(true);
+    const cancel = () => done(false);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', cancel);
+  };
+
+  /** How far each square slides while one is dragged: the held one follows the finger, the rest make room. */
+  const squareShift = (i: number): number => {
+    const l = squareLift;
+    if (!l) return 0;
+    if (i === l.from) return l.dx;
+    const to = squareTarget(l.centers, l.from, l.dx);
+    const room = l.widths[l.from] + SQUARE_GAP;
+    if (l.from < to && i > l.from && i <= to) return -room;
+    if (to < l.from && i >= to && i < l.from) return room;
+    return 0;
+  };
 
   const step = (by: 1 | -1) => {
     // A sticker half off this pack (its release lost, or still laying back
@@ -193,7 +294,10 @@ export default function StickerSheets({
       cancelAnimationFrame(frame.current);
       end();
     }
-    setIndex((i) => (i + by + count) % count);
+    const theme = sheets.flatMap((s, i) => (s.name === sheet.name ? [i] : []));
+    if (theme.length < 2) return;
+    const at = Math.max(0, theme.indexOf(index));
+    setIndex(theme[(at + by + theme.length) % theme.length]);
     setFrom(by > 0 ? 'next' : 'prev');
   };
   useEffect(() => {
@@ -206,10 +310,10 @@ export default function StickerSheets({
   // the drawing that touch would also put the tool away; here it only tucks
   // (heard first, and stopped), and the next touch out there closes as before.
   useEffect(() => {
-    if (peek || listing) return;
+    if (peek) return;
     const tuck = (e: PointerEvent) => {
       const t = e.target as Element | null;
-      if (!e.isPrimary || peel.current || t?.closest('.sticker-sheets__row, .decor-rail, .color-picker')) return;
+      if (!e.isPrimary || peel.current || t?.closest('.sticker-sheets, .sticker-shop, .decor-rail, .color-picker')) return;
       setPeek(true);
       if (t?.closest('.decor')) return; // on the drawing: the touch still picks or moves what it's on
       e.stopPropagation();
@@ -223,10 +327,9 @@ export default function StickerSheets({
     };
     document.addEventListener('pointerdown', tuck, true);
     return () => document.removeEventListener('pointerdown', tuck, true);
-  }, [peek, listing]);
+  }, [peek]);
 
   const pickPack = (i: number) => {
-    setListing(false);
     if (i === index) return;
     setIndex(i);
     setFrom(null);
@@ -485,9 +588,8 @@ export default function StickerSheets({
   const onLowerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     const sheetBox = sheetEl.current;
     if (peek || !e.isPrimary || !sheetBox || (e.target as Element).closest('.sticker-sheet__slot')) return;
-    const band = sheetBox.querySelector<HTMLElement>('.sticker-pack__band');
-    // How far down the tucked pack sits: all but its band (and a sliver) below the screen.
-    const down = Math.max(0, window.innerHeight - sheetBox.getBoundingClientRect().top - (band?.offsetHeight ?? 0) - 6);
+    // How far down the tucked panel sits: all but its row of themes below the screen.
+    const down = Math.max(0, (sheetsEl.current?.offsetHeight ?? 0) - PEEK_PX);
     lower.current = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), down, dx: 0, dy: 0, on: null };
   };
   const onLowerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -552,9 +654,36 @@ export default function StickerSheets({
           onClick={() => raised.current || setPeek(false)}
         />
       )}
-      <div ref={sheetsEl} className={`sticker-sheets ${peek ? 'is-peek' : ''} ${listing ? 'is-listing' : ''}`}>
-        <div className="sticker-sheets__row">
-          <button className="sticker-sheets__step" aria-label="이전 스티커 한 장" onClick={() => step(-1)}>
+      <div ref={sheetsEl} className={`sticker-sheets ${peek ? 'is-peek' : ''}`}>
+        <div className="sticker-sheets__head">
+          <button className="sticker-sheets__shop" aria-label="스티커 상점" onClick={() => setShop(true)}>
+            <Store size={22} strokeWidth={2.2} aria-hidden />
+          </button>
+          <div ref={squares} className={`sticker-sheets__themes ${squareLift ? 'is-dragging' : ''}`} data-swipe-keep>
+            {themes.map((g, i) => {
+              const first = g.packs[0];
+              const icon = first && getSticker(first.sheet.slots[0]?.stickerId ?? '');
+              const on = g.name === sheet.name;
+              return (
+                <button
+                  key={g.name}
+                  data-theme-square={g.name}
+                  className={`sticker-sheets__theme ${on ? 'is-on' : ''} ${squareLift?.name === g.name ? 'is-lifted' : ''}`}
+                  style={{ '--pack': g.color, transform: squareLift ? `translateX(${squareShift(i)}px)` : undefined } as CSSProperties}
+                  aria-label={first?.sheet.label ?? g.name}
+                  aria-pressed={on}
+                  onPointerDown={(e) => pressSquare(e, g.name)}
+                  onContextMenu={(e) => e.preventDefault()}
+                  onClick={() => !squareDropped.current && !on && first && pickPack(first.index)}
+                >
+                  {icon && <img src={icon.src} alt="" draggable={false} />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="sticker-sheets__row" style={{ '--pack': sheet.color } as CSSProperties}>
+          <button className="sticker-sheets__step" aria-label="이전 스티커 한 장" disabled={alone} onClick={() => step(-1)}>
             <ChevronLeft size={30} strokeWidth={2.2} aria-hidden />
           </button>
           <div
@@ -569,13 +698,11 @@ export default function StickerSheets({
             onPointerMove={onLowerMove}
             onPointerUp={onLowerUp}
             onPointerCancel={onLowerUp}
-            // Tucked down: a tap brings it back up. Up: a tap on the band opens every pack, one off the stickers tucks it down.
+            // Tucked down: a tap brings it back up. Up: a tap off the stickers tucks it down.
             onClick={(e) => {
               if (lowered.current) return;
               if (peek) return setPeek(false);
-              const t = e.target as Element;
-              if (t.closest('.sticker-pack__band')) return setListing(true);
-              if (!t.closest('.sticker-sheet__slot')) setPeek(true);
+              if (!(e.target as Element).closest('.sticker-sheet__slot')) setPeek(true);
             }}
           >
             <StickerPackBand sheet={sheet} />
@@ -604,7 +731,7 @@ export default function StickerSheets({
               })}
             </div>
           </div>
-          <button className="sticker-sheets__step" aria-label="다음 스티커 한 장" onClick={() => step(1)}>
+          <button className="sticker-sheets__step" aria-label="다음 스티커 한 장" disabled={alone} onClick={() => step(1)}>
             <ChevronRight size={30} strokeWidth={2.2} aria-hidden />
           </button>
         </div>
@@ -629,7 +756,8 @@ export default function StickerSheets({
             document.body,
           )}
       </div>
-      {listing && <StickerPackList sheets={sheets} current={Math.min(index, count - 1)} onPick={pickPack} onClose={() => setListing(false)} />}
+      {/* On the body, over everything the tool sits under (TODAY's ‹ included). */}
+      {shop && createPortal(<StickerShop onClose={() => setShop(false)} />, document.body)}
     </>
   );
 }
