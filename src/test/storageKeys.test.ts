@@ -30,6 +30,7 @@ const KEYS: Record<string, KeyInfo> = {
   'goodroot:category-subs:v1': { status: 'current', what: '구독한 카테고리' },
   'goodroot:gallery-stars:v1': { status: 'current', what: '갤러리 즐겨찾기 (이 폰에만)' },
   'goodroot:group-order:v1': { status: 'current', what: 'We Now 그룹 순서' },
+  'goodroot:sticker-pack-order:v1': { status: 'current', what: '스티커 도구의 테마 정사각형 순서 (이 폰에만)' },
   'goodroot:group-ping-hides:v1': { status: 'unused', what: '그룹에서 핀 삭제로 숨긴 내 TODAY 핑 (2026-11-13 — 그룹 지도엔 사진 장소만)' },
   'goodroot:group-looks:v1': { status: 'current', what: '그룹마다 내 핑·선 모양' },
   'goodroot:group-cover-override:v1': { status: 'current', what: '그룹마다 내가 바꾼 커버 모양·색 (MY COVER, 초기화하면 지워짐)' },

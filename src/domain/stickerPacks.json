@@ -2,7 +2,7 @@
   "version": 1,
   "packs": [
     {
-      "id":"pack-25","name":"matcha","label":"말차","color":"#a3c46f","ink":"#3e5329","motif":"stripes","nameStyle":"plain",
+      "id":"pack-25","name":"matcha","label":"말차","color":"#a3c46f","ink":"#3e5329","motif":"clovers","nameStyle":"plain",
       "slots": [
         {"stickerId":"theme-20261115-matcha-04","x":0.269,"y":0.294,"size":0.52,"rotate":0},
         {"stickerId":"theme-20261115-matcha-09","x":0.666,"y":0.162,"size":0.25,"rotate":0},
@@ -12,7 +12,7 @@
       ]
     },
     {
-      "id":"pack-16","name":"matcha","label":"말차","color":"#a3c46f","ink":"#3e5329","motif":"stripes","nameStyle":"plain",
+      "id":"pack-16","name":"matcha","label":"말차","color":"#a3c46f","ink":"#3e5329","motif":"clovers","nameStyle":"plain",
       "slots": [
         {"stickerId":"theme-20261115-matcha-14","x":0.171,"y":0.158,"size":0.25,"rotate":0},
         {"stickerId":"theme-20261115-matcha-22","x":0.687,"y":0.336,"size":0.51,"rotate":0},
@@ -23,7 +23,7 @@
       ]
     },
     {
-      "id":"pack-27","name":"matcha","label":"말차","color":"#a3c46f","ink":"#3e5329","motif":"stripes","nameStyle":"plain",
+      "id":"pack-27","name":"matcha","label":"말차","color":"#a3c46f","ink":"#3e5329","motif":"clovers","nameStyle":"plain",
       "slots": [
         {"stickerId":"theme-20261116-matcha-12","x":0.148,"y":0.331,"size":0.24,"rotate":11},
         {"stickerId":"theme-20261116-matcha-11","x":0.74,"y":0.764,"size":0.25,"rotate":0},
@@ -34,7 +34,7 @@
       ]
     },
     {
-      "id":"pack-17","name":"matcha","label":"말차","color":"#a3c46f","ink":"#3e5329","motif":"stripes","nameStyle":"plain",
+      "id":"pack-17","name":"matcha","label":"말차","color":"#a3c46f","ink":"#3e5329","motif":"clovers","nameStyle":"plain","icon":"theme-20261116-matcha-28",
       "slots": [
         {"stickerId":"theme-20261116-matcha-21","x":0.826,"y":0.239,"size":0.27,"rotate":11},
         {"stickerId":"theme-20261116-matcha-23","x":0.204,"y":0.232,"size":0.3,"rotate":0},
@@ -46,7 +46,7 @@
       ]
     },
     {
-      "id":"pack-26","name":"matcha","label":"말차","color":"#a3c46f","ink":"#3e5329","motif":"stripes","nameStyle":"plain",
+      "id":"pack-26","name":"matcha","label":"말차","color":"#a3c46f","ink":"#3e5329","motif":"clovers","nameStyle":"plain",
       "slots": [
         {"stickerId":"theme-20261115-matcha-26","x":0.19,"y":0.742,"size":0.335,"rotate":0},
         {"stickerId":"theme-20261115-matcha-27","x":0.518,"y":0.768,"size":0.315,"rotate":-7},
@@ -101,7 +101,7 @@
       ]
     },
     {
-      "id":"pack-20","name":"banana","label":"말차","color":"#ffd85f","ink":"#a66726","motif":"dashes","nameStyle":"plain",
+      "id":"pack-20","name":"banana","label":"말차","color":"#ffd85f","ink":"#a66726","motif":"dashes","nameStyle":"plain","icon":"theme-20261116-banana-25",
       "slots": [
         {"stickerId":"theme-20261116-banana-21","x":0.153,"y":0.217,"size":0.265,"rotate":-14},
         {"stickerId":"theme-20261116-banana-23","x":0.525,"y":0.183,"size":0.295,"rotate":0},
@@ -172,7 +172,7 @@
       ]
     },
     {
-      "id":"pack-36","name":"strawberry","label":"말차","color":"#f48fa6","ink":"#6b2337","motif":"hearts","nameStyle":"plain",
+      "id":"pack-36","name":"strawberry","label":"말차","color":"#f48fa6","ink":"#6b2337","motif":"hearts","nameStyle":"plain","icon":"theme-20261116-strawberry-32",
       "slots": [
         {"stickerId":"theme-20261116-strawberry-32","x":0.172,"y":0.182,"size":0.25,"rotate":0},
         {"stickerId":"theme-20261116-strawberry-33","x":0.813,"y":0.795,"size":0.215,"rotate":15},
@@ -231,7 +231,7 @@
       ]
     },
     {
-      "id":"pack-35","name":"choco","label":"말차","color":"#6f4128","ink":"#ffffff","motif":"gingham","nameStyle":"plain",
+      "id":"pack-35","name":"choco","label":"말차","color":"#6f4128","ink":"#ffffff","motif":"gingham","nameStyle":"plain","icon":"theme-20261116-choco-22",
       "slots": [
         {"stickerId":"theme-20261115-choco-26","x":0.501,"y":0.758,"size":0.34,"rotate":0},
         {"stickerId":"theme-20261115-choco-27","x":0.79,"y":0.768,"size":0.25,"rotate":11},
@@ -245,7 +245,7 @@
       ]
     },
     {
-      "id":"pastel-1","name":"PASTEL","label":"파스텔 문구 1","color":"#bcd9f2","ink":"#2f5d8a","motif":"stripes","nameStyle":"plain",
+      "id":"pastel-1","name":"PASTEL","label":"파스텔 문구 1","color":"#bcd9f2","ink":"#2f5d8a","motif":"stripes","nameStyle":"plain","iconBg":"transparent",
       "slots": [
         {"stickerId":"pastel-stationery-20261018-004","x":0.209,"y":0.221,"size":0.32,"rotate":-2},
         {"stickerId":"pastel-stationery-20261018-031","x":0.683,"y":0.369,"size":0.6,"rotate":5},
@@ -325,7 +325,7 @@
       ]
     },
     {
-      "id":"doodle-1","name":"DOODLE","label":"두들 1","color":"#ffe58a","ink":"#3a2e1f","motif":"dots","nameStyle":"slant",
+      "id":"doodle-1","name":"DOODLE","label":"두들 1","color":"#ffe58a","ink":"#3a2e1f","motif":"dots","nameStyle":"slant","icon":"minimal-20261017-123",
       "slots": [
         {"stickerId":"doodle-20261017-001","x":0.209,"y":0.208,"size":0.27,"rotate":-3},
         {"stickerId":"doodle-20261017-008","x":0.48,"y":0.218,"size":0.231,"rotate":0},
@@ -355,9 +355,8 @@
     {
       "id":"doodle-3","name":"DOODLE","label":"두들 3","color":"#ffe58a","ink":"#3a2e1f","motif":"dots","nameStyle":"slant",
       "slots": [
-        {"stickerId":"doodle-20261017-020","x":0.241,"y":0.225,"size":0.252,"rotate":-8},
-        {"stickerId":"minimal-20261017-130","x":0.525,"y":0.208,"size":0.243,"rotate":-11},
-        {"stickerId":"doodle-20261017-073","x":0.785,"y":0.215,"size":0.235,"rotate":-11},
+        {"stickerId":"minimal-20261017-130","x":0.387,"y":0.239,"size":0.243,"rotate":-11},
+        {"stickerId":"doodle-20261017-073","x":0.687,"y":0.207,"size":0.235,"rotate":-11},
         {"stickerId":"doodle-20261017-069","x":0.235,"y":0.518,"size":0.235,"rotate":10},
         {"stickerId":"doodle-20261017-070","x":0.524,"y":0.523,"size":0.244,"rotate":-3},
         {"stickerId":"doodle-20261017-075","x":0.78,"y":0.516,"size":0.253,"rotate":-11},
@@ -366,29 +365,7 @@
       ]
     },
     {
-      "id":"paper-1","name":"PAPER","label":"종이","color":"#f48e6c","ink":"#860e0e","motif":"grid","nameStyle":"box",
-      "slots": [
-        {"stickerId":"minimal-20261017-001","x":0.202,"y":0.214,"size":0.24,"rotate":-6},
-        {"stickerId":"minimal-20261017-003","x":0.788,"y":0.745,"size":0.25,"rotate":9},
-        {"stickerId":"minimal-20261017-008","x":0.661,"y":0.469,"size":0.232,"rotate":4},
-        {"stickerId":"minimal-20261017-013","x":0.201,"y":0.705,"size":0.261,"rotate":-4},
-        {"stickerId":"minimal-20261017-014","x":0.496,"y":0.778,"size":0.242,"rotate":11},
-        {"stickerId":"minimal-20261017-019","x":0.503,"y":0.176,"size":0.242,"rotate":11},
-        {"stickerId":"minimal-20261017-180","x":0.334,"y":0.443,"size":0.261,"rotate":-2},
-        {"stickerId":"pop-eyes","x":0.813,"y":0.255,"size":0.25,"rotate":0}
-      ]
-    },
-    {
-      "id":"painted-1","name":"PAINTED","label":"그림","color":"#ca8763","ink":"#4a2626","motif":"lines","nameStyle":"box",
-      "slots": [
-        {"stickerId":"painted-leaf","x":0.714,"y":0.366,"size":0.238,"rotate":-10},
-        {"stickerId":"painted-pretzel","x":0.239,"y":0.605,"size":0.255,"rotate":-6},
-        {"stickerId":"crayon-pudding","x":0.329,"y":0.241,"size":0.235,"rotate":10},
-        {"stickerId":"crayon-croissant","x":0.636,"y":0.719,"size":0.263,"rotate":7}
-      ]
-    },
-    {
-      "id":"glossy-1","name":"CLAY","label":"말랑 1","color":"#f4c6d0","ink":"#2a2a2a","motif":"sparkles","nameStyle":"plain",
+      "id":"glossy-1","name":"CLAY","label":"말랑 1","color":"#fcdbe3","ink":"#6b2337","motif":"crosses","nameStyle":"plain","icon":"minimal-20261017-097",
       "slots": [
         {"stickerId":"minimal-20261017-086","x":0.793,"y":0.713,"size":0.231,"rotate":-6},
         {"stickerId":"minimal-20261017-091","x":0.244,"y":0.747,"size":0.269,"rotate":-6},
@@ -398,7 +375,7 @@
       ]
     },
     {
-      "id":"pixel-1","name":"PIXEL","label":"픽셀 1","color":"#151515","ink":"#ffffff","motif":"checker","nameStyle":"slant",
+      "id":"pixel-1","name":"PIXEL","label":"픽셀 1","color":"#151515","ink":"#ffffff","motif":"checker","nameStyle":"pop",
       "slots": [
         {"stickerId":"minimal-20261017-061","x":0.191,"y":0.359,"size":0.253,"rotate":-9},
         {"stickerId":"minimal-20261017-062","x":0.469,"y":0.191,"size":0.269,"rotate":7},

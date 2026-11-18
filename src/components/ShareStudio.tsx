@@ -182,7 +182,7 @@ export default function ShareStudio({ subject, onTheme, onCopyLink, onShared, on
     if (!tool) return;
     const away = (e: PointerEvent) => {
       const t = e.target as Element | null;
-      if (t?.closest('.decor, .decor-tray, .decor-rail, .color-picker')) return;
+      if (t?.closest('.decor, .decor-tray, .decor-rail, .color-picker, .sticker-shop')) return;
       setTool(null);
       // That touch only closes: its click shouldn't also press what's under it. Dropped if no click follows.
       const swallow = (c: MouseEvent) => {

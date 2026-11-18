@@ -2375,19 +2375,24 @@ button:disabled {
 }
 
 .sticker-sheets {
-  /* The sheet: its width, its height (band + sticker area), and its top —
-     a little past the middle, but never so low it leaves the screen. */
-  --sheet-w: min(calc(100vw - 104px), 320px);
-  --sheet-h: calc(var(--sheet-w) * 1.15);
-  --sheet-top: min(57dvh, calc(100dvh - var(--sheet-h) - 20px - var(--safe-bottom)));
+  /* A low panel (the day stays visible above it, over half the screen): a
+     row of themes, then the pack as big as the rest allows. */
+  --panel-h: 46dvh;
+  --peek-h: 66px;
+  --sheet-w: min(calc(100vw - 104px), 300px, calc((var(--panel-h) - var(--peek-h) - 20px - var(--safe-bottom)) / 1.15));
   position: absolute;
   left: 0;
   right: 0;
-  top: var(--sheet-top);
+  bottom: 0;
+  height: var(--panel-h);
+  padding-bottom: calc(10px + var(--safe-bottom));
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  border-radius: 22px 22px 0 0;
+  background: var(--surface);
+  box-shadow: var(--shadow-up);
+  pointer-events: auto;
   /* First shown, the pack settles in from just below (settle, upside down). */
   animation: sticker-pack-up 0.36s var(--settle-ease) both;
   transition:
@@ -2411,7 +2416,7 @@ button:disabled {
   right: 0;
   bottom: 0;
   z-index: 1;
-  height: calc(min(calc(100vw - 104px), 320px) * 0.25 + 6px + var(--safe-bottom) + 40px);
+  height: calc(66px + 40px);
   padding: 0;
   border: 0;
   background: none;
@@ -2421,9 +2426,155 @@ button:disabled {
   touch-action: none;
 }
 
-/* Tucked down: only the pack's band shows at the bottom of the screen. */
+/* Tucked down: only the row of themes shows at the bottom of the screen. */
 .sticker-sheets.is-peek {
-  transform: translateY(calc(100dvh - var(--sheet-top) - var(--sheet-w) * 0.25 - 6px - var(--safe-bottom)));
+  transform: translateY(calc(100% - var(--peek-h)));
+}
+
+/* The store button standing at the front, then the row of themes scrolling
+   past it: a square each, in the theme's colour with one of its stickers. */
+.sticker-sheets__head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  width: 100%;
+  height: var(--peek-h);
+  padding: 0 0 0 16px;
+}
+
+.sticker-sheets__themes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 16px 0 8px;
+  overflow-x: auto;
+  /* Squares fade out at both ends instead of being cut off by the store button or the panel's edge. */
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8px, black calc(100% - 24px), transparent);
+  mask-image: linear-gradient(to right, transparent, black 8px, black calc(100% - 24px), transparent);
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+
+.sticker-sheets__themes::-webkit-scrollbar {
+  display: none;
+}
+
+.sticker-sheets__theme,
+.sticker-sheets__shop {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  touch-action: manipulation;
+}
+
+/* (Two classes: the tray's button reset would clear these backgrounds.) */
+.sticker-sheets .sticker-sheets__theme {
+  background: var(--pack);
+}
+
+.sticker-sheets__theme img {
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(1px 0 0 var(--sticker-edge)) drop-shadow(-1px 0 0 var(--sticker-edge))
+    drop-shadow(0 1px 0 var(--sticker-edge)) drop-shadow(0 -1px 0 var(--sticker-edge));
+}
+
+.sticker-sheets__theme.is-on {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sticker-sheets__theme:active,
+.sticker-sheets__shop:active {
+  scale: 0.92;
+}
+
+.sticker-sheets .sticker-sheets__shop {
+  background: var(--surface-2);
+  color: var(--icon);
+  --icon-ink: var(--icon);
+}
+
+/* Dragging a square: the others slide aside, the held one rides a little larger. */
+.sticker-sheets__themes.is-dragging .sticker-sheets__theme {
+  transition: transform 0.18s var(--slide-ease);
+}
+
+.sticker-sheets__themes.is-dragging .sticker-sheets__theme.is-lifted {
+  z-index: 1;
+  scale: 1.12;
+  transition: none;
+  box-shadow: var(--shadow);
+}
+
+/* The sticker shop over the whole screen (nothing on sale yet). */
+.sticker-shop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  width: auto;
+  max-width: none;
+  height: auto;
+  max-height: none;
+  margin: 0;
+  padding: var(--safe-top) 0 var(--safe-bottom);
+  border: 0;
+  background: var(--bg);
+  color: var(--text);
+  animation: sticker-shop-in 0.24s var(--slide-ease) both;
+}
+
+@keyframes sticker-shop-in {
+  from {
+    translate: 100% 0;
+  }
+}
+
+.sticker-shop__head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 56px;
+  padding: 0 12px;
+}
+
+.sticker-shop__head h2 {
+  margin: 0;
+  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 24px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+.sticker-shop .sticker-shop__back {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--icon);
+  --icon-ink: var(--icon);
+}
+
+.sticker-shop__empty {
+  flex: 1;
+  align-content: center;
+  padding: 0 0 56px;
 }
 
 .sticker-sheets.is-peek .sticker-sheet {
@@ -2435,10 +2586,105 @@ button:disabled {
   pointer-events: none;
 }
 
+/* The theme's packs as a list, in the big pack's place (its square tapped again). */
+.sticker-list__rows {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  padding: 2px 12px 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: settle 0.24s var(--settle-ease) both;
+}
+
+.sticker-list__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 16px;
+  background: none;
+  color: var(--text);
+  --icon-ink: currentColor;
+  text-align: left;
+}
+
+.sticker-list__row:active {
+  background: var(--surface-2);
+}
+
+.sticker-list__thumb {
+  position: relative;
+  flex: none;
+  width: 58px;
+  height: 58px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--sticker-sheet);
+  box-shadow: var(--shadow-sm);
+}
+
+.sticker-list__thumb b {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 15px;
+  background: var(--pack);
+}
+
+.sticker-list__thumb img {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  translate: -50% -50%;
+}
+
+.sticker-list__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.sticker-list__name {
+  display: block;
+  font-family: "Bebas Neue", "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: 0.05em;
+  color: var(--pack-ink);
+}
+
+.sticker-list__name small {
+  margin-left: 4px;
+  font-size: 15px;
+  opacity: 0.7;
+}
+
+.sticker-list__peek {
+  display: flex;
+  gap: 2px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+
+.sticker-list__peek img {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
 .sticker-sheets__row {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: 1;
+  min-height: 0;
   width: 100%;
 }
 
@@ -2448,8 +2694,6 @@ button:disabled {
   width: 44px;
   height: 88px;
   pointer-events: auto;
-  color: var(--muted);
-  --icon-ink: var(--icon);
   touch-action: manipulation;
 }
 
@@ -2483,6 +2727,16 @@ button:disabled {
     opacity: 0;
     translate: var(--sheet-from) 0;
   }
+}
+
+/* In the colour of the pack's band (set on the row); two classes so the tray's button reset doesn't win. */
+.sticker-sheets .sticker-sheets__step {
+  color: var(--pack, var(--icon));
+  --icon-ink: var(--pack, var(--icon));
+}
+
+.sticker-sheets__step:disabled {
+  visibility: hidden;
 }
 
 .sticker-sheet__body {
@@ -12457,6 +12711,75 @@ button.group-photo-panel__photo {
 .sticker-pack__motif--diagonal-dots { background: radial-gradient(circle, var(--pack-ink) 1.5px, transparent 1.8px) 0 0 / 10px 10px, radial-gradient(circle, var(--pack-ink) 1.5px, transparent 1.8px) 5px 5px / 10px 10px; }
 .sticker-pack__motif--brick { background: linear-gradient(var(--pack-ink) 1px, transparent 0) 0 0 / 12px 6px, linear-gradient(90deg, var(--pack-ink) 1px, transparent 0) 0 0 / 12px 12px, linear-gradient(90deg, var(--pack-ink) 1px, transparent 0) 6px 6px / 12px 12px; }
 .sticker-pack__motif--herringbone { background: linear-gradient(135deg, transparent 40%, var(--pack-ink) 40% 52%, transparent 52%) 0 0 / 12px 8px, linear-gradient(45deg, transparent 40%, var(--pack-ink) 40% 52%, transparent 52%) 6px 0 / 12px 8px; }
+
+/* More pack-band motifs (2026-11-19): little marks in a row like hearts, or flat-ink repeats. */
+.sticker-pack__motif--stars,
+.sticker-pack__motif--flowers,
+.sticker-pack__motif--notes,
+.sticker-pack__motif--moons,
+.sticker-pack__motif--clovers,
+.sticker-pack__motif--crosses {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: 2px;
+  font-variant-emoji: text;
+}
+.sticker-pack__motif--stars::before { content: '\2605\2606\2605\2606'; }
+.sticker-pack__motif--flowers::before { content: '\273F\273F\273F\273F'; }
+.sticker-pack__motif--notes::before { content: '\266A\266B\266A\266B'; }
+.sticker-pack__motif--moons::before { content: '\263E\2606\263E\2606'; }
+.sticker-pack__motif--clovers::before { content: '\2663\2663\2663\2663'; }
+.sticker-pack__motif--crosses::before { content: '\271A\271A\271A\271A'; }
+.sticker-pack__motif--waves { background: radial-gradient(circle at 50% 100%, transparent 2.6px, var(--pack-ink) 2.8px 4.2px, transparent 4.5px) 0 50% / 10px 8px repeat-x; }
+.sticker-pack__motif--zigzag {
+  background:
+    linear-gradient(135deg, var(--pack-ink) 25%, transparent 25%) -4px 0 / 8px 8px,
+    linear-gradient(225deg, var(--pack-ink) 25%, transparent 25%) -4px 0 / 8px 8px,
+    linear-gradient(315deg, var(--pack-ink) 25%, transparent 25%) 0 0 / 8px 8px,
+    linear-gradient(45deg, var(--pack-ink) 25%, transparent 25%) 0 0 / 8px 8px;
+}
+.sticker-pack__motif--scallop { background: radial-gradient(circle at 50% 0, var(--pack-ink) 3.6px, transparent 4px) 0 0 / 8px 100% repeat-x; }
+.sticker-pack__motif--triangles { background: linear-gradient(135deg, transparent 50%, var(--pack-ink) 0) 0 100% / 8px 8px repeat-x, linear-gradient(225deg, transparent 50%, var(--pack-ink) 0) 0 100% / 8px 8px repeat-x; }
+
+/* More ways to set a pack's name. */
+.sticker-pack__name--pill {
+  padding: 4px 10px 2px;
+  border-radius: 999px;
+  background: var(--pack-ink);
+  color: var(--pack);
+}
+.sticker-pack__name--underline {
+  padding-bottom: 2px;
+  border-bottom: 3px solid var(--pack-ink);
+}
+.sticker-pack__name--outline {
+  color: transparent;
+  -webkit-text-stroke: 1.2px var(--pack-ink);
+}
+.sticker-pack__name--pop {
+  color: var(--pack);
+  -webkit-text-stroke: 1.2px var(--pack-ink);
+  text-shadow: 2px 2px 0 var(--pack-ink);
+}
+.sticker-pack__name--stamp {
+  padding: 3px 7px 1px;
+  border: 2px dashed var(--pack-ink);
+  border-radius: 6px;
+  transform: rotate(-4deg);
+}
+.sticker-pack__name--wide {
+  font-size: calc(var(--sheet-w) * 0.08);
+  letter-spacing: 0.32em;
+}
+.sticker-pack__name--hand {
+  font-family: "Nanum Pen Script", cursive;
+  font-size: calc(var(--sheet-w) * 0.12);
+  letter-spacing: 0;
+}
 
 /* ---------- Calendar H: week strip + the picked day's card (WeekCalendar, 2026-11-16) ---------- */
 

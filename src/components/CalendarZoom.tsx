@@ -492,7 +492,7 @@ export default function CalendarZoom({ command, onMode, onDecorating, onPingPick
     if (!tool) return;
     const away = (e: PointerEvent) => {
       const t = e.target as Element | null;
-      if (t?.closest('.decor, .decor-tray, .decor-rail, .color-picker')) return;
+      if (t?.closest('.decor, .decor-tray, .decor-rail, .color-picker, .sticker-shop')) return;
       setTool(null);
       // That touch only closes: its click shouldn't also open something
       // (the title would zoom out to the month). Dropped if no click follows.
