@@ -1,9 +1,8 @@
 import { useRef, useState } from 'react';
 import { CAMERA_PLACE_LIMIT, cameraPlaces, type CameraPlaces } from '../domain/cameraPlaces';
-import { TODAY_PING_RADIUS_M } from '../domain/dayPings';
 import { dateKey } from '../domain/diary';
-import { haversineMeters as distanceMeters } from '../domain/geo';
 import { isExcluded } from '../domain/privacy';
+import { dayPingOfPlace } from '../domain/visitedPlaces';
 import { avatarFromDataUrl } from '../lib/avatarImage';
 import { PING_PHOTO_PX, savePingPhoto } from '../services/pingPhotoRepository';
 import { loadPings, recordPing, recordPlacePing, todayPingOfPin } from '../services/pingRepository';
@@ -62,20 +61,18 @@ export function useCameraShot({ here, excluded, searchService, pins, savePin, up
   };
 
   // TODAY (MY) in the send popup: the shot pings the picked place on my own
-  // day, with the photo on it — my pin there if it is one (once a day, so a
-  // second shot only adds the photo), else today's ping of the same place
-  // within 50m, else a new ping of the place.
+  // day, with the photo on it. Today's ping of that place already there (from
+  // its pin, from the visit its pin was made from, or the same name within
+  // 50m) only gets the photo — a place is one ping a day, however it was
+  // picked. Else my pin there if it is one, else a new ping of the place.
   const pingOnToday = async (photo: string, place: PlaceRef, pin: Pin | undefined): Promise<boolean> => {
     const small = await avatarFromDataUrl(photo, PING_PHOTO_PX, 0.8);
-    let pingId: string | null;
-    if (pin) {
-      recordPing(pin, excluded);
-      pingId = todayPingOfPin(pin.id);
-    } else {
-      const today = dateKey();
-      pingId =
-        loadPings().find((p) => p.day === today && !p.pinId && p.name === place.name && distanceMeters(p.center, place.center) <= TODAY_PING_RADIUS_M)?.id ??
-        recordPlacePing(place, excluded);
+    let pingId = dayPingOfPlace(dateKey(), pin?.place ?? place, pin?.id ?? null, loadPings())?.id ?? null;
+    if (!pingId) {
+      if (pin) {
+        recordPing(pin, excluded);
+        pingId = todayPingOfPin(pin.id);
+      } else pingId = recordPlacePing(place, excluded);
     }
     if (!pingId) return false;
     if (small) savePingPhoto(pingId, small, new Set(loadPings().map((p) => p.id)));

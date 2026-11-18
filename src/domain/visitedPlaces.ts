@@ -43,6 +43,29 @@ export function visitedPlaces(
   return { places, settled };
 }
 
+/**
+ * Whether a ping is of this place: recorded from its pin, the visit its pin
+ * was made from (kept through a rename), or the same place by name and distance.
+ */
+const pingOfPlace = (place: Pick<PlaceRef, 'id' | 'name' | 'center'>, pinId: string | null) => (ping: StoredPing) =>
+  (pinId !== null && ping.pinId === pinId) || place.id === visitPlaceId(ping.id) || samePlace(place, ping);
+
+/**
+ * The ping of this place already on that day, which a new shot of it adds its
+ * photo to instead of pinging the place again. A shot's 직접 입력 place (no pin)
+ * becomes a 미분류 `visit:` pin right after; picking it for the next shot must
+ * land on that first ping, not record a second one from the pin.
+ */
+export function dayPingOfPlace(
+  day: string,
+  place: Pick<PlaceRef, 'id' | 'name' | 'center'>,
+  pinId: string | null,
+  pings: readonly StoredPing[],
+): StoredPing | null {
+  const of = pingOfPlace(place, pinId);
+  return pings.find((ping) => ping.day === day && of(ping)) ?? null;
+}
+
 export interface PlacePhoto {
   /** The photo's own id (a ping's first photo: the ping's). */
   id: string;
@@ -62,7 +85,7 @@ export function placePhotos(
   photos: Readonly<Record<string, readonly StackedPhoto[]>>,
 ): PlacePhoto[] {
   return pings
-    .filter((ping) => (pinId && ping.pinId === pinId) || place.id === visitPlaceId(ping.id) || samePlace(place, ping))
+    .filter(pingOfPlace(place, pinId))
     .flatMap((ping) => (photos[ping.id] ?? []).map((photo) => ({ id: photo.id, url: photo.src, at: photo.at ?? ping.at })))
     .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
 }
