@@ -129,12 +129,17 @@ body {
   border-right: 1px solid var(--border);
 }
 
-.spe__packs ol {
+/* All the themes scroll together; each theme's list is just its height
+   (one list per theme used to be the scroll box, so the themes below were cut off). */
+.spe__pack-list {
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+}
+
+.spe__packs ol {
   margin: 0;
   padding: 0;
-  overflow-y: auto;
   list-style: none;
 }
 
@@ -423,3 +428,85 @@ body {
 .spe__theme-preset-row strong { width: 44px; font-size: 13px; }
 .spe__reload-images { align-self: flex-start; margin-bottom: 10px; }
 .spe__grid { grid-auto-rows: 72px; align-content: start; }
+
+/* ----- Main icon ----- */
+
+.spe__icon-pick {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* The theme square as the app draws it: the band colour with the icon. */
+.spe__icon-preview {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+}
+
+.spe__icon-preview img {
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+}
+
+.spe__icon-bg {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.spe__icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.spe .spe__icons .spe__icon {
+  width: 40px;
+  height: 40px;
+  padding: 3px;
+}
+
+.spe__icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* ----- Packs by theme ----- */
+
+.spe__theme + .spe__theme {
+  margin-top: 10px;
+}
+
+.spe__theme-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  font-family: 'Bebas Neue', 'Pretendard', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+.spe__theme-head small {
+  margin-left: auto;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+
+.spe__icon-preview--small {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+}

@@ -20,9 +20,10 @@ export interface SheetSlot {
 }
 
 /** The band's pattern beside the pack's name (drawn in CSS, `sticker-pack__motif--*`). */
-export type PackMotif = 'stripes' | 'hearts' | 'dots' | 'checker' | 'grid' | 'sparkles' | 'lines' | 'vertical-lines' | 'crosshatch' | 'diamonds' | 'gingham' | 'mini-dots' | 'rings' | 'dashes' | 'diagonal-dots' | 'brick' | 'herringbone' | 'none';
-/** How the name is set: plain, in an outlined box, or slanted heavy. */
-export type PackNameStyle = 'plain' | 'box' | 'slant';
+export type PackMotif = 'stripes' | 'hearts' | 'dots' | 'checker' | 'grid' | 'sparkles' | 'lines' | 'vertical-lines' | 'crosshatch' | 'diamonds' | 'gingham' | 'mini-dots' | 'rings' | 'dashes' | 'diagonal-dots' | 'brick' | 'herringbone'
+  | 'stars' | 'flowers' | 'notes' | 'moons' | 'clovers' | 'crosses' | 'waves' | 'zigzag' | 'scallop' | 'triangles' | 'none';
+/** How the name is set on the band (`sticker-pack__name--*`). */
+export type PackNameStyle = 'plain' | 'box' | 'slant' | 'pill' | 'underline' | 'outline' | 'pop' | 'stamp' | 'wide' | 'hand';
 
 export const PACK_MOTIFS: { motif: PackMotif; label: string }[] = [
   { motif: 'stripes', label: '사선' },
@@ -42,6 +43,16 @@ export const PACK_MOTIFS: { motif: PackMotif; label: string }[] = [
   { motif: 'diagonal-dots', label: '엇갈린 도트' },
   { motif: 'brick', label: '블록' },
   { motif: 'herringbone', label: '헤링본' },
+  { motif: 'stars', label: '별' },
+  { motif: 'flowers', label: '꽃' },
+  { motif: 'notes', label: '음표' },
+  { motif: 'moons', label: '달' },
+  { motif: 'clovers', label: '클로버' },
+  { motif: 'crosses', label: '십자' },
+  { motif: 'waves', label: '물결' },
+  { motif: 'zigzag', label: '지그재그' },
+  { motif: 'scallop', label: '레이스' },
+  { motif: 'triangles', label: '세모' },
   { motif: 'none', label: '없음' },
 ];
 
@@ -49,6 +60,13 @@ export const PACK_NAME_STYLES: { style: PackNameStyle; label: string }[] = [
   { style: 'plain', label: '기본' },
   { style: 'box', label: '테두리 상자' },
   { style: 'slant', label: '굵게 기울임' },
+  { style: 'pill', label: '알약' },
+  { style: 'underline', label: '밑줄' },
+  { style: 'outline', label: '속 빈 글자' },
+  { style: 'pop', label: '입체' },
+  { style: 'stamp', label: '도장' },
+  { style: 'wide', label: '넓은 자간' },
+  { style: 'hand', label: '손글씨' },
 ];
 
 export interface StickerSheet {
@@ -62,6 +80,18 @@ export interface StickerSheet {
   ink: string;
   motif: PackMotif;
   nameStyle: PackNameStyle;
+  /**
+   * Its theme's icon, when this pack holds it: one of the pack's own stickers,
+   * standing for the theme (the packs of one name) on the sticker tool's row
+   * of squares. At most one pack per theme carries it (`oneIconPerTheme`).
+   */
+  icon?: string;
+  /**
+   * Its theme square's background, when this pack holds it: `#rrggbb`, or
+   * `transparent` for none. Unset, the square wears the theme's band colour.
+   * At most one pack per theme carries it (`oneIconPerTheme`).
+   */
+  iconBg?: string;
   /** Bottom to top: later ones lie over earlier ones. */
   slots: SheetSlot[];
 }
@@ -110,6 +140,9 @@ export function readPacks(raw: unknown): StickerSheet[] {
       });
     }
     const label = typeof r.label === 'string' ? r.label.trim().slice(0, PACK_LIMITS.label) : '';
+    // Only a sticker that's on the pack (the build keeps just those).
+    const icon = typeof r.icon === 'string' && slots.some((sl) => sl.stickerId === r.icon) ? r.icon : '';
+    const iconBg = typeof r.iconBg === 'string' ? r.iconBg.toLowerCase() : '';
     out.push({
       id,
       name: r.name.trim().slice(0, PACK_LIMITS.name),
@@ -118,10 +151,74 @@ export function readPacks(raw: unknown): StickerSheet[] {
       ink,
       motif: PACK_MOTIFS.some((m) => m.motif === r.motif) ? (r.motif as PackMotif) : 'none',
       nameStyle: PACK_NAME_STYLES.some((m) => m.style === r.nameStyle) ? (r.nameStyle as PackNameStyle) : 'plain',
+      ...(icon ? { icon } : {}),
+      ...(isIconBg(iconBg) ? { iconBg } : {}),
       slots,
     });
   }
-  return out;
+  return oneIconPerTheme(out);
+}
+
+/** A theme square's background as stored: a colour, or `transparent`. */
+export const isIconBg = (value: string): boolean => value === 'transparent' || HEX.test(value);
+
+/**
+ * A theme has one icon and one square background: past the first pack of a
+ * name that carries either, the others' are dropped.
+ */
+export function oneIconPerTheme(packs: StickerSheet[]): StickerSheet[] {
+  const held = { icon: new Set<string>(), iconBg: new Set<string>() };
+  let changed = false;
+  const out = packs.map((p) => {
+    let next = p;
+    for (const key of ['icon', 'iconBg'] as const) {
+      if (!next[key]) continue;
+      if (!held[key].has(p.name)) {
+        held[key].add(p.name);
+        continue;
+      }
+      changed = true;
+      const { [key]: _dropped, ...rest } = next;
+      next = rest;
+    }
+    return next;
+  });
+  return changed ? out : packs;
+}
+
+/**
+ * Sets a theme's square background (`#rrggbb` or `transparent`; undefined =
+ * back to the band colour): kept on the theme's first pack, off the others.
+ */
+export function setThemeIconBg(packs: StickerSheet[], name: string, bg: string | undefined): StickerSheet[] {
+  const owner = packs.find((p) => p.name === name);
+  const value = bg && isIconBg(bg.toLowerCase()) ? bg.toLowerCase() : undefined;
+  return packs.map((p) => {
+    if (p.name !== name) return p;
+    const { iconBg: _old, ...rest } = p;
+    return p === owner && value ? { ...rest, iconBg: value } : rest;
+  });
+}
+
+/** A theme's square background (its packs, in order): the one set, else its first pack's band colour. */
+export function themeIconBg(packs: readonly StickerSheet[]): string | undefined {
+  return packs.find((p) => p.iconBg)?.iconBg ?? packs[0]?.color;
+}
+
+/**
+ * Picks a theme's icon (undefined = back to its first pack's first sticker):
+ * it goes on `holder` if that pack has the sticker, else on the first pack of
+ * the theme that does, and off every other pack of that name.
+ */
+export function setThemeIcon(packs: StickerSheet[], name: string, stickerId: string | undefined, holder?: string): StickerSheet[] {
+  const theme = packs.filter((p) => p.name === name);
+  const has = (p: StickerSheet) => !!stickerId && p.slots.some((sl) => sl.stickerId === stickerId);
+  const owner = theme.find((p) => p.id === holder && has(p)) ?? theme.find(has);
+  return packs.map((p) => {
+    if (p.name !== name) return p;
+    const { icon: _old, ...rest } = p;
+    return p === owner ? { ...rest, icon: stickerId } : rest;
+  });
 }
 
 /** The file the editor hands over and the app reads. */
@@ -257,3 +354,23 @@ export function squareTarget(centers: readonly number[], from: number, dx: numbe
   const at = centers[from] + dx;
   return centers.filter((c, i) => i !== from && c < at).length;
 }
+
+/** A theme's icon on the row of squares (its packs, in order): the one picked, else its first pack's first sticker. */
+export function themeIcon(packs: readonly StickerSheet[]): string | undefined {
+  return packs.find((p) => p.icon)?.icon ?? packs[0]?.slots[0]?.stickerId;
+}
+
+/** Relative luminance of a '#rrggbb' colour (0 black … 1 white). */
+const luminance = (hex: string): number => {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+/**
+ * The pack's name colour on a white list: its band ink, unless that ink is
+ * white-ish (it would vanish there), then the band's own colour.
+ */
+export const listInk = (sheet: Pick<StickerSheet, 'ink' | 'color'>): string => (luminance(sheet.ink) > 0.8 ? sheet.color : sheet.ink);

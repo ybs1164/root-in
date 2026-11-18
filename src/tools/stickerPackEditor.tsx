@@ -18,8 +18,14 @@ import {
   PACK_MOTIFS,
   PACK_NAME_STYLES,
   formatPacks,
+  oneIconPerTheme,
+  packGroups,
   packsDocument,
   readPacks,
+  setThemeIcon,
+  setThemeIconBg,
+  themeIcon,
+  themeIconBg,
   SHEET_ASPECT,
   STICKER_SHEETS,
   type SheetSlot,
@@ -88,6 +94,13 @@ const freshId = (packs: StickerSheet[], base = 'pack') => {
 };
 
 /** A slot that spills off the white area (the app doesn't clip it, but it may cover the band or the edge). */
+/** A pack whose main icon left with its sticker goes back to the default (its first sticker). */
+const withIconOnPack = (p: StickerSheet): StickerSheet => {
+  if (!p.icon || p.slots.some((s) => s.stickerId === p.icon)) return p;
+  const { icon: _gone, ...rest } = p;
+  return rest;
+};
+
 const spills = (s: SheetSlot) => {
   const half = s.size / 2;
   const halfY = half / SHEET_ASPECT;
@@ -115,7 +128,8 @@ function Editor() {
   /** One edit; `key` ties together a run of the same edit so it undoes in one step. */
   const edit = (next: StickerSheet[] | ((now: StickerSheet[]) => StickerSheet[]), key = '') => {
     const now = packsRef.current;
-    const value = typeof next === 'function' ? next(now) : next;
+    // A rename can bring a second icon into a theme: it keeps the first.
+    const value = oneIconPerTheme(typeof next === 'function' ? next(now) : next);
     if (value === now) return;
     const t = Date.now();
     const merge = key && lastEdit.current?.key === key && t - lastEdit.current.at < MERGE_MS;
@@ -155,9 +169,36 @@ function Editor() {
   const [picked, setPicked] = useState<number | null>(null);
   const slot = pack && picked !== null ? pack.slots[picked] : undefined;
   useEffect(() => setPicked(null), [pi]);
+  // Bring the picked pack into view only when the pick changes: a ref callback ran on
+  // every render and pulled the list back up while scrolling or editing.
+  const pickedPackRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    pickedPackRef.current?.scrollIntoView({ block: 'nearest' });
+  }, [pi]);
 
   const editPack = (patch: Partial<StickerSheet> | ((p: StickerSheet) => Partial<StickerSheet>), key = '') =>
-    edit((now) => now.map((p, i) => (i === pi ? { ...p, ...(typeof patch === 'function' ? patch(p) : patch) } : p)), key);
+    edit((now) => now.map((p, i) => (i === pi ? withIconOnPack({ ...p, ...(typeof patch === 'function' ? patch(p) : patch) }) : p)), key);
+  /** The shown pack's theme icon (a sticker on one of its packs), or undefined for the default — its first pack's first sticker. */
+  const setIcon = (stickerId: string | undefined) => {
+    if (!pack) return;
+    edit((now) => setThemeIcon(now, pack.name, stickerId, pack.id));
+    setNote(
+      stickerId
+        ? `'${pack.name}' 테마의 대표 아이콘을 '${getSticker(stickerId)?.label ?? stickerId}'(으)로 정했어요.`
+        : `'${pack.name}' 테마의 대표 아이콘을 기본(첫 팩의 첫 스티커)으로 되돌렸어요.`,
+    );
+  };
+  const groups = packGroups(packs);
+  const theme = pack ? groups.find((g) => g.name === pack.name) : undefined;
+  const themeIconId = theme && themeIcon(theme.packs.map((p) => p.sheet));
+  const themePicked = theme?.packs.find((p) => p.sheet.icon)?.sheet.icon;
+  /** The square's background as set (undefined = the band colour), and as drawn. */
+  const themeBgSet = theme?.packs.find((p) => p.sheet.iconBg)?.sheet.iconBg;
+  const themeBg = theme ? (themeIconBg(theme.packs.map((p) => p.sheet)) ?? theme.color) : undefined;
+  const setIconBg = (bg: string | undefined, key = '') => {
+    if (!pack) return;
+    edit((now) => setThemeIconBg(now, pack.name, bg), key);
+  };
   const editSlot = (index: number, patch: Partial<SheetSlot>, key = '') =>
     editPack((p) => ({ slots: p.slots.map((s, i) => (i === index ? { ...s, ...patch } : s)) }), key);
 
@@ -180,9 +221,15 @@ function Editor() {
     setPackIndex(Math.max(0, pi - 1));
     setNote(`'${pack.name}' 팩을 지웠어요. 되돌리기로 살릴 수 있어요.`);
   };
+  // Up and down within the pack's theme: the order the app's < > page through.
+  const themeNeighbour = (by: -1 | 1) => {
+    if (!pack) return -1;
+    const same = packs.flatMap((p, i) => (p.name === pack.name ? [i] : []));
+    return same[same.indexOf(pi) + by] ?? -1;
+  };
   const movePack = (by: -1 | 1) => {
-    const to = pi + by;
-    if (!pack || to < 0 || to >= packs.length) return;
+    const to = themeNeighbour(by);
+    if (!pack || to < 0) return;
     edit((now) => {
       const next = [...now];
       [next[pi], next[to]] = [next[to], next[pi]];
@@ -378,26 +425,44 @@ function Editor() {
         </div>
       </header>
 
-      {/* Packs, in the order the app pages through them. */}
+      {/* Packs by theme (the packs of one name), each theme's in the order the app pages through them. */}
       <aside className="spe__packs">
-        <ol>
-          {packs.map((p, i) => (
-            <li key={p.id}>
-              <button
-                ref={i === pi ? (el) => el?.scrollIntoView({ block: 'nearest' }) : undefined}
-                className={`spe__pack ${i === pi ? 'is-on' : ''}`}
-                onClick={() => setPackIndex(i)}
-              >
-                <span className="spe__pack-band" style={{ background: p.color, color: p.ink }}>
-                  {p.name || '이름 없음'}
+        <div className="spe__pack-list">
+        {groups.map((g) => {
+          const icon = getSticker(themeIcon(g.packs.map((p) => p.sheet)) ?? '');
+          return (
+            <section key={g.name} className="spe__theme">
+              <h3 className="spe__theme-head">
+                <span
+                  className="spe__icon-preview spe__icon-preview--small"
+                  style={{ background: themeIconBg(g.packs.map((p) => p.sheet)) ?? g.color }}
+                  aria-hidden
+                >
+                  {icon && <img src={icon.src} alt="" />}
                 </span>
-                <span className="spe__pack-count">
-                  {i + 1} · 스티커 {p.slots.length}개
-                </span>
-              </button>
-            </li>
-          ))}
-        </ol>
+                {g.name || '이름 없음'}
+                <small>{g.packs.length}팩</small>
+              </h3>
+              <ol>
+                {g.packs.map(({ sheet: p, index: i }, n) => (
+                  <li key={p.id}>
+                    <button
+                      ref={i === pi ? pickedPackRef : undefined}
+                      className={`spe__pack ${i === pi ? 'is-on' : ''}`}
+                      onClick={() => setPackIndex(i)}
+                    >
+                      <span className="spe__pack-band" style={{ background: p.color, color: p.ink }}>
+                        {p.name || '이름 없음'} {n + 1}
+                      </span>
+                      <span className="spe__pack-count">스티커 {p.slots.length}개</span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          );
+        })}
+        </div>
         <div className="spe__row">
           <button onClick={addPack}>+ 새 팩</button>
           <button onClick={duplicatePack} disabled={!pack}>
@@ -405,10 +470,10 @@ function Editor() {
           </button>
         </div>
         <div className="spe__row">
-          <button onClick={() => movePack(-1)} disabled={pi <= 0} aria-label="위로">
+          <button onClick={() => movePack(-1)} disabled={themeNeighbour(-1) < 0} aria-label="테마 안에서 위로">
             ↑
           </button>
-          <button onClick={() => movePack(1)} disabled={pi >= packs.length - 1} aria-label="아래로">
+          <button onClick={() => movePack(1)} disabled={themeNeighbour(1) < 0} aria-label="테마 안에서 아래로">
             ↓
           </button>
           <button className="is-danger" onClick={deletePack} disabled={!pack}>
@@ -507,6 +572,9 @@ function Editor() {
               </div>
               <div className="spe__row">
                 <button onClick={() => addSticker(slot.stickerId, { x: clamp(slot.x + 0.04, 0, 1), y: clamp(slot.y + 0.04, 0, 1) })}>복제</button>
+                <button className={themePicked === slot.stickerId ? 'is-on' : ''} onClick={() => setIcon(slot.stickerId)}>
+                  테마 대표 아이콘으로
+                </button>
                 <button className="is-danger" onClick={() => removeSticker(picked)}>
                   빼기
                 </button>
@@ -543,7 +611,7 @@ function Editor() {
           <section className="spe__panel">
             <h2>팩 꾸미기</h2>
             <label>
-              이름 <small>(띠에 적히는 글자, {PACK_LIMITS.name}자 · 영문이 잘 어울려요)</small>
+              이름 = 테마 <small>(띠에 적히는 글자, {PACK_LIMITS.name}자 · 영문이 잘 어울려요 · 이름이 같은 팩끼리 한 테마로 묶여요)</small>
               <input
                 value={pack.name}
                 maxLength={PACK_LIMITS.name}
@@ -621,6 +689,53 @@ function Editor() {
                 ))}
               </div>
             </div>
+            {theme && (
+              <div className="spe__field">
+                테마 대표 아이콘{' '}
+                <small>
+                  ('{pack.name}' 테마 {theme.packs.length}팩에 하나 — 앱 스티커 창 위 테마 정사각형에 나오는 그림, 그 테마 팩들의 스티커 중에서)
+                </small>
+                <div className="spe__icon-pick">
+                  <span className="spe__icon-preview" style={{ background: themeBg }} aria-label="테마 정사각형 미리보기">
+                    {getSticker(themeIconId ?? '') && <img src={getSticker(themeIconId ?? '')!.src} alt="" />}
+                  </span>
+                  <div className="spe__icons" role="group" aria-label="테마 대표 아이콘 고르기">
+                    <button className={!themePicked ? 'is-on' : ''} onClick={() => setIcon(undefined)} title="테마 첫 팩의 첫 스티커">
+                      기본
+                    </button>
+                    {[...new Set(theme.packs.flatMap((p) => p.sheet.slots.map((sl) => sl.stickerId)))].map((id) => {
+                      const st = getSticker(id);
+                      return (
+                        st && (
+                          <button key={id} className={`spe__icon ${themePicked === id ? 'is-on' : ''}`} title={st.label} aria-label={`대표 아이콘: ${st.label}`} onClick={() => setIcon(id)}>
+                            <img src={st.src} alt="" draggable={false} />
+                          </button>
+                        )
+                      );
+                    })}
+                  </div>
+                </div>
+                {/* The square behind the icon: the band colour unless set — any colour, or none. */}
+                <div className="spe__icon-bg" role="group" aria-label="테마 정사각형 배경 색">
+                  배경
+                  <button className={!themeBgSet ? 'is-on' : ''} onClick={() => setIconBg(undefined)} title="첫 팩의 띠 색">
+                    띠 색
+                  </button>
+                  <button className={themeBgSet === 'transparent' ? 'is-on' : ''} onClick={() => setIconBg('transparent')}>
+                    투명
+                  </button>
+                  <span className="spe__color">
+                    <input
+                      type="color"
+                      aria-label="배경 색 고르기"
+                      value={themeBg && themeBg !== 'transparent' ? themeBg : theme.color}
+                      onChange={(e) => setIconBg(e.target.value, 'icon-bg')}
+                    />
+                    <code>{themeBgSet ?? theme.color}</code>
+                  </span>
+                </div>
+              </div>
+            )}
           </section>
         )}
 

@@ -7,7 +7,7 @@ import { SHEET_PULL, SWIPE, swipeCommits } from '../domain/appTabs';
 import StickerPackBand from './StickerPackBand';
 import StickerShop from './StickerShop';
 import { loadPackOrder, savePackOrder } from '../services/stickerPackOrderRepository';
-import { orderPackGroups, packGroups, peelFold, squareTarget, STICKER_SHEETS, type PeelFold, type SheetSlot, type StickerDrop, type StickerSheet } from '../domain/stickerSheets';
+import { listInk, orderPackGroups, packGroups, peelFold, squareTarget, themeIcon, themeIconBg, STICKER_SHEETS, type PeelFold, type SheetSlot, type StickerDrop, type StickerSheet } from '../domain/stickerSheets';
 
 /** Less movement than this is a tap on a sticker, not a pull (px). */
 const TAP_SLOP = 6;
@@ -133,6 +133,52 @@ function drawPeel(canvas: HTMLCanvasElement, p: Peel, fold: PeelFold | null) {
 }
 
 /**
+ * The packs of the theme in use, one row each (a thumbnail in the band's
+ * colour, the name and its number in the theme in the pack's name ink (its
+ * band colour when that ink is white), a
+ * peek at its stickers), in the big pack's place. A row puts that pack up.
+ */
+function ThemePackList({ sheets, current, onPick }: { sheets: StickerSheet[]; current: number; onPick: (index: number) => void }) {
+  const name = sheets[current]?.name;
+  const packs = sheets.flatMap((sheet, index) => (sheet.name === name ? [{ sheet, index }] : []));
+  return (
+    <div className="sticker-list__rows" role="list" aria-label={`${sheets[current]?.label ?? name} 팩 목록`}>
+      {packs.map(({ sheet, index }, n) => {
+        const [first, ...rest] = sheet.slots.map((sl) => getSticker(sl.stickerId)).filter((st) => !!st);
+        const on = index === current;
+        return (
+          <button
+            key={sheet.id}
+            role="listitem"
+            className="sticker-list__row"
+            style={{ '--pack-ink': listInk(sheet) } as CSSProperties}
+            aria-label={`${sheet.label ?? sheet.name} ${n + 1}`}
+            aria-current={on || undefined}
+            onClick={() => onPick(index)}
+          >
+            <span className="sticker-list__thumb" style={{ '--pack': sheet.color } as CSSProperties} aria-hidden>
+              <b />
+              {first && <img src={first.src} alt="" draggable={false} />}
+            </span>
+            <span className="sticker-list__text" aria-hidden>
+              <span className="sticker-list__name">
+                {sheet.name}
+                <small>{n + 1}</small>
+              </span>
+              <span className="sticker-list__peek">
+                {rest.slice(0, 6).map((st, i) => (
+                  <img key={i} src={st.src} alt="" draggable={false} />
+                ))}
+              </span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
  * The sticker tool: a printed sheet of stickers a little below the middle of
  * the screen, `<` `>` (or a sideways swipe on its band or bare paper) to the
  * sheets either side. Pull a sticker and it peels
@@ -148,7 +194,8 @@ function drawPeel(canvas: HTMLCanvasElement, p: Peel, fold: PeelFold | null) {
  * shows above, over half the screen), under a row of squares, one per theme
  * with a sticker standing for it; a square brings up that theme's first pack,
  * and `<` `>` page through that theme only. A square held a moment lifts and
- * drags to a new place (the order is kept on this phone). In front of the
+ * drags to a new place (the order is kept on this phone). The square of the
+ * theme in use tapped again lists that theme's packs in the pack's place. In front of the
  * row, standing still while it scrolls, the store button opens the shop.
  */
 export default function StickerSheets({
@@ -171,6 +218,10 @@ export default function StickerSheets({
   const [order, setOrder] = useState(loadPackOrder);
   const themes = useMemo(() => orderPackGroups(packGroups(sheets), order), [sheets, order]);
   const [shop, setShop] = useState(false);
+  // The theme's packs as a list in the big pack's place (the squares stay):
+  // how the tool opens, and again on its square tapped twice or the pack's
+  // band tapped, until a pack is picked (or the square is tapped once more).
+  const [listed, setListed] = useState(true);
   const squares = useRef<HTMLDivElement | null>(null);
   const [squareLift, setSquareLift] = useState<SquareLift | null>(null);
   const squareLiftRef = useRef<SquareLift | null>(null);
@@ -330,6 +381,7 @@ export default function StickerSheets({
   }, [peek]);
 
   const pickPack = (i: number) => {
+    setListed(false);
     if (i === index) return;
     setIndex(i);
     setFrom(null);
@@ -662,19 +714,24 @@ export default function StickerSheets({
           <div ref={squares} className={`sticker-sheets__themes ${squareLift ? 'is-dragging' : ''}`} data-swipe-keep>
             {themes.map((g, i) => {
               const first = g.packs[0];
-              const icon = first && getSticker(first.sheet.slots[0]?.stickerId ?? '');
+              const icon = getSticker(themeIcon(g.packs.map((p) => p.sheet)) ?? '');
               const on = g.name === sheet.name;
               return (
                 <button
                   key={g.name}
                   data-theme-square={g.name}
                   className={`sticker-sheets__theme ${on ? 'is-on' : ''} ${squareLift?.name === g.name ? 'is-lifted' : ''}`}
-                  style={{ '--pack': g.color, transform: squareLift ? `translateX(${squareShift(i)}px)` : undefined } as CSSProperties}
+                  style={{ '--pack': themeIconBg(g.packs.map((p) => p.sheet)) ?? g.color, transform: squareLift ? `translateX(${squareShift(i)}px)` : undefined } as CSSProperties}
                   aria-label={first?.sheet.label ?? g.name}
                   aria-pressed={on}
+                  aria-expanded={on ? listed : undefined}
                   onPointerDown={(e) => pressSquare(e, g.name)}
                   onContextMenu={(e) => e.preventDefault()}
-                  onClick={() => !squareDropped.current && !on && first && pickPack(first.index)}
+                  onClick={() => {
+                    if (squareDropped.current || !first) return;
+                    if (on) setListed((v) => !v);
+                    else pickPack(first.index);
+                  }}
                 >
                   {icon && <img src={icon.src} alt="" draggable={false} />}
                 </button>
@@ -682,6 +739,9 @@ export default function StickerSheets({
             })}
           </div>
         </div>
+        {listed ? (
+          <ThemePackList sheets={sheets} current={index} onPick={pickPack} />
+        ) : (
         <div className="sticker-sheets__row" style={{ '--pack': sheet.color } as CSSProperties}>
           <button className="sticker-sheets__step" aria-label="이전 스티커 한 장" disabled={alone} onClick={() => step(-1)}>
             <ChevronLeft size={30} strokeWidth={2.2} aria-hidden />
@@ -698,11 +758,14 @@ export default function StickerSheets({
             onPointerMove={onLowerMove}
             onPointerUp={onLowerUp}
             onPointerCancel={onLowerUp}
-            // Tucked down: a tap brings it back up. Up: a tap off the stickers tucks it down.
+            // Tucked down: a tap brings it back up. Up: a tap on the band goes back
+            // to the list, and one on the bare paper tucks it down.
             onClick={(e) => {
               if (lowered.current) return;
               if (peek) return setPeek(false);
-              if (!(e.target as Element).closest('.sticker-sheet__slot')) setPeek(true);
+              const t = e.target as Element;
+              if (t.closest('.sticker-pack__band')) return setListed(true);
+              if (!t.closest('.sticker-sheet__slot')) setPeek(true);
             }}
           >
             <StickerPackBand sheet={sheet} />
@@ -735,6 +798,7 @@ export default function StickerSheets({
             <ChevronRight size={30} strokeWidth={2.2} aria-hidden />
           </button>
         </div>
+        )}
         {lifted &&
           createPortal(
             <>
