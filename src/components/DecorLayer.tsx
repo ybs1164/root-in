@@ -1,5 +1,5 @@
 import { Trash2 } from 'lucide-react';
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type MutableRefObject, type PointerEvent, type ReactNode } from 'react';
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type MutableRefObject, type PointerEvent, type ReactNode } from 'react';
 import {
   CRAYON_SCALE,
   bringDecorToFront,
@@ -29,6 +29,7 @@ import {
   type DayDecor,
   type DecorTool,
   type PenSettings,
+  type PlacedSticker,
   type PlacedText,
   type StickerPose,
   type Stroke,
@@ -176,6 +177,92 @@ const newId = () =>
  * the sheet land here (`placeRef`) and placed ones can be dragged or removed;
  * with the pen, a finger draws. Otherwise the layer is just a picture.
  */
+/**
+ * One stroke's own svg (with the erasers after it rubbing it out). Kept as
+ * long as neither changes: drawing, dragging or typing elsewhere re-renders
+ * the layer every frame, and remaking every stroke each time is what lagged.
+ */
+const InkSvg = memo(
+  function InkSvg({ stroke, erasers, glowId, maskId, aspect, scale, zIndex }: {
+    stroke: Stroke;
+    erasers: Stroke[];
+    glowId: string;
+    maskId: string;
+    aspect: number;
+    scale: number;
+    zIndex: number | undefined;
+  }) {
+    return (
+      <svg className="decor__ink" style={{ zIndex }} viewBox={`0 0 100 ${100 * aspect}`} preserveAspectRatio="none" aria-hidden>
+        <defs>
+          {/* Filter region in box units, not the stroke's own bounds: a flat
+              stroke's bounds are too thin and would clip the glow square. */}
+          <filter id={glowId} filterUnits="userSpaceOnUse" x="-10" y="-10" width="120" height={100 * aspect + 20}>
+            <feGaussianBlur stdDeviation="1.4" />
+          </filter>
+          {/* Crayon: fractal noise both roughens the line's edges and, made
+              into an alpha grain, punches the paper's tooth through it. */}
+          <filter id={`${glowId}-crayon`} filterUnits="userSpaceOnUse" x="-10" y="-10" width="120" height={100 * aspect + 20}>
+            <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="7" result="noise" />
+            <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -2.6 0 0 0 2.15" result="grain" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="0.7" xChannelSelector="R" yChannelSelector="G" result="rough" />
+            <feComposite in="rough" in2="grain" operator="in" />
+          </filter>
+        </defs>
+        {inkLayers([stroke, ...erasers], glowId, maskId, aspect, scale)}
+      </svg>
+    );
+  },
+  (a, b) =>
+    a.stroke === b.stroke &&
+    a.glowId === b.glowId &&
+    a.maskId === b.maskId &&
+    a.aspect === b.aspect &&
+    a.scale === b.scale &&
+    a.zIndex === b.zIndex &&
+    a.erasers.length === b.erasers.length &&
+    a.erasers.every((x, i) => x === b.erasers[i]),
+);
+
+/** A placed sticker; only the one being moved (or picked) is drawn again while it moves. */
+const StickerPiece = memo(function StickerPiece({ piece, pos, selected, fresh, lifted, doomed, scale, zIndex, onDown }: {
+  piece: PlacedSticker;
+  pos: { x: number; y: number; size: number; rotate?: number };
+  selected: boolean;
+  fresh: boolean;
+  lifted: boolean;
+  doomed: boolean;
+  scale: number;
+  zIndex: number | undefined;
+  onDown: (id: string, e: PointerEvent) => void;
+}) {
+  const sticker = getSticker(piece.stickerId);
+  if (!sticker) return null;
+  return (
+    <span
+      className={`decor__sticker ${selected ? 'is-selected' : ''} ${fresh ? 'is-fresh' : ''} ${lifted ? `is-lifted ${doomed ? 'is-doomed' : ''}` : ''}`}
+      style={{
+        left: `${pos.x * 100}%`,
+        top: `${pos.y * 100}%`,
+        width: `${pos.size * 78 * scale}cqw`,
+        // The die-cut edge is the same on every sticker, whatever its size (never under a hair).
+        '--edge': `max(1.2px, ${PLACED_STICKER_EDGE * 100 * scale}cqw)`,
+        zIndex,
+        rotate: `${pos.rotate ?? 0}deg`,
+      } as CSSProperties}
+      onPointerDown={(e) => onDown(piece.id, e)}
+    >
+      <img
+        src={sticker.src}
+        alt={sticker.label}
+        draggable={false}
+        // A sticker no pack uses isn't in the build (scripts/prune-stickers.mjs): hidden, not a broken image. The day keeps it.
+        onError={(e) => ((e.currentTarget.parentElement as HTMLElement).style.display = 'none')}
+      />
+    </span>
+  );
+});
+
 export default function DecorLayer({
   decor: savedDecor,
   tool,
@@ -237,6 +324,13 @@ export default function DecorLayer({
     return () => el.removeEventListener('touchmove', hold);
   }, [active]);
 
+  // The layer's box, read once per drag: reading it at every move forced a
+  // layout of the whole board after each frame's restyle. Nothing under a
+  // held piece moves (the map and the photo leave it be). The trash pops in
+  // and grows, so it's read as it is.
+  const rect = useRef<DOMRect | null>(null);
+  const layerRect = () => (rect.current ??= layer.current!.getBoundingClientRect());
+
   const at = (e: PointerEvent): [number, number] => {
     const box = layer.current!.getBoundingClientRect();
     return [(e.clientX - box.left) / box.width, (e.clientY - box.top) / box.height];
@@ -287,6 +381,7 @@ export default function DecorLayer({
     capture(layer.current, e.pointerId);
     fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const first = !gesture.current;
+    if (first) rect.current = null;
     restart(kind, id);
     if (first && gesture.current) gesture.current.start = { x: e.clientX, y: e.clientY, picked };
     else if (gesture.current) gesture.current.moved = true; // a second finger: a pinch, not a tap
@@ -372,6 +467,13 @@ export default function DecorLayer({
     return () => window.clearTimeout(t);
   }, [fresh]);
 
+  // A press brings the piece to the front — a change (saved, and the screen
+  // around it told) only when it wasn't there already.
+  const raise = (kind: 'sticker' | 'text', id: string) => {
+    const next = bringDecorToFront(decorRef.current, kind, id);
+    if (next !== decorRef.current) changeDecor(next);
+  };
+
   const onStickerDown = (id: string) => (e: PointerEvent) => {
     if (tool !== 'sticker') return;
     e.stopPropagation();
@@ -382,10 +484,16 @@ export default function DecorLayer({
       return;
     }
     if (fingers.current.size >= 2) return;
-    changeDecor(bringDecorToFront(decorRef.current, 'sticker', id));
+    raise('sticker', id);
     setSelected(id);
     grab('sticker', id, e);
   };
+
+  // One handler for every sticker, the same across renders, so a sticker
+  // that didn't change isn't drawn again at each frame of another's drag.
+  const stickerDownRef = useRef(onStickerDown);
+  stickerDownRef.current = onStickerDown;
+  const stickerDown = useCallback((id: string, e: PointerEvent) => stickerDownRef.current(id)(e), []);
 
   const onStickerMove = (e: PointerEvent) => {
     const p = pendingPinch.current;
@@ -402,7 +510,7 @@ export default function DecorLayer({
     const to = [...fingers.current.values()].slice(0, 2);
     if (to.length !== g.from.length) return;
     const limits = g.kind === 'text' ? { min: TEXT_MIN, max: TEXT_MAX, free: true } : { min: STICKER_MIN, max: STICKER_MAX, free: true };
-    const pose = stickerGesture(g.base, g.from, to, layer.current!.getBoundingClientRect().width, limits);
+    const pose = stickerGesture(g.base, g.from, to, layerRect().width, limits);
     setLive({ id: g.id, ...pose });
     const over = landing(e) === 'trash';
     if (over !== overTrash) setOverTrash(over);
@@ -418,7 +526,7 @@ export default function DecorLayer({
   const landing = (e: PointerEvent) =>
     dropOutcome(
       { x: e.clientX, y: e.clientY },
-      layer.current!.getBoundingClientRect(),
+      layerRect(),
       trashEl.current?.getBoundingClientRect() ?? null,
     );
 
@@ -548,6 +656,7 @@ export default function DecorLayer({
   const startPinch = (e: PointerEvent) => {
     const p = pendingPinch.current!;
     pendingPinch.current = null;
+    rect.current = null;
     capture(layer.current, e.pointerId);
     fingers.current.clear();
     fingers.current.set(p.pointerId, { x: p.x, y: p.y });
@@ -591,7 +700,7 @@ export default function DecorLayer({
       return;
     }
     if (fingers.current.size >= 2) return;
-    changeDecor(bringDecorToFront(decorRef.current, 'text', id));
+    raise('text', id);
     const picked = textFocus?.id === id && !textFocus.editing;
     onTextFocus({ id, editing: false });
     grab('text', id, e, picked);
@@ -621,24 +730,16 @@ export default function DecorLayer({
       aria-hidden={!active}
     >
       {strokes.map((stroke, i) => stroke.tool !== 'eraser' && (
-        <svg key={i} className="decor__ink" style={{ zIndex: zIndex.get(`stroke:${i}`) }} viewBox={`0 0 100 ${100 * aspect}`} preserveAspectRatio="none" aria-hidden>
-          <defs>
-            {/* Filter region in box units, not the stroke's own bounds: a flat
-                stroke's bounds are too thin and would clip the glow square. */}
-            <filter id={`${glowId}-${i}`} filterUnits="userSpaceOnUse" x="-10" y="-10" width="120" height={100 * aspect + 20}>
-              <feGaussianBlur stdDeviation="1.4" />
-            </filter>
-            {/* Crayon: fractal noise both roughens the line's edges and, made
-                into an alpha grain, punches the paper's tooth through it. */}
-            <filter id={`${glowId}-${i}-crayon`} filterUnits="userSpaceOnUse" x="-10" y="-10" width="120" height={100 * aspect + 20}>
-              <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="7" result="noise" />
-              <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -2.6 0 0 0 2.15" result="grain" />
-              <feDisplacementMap in="SourceGraphic" in2="noise" scale="0.7" xChannelSelector="R" yChannelSelector="G" result="rough" />
-              <feComposite in="rough" in2="grain" operator="in" />
-            </filter>
-          </defs>
-          {inkLayers([stroke, ...strokes.slice(i + 1).filter((s) => s.tool === 'eraser')], `${glowId}-${i}`, `rub-${uid}-${i}`, aspect, scale)}
-        </svg>
+        <InkSvg
+          key={i}
+          stroke={stroke}
+          erasers={strokes.slice(i + 1).filter((s) => s.tool === 'eraser')}
+          glowId={`${glowId}-${i}`}
+          maskId={`rub-${uid}-${i}`}
+          aspect={aspect}
+          scale={scale}
+          zIndex={zIndex.get(`stroke:${i}`)}
+        />
       ))}
       {drawing?.tool === 'eraser' && (
         <svg className="decor__ink" style={{ zIndex: pieces.length + 1 }} viewBox={`0 0 100 ${100 * aspect}`} preserveAspectRatio="none" aria-hidden>
@@ -656,36 +757,20 @@ export default function DecorLayer({
           })()}
         </svg>
       )}
-      {decor.stickers.map((s, i) => {
-        const sticker = getSticker(s.stickerId);
-        if (!sticker) return null;
-        const pos = live?.id === s.id ? live : s;
-        const isSelected = tool === 'sticker' && selected === s.id;
-        return (
-          <span
-            key={s.id}
-            className={`decor__sticker ${isSelected ? 'is-selected' : ''} ${fresh === s.id ? 'is-fresh' : ''} ${live?.id === s.id ? `is-lifted ${overTrash ? 'is-doomed' : ''}` : ''}`}
-            style={{
-              left: `${pos.x * 100}%`,
-              top: `${pos.y * 100}%`,
-              width: `${pos.size * 78 * scale}cqw`,
-              // The die-cut edge is the same on every sticker, whatever its size (never under a hair).
-              '--edge': `max(1.2px, ${PLACED_STICKER_EDGE * 100 * scale}cqw)`,
-              zIndex: zIndex.get(`sticker:${i}`),
-              rotate: `${pos.rotate ?? 0}deg`,
-            } as CSSProperties}
-            onPointerDown={onStickerDown(s.id)}
-          >
-            <img
-              src={sticker.src}
-              alt={sticker.label}
-              draggable={false}
-              // A sticker no pack uses isn't in the build (scripts/prune-stickers.mjs): hidden, not a broken image. The day keeps it.
-              onError={(e) => ((e.currentTarget.parentElement as HTMLElement).style.display = 'none')}
-            />
-          </span>
-        );
-      })}
+      {decor.stickers.map((s, i) => (
+        <StickerPiece
+          key={s.id}
+          piece={s}
+          pos={live?.id === s.id ? live : s}
+          selected={tool === 'sticker' && selected === s.id}
+          fresh={fresh === s.id}
+          lifted={live?.id === s.id}
+          doomed={live?.id === s.id && overTrash}
+          scale={scale}
+          zIndex={zIndex.get(`sticker:${i}`)}
+          onDown={stickerDown}
+        />
+      ))}
       {texts.map((t, i) => {
         const pos = live?.id === t.id ? live : t;
         const typing = draft?.id === t.id;
