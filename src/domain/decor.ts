@@ -197,6 +197,9 @@ export const nextDecorOrder = (decor: DayDecor): number =>
 export function bringDecorToFront(decor: DayDecor, kind: 'sticker' | 'text', id: string): DayDecor {
   const ordered = withDecorOrder(decor);
   const order = nextDecorOrder(ordered);
+  // Already alone on top: the very same decor back, so a press on it changes (and saves) nothing.
+  const piece = (kind === 'sticker' ? ordered.stickers : (ordered.texts ?? [])).find((p) => p.id === id);
+  if (piece && piece.order === order - 1 && decorPieces(ordered).filter((p) => p.order === piece.order).length === 1) return decor;
   if (kind === 'sticker') return { ...ordered, stickers: ordered.stickers.map((p) => p.id === id ? { ...p, order } : p) };
   return { ...ordered, texts: (ordered.texts ?? []).map((p) => p.id === id ? { ...p, order } : p) };
 }

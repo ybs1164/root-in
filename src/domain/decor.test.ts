@@ -19,6 +19,18 @@ describe('day decorations', () => {
     expect(decorPieces(redoDecor(undone.history, undone.decor)!.decor).map(p => p.kind)).toEqual(['text', 'stroke', 'sticker']);
   });
 
+  it('hands back the same decor when the pressed piece is already alone on top', () => {
+    const decor: DayDecor = {
+      stickers: [{ id: 's', stickerId: 'heart', x: .5, y: .5, size: .26, order: 0 }],
+      texts: [{ id: 't', text: 'hi', x: .5, y: .5, size: .07, font: 'sans', color: 'accent', align: 'center', order: 1 }],
+      strokes: [],
+    };
+    expect(bringDecorToFront(decor, 'text', 't')).toBe(decor);
+    expect(bringDecorToFront(decor, 'sticker', 's')).not.toBe(decor);
+    const tied: DayDecor = { ...decor, stickers: [{ ...decor.stickers[0], order: 1 }] };
+    expect(bringDecorToFront(tied, 'text', 't')).not.toBe(tied);
+  });
+
   it('keeps old artwork stacked as before, then places new ink above its text', () => {
     const legacy: DayDecor = {
       strokes: [{ tool: 'pen', color: 'accent', width: 'thin', points: [[.5, .5]] }],

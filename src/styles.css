@@ -2925,6 +2925,16 @@ button:disabled {
   }
 }
 
+/* A piece being moved, just stuck on, or typed in is a GPU layer of its own:
+   its restyle at each frame (and the press-down's shadow) repaints only it,
+   not every doodle — and, on a group's board, the islands — under it. */
+.decor__sticker.is-lifted,
+.decor__sticker.is-fresh,
+.decor__text.is-lifted,
+.decor__text.is-typing {
+  will-change: transform;
+}
+
 /* Just stuck on the drawing: pressed down flat. */
 .decor__sticker.is-fresh {
   animation: sticker-stick 0.36s var(--settle-ease);
@@ -12675,6 +12685,15 @@ button.group-photo-panel__photo {
 .group-board {
   position: absolute;
   inset: 0;
+}
+
+/* While a tool is out and the map is still, the board is a GPU layer of its
+   own: a sticker stuck on or a box written then repaints the doodles alone,
+   not Korea and every island under them on the ground. While the map moves
+   it goes back into the ground's one picture (and is drawn sharp again at the
+   zoom it ends on, as the ground is). */
+.group-atlas:not(.is-moving) .group-board.is-drawing {
+  will-change: transform;
 }
 
 /* The board's edge isn't a photo's: no rounded clip on the ink. */
