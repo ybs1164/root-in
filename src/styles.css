@@ -2379,6 +2379,8 @@ button:disabled {
      row of themes, then the pack as big as the rest allows. */
   --panel-h: 46dvh;
   --peek-h: 66px;
+  /* Tucked down, the row of themes sits this far up, clear of the home bar (taps there didn't land). */
+  --peek-lift: calc(var(--safe-bottom) + 22px);
   --sheet-w: min(calc(100vw - 104px), 300px, calc((var(--panel-h) - var(--peek-h) - 20px - var(--safe-bottom)) / 1.15));
   position: absolute;
   left: 0;
@@ -2416,7 +2418,7 @@ button:disabled {
   right: 0;
   bottom: 0;
   z-index: 1;
-  height: calc(66px + 40px);
+  height: calc(66px + 40px + var(--safe-bottom) + 22px);
   padding: 0;
   border: 0;
   background: none;
@@ -2428,7 +2430,17 @@ button:disabled {
 
 /* Tucked down: only the row of themes shows at the bottom of the screen. */
 .sticker-sheets.is-peek {
-  transform: translateY(calc(100% - var(--peek-h)));
+  transform: translateY(calc(100% - var(--peek-h) - var(--peek-lift)));
+}
+
+/* Tucked down, the pack (or the list of packs) under the row is hidden, not
+   peeking out below it; dragged back up, it shows as it comes. */
+.sticker-sheets > :not(.sticker-sheets__head) {
+  transition: opacity 0.2s ease;
+}
+
+.sticker-sheets.is-peek:not(.is-raising) > :not(.sticker-sheets__head) {
+  opacity: 0;
 }
 
 /* The store button standing at the front, then the row of themes scrolling
@@ -12687,13 +12699,16 @@ button.group-photo-panel__photo {
   inset: 0;
 }
 
-/* While a tool is out and the map is still, the board is a GPU layer of its
-   own: a sticker stuck on or a box written then repaints the doodles alone,
-   not Korea and every island under them on the ground. While the map moves
-   it goes back into the ground's one picture (and is drawn sharp again at the
-   zoom it ends on, as the ground is). */
-.group-atlas:not(.is-moving) .group-board.is-drawing {
-  will-change: transform;
+/* No GPU layer of its own on the board, nor for a piece on it: a layer under
+   the zoomed ground is drawn at the board's unzoomed size and stretched (iOS
+   doesn't count an ancestor's scale), so stickers went soft and their white
+   die-cut edge smeared thick. The board stays in the ground's picture, drawn
+   sharp at its zoom. */
+.group-board .decor__sticker.is-lifted,
+.group-board .decor__sticker.is-fresh,
+.group-board .decor__text.is-lifted,
+.group-board .decor__text.is-typing {
+  will-change: auto;
 }
 
 /* The board's edge isn't a photo's: no rounded clip on the ink. */
