@@ -380,8 +380,9 @@ export default function StickerSheets({
     return () => document.removeEventListener('pointerdown', tuck, true);
   }, [peek]);
 
-  const pickPack = (i: number) => {
-    setListed(false);
+  /** Shows pack `i`; `list` opens on its theme's list of packs instead of the pack itself. */
+  const pickPack = (i: number, list = false) => {
+    setListed(list);
     if (i === index) return;
     setIndex(i);
     setFrom(null);
@@ -597,6 +598,8 @@ export default function StickerSheets({
       if (Math.abs(dy) < SHEET_PULL.startPx) return;
       r.on = true;
       e.currentTarget.setPointerCapture(e.pointerId);
+      // The pack shows again as it comes up with the finger (hidden while tucked).
+      sheetsEl.current?.classList.add('is-raising');
     }
     r.dy = Math.min(0, Math.max(-r.down, dy));
     placeSheets(r.down + r.dy, false);
@@ -605,6 +608,7 @@ export default function StickerSheets({
     const r = raise.current;
     raise.current = null;
     if (!r || r.id !== e.pointerId || !r.on) return;
+    sheetsEl.current?.classList.remove('is-raising');
     raised.current = true;
     window.setTimeout(() => (raised.current = false), 0);
     const velocity = r.dy / Math.max(1, performance.now() - r.t);
@@ -641,7 +645,10 @@ export default function StickerSheets({
     const sheetBox = sheetEl.current;
     if (peek || !e.isPrimary || !sheetBox || (e.target as Element).closest('.sticker-sheet__slot')) return;
     // How far down the tucked panel sits: all but its row of themes below the screen.
-    const down = Math.max(0, (sheetsEl.current?.offsetHeight ?? 0) - PEEK_PX);
+    // (The row sits `--peek-lift` up: the panel's own bottom padding, 10px + the home bar, and 12px more.)
+    const panel = sheetsEl.current;
+    const lift = (panel ? parseFloat(getComputedStyle(panel).paddingBottom) || 0 : 0) + 12;
+    const down = Math.max(0, (panel?.offsetHeight ?? 0) - PEEK_PX - lift);
     lower.current = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), down, dx: 0, dy: 0, on: null };
   };
   const onLowerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -703,7 +710,16 @@ export default function StickerSheets({
           onPointerMove={onRaiseMove}
           onPointerUp={onRaiseUp}
           onPointerCancel={onRaiseUp}
-          onClick={() => raised.current || setPeek(false)}
+          onClick={(e) => {
+            if (raised.current) return;
+            // A tap on another theme's square (under this catch) brings the pack up on that theme.
+            const square = document
+              .elementsFromPoint(e.clientX, e.clientY)
+              .find((el) => el instanceof HTMLElement && el.dataset.themeSquare !== undefined) as HTMLElement | undefined;
+            const first = square && themes.find((g) => g.name === square.dataset.themeSquare)?.packs[0];
+            if (first && first.sheet.name !== sheet.name) pickPack(first.index, true);
+            setPeek(false);
+          }}
         />
       )}
       <div ref={sheetsEl} className={`sticker-sheets ${peek ? 'is-peek' : ''}`}>
@@ -730,7 +746,8 @@ export default function StickerSheets({
                   onClick={() => {
                     if (squareDropped.current || !first) return;
                     if (on) setListed((v) => !v);
-                    else pickPack(first.index);
+                    // Another theme opens on its list of packs first.
+                    else pickPack(first.index, true);
                   }}
                 >
                   {icon && <img src={icon.src} alt="" draggable={false} />}

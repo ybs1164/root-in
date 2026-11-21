@@ -1,4 +1,4 @@
-import { PROFILE_LIMITS } from '../domain/profile';
+import { PING_ALERT_HOURS, PROFILE_LIMITS } from '../domain/profile';
 import { profileFromRecord, type Profile } from './profileRepository';
 
 // The account's profile row on the server (supabase/migrations: public.profiles)
@@ -10,7 +10,10 @@ export interface ProfileRow {
   handle: string;
   nickname: string;
   avatar_path: string | null;
-  settings: Pick<Profile, 'sound' | 'pingAlerts' | 'groupAlertsOff' | 'sendGroups' | 'scheme' | 'appTheme'>;
+  settings: Pick<Profile, 'sound' | 'pingAlerts' | 'groupAlertsOff' | 'sendGroups' | 'scheme' | 'appTheme'> & {
+    /** The 투데이 알림 hours there were when saved: hours added later start on (profileFromRecord). */
+    pingAlertHours?: readonly number[];
+  };
   updated_at?: string;
 }
 
@@ -24,7 +27,7 @@ export function toProfileRow(userId: string, profile: Profile, nickname: string,
     handle: profile.handle,
     nickname: cleanNickname(nickname),
     avatar_path: hasPhoto ? avatarPath(userId) : null,
-    settings: { sound: profile.sound, pingAlerts: profile.pingAlerts, groupAlertsOff: profile.groupAlertsOff, sendGroups: profile.sendGroups, scheme: profile.scheme, appTheme: profile.appTheme },
+    settings: { sound: profile.sound, pingAlerts: profile.pingAlerts, pingAlertHours: PING_ALERT_HOURS, groupAlertsOff: profile.groupAlertsOff, sendGroups: profile.sendGroups, scheme: profile.scheme, appTheme: profile.appTheme },
   };
 }
 

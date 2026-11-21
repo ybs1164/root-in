@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { PING_ALERT_HOURS } from '../domain/profile';
 import { defaultProfile } from './profileRepository';
 import { fromProfileRow, profileChanged, toProfileRow } from './profileSync';
 
@@ -13,7 +14,7 @@ describe('profileSync', () => {
       handle: 'rootin',
       nickname: '루트인',
       avatar_path: 'u1/avatar.jpg',
-      settings: { sound: false, pingAlerts: [9], groupAlertsOff: base.groupAlertsOff, sendGroups: base.sendGroups, scheme: 'dark', appTheme: 'matcha' },
+      settings: { sound: false, pingAlerts: [9], pingAlertHours: PING_ALERT_HOURS, groupAlertsOff: base.groupAlertsOff, sendGroups: base.sendGroups, scheme: 'dark', appTheme: 'matcha' },
     });
     expect(fromProfileRow(row, profile.photo, base)).toEqual({ profile, nickname: '루트인' });
   });
@@ -21,7 +22,8 @@ describe('profileSync', () => {
   it('checks a server row like stored data', () => {
     const fallback = defaultProfile('userabc');
     const read = fromProfileRow({ handle: 'Bad Id', nickname: 'x'.repeat(40), settings: { pingAlerts: [9, 99], scheme: 'sepia' } }, 'javascript:1', fallback);
-    expect(read?.profile).toEqual({ ...fallback, pingAlerts: [9] });
+    // Saved before the two newer hours: those start on.
+    expect(read?.profile).toEqual({ ...fallback, pingAlerts: [9, 14, 18] });
     expect(read?.nickname).toHaveLength(20);
     expect(fromProfileRow(null, null, fallback)).toBeNull();
     expect(fromProfileRow({ handle: 'ok-id', settings: 'nope' }, null, fallback)?.profile.handle).toBe('ok-id');

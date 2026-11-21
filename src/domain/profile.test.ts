@@ -30,9 +30,15 @@ describe('profile handle', () => {
 });
 
 describe('alert steps', () => {
+  const STEPS = [7, 9, 12, 16, 20, 23];
+
+  it('투데이 알림 has every hour of the day it offers, in order', () => {
+    expect(PING_ALERT_HOURS).toEqual([7, 9, 12, 14, 16, 18, 20, 23]);
+  });
+
   it('switches one step at a time, keeping the steps in order', () => {
-    expect(toggleAlert([7, 9, 12, 16, 20, 23], 12, PING_ALERT_HOURS)).toEqual([7, 9, 16, 20, 23]);
-    expect(toggleAlert([20, 7], 12, PING_ALERT_HOURS)).toEqual([7, 12, 20]);
+    expect(toggleAlert([7, 9, 12, 16, 20, 23], 12, STEPS)).toEqual([7, 9, 16, 20, 23]);
+    expect(toggleAlert([20, 7], 12, STEPS)).toEqual([7, 12, 20]);
   });
 
   it('labels share counts as the board reads them', () => {
@@ -40,18 +46,18 @@ describe('alert steps', () => {
   });
 
   it('전체 turns every step on, or off when all already are', () => {
-    expect(toggleAllAlerts([9, 20], PING_ALERT_HOURS)).toEqual([7, 9, 12, 16, 20, 23]);
-    expect(toggleAllAlerts([7, 9, 12, 16, 20, 23], PING_ALERT_HOURS)).toEqual([]);
+    expect(toggleAllAlerts([9, 20], STEPS)).toEqual([7, 9, 12, 16, 20, 23]);
+    expect(toggleAllAlerts([7, 9, 12, 16, 20, 23], STEPS)).toEqual([]);
   });
 
   it('랜덤 tosses each step, and again when nothing would change', () => {
     const tosses = [0.1, 0.9, 0.1, 0.9, 0.1, 0.9];
     let i = 0;
-    expect(randomAlerts([], PING_ALERT_HOURS, () => tosses[i++ % tosses.length])).toEqual([7, 12, 20]);
+    expect(randomAlerts([], STEPS, () => tosses[i++ % tosses.length])).toEqual([7, 12, 20]);
     // First toss repeats the board as it is ([7, 12, 20]); the second differs.
     const again = [...tosses, 0.9, 0.9, 0.9, 0.9, 0.9, 0.1];
     i = 0;
-    expect(randomAlerts([7, 12, 20], PING_ALERT_HOURS, () => again[i++])).toEqual([23]);
+    expect(randomAlerts([7, 12, 20], STEPS, () => again[i++])).toEqual([23]);
   });
 });
 

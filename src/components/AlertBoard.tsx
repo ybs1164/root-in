@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { randomAlerts, toggleAlert, toggleAllAlerts } from '../domain/profile';
 
 interface AlertBoardProps {
@@ -10,14 +10,17 @@ interface AlertBoardProps {
   onChange: (on: number[]) => void;
 }
 
+
 /**
- * 알림 설정's row: a 출발 안내판 — one navy board of flip cells, one per step,
- * the lit ones blue. Switching a cell turns it like a split-flap. At the
- * row's right, 랜덤 tosses every cell and 전체 lights them all (or, when all
+ * 알림 설정's row of hours: the day's hours along one line, morning to night. A lit hour has a pin standing on its dot, and the stretch
+ * between two neighbouring lit hours lights up. At the
+ * row's right, 랜덤 tosses every hour and 전체 lights them all (or, when all
  * are lit, puts them all out).
  */
 export default function AlertBoard({ label, steps, on, onChange }: AlertBoardProps) {
   const values = steps.map((step) => step.value);
+  // One line, the hours evenly spaced along it.
+  const lines = [steps];
   return (
     <div className="alerts__row" role="group" aria-label={label}>
       <div className="alerts__head">
@@ -29,52 +32,49 @@ export default function AlertBoard({ label, steps, on, onChange }: AlertBoardPro
           전체
         </button>
       </div>
-      <div className="alerts__hours">
-        {steps.map(({ value, text }) => (
-          <FlipCell key={value} lit={on.includes(value)} onClick={() => onChange(toggleAlert(on, value, values))}>
-            {text}
-          </FlipCell>
-        ))}
-      </div>
+      {lines.map((line, n) => {
+        // Where an hour sits on its line (0..1).
+        const at = (i: number) => (line.length > 1 ? i / (line.length - 1) : 0.5);
+        return (
+          <div key={n} className="alerts__line">
+            {/* The stretch between two neighbouring lit hours lights up too. */}
+            {line.slice(1).map((step, i) =>
+              on.includes(step.value) && on.includes(line[i].value) ? (
+                <span key={step.value} className="alerts__edge" style={{ '--from': at(i), '--to': at(i + 1) } as CSSProperties} aria-hidden />
+              ) : null,
+            )}
+            {line.map(({ value, text }, i) => {
+              const lit = on.includes(value);
+              return (
+                <button
+                  key={value}
+                  className={`alerts__tick ${lit ? 'is-on' : ''}`}
+                  style={{ '--at': at(i) } as CSSProperties}
+                  aria-pressed={lit}
+                  onClick={() => onChange(toggleAlert(on, value, values))}
+                >
+                  <svg className="alerts__pin" viewBox="0 0 26 34" aria-hidden>
+                    <path d="M13 33S2 21 2 13a11 11 0 0 1 22 0c0 8-11 20-11 20z" />
+                    <circle cx="13" cy="13" r="4" />
+                  </svg>
+                  <span className="alerts__dot" aria-hidden />
+                  <span className="alerts__time">{text}</span>
+                </button>
+              );
+            })}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-/**
- * One cell of the board (알림 설정's, the gallery's switches): navy, lit
- * blue. Whenever `lit` changes it turns like a split-flap — the top and
- * bottom halves each spin on their own axis, old face out and new face in,
- * the bottom just behind the top.
- */
-export function FlipCell({ lit, label, className = '', onClick, children }: { lit: boolean; label?: string; className?: string; onClick(): void; children: ReactNode }) {
-  // Mid-flip: the face it flips from, keyed to restart on a quick second tap.
-  const [flip, setFlip] = useState<{ from: boolean; key: number } | null>(null);
-  const was = useRef(lit);
-  useEffect(() => {
-    if (was.current === lit) return;
-    const from = was.current;
-    was.current = lit;
-    setFlip((f) => ({ from, key: (f?.key ?? 0) + 1 }));
-  }, [lit]);
+/** One switch tile of a row (a group's alert kinds): an icon over its name; lit, it's raised on the accent's two-tone base. */
+export function AlertTile({ lit, label, icon, onClick, children }: { lit: boolean; label?: string; icon: ReactNode; onClick(): void; children: ReactNode }) {
   return (
-    <button className={`alerts__hour ${lit ? 'is-on' : ''} ${className}`} aria-pressed={lit} aria-label={label} onClick={onClick}>
-      {children}
-      {flip && (
-        <span key={flip.key} className="alerts__flip" aria-hidden>
-          {(['top', 'bottom'] as const).flatMap((half) => [
-            <span key={`${half}-old`} className={`alerts__face alerts__face--${half} alerts__face--out ${flip.from ? 'is-on' : ''}`}>
-              {children}
-            </span>,
-            <span
-              key={`${half}-new`}
-              className={`alerts__face alerts__face--${half} alerts__face--in ${lit ? 'is-on' : ''}`}
-              onAnimationEnd={half === 'bottom' ? () => setFlip((f) => (f?.key === flip.key ? null : f)) : undefined}
-            >
-              {children}
-            </span>,
-          ])}
-        </span>
-      )}
+    <button className={`alerts__tile ${lit ? 'is-on' : ''}`} aria-pressed={lit} aria-label={label} onClick={onClick}>
+      {icon}
+      <span>{children}</span>
     </button>
   );
 }

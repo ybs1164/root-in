@@ -1,8 +1,8 @@
-import { Bell, ChevronLeft, ChevronRight, FileText, Link, LocateFixed, MapPinOff, Monitor, Send, UserRound, Volume2, VolumeX } from 'lucide-react';
+import { Bell, ChevronLeft, Heart, MapPin, MessageCircle, MessagesSquare, ChevronRight, FileText, Link, LocateFixed, MapPinOff, Monitor, Send, UserRound, Volume2, VolumeX } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { GROUP_ALERT_KINDS, GROUP_ALERT_LABELS, groupAlertOn, PING_ALERT_HOURS, toggleGroupAlert, toggleGroupAlertsAll } from '../domain/profile';
+import { GROUP_ALERT_KINDS, GROUP_ALERT_LABELS, groupAlertOn, type GroupAlertKind, PING_ALERT_HOURS, toggleGroupAlert, toggleGroupAlertsAll } from '../domain/profile';
 import { effectiveCover, type Group } from '../domain/groups';
 import type { Account } from '../hooks/useAccount';
 import type { AppTheme, Profile } from '../services/profileRepository';
@@ -10,7 +10,7 @@ import { clearAppData } from '../services/settingsRepository';
 import { SWIPE, swipeCommits } from '../domain/appTabs';
 import { motionMs, slideOff, springBack } from '../lib/swipeSlide';
 import { ADMIN_ATTRIBUTION } from '../map/courseMap';
-import AlertBoard, { FlipCell } from './AlertBoard';
+import AlertBoard, { AlertTile } from './AlertBoard';
 import { GroupCover } from './WeNowPage';
 import PrivacySection from './PrivacySection';
 import LocationSection from './LocationSection';
@@ -18,6 +18,12 @@ import AppLinksSection from './AppLinksSection';
 import type { MyLocationControl } from '../hooks/useMyLocation';
 
 /** 알림 설정 → 투데이 알림's board, by hour. */
+const ALERT_KIND_ICONS: Record<GroupAlertKind, ReactNode> = {
+  route: <MapPin size={20} strokeWidth={2.2} aria-hidden />,
+  heart: <Heart size={20} strokeWidth={2.2} aria-hidden />,
+  comment: <MessageCircle size={20} strokeWidth={2.2} aria-hidden />,
+  chat: <MessagesSquare size={20} strokeWidth={2.2} aria-hidden />,
+};
 const PING_STEPS = PING_ALERT_HOURS.map((hour) => ({ value: hour, text: `${hour}:00` }));
 
 /** 디스플레이 및 언어 → 디스플레이's two choices: the app's colour theme. */
@@ -407,11 +413,17 @@ function GroupAlerts({ groups, off, onChange }: { groups: readonly Pick<Group, '
                   전체
                 </button>
               </div>
-              <div className="alerts__hours alerts__kinds">
+              <div className="alerts__kinds">
                 {GROUP_ALERT_KINDS.map((kind) => (
-                  <FlipCell key={kind} lit={groupAlertOn(off, g.id, kind)} label={`${g.name} ${GROUP_ALERT_LABELS[kind]} 알림`} onClick={() => onChange(toggleGroupAlert(off, g.id, kind))}>
+                  <AlertTile
+                    key={kind}
+                    lit={groupAlertOn(off, g.id, kind)}
+                    label={`${g.name} ${GROUP_ALERT_LABELS[kind]} 알림`}
+                    icon={ALERT_KIND_ICONS[kind]}
+                    onClick={() => onChange(toggleGroupAlert(off, g.id, kind))}
+                  >
                     {GROUP_ALERT_LABELS[kind]}
-                  </FlipCell>
+                  </AlertTile>
                 ))}
               </div>
             </li>

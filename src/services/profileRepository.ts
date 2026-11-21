@@ -1,4 +1,4 @@
-import { defaultHandle, isValidHandle, PING_ALERT_HOURS, PROFILE_LIMITS, sanitizeAlerts, sanitizeGroupIds, sanitizeSendGroups } from '../domain/profile';
+import { defaultHandle, isValidHandle, LEGACY_PING_ALERT_HOURS, PING_ALERT_HOURS, withNewAlertHours, PROFILE_LIMITS, sanitizeAlerts, sanitizeGroupIds, sanitizeSendGroups } from '../domain/profile';
 import { getCurrentUserId } from '../lib/currentUser';
 
 const PROFILE_KEY = 'goodroot:profile:v1';
@@ -46,7 +46,12 @@ export function profileFromRecord(parsed: Record<string, unknown> | null | undef
     // Saved before the switches existed (or anything but false): on.
     sound: parsed?.sound !== false,
     // Before the hours existed there was one 알림 switch: off meant none of them.
-    pingAlerts: sanitizeAlerts(parsed?.pingAlerts, PING_ALERT_HOURS) ?? (parsed?.alerts === false ? [] : [...PING_ALERT_HOURS]),
+    // Hours added since it was saved (not in its `pingAlertHours`) start on.
+    pingAlerts: (() => {
+      const saved = sanitizeAlerts(parsed?.pingAlerts, PING_ALERT_HOURS);
+      if (!saved) return parsed?.alerts === false ? [] : [...PING_ALERT_HOURS];
+      return withNewAlertHours(saved, Array.isArray(parsed?.pingAlertHours) ? parsed.pingAlertHours : LEGACY_PING_ALERT_HOURS);
+    })(),
     // 공유수 알림 (shareAlerts) is gone; a stored one is dropped.
     groupAlertsOff: sanitizeGroupIds(parsed?.groupAlertsOff) ?? [],
     sendGroups: sanitizeSendGroups(parsed?.sendGroups),
@@ -70,7 +75,7 @@ export function loadProfile(): Profile {
 /** False when storage refused it (e.g. full), so the caller can say so. */
 export function saveProfile(profile: Profile): boolean {
   try {
-    window.localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    window.localStorage.setItem(PROFILE_KEY, JSON.stringify({ ...profile, pingAlertHours: PING_ALERT_HOURS }));
     return true;
   } catch {
     return false;
