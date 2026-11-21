@@ -42,7 +42,7 @@ export function defaultHandle(userId: string): string {
 
 // 알림 설정 → 투데이 알림: the hours of the day a ping reminder may come, each
 // switched on or off one by one, all on until switched off.
-export const PING_ALERT_HOURS = [7, 9, 12, 16, 20, 23] as const;
+export const PING_ALERT_HOURS = [7, 9, 12, 14, 16, 18, 20, 23] as const;
 
 /** A share count as a route row reads it: 10, 100, 1k, 10k, 100k, 1M. */
 export function shareCountLabel(count: number): string {
@@ -52,6 +52,17 @@ export function shareCountLabel(count: number): string {
 }
 
 /** Stored steps, kept only if they're among `steps`, in that order, once each. */
+/** 투데이 알림's hours before 14·18 were added (2026-11-22): what a profile saved without `pingAlertHours` knew. */
+export const LEGACY_PING_ALERT_HOURS = [7, 9, 12, 16, 20, 23] as const;
+
+/**
+ * A saved set of lit hours, with every hour added since it was saved (not in
+ * `known`, the hours it knew) lit too — new hours start on, as for a new profile.
+ */
+export function withNewAlertHours(on: readonly number[], known: readonly number[]): number[] {
+  return PING_ALERT_HOURS.filter((hour) => on.includes(hour) || !known.includes(hour));
+}
+
 export function sanitizeAlerts(value: unknown, steps: readonly number[]): number[] | null {
   if (!Array.isArray(value)) return null;
   return steps.filter((step) => value.includes(step));

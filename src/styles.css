@@ -94,10 +94,6 @@
   --shadow-up: 0 -4px 14px rgba(200, 101, 10, 0.08);
   --backdrop: rgba(0, 0, 0, 0.4);
   /* 출발 안내판 (알림 설정's hour switches): a navy board of flip cells, the lit ones blue. */
-  --board: #a66726;
-  --board-cell: #b87a3a;
-  --board-off: rgba(255, 255, 255, 0.5);
-  --board-split: rgba(50, 26, 6, 0.55);
   --step-arrow: #f6dc9a; /* the < > beside a route's name: light grey, no button behind */
 }
 
@@ -6803,8 +6799,52 @@ button:disabled {
   flex: 1;
 }
 
-.alerts__hours.alerts__kinds {
+/* A group's kinds: four icon tiles. Off they lie flat on a pale tile; on,
+   they're the accent raised on its two-tone base, like the app's other lit buttons. */
+.alerts__kinds {
+  display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding-bottom: 4px;
+}
+
+.alerts__tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  height: 58px;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--muted);
+  --icon-ink: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s var(--pop-ease),
+    box-shadow 0.18s ease;
+}
+
+.alerts__tile span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alerts__tile.is-on {
+  background: var(--accent);
+  color: var(--on-accent);
+  --icon-ink: var(--on-accent-icon);
+  box-shadow: var(--round-btn-shadow-accent);
+  transform: translateY(-2px);
 }
 
 .alerts__cover {
@@ -6880,135 +6920,122 @@ button:disabled {
   background: var(--accent-soft);
 }
 
-.alerts__hours {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 4px;
-  padding: 5px;
-  border-radius: 10px;
-  background: var(--board);
+/* 투데이 알림: the day's lines, morning to night, each hour at --at (0..1)
+   on its line; a lit hour has a pin standing on its dot, and the stretch
+   between two neighbouring lit hours is lit (.alerts__edge). */
+.alerts__line {
+  position: relative;
+  height: 80px;
+  margin: 0 16px;
+  background: linear-gradient(var(--surface-2), var(--surface-2)) 0 52px / 100% 4px no-repeat;
 }
 
-/* Short cells; the 44px touch target is made up by an invisible margin above and below. */
-.alerts__hour {
-  position: relative;
-  min-width: 0;
-  height: 30px;
+.alerts__line + .alerts__line {
+  margin-top: 10px;
+}
+
+/* Between two neighbouring lit hours (--from, --to: 0..1 along the line), the line is lit. */
+.alerts__edge {
+  position: absolute;
+  left: calc(var(--from) * 100%);
+  width: calc((var(--to) - var(--from)) * 100%);
+  top: 51px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--accent);
+  animation: alerts-edge-in 0.2s ease both;
+}
+
+@keyframes alerts-edge-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.alerts__tick {
+  position: absolute;
+  top: 0;
+  left: calc(var(--at) * 100%);
+  width: 40px;
+  height: 80px;
+  translate: -50% 0;
   padding: 0;
   border: 0;
-  border-radius: 6px;
-  background: var(--board-cell);
-  color: var(--board-off);
-  --icon-ink: currentColor;
+  background: none;
+  color: var(--muted);
+  --icon-ink: var(--muted);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
 }
 
-.alerts__hour::before {
-  content: '';
+.alerts__dot {
   position: absolute;
-  inset: -7px 0;
+  left: 50%;
+  top: 46px;
+  width: 16px;
+  height: 16px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 3px var(--surface-2);
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-/* The split line sits above the flaps, as on a real board. */
-.alerts__hour::after {
-  content: '';
+.alerts__time {
   position: absolute;
-  z-index: 2;
   left: 0;
   right: 0;
-  top: 50%;
-  height: 1px;
-  /* A hairline: the gap between the two flaps, kept as thin as the screen draws. */
-  transform: translateY(-50%) scaleY(0.5);
-  background: var(--board-split);
-  pointer-events: none;
+  top: 66px;
+  line-height: 1;
 }
 
-.alerts__hour.is-on {
-  background: var(--accent);
-  color: var(--on-accent);
-  --icon-ink: var(--on-accent-icon);
-}
-
-.alerts__flip {
+.alerts__pin {
   position: absolute;
-  inset: 0;
-  border-radius: 6px;
-  /* The board shows through while a half is edge-on. */
-  background: var(--board);
-  pointer-events: none;
+  left: 50%;
+  top: 8px;
+  width: 26px;
+  height: 34px;
+  translate: -50% 10px;
+  opacity: 0;
+  transition:
+    opacity 0.2s ease,
+    translate 0.25s var(--pop-ease);
 }
 
-.alerts__face {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  border-radius: 6px;
-  background: var(--board-cell);
-  color: var(--board-off);
-  --icon-ink: currentColor;
-  backface-visibility: hidden;
+.alerts__pin path {
+  fill: var(--accent);
 }
 
-.alerts__face.is-on {
+.alerts__pin circle {
+  fill: var(--surface);
+}
+
+.alerts__tick.is-on {
+  color: var(--text);
+  --icon-ink: var(--text);
+}
+
+.alerts__tick.is-on .alerts__dot {
   background: var(--accent);
-  color: var(--on-accent);
-  --icon-ink: var(--on-accent-icon);
+  box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
-/* Each half spins on its own middle: the top half on the upper quarter line,
-   the bottom on the lower one. */
-.alerts__face--top {
-  clip-path: inset(0 0 50% 0);
-  transform-origin: 50% 25%;
-}
-
-.alerts__face--bottom {
-  clip-path: inset(50% 0 0 0);
-  transform-origin: 50% 75%;
-}
-
-.alerts__face--out {
-  animation: alerts-spin-out 0.12s ease-in both;
-}
-
-.alerts__face--in {
-  animation: alerts-spin-in 0.12s 0.12s ease-out both;
-}
-
-/* The bottom half follows a beat behind the top. */
-.alerts__face--bottom.alerts__face--out {
-  animation-delay: 0.08s;
-}
-
-.alerts__face--bottom.alerts__face--in {
-  animation-delay: 0.2s;
-}
-
-@keyframes alerts-spin-out {
-  from {
-    transform: perspective(80px) rotateX(0deg);
-  }
-  to {
-    transform: perspective(80px) rotateX(90deg);
-  }
-}
-
-@keyframes alerts-spin-in {
-  from {
-    transform: perspective(80px) rotateX(-90deg);
-  }
-  to {
-    transform: perspective(80px) rotateX(0deg);
-  }
+.alerts__tick.is-on .alerts__pin {
+  opacity: 1;
+  translate: -50% 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .alerts__flip {
-    display: none;
+  .alerts__pin,
+  .alerts__tile {
+    transition: none;
+  }
+
+  .alerts__edge {
+    animation: none;
   }
 }
 

@@ -8,7 +8,7 @@ describe('profileRepository', () => {
   });
 
   it('starts from an id made from the user id, no photo, sound and every ping alert on', () => {
-    expect(loadProfile()).toEqual({ handle: 'userabc123', photo: null, sound: true, pingAlerts: [7, 9, 12, 16, 20, 23], groupAlertsOff: [], sendGroups: [], scheme: null, appTheme: 'matcha' });
+    expect(loadProfile()).toEqual({ handle: 'userabc123', photo: null, sound: true, pingAlerts: [7, 9, 12, 14, 16, 18, 20, 23], groupAlertsOff: [], sendGroups: [], scheme: null, appTheme: 'matcha' });
   });
 
   it('round-trips a saved profile, its switches too', () => {
@@ -18,12 +18,12 @@ describe('profileRepository', () => {
 
   it('keeps the switches on for a profile saved before they existed', () => {
     window.localStorage.setItem('goodroot:profile:v1', JSON.stringify({ handle: 'rootin', photo: null }));
-    expect(loadProfile()).toMatchObject({ sound: true, pingAlerts: [7, 9, 12, 16, 20, 23], groupAlertsOff: [] });
+    expect(loadProfile()).toMatchObject({ sound: true, pingAlerts: [7, 9, 12, 14, 16, 18, 20, 23], groupAlertsOff: [] });
   });
 
   it('drops stored values that fail the checks', () => {
     window.localStorage.setItem('goodroot:profile:v1', JSON.stringify({ handle: 'Bad Id', photo: 'javascript:alert(1)' }));
-    expect(loadProfile()).toEqual({ handle: 'userabc123', photo: null, sound: true, pingAlerts: [7, 9, 12, 16, 20, 23], groupAlertsOff: [], sendGroups: [], scheme: null, appTheme: 'matcha' });
+    expect(loadProfile()).toEqual({ handle: 'userabc123', photo: null, sound: true, pingAlerts: [7, 9, 12, 14, 16, 18, 20, 23], groupAlertsOff: [], sendGroups: [], scheme: null, appTheme: 'matcha' });
     window.localStorage.setItem('goodroot:profile:v1', '{not json');
     expect(loadProfile().handle).toBe('userabc123');
   });
@@ -43,11 +43,21 @@ describe('profileRepository', () => {
     window.localStorage.setItem('goodroot:profile:v1', JSON.stringify({ handle: 'rootin', photo: null, alerts: false }));
     expect(loadProfile().pingAlerts).toEqual([]);
     window.localStorage.setItem('goodroot:profile:v1', JSON.stringify({ handle: 'rootin', photo: null, alerts: true }));
-    expect(loadProfile().pingAlerts).toEqual([7, 9, 12, 16, 20, 23]);
+    expect(loadProfile().pingAlerts).toEqual([7, 9, 12, 14, 16, 18, 20, 23]);
+  });
+
+  it('turns on the hours added since a profile was saved, and keeps the ones switched off since', () => {
+    window.localStorage.setItem('goodroot:profile:v1', JSON.stringify({ handle: 'rootin', photo: null, pingAlerts: [7, 12] }));
+    const profile = loadProfile();
+    expect(profile.pingAlerts).toEqual([7, 12, 14, 18]);
+    saveProfile({ ...profile, pingAlerts: [7, 12, 14] });
+    expect(loadProfile().pingAlerts).toEqual([7, 12, 14]);
   });
 
   it('keeps only known alert steps', () => {
     window.localStorage.setItem('goodroot:profile:v1', JSON.stringify({ handle: 'rootin', photo: null, pingAlerts: [23, 3, 'x', 7, 7] }));
+    expect(loadProfile().pingAlerts).toEqual([7, 14, 18, 23]);
+    window.localStorage.setItem('goodroot:profile:v1', JSON.stringify({ handle: 'rootin', photo: null, pingAlerts: [23, 3, 'x', 7, 7], pingAlertHours: [7, 9, 12, 14, 16, 18, 20, 23] }));
     expect(loadProfile().pingAlerts).toEqual([7, 23]);
     // A bare group id (the one switch a group had) turns into all four kinds off; unknown kinds go.
     window.localStorage.setItem('goodroot:profile:v1', JSON.stringify({ handle: 'rootin', photo: null, shareAlerts: [10], groupAlertsOff: ['g1', 7, 'g1', '', 'g2:heart', 'g2:poke'] }));
