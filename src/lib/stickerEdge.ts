@@ -6,11 +6,15 @@
  */
 
 /**
- * A placed sticker's edge, as a share of the drawing's width: the same for
- * every sticker however big it's made — scaled with the sticker, a shrunk
- * one lost its edge and a grown one wore a thick one (2026-11-02).
+ * A sticker's edge, as a share of the sticker's own width — on the sheet, in
+ * the hand, stuck on a drawing, a photo or a group's board, and in the share
+ * image. Tied to the drawing's width instead (2026-11-02), a sticker shrunk
+ * to fit a zoomed-in board wore an edge a tenth of its width (2026-11-22).
  */
-export const PLACED_STICKER_EDGE = 0.005;
+export const STICKER_EDGE_RATIO = 0.02;
+
+/** The edge in px for a sticker `width` px wide; a hairline at least, so a tiny one keeps one. */
+export const stickerEdgePx = (width: number): number => Math.max(0.6, width * STICKER_EDGE_RATIO);
 
 /**
  * The picture drawn `size` px wide with an `edge` px border around its

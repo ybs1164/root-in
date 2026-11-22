@@ -66,6 +66,27 @@ export const SWIPE = {
   flickMinPx: 16,
 } as const;
 
+/**
+ * Going back a screen by swiping right (대화, 갤러리, 설정, 그룹 달력, TODAY → We
+ * Now …) is the most-used swipe, so it's the easiest (2026-11-22): it's
+ * told from a scroll once the finger has gone `decidePx`, and counts as long
+ * as it heads right no steeper than `slope` (|dy| / dx — 1.5 ≈ 56° off
+ * level, a thumb's arc); let go past `distance` of the width (about 30px on
+ * a phone) or flicked, it goes.
+ */
+export const BACK_SWIPE = { decidePx: 10, slope: 1.5, distance: 0.08, flick: 0.2, flickMinPx: 12 } as const;
+
+/**
+ * What a move (dx, dy from the press) is, once it's gone far enough to tell:
+ * a swipe `dir` (-1 left, 1 right) if it's more along than `slope` allows up
+ * or down, otherwise 'other' (a scroll); null while still too short to say.
+ */
+export function swipeHeading(dx: number, dy: number, rule: { readonly decidePx: number; readonly slope: number } = BACK_SWIPE): -1 | 1 | 'other' | null {
+  if (Math.hypot(dx, dy) < rule.decidePx) return null;
+  if (dx === 0 || Math.abs(dy) > Math.abs(dx) * rule.slope) return 'other';
+  return dx < 0 ? -1 : 1;
+}
+
 /** Pulling a sheet up or down isn't changing screens: it stays deliberate. */
 export const SHEET_PULL = { startPx: 12, distance: 0.3, flick: 0.5, flickMinPx: 30 } as const;
 

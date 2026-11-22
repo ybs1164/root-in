@@ -56,7 +56,8 @@ import { dateKey, timeKey } from './domain/diary';
 import GroupMapView, { type GroupPlace } from './components/GroupMapView';
 import { useHeartNews } from './hooks/useHeartNews';
 import { useGroupNews } from './hooks/useGroupNews';
-import { useGalleryPhotos } from './hooks/useGalleryPhotos';
+import { prefetchGallery, useGalleryPhotos } from './hooks/useGalleryPhotos';
+import { prefetchFeed } from './lib/groupPrefetch';
 import { usePingPhotos } from './hooks/usePingPhotos';
 import { galleryDayLabel, localGalleryPhotos, type GalleryTab } from './domain/gallery';
 import PhotoViewer, { OpenPhotoMarks } from './components/PhotoViewer';
@@ -435,6 +436,17 @@ export default function App() {
   const [gallerySeq, setGallerySeq] = useState<number | null>(null);
   const galleryIds = useMemo(() => (galleryTab ? groupList.map((g) => g.id) : null), [galleryTab, groupList]);
   const gallery = useGalleryPhotos(galleryIds);
+  // A group's map open: its 대화 and the gallery are a tap away — read them
+  // ahead (once the map's own reads are out), so they open filled.
+  const allGroupIds = useMemo(() => groupList.map((g) => g.id).sort().join(','), [groupList]);
+  useEffect(() => {
+    if (!openGroupId) return;
+    const t = window.setTimeout(() => {
+      prefetchFeed(openGroupId);
+      if (allGroupIds) prefetchGallery(allGroupIds.split(','));
+    }, 700);
+    return () => window.clearTimeout(t);
+  }, [openGroupId, allGroupIds]);
   const pingPhotos = usePingPhotos();
   // The photos I took at the place a card is open on (above the card).
   const activePinPhotos = useMemo(
@@ -1697,7 +1709,7 @@ export default function App() {
       )}
 
       {groupChat && openGroup && (
-        <GroupChat group={openGroup} me={myId} photoSeq={chatPhoto} onPhotoSeq={setChatPhoto} onClose={() => setGroupChat(false)} onRead={unreadTalk.refresh} />
+        <GroupChat key={openGroup.id} group={openGroup} me={myId} photoSeq={chatPhoto} onPhotoSeq={setChatPhoto} onClose={() => setGroupChat(false)} onRead={unreadTalk.refresh} />
       )}
 
       {chatsOpen && (
@@ -1714,6 +1726,7 @@ export default function App() {
       )}
       {chatsGroup && (
         <GroupChat
+          key={chatsGroup.id}
           group={chatsGroup}
           me={myId}
           photoSeq={chatPhoto}

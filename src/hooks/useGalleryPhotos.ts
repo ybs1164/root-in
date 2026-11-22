@@ -2,12 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { GalleryPhoto, MetPair, PhotoDecorLayer } from '../domain/gallery';
 import { metPairs } from '../domain/groups';
 import { groupService } from '../services/groupService';
+import { readOnce, recall, remember } from '../lib/readCache';
 
 export type GalleryState = { status: 'loading' } | { status: 'error' } | { status: 'ready'; photos: GalleryPhoto[] };
 
+const galleryKey = (key: string) => `gallery:${key}`;
+
 /**
  * The photos sent to `groupIds`, read while a gallery is open (null = closed).
- * Read afresh every time it opens; only the latest read lands.
+ * Read afresh every time it opens; only the latest read lands. A gallery
+ * opened before (or read ahead, `prefetchGallery`) opens on those photos at
+ * once while the fresh read is out.
  */
 export function useGalleryPhotos(groupIds: readonly string[] | null): { state: GalleryState; retry(): void } {
   const [state, setState] = useState<GalleryState>({ status: 'loading' });
@@ -17,14 +22,24 @@ export function useGalleryPhotos(groupIds: readonly string[] | null): { state: G
   useEffect(() => {
     if (key === null) return;
     const mine = ++turn.current;
-    setState({ status: 'loading' });
-    void groupService.photos(key ? key.split(',') : []).then((photos) => {
+    const kept = recall<GalleryPhoto[]>(galleryKey(key));
+    setState(kept ? { status: 'ready', photos: kept } : { status: 'loading' });
+    // A read ahead still out is waited on; otherwise the gallery is asked afresh.
+    void readOnce(galleryKey(key), () => groupService.photos(key ? key.split(',') : [])).then((photos) => {
       if (mine !== turn.current) return;
-      setState(photos === 'error' ? { status: 'error' } : { status: 'ready', photos });
+      if (photos === 'error') return setState((now) => (now.status === 'ready' ? now : { status: 'error' }));
+      setState({ status: 'ready', photos });
     });
   }, [key, attempt]);
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
   return { state, retry };
+}
+
+/** Reads the gallery of `groupIds` ahead (a group's map is open: its 갤러리 is a tap away). */
+export function prefetchGallery(groupIds: readonly string[]): void {
+  const key = [...groupIds].sort().join(',');
+  if (!groupService.available || recall(galleryKey(key))) return;
+  void readOnce(galleryKey(key), () => groupService.photos(key ? key.split(',') : []));
 }
 
 /**
@@ -33,14 +48,19 @@ export function useGalleryPhotos(groupIds: readonly string[] | null): { state: G
  * closed: the doodles may be new). Nothing while it's being read or can't be.
  */
 export function useGalleryDecors(paths: readonly string[], again: unknown): Map<string, PhotoDecorLayer[]> {
-  const [decors, setDecors] = useState<Map<string, PhotoDecorLayer[]>>(() => new Map());
   const key = [...paths].sort().join('\n');
+  // The doodles last read for these photos show at once (read again behind them).
+  const [decors, setDecors] = useState<Map<string, PhotoDecorLayer[]>>(() => recall(`decors:${key}`) ?? new Map());
   const turn = useRef(0);
   useEffect(() => {
     const mine = ++turn.current;
     if (!key) return setDecors(new Map());
+    const kept = recall<Map<string, PhotoDecorLayer[]>>(`decors:${key}`);
+    if (kept) setDecors(kept);
     void groupService.decorsMany(key.split('\n')).then((read) => {
-      if (mine === turn.current && read !== 'error') setDecors(read);
+      if (read === 'error') return;
+      remember(`decors:${key}`, read);
+      if (mine === turn.current) setDecors(read);
     });
   }, [key, again]);
   return decors;

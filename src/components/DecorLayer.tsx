@@ -36,7 +36,7 @@ import {
   type TextStyle,
 } from '../domain/decor';
 import type { StickerDrop } from '../domain/stickerSheets';
-import { PLACED_STICKER_EDGE } from '../lib/stickerEdge';
+import { STICKER_EDGE_RATIO } from '../lib/stickerEdge';
 
 /** The text box picked with the text tool, and whether it's being typed in. */
 export type TextFocus = { id: string; editing: boolean } | null;
@@ -245,8 +245,8 @@ const StickerPiece = memo(function StickerPiece({ piece, pos, selected, fresh, l
         left: `${pos.x * 100}%`,
         top: `${pos.y * 100}%`,
         width: `${pos.size * 78 * scale}cqw`,
-        // The die-cut edge is the same on every sticker, whatever its size (never under a hair).
-        '--edge': `max(1.2px, ${PLACED_STICKER_EDGE * 100 * scale}cqw)`,
+        // The die-cut edge keeps to the sticker's width, whatever its size or the board's zoom (never under a hair).
+        '--edge': `max(0.6px, ${pos.size * 78 * scale * STICKER_EDGE_RATIO}cqw)`,
         zIndex,
         rotate: `${pos.rotate ?? 0}deg`,
       } as CSSProperties}

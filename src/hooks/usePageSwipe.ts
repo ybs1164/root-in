@@ -1,5 +1,5 @@
 import { useRef, useState, type CSSProperties, type TouchEvent } from 'react';
-import { SWIPE, swipeCommits } from '../domain/appTabs';
+import { BACK_SWIPE, swipeCommits, swipeHeading } from '../domain/appTabs';
 import { motionMs, SLIDE_OFF_MS, SPRING_BACK_MS } from '../lib/swipeSlide';
 
 interface Track {
@@ -78,13 +78,13 @@ export function usePageSwipe(onLeft: (() => void) | null, onRight: (() => void) 
     const { clientX: x, clientY: y } = e.touches[0];
     const mx = x - tr.x;
     if (tr.axis === null) {
-      if (Math.abs(mx) < SWIPE.startPx && Math.abs(y - tr.y) < SWIPE.startPx) return;
-      // Only a mostly-sideways move toward a side that leads somewhere becomes a swipe.
-      const dir = mx < 0 ? -1 : 1;
-      tr.axis = Math.abs(mx) > Math.abs(y - tr.y) && handler(dir) ? dir : 'other';
+      // Only a sideways-enough move (BACK_SWIPE.slope) toward a side that leads somewhere becomes a swipe.
+      const dir = swipeHeading(mx, y - tr.y);
+      if (dir === null) return;
+      tr.axis = dir !== 'other' && handler(dir) ? dir : 'other';
       if (tr.axis !== 'other') {
         setPhase('drag');
-        setHeading(dir);
+        setHeading(tr.axis);
       }
     }
     if (tr.axis === 'other') return;
@@ -103,7 +103,7 @@ export function usePageSwipe(onLeft: (() => void) | null, onRight: (() => void) 
     if (tr.axis === null || tr.axis === 'other') return;
     const moved = tr.lastX - tr.x;
     const velocity = (tr.lastX - tr.prevX) / Math.max(1, tr.lastT - tr.prevT);
-    if (swipeCommits(tr.axis, moved, width(), velocity)) go(tr.axis);
+    if (swipeCommits(tr.axis, moved, width(), velocity, BACK_SWIPE)) go(tr.axis);
     else reset();
   };
 

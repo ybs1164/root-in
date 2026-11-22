@@ -545,22 +545,24 @@ function PhotoCommentList({ path, writing, onSent }: { path: string | null; writ
     setText('');
     setError(false);
   }, [path]);
+  // The comment shows at once and the line closes; if it couldn't go, it comes back to be sent again.
   const send = async () => {
     if (!text.trim() || sending) return;
+    const body = text;
     setSending(true);
-    const ok = await add(text);
-    setSending(false);
-    setError(!ok);
-    if (!ok) return;
+    setError(false);
     setText('');
     onSent();
+    const ok = await add(body);
+    setSending(false);
+    if (!ok) setError(true), setText((now) => now || body);
   };
   return (
     <div className="photo-comments">
       {comments && comments.length > 0 && (
         <ol ref={list} className="photo-comments__list" aria-label="댓글">
           {comments.map((c) => (
-            <li key={c.id} className={`photo-comments__item ${c.mine ? 'is-mine' : ''}`}>
+            <li key={c.id} className={`photo-comments__item ${c.mine ? 'is-mine' : ''} ${c.pending ? 'is-pending' : ''}`}>
               {!c.mine && <span className="photo-comments__who">{c.nickname}</span>}
               <p className="photo-comments__bubble">{c.body}</p>
             </li>
