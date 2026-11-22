@@ -4,10 +4,13 @@ import { getDisplayName } from '../lib/currentUser';
 import { groupService } from '../services/groupService';
 import { addLocalComment, loadLocalComments } from '../services/photoCommentRepository';
 import { useLiveRefresh } from './useLiveRefresh';
+import { recall, remember } from '../lib/readCache';
+
+const commentsKey = (path: string) => `comments:${path}`;
 
 export interface PhotoComments {
-  /** null while reading. */
-  comments: PhotoComment[] | null;
+  /** null while reading. Mine still on its way has `pending`. */
+  comments: (PhotoComment & { pending?: boolean })[] | null;
   failed: boolean;
   /** Posts a comment; false when it didn't go through. */
   add(body: string): Promise<boolean>;
@@ -22,17 +25,22 @@ const isLocal = (path: string) => path.startsWith('ping:');
  * shows up), a TODAY photo's from this phone.
  */
 export function usePhotoComments(path: string | null): PhotoComments {
-  const [comments, setComments] = useState<PhotoComment[] | null>(null);
+  const [comments, setComments] = useState<PhotoComments['comments']>(() => (path ? recall<PhotoComment[]>(commentsKey(path)) ?? null : null));
   const [failed, setFailed] = useState(false);
+  const commentsRef = useRef(comments);
+  commentsRef.current = comments;
   const read = useCallback(async (at: string) => {
     if (isLocal(at)) {
       const name = getDisplayName();
       return loadLocalComments(at).map((c) => ({ ...c, nickname: name, mine: true }));
     }
-    return groupService.comments(at);
+    const list = await groupService.comments(at);
+    if (list !== 'error') remember(commentsKey(at), list);
+    return list;
   }, []);
   useEffect(() => {
-    setComments(null);
+    // A photo opened before shows its comments at once (read again behind them).
+    setComments(path ? recall<PhotoComment[]>(commentsKey(path)) ?? null : null);
     setFailed(false);
     if (!path) return;
     let live = true;
@@ -42,7 +50,8 @@ export function usePhotoComments(path: string | null): PhotoComments {
       void read(path).then((list) => {
         // Only the latest read counts: an older one may land after a newer.
         if (!live || n !== asked) return;
-        if (list === 'error') setFailed(true), setComments((now) => now ?? []);
+        // A failed read over comments already shown leaves them up, quietly.
+        if (list === 'error') setFailed(commentsRef.current === null), setComments((now) => now ?? []);
         else setComments(list), setFailed(false);
       });
     };
@@ -68,12 +77,22 @@ export function usePhotoComments(path: string | null): PhotoComments {
     });
   };
   useLiveRefresh(path && !isLocal(path) ? { photo: path } : null, again, { known: (id) => shown.current.has(id) });
+  // Shown at once (faded) while it goes; gone again if it couldn't.
   const add = async (body: string) => {
     if (!path || !body.trim()) return false;
-    const ok = isLocal(path) ? addLocalComment(path, body) : await groupService.comment(path, body);
-    if (!ok) return false;
-    const list = await read(path);
+    const at = path;
+    const mine = { id: `pending:${Date.now()}`, nickname: getDisplayName(), body: body.trim(), at: new Date().toISOString(), mine: true, pending: true };
+    setComments((now) => [...(now ?? []), mine]);
+    const ok = isLocal(at) ? addLocalComment(at, body) : await groupService.comment(at, body);
+    if (at !== pathRef.current) return ok;
+    if (!ok) {
+      setComments((now) => now?.filter((c) => c.id !== mine.id) ?? now);
+      return false;
+    }
+    const list = await read(at);
+    if (at !== pathRef.current) return true;
     if (list !== 'error') setComments(list), setFailed(false);
+    else setComments((now) => now?.map((c) => (c.id === mine.id ? { ...c, pending: false } : c)) ?? now);
     return true;
   };
   return { comments, failed, add };

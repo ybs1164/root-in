@@ -1,3 +1,4 @@
+import { TileSkeleton } from './Skeleton';
 import { Plus, UserRound, Users } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import type { PinIcon, PinTint } from '../types/pin';
@@ -436,7 +437,13 @@ export default function WeNowPage({ status, todayPings, pinLookOf, onToday, grou
   if (status === 'unavailable') content = empty('그룹을 쓸 수 없어요', '이 앱에는 서버 연결이 없어서\n그룹 기능이 꺼져 있어요.');
   else if (status === 'signed-out')
     content = empty('함께 보는 오늘', '로그인하면 그룹을 만들고\n친구들의 오늘 핑을 한 지도에서 볼 수 있어요.', { label: '카카오로 로그인', run: onSignIn });
-  else if (status === 'loading') content = <p className="we-now__note">불러오는 중…</p>;
+  // The first read (nothing kept on this phone yet): the grid's tiles in outline, filled once it's in.
+  else if (status === 'loading' && groups.length === 0)
+    content = (
+      <div className="we-now__grid" role="status" aria-label="그룹을 불러오는 중">
+        <TileSkeleton count={2} />
+      </div>
+    );
   else if (status === 'error' && groups.length === 0)
     content = empty('그룹을 불러오지 못했어요', '잠시 뒤에 다시 시도해 주세요.', { label: '다시 시도', run: onRetry });
   // No groups yet: the same grid, with only its + tile.

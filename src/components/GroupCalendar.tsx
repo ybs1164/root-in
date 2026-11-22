@@ -3,7 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { themeScopeProps } from '../lib/themeScope';
 import { dayPingers, GROUP_LIMITS, groupTheme, isGroupBirthday, memberColor, memberInk, photoKey, photoPlaces, pingPhotos, withMyPingDays, type Group, type GroupMember } from '../domain/groups';
 import { dateKey } from '../domain/diary';
-import { useGroupPingDays, useGroupsOnDay } from '../hooks/useGroups';
+import { prefetchGroupsOnDay, useGroupPingDays, useGroupsOnDay } from '../hooks/useGroups';
+import { CardSkeleton } from './Skeleton';
 import type { AuthUser } from '../services/authService';
 import WeekCalendar, { weekCardDay, type CalendarPhoto, type CalendarPhotos } from './WeekCalendar';
 import GroupDayMap from './GroupDayMap';
@@ -57,6 +58,14 @@ export default function GroupCalendar({ group, user, me, myDays, day, onPick, on
   const days = useMemo(() => (me ? withMyPingDays(asked.days, me, [...myDays].filter((d) => d >= span.from && d <= span.to)) : asked.days), [asked.days, me, myDays, span]);
   // The picked day itself: each member's places and photos (my_groups(day)).
   const onDay = useGroupsOnDay(user, pick);
+  // The days around it that have photos are read ahead, so picking one shows its card at once.
+  useEffect(() => {
+    const near = Object.keys(asked.days)
+      .filter((d) => d !== pick && d < today && Math.abs(Date.parse(d) - Date.parse(pick)) <= 7 * 86_400_000)
+      .slice(0, 8);
+    const t = window.setTimeout(() => near.forEach((d) => prefetchGroupsOnDay(d)), 400);
+    return () => window.clearTimeout(t);
+  }, [asked.days, pick, today]);
   const rows = useMemo(() => {
     const shown = onDay.groups.find((g) => g.id === group.id);
     if (!shown) return [];
@@ -192,8 +201,11 @@ export default function GroupCalendar({ group, user, me, myDays, day, onPick, on
             </ul>
           </div>
         ) : (
-          // A day with no photos: just the empty pin (nothing while it loads); a failed read says so.
-          onDay.status === 'error' ? (
+          // A day with no photos: just the empty pin; one that has some, while it loads, a card's
+          // outline (a row a sender) to be filled in; a failed read says so.
+          onDay.status === 'loading' && dayPingers(group, days[pick]).length ? (
+            <CardSkeleton rows={Math.min(3, dayPingers(group, days[pick]).length)} />
+          ) : onDay.status === 'error' ? (
             <p className="group-calendar__note">그날 사진을 불러오지 못했어요.</p>
           ) : (
             onDay.status !== 'loading' && (

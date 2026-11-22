@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { barSlot, barTurn, calendarAgain, pageSwipes, SHEET_PULL, showsPage, swipeCommits, tabForIncoming, type AppTab, type BarButton } from './appTabs';
+import { BACK_SWIPE, barSlot, barTurn, calendarAgain, pageSwipes, SHEET_PULL, showsPage, swipeCommits, swipeHeading, tabForIncoming, type AppTab, type BarButton } from './appTabs';
 
 describe('bottom-bar tabs', () => {
   it('incoming #share= / #diary= / #pins= links open the matching tab', () => {
@@ -50,5 +50,23 @@ describe('bottom-bar tabs', () => {
     expect(barTurn('people', 'pins')).toBe(-1);
     expect(barTurn('pins', 'people')).toBe(1);
     expect(barTurn('pins', 'pins')).toBe(0);
+  });
+});
+
+describe('going back by swiping right', () => {
+  it('tells a swipe from a scroll once the finger has gone a little, leaning up to about 56°', () => {
+    expect(swipeHeading(6, 2)).toBeNull(); // too short to say
+    expect(swipeHeading(12, 0)).toBe(1);
+    expect(swipeHeading(10, 14)).toBe(1); // a thumb's arc, more up than across
+    expect(swipeHeading(-10, 12)).toBe(-1);
+    expect(swipeHeading(6, 14)).toBe('other'); // a scroll
+    expect(swipeHeading(0, 20)).toBe('other');
+  });
+
+  it('goes after a short swipe or a light flick', () => {
+    expect(swipeCommits(1, 32, 375, 0, BACK_SWIPE)).toBe(true); // ~8% of a phone's width
+    expect(swipeCommits(1, 24, 375, 0, BACK_SWIPE)).toBe(false);
+    expect(swipeCommits(1, 14, 375, 0.22, BACK_SWIPE)).toBe(true);
+    expect(swipeCommits(1, 8, 375, 1, BACK_SWIPE)).toBe(false);
   });
 });

@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight, Store } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { getSticker } from '../domain/decor';
-import { outlinedSticker } from '../lib/stickerEdge';
+import { outlinedSticker, stickerEdgePx } from '../lib/stickerEdge';
 import { SHEET_PULL, SWIPE, swipeCommits } from '../domain/appTabs';
 import StickerPackBand from './StickerPackBand';
 import StickerShop from './StickerShop';
@@ -12,7 +12,6 @@ import { listInk, orderPackGroups, packGroups, peelFold, squareTarget, themeIcon
 /** Less movement than this is a tap on a sticker, not a pull (px). */
 const TAP_SLOP = 6;
 /** The white die-cut edge around a sticker (px; the CSS outline is about as wide). */
-const EDGE_PX = 2.5;
 /** A let-go mid-peel lays the flap back down over this long (ms). */
 const UNPEEL_MS = 140;
 /** A new sheet slides in this long (ms, matches `sheet-in`). */
@@ -39,7 +38,7 @@ interface Textures {
 
 function makeTextures(img: HTMLImageElement, width: number, colours: { edge: string; back: string }): Textures {
   const dpr = window.devicePixelRatio || 1;
-  const { canvas: front } = outlinedSticker(img, width * dpr, EDGE_PX * dpr, colours.edge);
+  const { canvas: front } = outlinedSticker(img, width * dpr, stickerEdgePx(width) * dpr, colours.edge);
   const back = Object.assign(document.createElement('canvas'), { width: front.width, height: front.height });
   const bc = back.getContext('2d')!;
   bc.drawImage(front, 0, 0);
@@ -828,7 +827,7 @@ export default function StickerSheets({
                   }}
                   className="sticker-free"
                   src={getSticker(carried.stickerId)?.src}
-                  style={{ width: `${carried.width}px` }}
+                  style={{ width: `${carried.width}px`, '--edge': `${stickerEdgePx(carried.width)}px` } as CSSProperties}
                   alt=""
                   draggable={false}
                 />

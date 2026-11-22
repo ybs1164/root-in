@@ -1,3 +1,4 @@
+import { GridSkeleton } from './Skeleton';
 import { ChevronLeft, Images, MapPin, Search, Star, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { dayPosters, filterGallery, galleryDayLabel, galleryTabDays, metDays, placeSuggestions, viewerOrder, type GalleryItem, type GalleryPhoto, type GalleryTab } from '../domain/gallery';
@@ -200,7 +201,7 @@ export default function PhotoGallery({ groups, me, meMember, tab, onTab, state, 
       </header>
 
       <div className="gallery__body" role="tabpanel">
-        {!ready && state.status === 'loading' && <p className="gallery__note">사진을 불러오는 중…</p>}
+        {!ready && state.status === 'loading' && <GridSkeleton />}
         {!ready && state.status === 'error' && (
           <p className="gallery__note">
             사진을 불러오지 못했어요

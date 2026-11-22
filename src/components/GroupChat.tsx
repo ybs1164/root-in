@@ -5,6 +5,9 @@ import { GROUP_LIMITS, groupTheme, isGroupBirthday, memberColor, memberInk, type
 import { dateKey } from '../domain/diary';
 import { monthGrid, shiftMonth } from '../domain/calendar';
 import { groupService } from '../services/groupService';
+import { recall, remember } from '../lib/readCache';
+import { feedKey } from '../lib/groupPrefetch';
+import { ChatSkeleton } from './Skeleton';
 import { useLiveRefresh } from '../hooks/useLiveRefresh';
 import { MemberFace } from './WeNowPage';
 import PhotoViewer, { OpenPhotoMarks } from './PhotoViewer';
@@ -25,6 +28,8 @@ const NEAR_BOTTOM_PX = 80;
 const goneMember = (userId: string): GroupMember => ({ userId, slot: 0, color: 0, nickname: '나간 그룹원', alias: null, photo: null, pings: [] });
 
 const placeName = (name: string | undefined) => name || '이름 없는 곳';
+/** A line of mine still on its way to the server (`send`). */
+const isPending = (item: FeedItem) => item.id.startsWith('pending:');
 
 /** A press held this long on a line opens its menu (답장 · 모두에게 삭제 · 나에게만 삭제). */
 const HOLD_MS = 450;
@@ -78,7 +83,12 @@ export default function GroupChat({
   /** I've read the 대화 up to now (App reads the unread counts again). */
   onRead?(): void;
 }) {
-  const [items, setItems] = useState<FeedItem[] | null>(null);
+  // The 대화 as last read opens at once (read again straight behind it, lib/readCache).
+  const [items, setItems] = useState<FeedItem[] | null>(() => recall<FeedItem[]>(feedKey(group.id)) ?? null);
+  // My lines on their way: shown at once, faded, until the server has them.
+  const pending = useRef<FeedItem[]>([]);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
   const [failed, setFailed] = useState(false);
   // 나에게만 삭제: lines hidden on this phone.
   const [hidden, setHidden] = useState(() => new Set(loadHiddenLines()));
@@ -92,8 +102,11 @@ export default function GroupChat({
     // Only the latest read counts: live nudges can overlap.
     if (n !== asked.current) return;
     if (seen !== 'error') setReads(seen);
-    if (feed === 'error') setFailed(true), setItems((now) => now ?? []);
-    else setFailed(false), setItems(feed);
+    // A failed read over a 대화 already shown leaves it up, quietly.
+    if (feed === 'error') return setFailed(itemsRef.current === null), setItems((now) => now ?? []);
+    remember(feedKey(group.id), feed);
+    setFailed(false);
+    setItems(pending.current.length ? [...feed, ...pending.current] : feed);
   }, [group.id]);
   // Open, I've read it up to now — and again whenever a new line comes in while it's open.
   const newestSeen = items?.length ? items[items.length - 1].id : null;
@@ -208,7 +221,6 @@ export default function GroupChat({
   };
 
   const [text, setText] = useState('');
-  const [sending, setSending] = useState(false);
   const [sendFailed, setSendFailed] = useState(false);
   // The line being answered (a bar over the input says which), from its menu or a slide.
   const [replyTo, setReplyTo] = useState<FeedItem | null>(null);
@@ -217,15 +229,35 @@ export default function GroupChat({
     // No scroll of its own from the focus: the thread stays where it is (the resize keeps its foot).
     input.current?.focus({ preventScroll: true });
   };
+  // Sent at once: the line shows (faded) and the input clears before the
+  // server answers; if it couldn't go, the line goes and the text comes back.
   const send = async () => {
-    if (!text.trim() || sending) return;
-    setSending(true);
-    const ok = await groupService.sendMessage(group.id, text, replyTo ? { kind: replyTo.kind, id: replyTo.id } : undefined);
-    setSending(false);
-    setSendFailed(!ok);
-    if (!ok) return;
+    if (!text.trim()) return;
+    const body = text;
+    const answering = replyTo;
+    const line: FeedItem = {
+      kind: 'message',
+      id: `pending:${Date.now()}:${pending.current.length}`,
+      userId: me ?? '',
+      at: new Date().toISOString(),
+      mine: true,
+      body: body.trim(),
+      ...(answering ? { replyTo: { kind: answering.kind, id: answering.id } } : {}),
+    };
+    pending.current = [...pending.current, line];
+    setItems((now) => [...(now ?? []), line]);
     setText('');
     setReplyTo(null);
+    setSendFailed(false);
+    const ok = await groupService.sendMessage(group.id, body, answering ? { kind: answering.kind, id: answering.id } : undefined);
+    pending.current = pending.current.filter((p) => p !== line);
+    if (!ok) {
+      setItems((now) => now?.filter((i) => i.id !== line.id) ?? now);
+      setSendFailed(true);
+      setText((now) => now || body);
+      setReplyTo((now) => now ?? answering);
+      return;
+    }
     void read();
   };
 
@@ -371,7 +403,7 @@ export default function GroupChat({
       </header>
 
       <ol ref={list} className="group-chat__list" aria-label="대화 내역" onScroll={onScroll}>
-        {items === null && <li className="gallery__note">대화를 불러오는 중…</li>}
+        {items === null && !failed && <ChatSkeleton />}
         {shownItems?.length === 0 && !failed && <li className="gallery__note">아직 대화가 없어요. 사진을 보내거나 말을 걸어 보세요.</li>}
         {failed && <li className="gallery__note">대화를 불러오지 못했어요.</li>}
         {shownItems?.map((item) => {
@@ -387,7 +419,13 @@ export default function GroupChat({
                 </button>
               </li>
             ),
-            <li key={item.id} data-line={item.id} className={`group-chat__line ${item.mine ? 'is-mine' : ''}`} style={{ '--member': memberColor(member.color) } as CSSProperties} {...lineHandlers(item)}>
+            <li
+              key={item.id}
+              data-line={item.id}
+              className={`group-chat__line ${item.mine ? 'is-mine' : ''} ${isPending(item) ? 'is-pending' : ''}`}
+              style={{ '--member': memberColor(member.color) } as CSSProperties}
+              {...(isPending(item) ? {} : lineHandlers(item))}
+            >
               {/* Slid inward, the reply arrow fades in behind it. */}
               <span className="group-chat__slide-reply" aria-hidden>
                 <Reply size={20} strokeWidth={2.4} />
@@ -433,7 +471,7 @@ export default function GroupChat({
                   </div>
                   <span className="group-chat__meta">
                     {/* How many haven't read it yet (none: nothing); unknown until the reads are in. */}
-                    {reads && unreadBy(item, memberIds, reads, me) > 0 && (
+                    {reads && !isPending(item) && unreadBy(item, memberIds, reads, me) > 0 && (
                       <span className="group-chat__unread" aria-label={`안 읽은 사람 ${unreadBy(item, memberIds, reads, me)}명`}>
                         {unreadBy(item, memberIds, reads, me)}
                       </span>
@@ -486,7 +524,7 @@ export default function GroupChat({
           enterKeyHint="send"
           onChange={(e) => setText(e.target.value)}
         />
-        <button className="photo-comments__send" type="submit" aria-label="보내기" disabled={!text.trim() || sending}>
+        <button className="photo-comments__send" type="submit" aria-label="보내기" disabled={!text.trim()}>
           <ArrowUp size={20} strokeWidth={2.6} aria-hidden />
         </button>
       </form>

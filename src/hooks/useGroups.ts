@@ -3,6 +3,8 @@ import { dateKey } from '../domain/diary';
 import type { Group, PingDays } from '../domain/groups';
 import type { ThemeId } from '../domain/decor';
 import type { AuthUser } from '../services/authService';
+import { clearGroupsCache, loadGroupsCache, saveGroupsCache } from '../services/groupsCache';
+import { forgetReads, readOnce, recall, remember } from '../lib/readCache';
 import { groupService as defaultService, readInviteSlug, type GroupService, type PhotoPing } from '../services/groupService';
 
 export type GroupsStatus = 'unavailable' | 'signed-out' | 'loading' | 'ready' | 'error';
@@ -39,17 +41,29 @@ export function useGroups(
   events: { onJoined(id: string): void; onNeedLogin(): void; onJoinFailed(): void },
   service: GroupService = defaultService,
 ): Groups {
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [status, setStatus] = useState<GroupsStatus>(service.available ? (user ? 'loading' : 'signed-out') : 'unavailable');
+  // The copy kept on this phone: the list opens on it while the server is asked (services/groupsCache.ts).
+  const copy = useRef<ReturnType<typeof loadGroupsCache> | undefined>(undefined);
+  if (copy.current === undefined) copy.current = service.available ? loadGroupsCache() : null;
+  const [groups, setGroups] = useState<Group[]>(() => copy.current?.groups ?? []);
+  const [status, setStatus] = useState<GroupsStatus>(() =>
+    !service.available ? 'unavailable' : copy.current ? 'ready' : user ? 'loading' : 'signed-out',
+  );
   const eventsRef = useRef(events);
   eventsRef.current = events;
   const userId = user?.id ?? null;
   // Answers from before a sign-out (or another account) are dropped.
   const generation = useRef(0);
+  // Whose groups are on screen (the copy's account, at first), and whether
+  // anyone has been signed in yet — before that, no one is only "not known yet".
+  const shownFor = useRef<string | null>(copy.current?.userId ?? null);
+  const everSignedIn = useRef(false);
+  const waitingForAccount = () => !everSignedIn.current && shownFor.current !== null;
 
   const refresh = useCallback(() => {
     if (!service.available) return setStatus('unavailable');
     if (!userId) {
+      // Still finding out who's signed in: the copy stays up.
+      if (waitingForAccount()) return;
       setGroups([]);
       return setStatus('signed-out');
     }
@@ -63,10 +77,26 @@ export function useGroups(
   }, [service, userId]);
 
   useEffect(() => {
+    if (!service.available) return setStatus('unavailable');
+    if (userId) everSignedIn.current = true;
+    // The copy was this account's: it stays up until the server answers.
+    if (userId && userId === shownFor.current) return;
+    if (!userId && waitingForAccount()) return;
     generation.current += 1;
+    // Another account, or signed out: nothing of the last one's stays.
+    if (shownFor.current !== null) {
+      forgetReads();
+      if (!userId) clearGroupsCache();
+    }
+    shownFor.current = userId;
     setGroups([]);
-    setStatus(service.available ? (userId ? 'loading' : 'signed-out') : 'unavailable');
+    setStatus(userId ? 'loading' : 'signed-out');
   }, [service, userId]);
+
+  // The list as it now is, kept for the next time the app opens.
+  useEffect(() => {
+    if (userId && status === 'ready' && shownFor.current === userId) saveGroupsCache(userId, groups);
+  }, [userId, status, groups]);
 
   useEffect(() => {
     if (!active) return;
@@ -216,18 +246,34 @@ export function useGroupsOnDay(user: AuthUser | null, day: string | null, servic
   const userId = user?.id ?? null;
   useEffect(() => {
     if (!day) return;
-    setState({ day, status: 'loading', groups: [] });
+    // A day seen before opens on what it had (and is read again behind it).
+    const kept = recall<Group[]>(dayKey(day));
+    setState(kept ? { day, status: 'ready', groups: kept } : { day, status: 'loading', groups: [] });
     if (!service.available || !userId) return setState({ day, status: 'error', groups: [] });
     let live = true;
-    void service.list(day).then((result) => {
+    void readOnce(dayKey(day), () => service.list(day)).then((result) => {
       if (!live) return;
-      setState(result === 'error' ? { day, status: 'error', groups: [] } : { day, status: 'ready', groups: result });
+      if (result === 'error') return setState((now) => (now.day === day && now.status === 'ready' ? now : { day, status: 'error', groups: [] }));
+      setState({ day, status: 'ready', groups: result });
+      // The day before is the next one likely asked for (`<`): read ahead, quietly.
+      const before = prevDay(day);
+      if (!recall(dayKey(before))) void readOnce(dayKey(before), () => service.list(before));
     });
     return () => {
       live = false;
     };
   }, [day, service, userId]);
-  return state.day === day ? state : { status: 'loading', groups: [] };
+  if (state.day === day) return state;
+  const kept = day ? recall<Group[]>(dayKey(day)) : undefined;
+  return kept ? { status: 'ready', groups: kept } : { status: 'loading', groups: [] };
+}
+
+const dayKey = (day: string) => `groups-on:${day}`;
+
+/** Reads a past day's groups ahead (a group's calendar, say), so opening it shows them at once. */
+export function prefetchGroupsOnDay(day: string, service: GroupService = defaultService): void {
+  if (!service.available || day >= dateKey() || recall(dayKey(day))) return;
+  void readOnce(dayKey(day), () => service.list(day));
 }
 
 /**
@@ -248,12 +294,17 @@ export function useGroupPingDays(
   const key = groupId ? `${groupId}|${from}|${to}` : '';
   useEffect(() => {
     if (!groupId) return;
-    setState({ key, status: 'loading', days: {} });
+    // A month seen before opens on what it had, and is read again behind it.
+    const kept = recall<PingDays>(`ping-days:${key}`);
+    setState(kept ? { key, status: 'ready', days: kept } : { key, status: 'loading', days: {} });
     if (!service.available || !userId) return setState({ key, status: 'error', days: {} });
     let live = true;
     void (async () => {
       const asked = await service.pingDays(groupId, from, to);
-      if (asked !== 'error') return live && setState({ key, status: 'ready', days: asked });
+      if (asked !== 'error') {
+        remember(`ping-days:${key}`, asked);
+        return live && setState({ key, status: 'ready', days: asked });
+      }
       const today = dateKey();
       const dayList: string[] = [];
       for (let d = from; d <= to && d <= today; d = nextDay(d)) dayList.push(d);
@@ -266,13 +317,21 @@ export function useGroupPingDays(
         if (ids.length) days[dayList[i]] = ids;
       });
       const failed = lists.length > 0 && lists.every((l) => l === 'error');
+      if (!failed) remember(`ping-days:${key}`, days);
       setState({ key, status: failed ? 'error' : 'ready', days });
     })();
     return () => {
       live = false;
     };
   }, [key, groupId, from, to, service, userId]);
-  return state.key === key ? state : { status: 'loading', days: {} };
+  if (state.key === key) return state;
+  const kept = key ? recall<PingDays>(`ping-days:${key}`) : undefined;
+  return kept ? { status: 'ready', days: kept } : { status: 'loading', days: {} };
+}
+
+function prevDay(day: string): string {
+  const [y, m, d] = day.split('-').map(Number);
+  return dateKey(new Date(y, m - 1, d - 1));
 }
 
 function nextDay(day: string): string {

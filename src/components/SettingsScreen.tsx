@@ -1,14 +1,14 @@
 import { Bell, ChevronLeft, Heart, MapPin, MessageCircle, MessagesSquare, ChevronRight, FileText, Link, LocateFixed, MapPinOff, Monitor, Send, UserRound, Volume2, VolumeX } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { GROUP_ALERT_KINDS, GROUP_ALERT_LABELS, groupAlertOn, type GroupAlertKind, PING_ALERT_HOURS, toggleGroupAlert, toggleGroupAlertsAll } from '../domain/profile';
 import { effectiveCover, type Group } from '../domain/groups';
 import type { Account } from '../hooks/useAccount';
 import type { AppTheme, Profile } from '../services/profileRepository';
 import { clearAppData } from '../services/settingsRepository';
-import { SWIPE, swipeCommits } from '../domain/appTabs';
-import { motionMs, slideOff, springBack } from '../lib/swipeSlide';
+import { motionMs, slideOff } from '../lib/swipeSlide';
+import { useSwipeBack } from '../hooks/useSwipeBack';
 import { ADMIN_ATTRIBUTION } from '../map/courseMap';
 import AlertBoard, { AlertTile } from './AlertBoard';
 import { GroupCover } from './WeNowPage';
@@ -110,43 +110,10 @@ export default function SettingsScreen({ profile, onChange, account, privacy, lo
 
   // A left-to-right swipe anywhere: the top screen follows the finger, and let
   // go far or fast enough it goes back (as ‹), otherwise it springs back.
-  const swipe = useRef<{ id: number; x: number; y: number; dx: number; v: number; at: number; el: HTMLElement | null } | null>(null);
-  const swallowClick = useRef(false);
-  const swipeStart = (e: ReactPointerEvent) => {
-    if (!e.isPrimary || closing.current) return;
-    swipe.current = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, v: 0, at: performance.now(), el: null };
-  };
-  const swipeMove = (e: ReactPointerEvent) => {
-    const sw = swipe.current;
-    if (!sw || sw.id !== e.pointerId) return;
-    const [dx, dy] = [e.clientX - sw.x, e.clientY - sw.y];
-    if (!sw.el) {
-      // A scroll (or a move left) isn't a swipe.
-      if (Math.abs(dy) > SWIPE.startPx && Math.abs(dy) >= Math.abs(dx)) swipe.current = null;
-      if (dx < SWIPE.startPx || Math.abs(dx) < Math.abs(dy)) return;
-      sw.el = (page !== 'main' && detailRef.current) || dialogRef.current;
-      try {
-        e.currentTarget.setPointerCapture(e.pointerId);
-      } catch {
-        // Not a live pointer: moves still come while over the screen.
-      }
-    }
-    const now = performance.now();
-    const next = Math.max(0, dx);
-    sw.v = (next - sw.dx) / Math.max(1, now - sw.at);
-    sw.dx = next;
-    sw.at = now;
-    if (sw.el) sw.el.style.translate = `${next}px 0`;
-  };
-  const swipeEnd = () => {
-    const sw = swipe.current;
-    swipe.current = null;
-    if (!sw?.el) return;
-    swallowClick.current = true;
-    const el = sw.el;
-    if (swipeCommits(1, sw.dx, el.getBoundingClientRect().width || window.innerWidth, sw.v)) return back(sw.dx);
-    springBack(el, sw.dx);
-  };
+  const swipe = useSwipeBack(() => back(), true, {
+    target: () => (page !== 'main' && detailRef.current) || dialogRef.current,
+    commit: (_el, fromPx) => !closing.current && back(fromPx),
+  });
   const current = PAGES.find((p) => p.id === page);
 
   const bodyOf = (page: Page): ReactNode => {
@@ -285,23 +252,21 @@ export default function SettingsScreen({ profile, onChange, account, privacy, lo
       // Taps here mustn't reach the app under it (React bubbles them through the portal).
       onClick={(event) => event.stopPropagation()}
       // The click a finished swipe would end in doesn't press what's under the finger.
-      onClickCapture={(event) => {
-        if (!swallowClick.current) return;
-        swallowClick.current = false;
-        event.preventDefault();
-        event.stopPropagation();
-      }}
+      onClickCapture={swipe.onClickCapture}
+      onTouchStart={swipe.onTouchStart}
+      onTouchMove={swipe.onTouchMove}
+      onTouchEnd={swipe.onTouchEnd}
+      onTouchCancel={swipe.onTouchCancel}
       onPointerDown={(event) => {
         event.stopPropagation();
-        swallowClick.current = false;
-        swipeStart(event);
+        swipe.onPointerDown(event);
       }}
-      onPointerMove={swipeMove}
+      onPointerMove={swipe.onPointerMove}
       onPointerUp={(event) => {
         event.stopPropagation();
-        swipeEnd();
+        swipe.onPointerUp(event);
       }}
-      onPointerCancel={swipeEnd}
+      onPointerCancel={swipe.onPointerCancel}
       onAnimationEnd={(event) => {
         if (event.target === event.currentTarget && event.animationName === 'settings-in') onCovered?.();
       }}

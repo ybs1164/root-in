@@ -6,8 +6,8 @@ import type { ViewerItem } from './PhotoViewer';
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const MONTHS_EN = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const DOWS_EN = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-/** A sideways drag on the strip this far (px) pages a week. */
-const WEEK_SWIPE_PX = 40;
+/** How far a swipe goes before it pages a day (or pulls the month open). */
+const DAY_SWIPE_PX = 40;
 
 const partsOf = (key: string) => key.split('-').map(Number) as [number, number, number];
 const weekdayOf = (key: string) => {
@@ -76,8 +76,8 @@ interface WeekCalendarProps {
  * Calendar H (2026-11-16, output/calendar-drafts-2026-11-15): one week as a
  * strip, with the picked day's preview card taking the rest of the screen.
  * 월 전체 (or pulling the strip down) grows the strip into the whole month;
- * picking a day there folds it back. A sideways drag on the strip pages a
- * week, keeping the weekday. Every day button carries `data-date` (TODAY's
+ * picking a day there folds it back. A sideways swipe anywhere on it (title,
+ * strip or card) goes a day back or on. Every day button carries `data-date` (TODAY's
  * pinch finds its day by it).
  */
 export default function WeekCalendar({ day, today, onSelect, onOpen, calendars, calendar, onCalendar, mark, isDisabled, starred, children }: WeekCalendarProps) {
@@ -114,35 +114,65 @@ export default function WeekCalendar({ day, today, onSelect, onOpen, calendars, 
     if (key === day && onOpen) return onOpen(key);
     onSelect(key);
   };
-  // A week further on can't go past today: the week holding today opens on today.
-  const pageWeek = (dir: -1 | 1) => {
-    const to = addDays(day, dir * 7);
-    if (!isDisabled?.(to)) return onSelect(to);
-    if (addDays(to, -weekdayOf(to)) <= today) onSelect(today);
+  // A day either side: the day before, or the day after (never past today).
+  // The card slides in from the side the finger came from.
+  const card = useRef<HTMLDivElement | null>(null);
+  const stepDay = (dir: -1 | 1) => {
+    const to = addDays(day, dir);
+    if (isDisabled?.(to)) return;
+    onSelect(to);
+    const el = card.current;
+    if (el?.animate && !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      el.animate([{ transform: `translateX(${dir * 36}px)`, opacity: 0.35 }, { transform: 'none', opacity: 1 }], { duration: 220, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+    }
   };
 
-  // The strip's own swipes: paging weeks sideways, pulling down to open the month.
-  // Its touches stop here, so the page's swipe back (and TODAY's pinch) leave them be.
-  const drag = useRef<{ x: number; y: number; id: number } | null>(null);
-  const stopTouch = (e: TouchEvent) => {
-    if (e.touches.length <= 1) e.stopPropagation();
+  // Swipes over the whole calendar — the title, the week, the day's card
+  // (2026-11-22): sideways goes a day back or on (not back a screen: the
+  // calendar's touches stop here, so the page's swipe back and TODAY's
+  // pinch leave them be); down on the week opens the month. A strip inside
+  // that scrolls sideways of its own (the member chips) keeps its swipes.
+  const drag = useRef<{ x: number; y: number; onStrip: boolean } | null>(null);
+  const startDrag = (x: number, y: number, target: EventTarget | null) => {
+    const el = target as Element | null;
+    const keep = el?.closest?.('[data-swipe-keep]');
+    const scrolls = keep && keep !== root.current && keep.scrollWidth > keep.clientWidth + 1;
+    drag.current = open || scrolls || el?.closest?.('.week-cal__list') ? null : { x, y, onStrip: !!el?.closest?.('.week-cal__strip') };
   };
-  const onDown = (e: ReactPointerEvent) => {
-    drag.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
-  };
-  const onUp = (e: ReactPointerEvent) => {
+  const endDrag = (x: number, y: number) => {
     const d = drag.current;
     drag.current = null;
-    if (!d || d.id !== e.pointerId) return;
-    const dx = e.clientX - d.x;
-    const dy = e.clientY - d.y;
-    if (Math.abs(dx) >= WEEK_SWIPE_PX && Math.abs(dx) > Math.abs(dy) * 1.5) {
+    if (!d) return;
+    const dx = x - d.x;
+    const dy = y - d.y;
+    if (Math.abs(dx) >= DAY_SWIPE_PX && Math.abs(dx) > Math.abs(dy) * 1.5) {
       swallowClick();
-      pageWeek(dx < 0 ? 1 : -1);
-    } else if (dy >= WEEK_SWIPE_PX && dy > Math.abs(dx) * 1.5) {
+      stepDay(dx < 0 ? 1 : -1);
+    } else if (d.onStrip && dy >= DAY_SWIPE_PX && dy > Math.abs(dx) * 1.5) {
       swallowClick();
       setOpen(true);
     }
+  };
+  const root = useRef<HTMLDivElement | null>(null);
+  const swipes = {
+    onTouchStart: (e: TouchEvent) => {
+      if (e.touches.length > 1) return void (drag.current = null);
+      e.stopPropagation();
+      startDrag(e.touches[0].clientX, e.touches[0].clientY, e.target);
+    },
+    onTouchMove: (e: TouchEvent) => {
+      if (e.touches.length <= 1) e.stopPropagation();
+    },
+    onTouchEnd: (e: TouchEvent) => {
+      if (e.touches.length > 0) return;
+      e.stopPropagation();
+      const t = e.changedTouches[0];
+      if (t) endDrag(t.clientX, t.clientY);
+    },
+    onTouchCancel: () => (drag.current = null),
+    // A mouse (no touches): the same swipes by dragging.
+    onPointerDown: (e: ReactPointerEvent) => e.pointerType === 'mouse' && startDrag(e.clientX, e.clientY, e.target),
+    onPointerUp: (e: ReactPointerEvent) => e.pointerType === 'mouse' && endDrag(e.clientX, e.clientY),
   };
 
   const dayButton = (key: string, inStrip: boolean, outside = false) => {
@@ -177,7 +207,7 @@ export default function WeekCalendar({ day, today, onSelect, onOpen, calendars, 
   };
 
   return (
-    <div className={`week-cal ${open ? 'is-open' : ''}`}>
+    <div ref={root} className={`week-cal ${open ? 'is-open' : ''}`} data-swipe-keep {...swipes}>
       <div className="week-cal__head">
         <button type="button" className="week-cal__title" aria-label="월 전체 보기" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
           {MONTHS_EN[m - 1]} {y}
@@ -243,21 +273,14 @@ export default function WeekCalendar({ day, today, onSelect, onOpen, calendars, 
           <button type="button" className="week-cal__grabber" aria-label="접기" onClick={() => setOpen(false)} />
         </div>
       ) : (
-        <div
-          className="week-cal__strip"
-          data-swipe-keep
-          onPointerDown={onDown}
-          onPointerUp={onUp}
-          onPointerCancel={() => (drag.current = null)}
-          onTouchStart={stopTouch}
-          onTouchMove={stopTouch}
-          onTouchEnd={stopTouch}
-        >
+        <div className="week-cal__strip">
           {week.map((key) => dayButton(key, true))}
         </div>
       )}
 
-      <div className="week-cal__card">{children}</div>
+      <div ref={card} className="week-cal__card">
+        {children}
+      </div>
     </div>
   );
 }

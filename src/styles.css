@@ -2877,15 +2877,22 @@ button:disabled {
 }
 
 /* Each sticker with its white die-cut edge and a hair of shadow, as printed. */
+/* The edge keeps to the sticker's width (2cqw of the slot = STICKER_EDGE_RATIO,
+   lib/stickerEdge.ts), as it does once stuck. */
+.sticker-sheet__slot {
+  container-type: inline-size;
+}
+
 .sticker-sheet__slot img,
 .sticker-free {
+  --edge: max(0.6px, 2cqw);
   display: block;
   width: 100%;
   aspect-ratio: 1;
   object-fit: contain;
   pointer-events: none;
-  filter: drop-shadow(1.5px 0 0 var(--sticker-edge)) drop-shadow(-1.5px 0 0 var(--sticker-edge))
-    drop-shadow(0 1.5px 0 var(--sticker-edge)) drop-shadow(0 -1.5px 0 var(--sticker-edge))
+  filter: drop-shadow(var(--edge) 0 0 var(--sticker-edge)) drop-shadow(calc(var(--edge) * -1) 0 0 var(--sticker-edge))
+    drop-shadow(0 var(--edge) 0 var(--sticker-edge)) drop-shadow(0 calc(var(--edge) * -1) 0 var(--sticker-edge))
     drop-shadow(0 1px 1.5px var(--sticker-shadow));
 }
 
@@ -2917,8 +2924,8 @@ button:disabled {
   z-index: 90;
   translate: -50% -50%;
   scale: 1.08;
-  filter: drop-shadow(1.5px 0 0 var(--sticker-edge)) drop-shadow(-1.5px 0 0 var(--sticker-edge))
-    drop-shadow(0 1.5px 0 var(--sticker-edge)) drop-shadow(0 -1.5px 0 var(--sticker-edge))
+  filter: drop-shadow(var(--edge) 0 0 var(--sticker-edge)) drop-shadow(calc(var(--edge) * -1) 0 0 var(--sticker-edge))
+    drop-shadow(0 var(--edge) 0 var(--sticker-edge)) drop-shadow(0 calc(var(--edge) * -1) 0 var(--sticker-edge))
     drop-shadow(0 8px 10px var(--sticker-shadow));
   animation: sticker-pop 0.22s var(--pop-ease) both;
   transition: rotate 0.12s ease-out;
@@ -8540,8 +8547,8 @@ button:disabled {
   aspect-ratio: 1;
   object-fit: contain;
   pointer-events: none;
-  /* The white die-cut edge (--edge: the same on every sticker, whatever its
-     size; the share image draws the same, lib/stickerEdge.ts). */
+  /* The white die-cut edge (--edge: a share of the sticker's own width; the
+     share image draws the same, lib/stickerEdge.ts). */
   filter: drop-shadow(var(--edge) 0 0 var(--sticker-edge)) drop-shadow(calc(var(--edge) * -1) 0 0 var(--sticker-edge))
     drop-shadow(0 var(--edge) 0 var(--sticker-edge)) drop-shadow(0 calc(var(--edge) * -1) 0 var(--sticker-edge))
     drop-shadow(0 calc(var(--edge) * 0.7) var(--edge) var(--sticker-shadow));
@@ -8930,13 +8937,6 @@ button:disabled {
   background: var(--accent);
   color: var(--on-accent);
   --icon-ink: var(--on-accent-icon);
-}
-
-.we-now__note {
-  margin: 40px 0 0;
-  color: var(--muted);
-  --icon-ink: var(--icon);
-  text-align: center;
 }
 
 .we-now__empty {
@@ -13303,7 +13303,8 @@ button.group-photo-panel__photo {
   padding: 0;
   border: 0;
   border-radius: 10px;
-  background: transparent;
+  /* The photo's square, there before the picture is in. */
+  background: var(--surface-2);
   line-height: 0;
 }
 
@@ -13440,4 +13441,152 @@ button.group-photo-panel__photo {
   .group-calendar.is-leaving {
     animation-duration: 1ms;
   }
+}
+
+/* ---- Placeholders while a first read is out (components/Skeleton.tsx, 2026-11-22) ----
+   The layout of what's coming, in a softly pulsing grey, so a screen opens
+   whole and fills in instead of waiting on a "불러오는 중" line. */
+.skeleton {
+  display: block;
+  border-radius: 8px;
+  background: var(--surface-2);
+  animation: skeleton-pulse 1.3s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+.skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+}
+
+.skeleton-dot {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+}
+
+.skeleton-tile {
+  pointer-events: none;
+}
+
+.skeleton-tile__cover {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 0;
+}
+
+.skeleton-tile__body {
+  display: grid;
+  gap: 9px;
+  padding: 12px 11px 11px;
+}
+
+.skeleton-tile__faces {
+  display: flex;
+  gap: 2px;
+}
+
+.skeleton-gallery__date {
+  width: 74px;
+  height: 18px;
+  margin: 2px 0 12px;
+}
+
+.skeleton-gallery__cell {
+  aspect-ratio: 1;
+}
+
+.skeleton-chat {
+  display: grid;
+  gap: 14px;
+  padding: 8px 0;
+  list-style: none;
+}
+
+.skeleton-chat__line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.skeleton-chat__line.is-mine {
+  justify-content: flex-end;
+}
+
+.skeleton-chat__face {
+  width: 36px;
+  height: 36px;
+}
+
+.skeleton-chat__bubble {
+  height: 38px;
+  border-radius: 18px;
+}
+
+.skeleton-card__map {
+  height: 210px;
+  border-radius: 0;
+}
+
+.skeleton-card__lanes {
+  margin: 0;
+  padding: 4px 14px 12px;
+  list-style: none;
+}
+
+.skeleton-card__lanes li {
+  display: flex;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+.skeleton-card__face {
+  width: 30px;
+  height: 30px;
+}
+
+.skeleton-card__text {
+  display: grid;
+  flex: 1;
+  gap: 8px;
+}
+
+.skeleton-card__photos {
+  display: flex;
+  gap: 6px;
+}
+
+.skeleton-card__photo {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+}
+
+/* A line of mine on its way to the server: there at once, faded until it lands. */
+.group-chat__line.is-pending {
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+
+/* A comment of mine on its way, likewise. */
+.photo-comments__item.is-pending {
+  opacity: 0.55;
+}
+
+/* Chat photos hold their place (and a grey square) before the picture is in. */
+.group-chat__photo img,
+.group-chat__quote img {
+  background: var(--surface-2);
 }
