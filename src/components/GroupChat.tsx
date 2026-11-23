@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Camera, ChevronLeft, ChevronRight, Reply, Trash2, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Camera, ChevronLeft, ChevronRight, Copy, Reply, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { COMMENT_MAX, galleryDayLabel, unreadBy, type FeedItem } from '../domain/gallery';
 import { GROUP_LIMITS, groupTheme, isGroupBirthday, memberColor, memberInk, type Group, type GroupMember } from '../domain/groups';
@@ -17,6 +17,8 @@ import { showModalQuietly } from '../lib/dialog';
 import { ThemeScopeProvider, themeScopeProps } from '../lib/themeScope';
 import { useBackdropTap } from '../hooks/useBackdropTap';
 import ConfirmDialog from './ConfirmDialog';
+import CopiedPill from './CopiedPill';
+import { copyToClipboard } from '../lib/clipboard';
 
 /** The day calendar's height (its six weeks), to flip it over a pill low on the screen. */
 const PICKER_HEIGHT = 330;
@@ -47,6 +49,13 @@ export function lineSnippet(item: Pick<FeedItem, 'kind' | 'body' | 'place' | 'de
   if (item.deleted) return '삭제된 메시지예요';
   if (item.kind === 'photo') return `${placeName(item.place)} 사진`;
   return item.body ?? '';
+}
+
+/** The words a 복사하기 copies: a message's or comment's text, none for a photo or a deleted line. */
+export function copyableText(item: Pick<FeedItem, 'kind' | 'body' | 'deleted'>): string | null {
+  if (item.deleted || item.kind === 'photo') return null;
+  const body = item.body?.trim();
+  return body ? item.body! : null;
 }
 
 /** HH:MM, local. */
@@ -266,6 +275,11 @@ export default function GroupChat({
   const [deletingAll, setDeletingAll] = useState<FeedItem | null>(null);
   const [deletingMine, setDeletingMine] = useState<FeedItem | null>(null);
   const [deleteFailed, setDeleteFailed] = useState(false);
+  // 복사하기: the app turns off text selection, so the menu is the way to copy a line's words.
+  const [copied, setCopied] = useState<string | null>(null);
+  const clearCopied = useCallback(() => setCopied(null), []);
+  const copyLine = async (body: string) =>
+    setCopied((await copyToClipboard(body)) ? '메시지를 복사했어요' : '복사하지 못했어요');
   const deleteForAll = async (item: FeedItem) => {
     const ok = await groupService.deleteLine(group.id, item);
     setDeleteFailed(!ok);
@@ -534,11 +548,13 @@ export default function GroupChat({
           item={menuFor}
           who={nameOf(menuFor)}
           onReply={() => startReply(menuFor)}
+          onCopy={copyableText(menuFor) ? () => void copyLine(copyableText(menuFor)!) : undefined}
           onDeleteAll={menuFor.mine && !menuFor.deleted ? () => setDeletingAll(menuFor) : undefined}
           onDeleteMine={() => setDeletingMine(menuFor)}
           onClose={() => setMenuFor(null)}
         />
       )}
+      <CopiedPill notice={copied} onDone={clearCopied} />
       {deletingAll && (
         <ConfirmDialog
           label="모두에게 삭제"
@@ -651,14 +667,15 @@ function ChatDayPicker({ at, days, createdAt, onPick, onClose }: { at: { day: st
 }
 
 /**
- * A 대화 line held down: what it says, then 답장하기, 모두에게 삭제하기 (my
- * own lines only) and 나에게만 삭제하기. A modal <dialog>: Esc, the phone's
+ * A 대화 line held down: what it says, then 답장하기, 복사하기 (lines with
+ * words), 모두에게 삭제하기 (my own lines only) and 나에게만 삭제하기. A modal <dialog>: Esc, the phone's
  * back and a tap outside close it.
  */
 function ChatLineMenu({
   item,
   who,
   onReply,
+  onCopy,
   onDeleteAll,
   onDeleteMine,
   onClose,
@@ -666,6 +683,7 @@ function ChatLineMenu({
   item: FeedItem;
   who: string;
   onReply(): void;
+  onCopy?: () => void;
   onDeleteAll?: () => void;
   onDeleteMine(): void;
   onClose(): void;
@@ -706,6 +724,12 @@ function ChatLineMenu({
           <button onClick={pick(onReply)}>
             <Reply size={20} strokeWidth={2.2} aria-hidden />
             답장하기
+          </button>
+        )}
+        {onCopy && (
+          <button onClick={pick(onCopy)}>
+            <Copy size={20} strokeWidth={2.2} aria-hidden />
+            복사하기
           </button>
         )}
         {onDeleteAll && (
