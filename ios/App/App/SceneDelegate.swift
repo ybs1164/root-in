@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import Photos
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
@@ -27,6 +28,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 class RootViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         bridge?.registerPluginInstance(AppIconPlugin())
+        bridge?.registerPluginInstance(PhotoSavePlugin())
     }
 }
 
@@ -52,6 +54,35 @@ public class AppIconPlugin: CAPPlugin, CAPBridgedPlugin {
                 return
             }
             app.setAlternateIconName(target) { _ in call.resolve() }
+        }
+    }
+}
+
+/// 사진 저장 in the big photo view: the photo goes into the photo album.
+/// Add-only access (NSPhotoLibraryAddUsageDescription) is all it asks for.
+@objc(PhotoSavePlugin)
+public class PhotoSavePlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "PhotoSavePlugin"
+    public let jsName = "PhotoSave"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "save", returnType: CAPPluginReturnPromise)
+    ]
+
+    @objc func save(_ call: CAPPluginCall) {
+        guard let base64 = call.getString("data"), let data = Data(base64Encoded: base64), UIImage(data: data) != nil else {
+            call.reject("사진을 읽을 수 없어요.")
+            return
+        }
+        PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
+            guard status == .authorized || status == .limited else {
+                call.reject("사진첩에 저장할 권한이 없어요.")
+                return
+            }
+            PHPhotoLibrary.shared().performChanges({
+                PHAssetCreationRequest.forAsset().addResource(with: .photo, data: data, options: nil)
+            }) { ok, error in
+                if ok { call.resolve() } else { call.reject("사진을 저장하지 못했어요.", nil, error) }
+            }
         }
     }
 }
