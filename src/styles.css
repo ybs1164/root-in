@@ -798,6 +798,26 @@ body {
   font-synthesis-weight: none;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
+  /* An app, not a page: a long press (on a pin, a photo, a chat line, a
+     button) shouldn't paint a blue text-selection block or pop the
+     copy / save-image callout. Text fields opt back in below. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+img {
+  -webkit-user-drag: none;
+}
+
+/* Typing needs selection back: caret placement, select-to-replace, paste.
+   iOS won't even focus a field that inherits user-select: none. */
+input,
+textarea,
+[contenteditable]:not([contenteditable='false']) {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 }
 
 button,
