@@ -182,8 +182,8 @@ export function usePhotoDoodle(
       const t = e.target as Element | null;
       if (t?.closest('.photo-doodle, .photo-doodle__tools, .decor-tray, .color-picker, .sticker-shop')) return;
       setTool(null);
-      // ✕ still closes the photo: a doodle just made mustn't take the first tap on it.
-      if (t?.closest('.group-photo-viewer__close')) return;
+      // ✕ still closes the photo and … still opens its menu: a doodle just made mustn't take the first tap on them.
+      if (t?.closest('.group-photo-viewer__close, .group-photo-viewer__more')) return;
       const swallow = (c: MouseEvent) => {
         c.stopPropagation();
         c.preventDefault();

@@ -12102,12 +12102,77 @@ button.group-photo-panel__photo {
   clip-path: inset(0 round 18px);
 }
 
-/* 펜 · 스티커 · 텍스트 over the photo's top right; the one out is in my colour. */
-.photo-doodle__tools {
+/* The row over the big photo: 펜 · 스티커 · 텍스트 at its left (the one out
+   in my colour), … at its right with 사진 저장 under it. */
+.group-photo-viewer__bar {
+  position: relative;
+  /* The menu drops over the photo. */
+  z-index: 3;
   display: flex;
-  justify-content: flex-end;
+  align-items: flex-start;
   gap: 10px;
   margin-bottom: -4px;
+}
+
+.photo-doodle__tools {
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.group-photo-viewer__more-box {
+  position: relative;
+  margin-left: auto;
+}
+
+.group-photo-viewer__more {
+  /* A bare ⋮ (no round plate), the 44px still all a press. */
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tray-fg);
+  --icon-ink: currentColor;
+}
+
+.group-photo-viewer__more:active,
+.group-photo-viewer__more.is-on {
+  opacity: 0.7;
+}
+
+.group-photo-viewer__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 140px;
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  animation: unfold 0.18s var(--settle-ease) both;
+}
+
+.group-photo-viewer__menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  --icon-ink: var(--icon);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.group-photo-viewer__menu button:active {
+  background: var(--surface-2);
 }
 
 .photo-doodle__tool {

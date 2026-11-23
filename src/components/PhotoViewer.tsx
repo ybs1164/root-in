@@ -1,13 +1,15 @@
-import { ArrowUp, Camera, ChevronLeft, ChevronRight, Heart, MessageCircle, Star, X } from 'lucide-react';
+import { ArrowUp, Camera, ChevronLeft, ChevronRight, Download, EllipsisVertical, Heart, MessageCircle, Star, X } from 'lucide-react';
 import { usePhotoDoodle } from './PhotoDoodle';
 import { usePhotoMarks, type PhotoMarks } from '../hooks/usePhotoMarks';
 import { usePhotoComments } from '../hooks/usePhotoComments';
 import { COMMENT_MAX } from '../domain/gallery';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { viewerStep } from '../domain/groups';
 import { themeScopeProps, useThemeScope } from '../lib/themeScope';
 import { SWIPE, swipeCommits } from '../domain/appTabs';
 import { motionMs, slideEase, SLIDE_OFF_MS, SPRING_BACK_MS } from '../lib/swipeSlide';
+import { photoSaveNotice, savePhoto } from '../services/photoSaveService';
+import CopiedPill from './CopiedPill';
 
 /** One photo the viewer pages through; no `photo` = an empty frame (a place with none). */
 export interface ViewerItem {
@@ -146,13 +148,43 @@ export default function PhotoViewer({
   };
   const goRef = useRef(go);
   goRef.current = go;
+
+  // …: top right over the photo, a small menu with 사진 저장 (the doodle tools keep to the left).
+  const [more, setMore] = useState(false);
+  const moreRef = useRef(more);
+  moreRef.current = more;
+  const moreBox = useRef<HTMLDivElement>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const clearNotice = useCallback(() => setNotice(null), []);
+  useEffect(() => setMore(false), [seq]);
+  useEffect(() => {
+    if (!more) return;
+    // A tap anywhere else only closes the menu: it doesn't also close the photo or press what's under it.
+    const away = (e: PointerEvent) => {
+      if (moreBox.current?.contains(e.target as Node)) return;
+      setMore(false);
+      const swallow = (c: MouseEvent) => {
+        c.stopPropagation();
+        c.preventDefault();
+      };
+      document.addEventListener('click', swallow, { capture: true, once: true });
+      window.setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 500);
+    };
+    document.addEventListener('pointerdown', away, true);
+    return () => document.removeEventListener('pointerdown', away, true);
+  }, [more]);
+  const save = async (src: string) => {
+    setMore(false);
+    // The pill only once the photo is known to be saved: the album (or the file) has it.
+    setNotice(photoSaveNotice(await savePhoto(src)));
+  };
   const toolRef = useRef(tool);
   toolRef.current = tool;
   const putAway = useRef(doodle.putAway);
   putAway.current = doodle.putAway;
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') toolRef.current ? putAway.current() : onClose();
+      if (e.key === 'Escape') moreRef.current ? setMore(false) : toolRef.current ? putAway.current() : onClose();
       // Typing a comment: the arrows move in the text, not between photos.
       else if ((e.target as HTMLElement | null)?.closest?.('input, textarea')) return;
       else if (e.key === 'ArrowLeft') goRef.current(-1);
@@ -418,7 +450,30 @@ export default function PhotoViewer({
       </button>
       <figure ref={figure} className={`group-photo-viewer__figure ${commentPath !== undefined ? 'has-comments' : ''}`} onClick={(e) => e.stopPropagation()}>
         {ping.date && <p className="group-photo-viewer__date">{ping.date}</p>}
-        {ping.photo && doodle.tools}
+        {ping.photo && (
+          <div className="group-photo-viewer__bar">
+            {doodle.tools}
+            <div ref={moreBox} className="group-photo-viewer__more-box">
+              <button
+                className={`group-photo-viewer__more ${more ? 'is-on' : ''}`}
+                aria-label="더보기"
+                aria-haspopup="menu"
+                aria-expanded={more}
+                onClick={() => setMore((m) => !m)}
+              >
+                <EllipsisVertical size={24} strokeWidth={2.6} aria-hidden />
+              </button>
+              {more && (
+                <div className="group-photo-viewer__menu" role="menu">
+                  <button role="menuitem" onClick={() => void save(ping.photo!)}>
+                    <Download size={18} strokeWidth={2.2} aria-hidden />
+                    사진 저장
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         <div ref={photo} className={`group-photo-viewer__drag ${zoomed ? 'is-zoomed' : ''}`}>
           {/* Two fingers zoom this (the photo and its doodles together) past how big it opened. */}
           <div ref={zoomBox} className="group-photo-viewer__zoom">
@@ -473,6 +528,7 @@ export default function PhotoViewer({
         {doodle.tray}
         {commentPath !== undefined && <PhotoCommentList path={commentPath} writing={writing && !!commentPath} onSent={() => setWriting(false)} />}
       </figure>
+      <CopiedPill notice={notice} onDone={clearNotice} />
     </div>
   );
 }
