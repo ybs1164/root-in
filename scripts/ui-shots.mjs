@@ -7,6 +7,8 @@
 //   npm run shots -- poi           -> map places (one sticker per kind per screen) in 2 places × 3 scales, kinds listed (docs/plan-poi-priority.md)
 //   npm run shots -- silhouettes   -> 미니맵 outlines, before | after, filled in one colour (the silhouette test)
 //   SHOTS_SCHEME=dark npm run shots -- mainmap -> the same in the phone's dark mode (…-dark.png)
+//   npm run shots -- pad flip      -> the other sizes (phone-land · flip · flip-land · pad · pad-land), only when named;
+//                                     with state filters too: npm run shots -- pad-land group
 // Output: ui-shots/<width>-<state>.png (git-ignored).
 import { mkdir, readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
@@ -21,6 +23,22 @@ const VIEWPORTS = {
   mobile: { width: 375, height: 812, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
   desktop: { width: 1280, height: 800, deviceScaleFactor: 1 },
 };
+// Shot only when named (`npm run shots -- pad`): a phone on its side, a
+// Galaxy Z Flip's tall inner screen both ways, an 11" iPad both ways.
+const MORE_VIEWPORTS = {
+  'phone-land': { width: 812, height: 375, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
+  flip: { width: 412, height: 915, isMobile: true, hasTouch: true, deviceScaleFactor: 2.625 },
+  'flip-land': { width: 915, height: 412, isMobile: true, hasTouch: true, deviceScaleFactor: 2.625 },
+  pad: { width: 820, height: 1180, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
+  'pad-land': { width: 1180, height: 820, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
+};
+const ALL_VIEWPORTS = { ...VIEWPORTS, ...MORE_VIEWPORTS };
+// A filter naming a size picks sizes; the rest pick states.
+const sizeFilters = filters.filter((f) => Object.keys(ALL_VIEWPORTS).some((name) => name === f || (f in VIEWPORTS && name.includes(f))));
+const stateFilters = filters.filter((f) => !sizeFilters.includes(f));
+const shotSizes = sizeFilters.length
+  ? Object.fromEntries(Object.entries(ALL_VIEWPORTS).filter(([name]) => sizeFilters.some((f) => name === f || name.startsWith(`${f}-`) || (f in VIEWPORTS && name.includes(f)))))
+  : VIEWPORTS;
 
 const place = (id, name, lng, lat, category, address) => ({ id, name, center: [lng, lat], category, address });
 const P = {
@@ -272,29 +290,98 @@ async function silhouetteSheet(page) {
 
 const settle = (page, ms = 1500) => page.waitForTimeout(ms);
 const click = (page, name) => page.getByRole('button', { name }).first().click({ timeout: 3000 });
+// The app opens on We Now: the map is the small button beside the big one.
+const toMap = async (page) => { await click(page, /^지도$/); await settle(page, 1200); };
+// TODAY opens from We Now's TODAY tile (a corner of it: a ping there would be picked instead).
+const openToday = async (page) => { await page.locator('.today-tile').click({ position: { x: 12, y: 12 }, timeout: 3000 }); await settle(page, 1500); };
 
 // Each state starts from a fresh page with seeded storage.
+/**
+ * A made-up group with two members' photo places, opened without the server:
+ * the server is cut off and the group list is the copy kept on this phone
+ * (services/groupsCache.ts), which stays up while no one is signed in yet.
+ */
+async function withGroup(page, reload) {
+  await page.route(/supabase\.co/, (r) => r.abort());
+  await page.evaluate(async () => {
+    const { dateKey } = await import('/src/domain/diary.ts');
+    const at = (h, m) => { const d = new Date(); d.setHours(h, m, 0, 0); return d.toISOString(); };
+    const photo = '/brand/apple-touch-icon-matcha.png';
+    const member = (i, nickname, pings) => ({ userId: `shot-user-${i}`, slot: i, color: i, nickname, alias: null, photo: null, pings });
+    const group = {
+      id: 'shot-group', name: '성수 메이트', cover: 1, inviteSlug: 'shotgroup', mine: true, createdAt: '2026-10-01T00:00:00.000Z',
+      members: [
+        member(0, '지우', [
+          { at: at(10, 5), center: [127.0582, 37.5447], name: '어니언 성수', photo },
+          { at: at(12, 30), center: [127.0557, 37.5431], name: '성수 갈비집', photo },
+          { at: at(16, 40), center: [127.0374, 37.5444], name: '서울숲', photo },
+        ]),
+        member(1, '민수', [
+          { at: at(11, 0), center: [126.978, 37.5759], name: '광화문', photo },
+          { at: at(14, 20), center: [126.9707, 37.5796], name: '서촌 카페', photo },
+        ]),
+      ],
+    };
+    // No one signed in (a guest made while seeding would replace the copy).
+    for (const key of Object.keys(localStorage)) if (key.startsWith('sb-')) localStorage.removeItem(key);
+    localStorage.setItem('goodroot:groups-cache:v1', JSON.stringify({ userId: 'shot-user-0', day: dateKey(), groups: [group] }));
+  });
+  await reload('');
+}
+
+async function openGroup(page, reload) {
+  await withGroup(page, reload);
+  // (A tap through: on short screens the tile can sit under the bottom bar.)
+  await page.locator('.group-tile[data-group-id="shot-group"]').evaluate((el) => el.click());
+  await settle(page, 2500);
+}
+
 const STATES = {
   'home': async () => {},
+  'wenow': async (page, vp, reload) => { await withGroup(page, reload); },
+  'group': async (page, vp, reload) => { await openGroup(page, reload); },
+  'group-pass': async (page, vp, reload) => {
+    await openGroup(page, reload);
+    await page.locator('.group-rail__member').first().evaluate((el) => el.click());
+    await settle(page, 1500);
+  },
+  // A place's photo on the map → its panel → the photo big.
+  'photo-big': async (page, vp, reload) => {
+    await openGroup(page, reload);
+    const box = await page.locator('.group-ping__photo').last().boundingBox();
+    if (!box) throw new Error('no photo on the map');
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await settle(page, 1200);
+    await page.locator('.group-photo-panel__photo').first().click({ timeout: 3000 });
+    await settle(page, 1200);
+  },
+  'group-chat': async (page, vp, reload) => { await openGroup(page, reload); await click(page, /^대화/); },
+  'group-calendar': async (page, vp, reload) => { await openGroup(page, reload); await click(page, '그룹 달력'); },
+  'gallery': async (page, vp, reload) => { await openGroup(page, reload); await click(page, '갤러리'); },
+  'camera': async (page) => { await click(page, '카메라'); },
+  'settings': async (page) => { await click(page, '프로필'); await click(page, '설정'); },
   'search': async (page) => {
+    await toMap(page);
     await page.getByRole('searchbox').or(page.locator('input[type=search], input')).first().fill('성수 카페');
     await settle(page, 3000);
   },
-  'rail-route': async (page) => { await click(page, '경로'); },
+  'rail-route': async (page) => { await toMap(page); await click(page, '경로'); },
   // A saved route on the map: its stops, lines (on their casings) and names.
   'route-shown': async (page) => {
+    await toMap(page);
     await click(page, '경로');
     await page.getByText('성수 데이트 코스').first().click({ timeout: 3000 });
     await settle(page, 4000);
   },
   'rail-pins': async (page) => {
+    await toMap(page);
     await page.getByRole('button', { name: '핀', exact: true }).click({ timeout: 3000 });
     await page.getByRole('button', { name: /^카페 / }).first().click({ timeout: 3000 });
   },
-  'new-pin': async (page) => { await click(page, '지도에 핀 꽂기'); },
+  'new-pin': async (page) => { await toMap(page); await click(page, '지도에 핀 꽂기'); },
   // TODAY opens from We Now's TODAY tile (the calendar tab is gone, test build 2026-10-19).
-  'calendar': async (page) => { await click(page, 'We Now'); await click(page, /^TODAY/); },
-  'calendar-month': async (page) => { await click(page, 'We Now'); await click(page, /^TODAY/); await click(page, '월 달력'); },
+  'calendar': async (page) => { await openToday(page); },
+  'calendar-month': async (page) => { await openToday(page); await click(page, '월 달력'); },
   'profile': async (page) => { await click(page, '프로필'); },
   'profile-account': async (page) => { await click(page, '프로필'); await click(page, '설정'); await click(page, '계정 관리'); },
   'profile-edit': async (page) => {
@@ -303,10 +390,12 @@ const STATES = {
     await page.keyboard.type('My ID!');
   },
   'categories': async (page) => {
+    await toMap(page);
     await page.getByRole('button', { name: '핀', exact: true }).click({ timeout: 3000 });
     await click(page, '핀 카테고리 편집');
   },
   'category-form': async (page) => {
+    await toMap(page);
     await page.getByRole('button', { name: '핀', exact: true }).click({ timeout: 3000 });
     await click(page, '핀 카테고리 편집');
     await click(page, '카테고리 추가');
@@ -340,9 +429,9 @@ const STATES = {
 await mkdir(OUT, { recursive: true });
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const failures = [];
-for (const [vpName, vp] of Object.entries(VIEWPORTS)) {
+for (const [vpName, vp] of Object.entries(shotSizes)) {
   for (const [state, run] of Object.entries(STATES)) {
-    if (filters.length && !filters.some((f) => state.includes(f) || vpName.includes(f))) continue;
+    if (stateFilters.length && !stateFilters.some((f) => state.includes(f))) continue;
     const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, ...vp, locale: 'ko-KR',
       // The main map states place the map themselves: no location, so the app never moves it to "me".
       geolocation: { latitude: 37.5447, longitude: 127.0582 }, permissions: state.startsWith('mainmap') ? [] : ['geolocation'],

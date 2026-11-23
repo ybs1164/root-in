@@ -8,6 +8,29 @@ import { markKey } from './useAtlas';
 /** The top of a group's map held by ‹, the name and ⚙: a tapped ping is centred below it (or below its photo panel). */
 const GROUP_TITLE_PX = 120;
 
+/** At or under this height (a phone or a Flip on its side) the title and the rows sit elsewhere (styles.css). */
+const SHORT_SCREEN_PX = 560;
+
+/**
+ * The room on a short screen, read off the screen itself: under the title,
+ * over the camera (the member row beside it), and right of a picked
+ * member's pass, which stands at the left there.
+ */
+function shortPadding(box: DOMRect, side: number) {
+  const rect = (selector: string) => document.querySelector(selector)?.getBoundingClientRect();
+  const title = rect('.group-view__title');
+  const lows = ['.group-view__camera', '.group-rail'].map(rect).filter((r): r is DOMRect => !!r);
+  const pass = rect('.member-pass');
+  const floor = Math.min(box.bottom, ...lows.map((r) => r.top));
+  return {
+    // (The fit is by the pins' tips: the photo heads stand up to ~60px over them.)
+    top: Math.max(0, (title?.bottom ?? box.top + 72) - box.top + 60),
+    right: side,
+    bottom: Math.max(0, box.bottom - floor + 12),
+    left: pass ? Math.max(side, pass.right - box.left + 12) : side,
+  };
+}
+
 interface GroupFit {
   openGroup: Group | null;
   picked: string | null;
@@ -53,7 +76,7 @@ export function useGroupFit({ openGroup, picked, ping: tapped, day, atlasRef, at
         const below = document.querySelector('.member-pass, .group-rail')?.getBoundingClientRect().top ?? box.bottom;
         return atlasRef.current?.focus(markKey(tapped.member, tapped.seq), { top: above - box.top + (at - head) + 12, right: 0, bottom: Math.max(0, box.bottom - below), left: 0 });
       }
-      atlasRef.current?.fit(keys, padding, memberToMember ? STEP_GLIDE_MS : undefined);
+      atlasRef.current?.fit(keys, box && window.innerHeight <= SHORT_SCREEN_PX ? shortPadding(box, side) : padding, memberToMember ? STEP_GLIDE_MS : undefined);
     });
     return () => cancelAnimationFrame(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
